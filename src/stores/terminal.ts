@@ -51,7 +51,7 @@ interface TerminalState {
   toggleSettings: () => void;
 }
 
-export const useTerminalStore = create<TerminalState>((set, get) => ({
+export const useTerminalStore = create<TerminalState>((set, _get) => ({
   tabs: [],
   panes: {},
   activeTabId: null,
