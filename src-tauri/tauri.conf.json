@@ -18,7 +18,8 @@
         "minWidth": 800,
         "minHeight": 500,
         "decorations": false,
-        "transparent": true
+        "transparent": true,
+        "center": true
       }
     ],
     "security": {
@@ -34,6 +35,23 @@
       "icons/128x128@2x.png",
       "icons/icon.icns",
       "icons/icon.ico"
-    ]
+    ],
+    "shortDescription": "Modern terminal emulator with SSH management",
+    "longDescription": "Nexterm is a cross-platform terminal emulator featuring a Warp-style block UI, split panes, SSH connection management, 10 built-in themes, and glassmorphism design.",
+    "copyright": "Copyright 2026 Nexterm",
+    "category": "DeveloperTool",
+    "windows": {
+      "webviewInstallMode": {
+        "type": "downloadBootstrapper"
+      }
+    },
+    "macOS": {
+      "minimumSystemVersion": "10.15"
+    },
+    "linux": {
+      "deb": {
+        "depends": ["libwebkit2gtk-4.1-0", "libgtk-3-0"]
+      }
+    }
   }
 }

@@ -242,6 +242,9 @@ export default function TerminalPane({ paneId, isActive }: TerminalPaneProps) {
         borderLeft: isActive
           ? `2px solid ${theme.ui.accent}`
           : "2px solid transparent",
+        boxShadow: isActive
+          ? "inset 2px 0 8px rgba(82, 139, 255, 0.15)"
+          : "none",
       }}
     >
       <div ref={containerRef} className="h-full w-full" />

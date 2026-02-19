@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useThemeStore, applyThemeToDom } from "../stores/theme";
 import { useSettingsStore } from "../stores/settings";
+import { useWorkspaceStore } from "../stores/workspace";
+import { useSshStore } from "../stores/ssh";
 import { setupKeybindings } from "../lib/keybindings";
 
 export function AppProviders({ children }: { children: React.ReactNode }) {
@@ -10,6 +12,8 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     applyThemeToDom(theme);
+    useWorkspaceStore.getState().load();
+    useSshStore.getState().load();
     loadSettings().then(() => setReady(true));
   }, []);
 

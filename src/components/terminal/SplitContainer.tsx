@@ -129,10 +129,10 @@ function SplitView({
       </div>
       <div
         onMouseDown={handleMouseDown}
-        className={`shrink-0 bg-transparent transition-colors hover:bg-accent/50 ${
+        className={`shrink-0 bg-transparent transition-all duration-150 hover:bg-accent/50 hover:shadow-[0_0_8px_rgba(82,139,255,0.3)] ${
           isHorizontal
-            ? "w-1 cursor-col-resize"
-            : "h-1 cursor-row-resize"
+            ? "w-1 hover:w-1.5 cursor-col-resize"
+            : "h-1 hover:h-1.5 cursor-row-resize"
         }`}
       />
       <div

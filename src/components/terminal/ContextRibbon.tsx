@@ -1,4 +1,5 @@
 import { GitBranch, Folder, Circle } from "lucide-react";
+import { motion } from "framer-motion";
 import { shortenPath } from "../../lib/format";
 
 interface ContextRibbonProps {
@@ -15,7 +16,10 @@ export default function ContextRibbon({
   const displayPath = shortenPath(cwd);
 
   return (
-    <div
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.3 }}
       className="flex items-center gap-2 px-3 text-xs text-text-secondary"
       style={{ height: 28 }}
     >
@@ -40,6 +44,6 @@ export default function ContextRibbon({
           <span className="truncate">{displayPath}</span>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }

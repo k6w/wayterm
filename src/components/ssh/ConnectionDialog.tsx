@@ -1,0 +1,321 @@
+import { useState, useEffect, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { X, Lock, KeyRound, Shield } from "lucide-react";
+import type { SshConnection, AuthMethod } from "../../types/ssh";
+
+interface ConnectionDialogProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onSave: (connection: SshConnection) => void;
+  editConnection?: SshConnection | null;
+}
+
+const COLOR_TAGS = [
+  { name: "red", value: "#ef4444" },
+  { name: "green", value: "#22c55e" },
+  { name: "blue", value: "#3b82f6" },
+  { name: "yellow", value: "#eab308" },
+  { name: "purple", value: "#a855f7" },
+  { name: "cyan", value: "#06b6d4" },
+  { name: "orange", value: "#f97316" },
+  { name: "pink", value: "#ec4899" },
+];
+
+const AUTH_METHODS: { id: AuthMethod; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }[] = [
+  { id: "password", label: "Password", icon: Lock },
+  { id: "key", label: "Key", icon: KeyRound },
+  { id: "agent", label: "Agent", icon: Shield },
+];
+
+function generateId(): string {
+  return crypto.randomUUID();
+}
+
+function createDefaultFormState(): {
+  name: string;
+  host: string;
+  port: number;
+  username: string;
+  authMethod: AuthMethod;
+  colorTag: string | null;
+  folderPath: string;
+  startupCommands: string;
+} {
+  return {
+    name: "",
+    host: "",
+    port: 22,
+    username: "",
+    authMethod: "password",
+    colorTag: null,
+    folderPath: "/",
+    startupCommands: "",
+  };
+}
+
+export default function ConnectionDialog({
+  isOpen,
+  onClose,
+  onSave,
+  editConnection,
+}: ConnectionDialogProps) {
+  const [form, setForm] = useState(createDefaultFormState());
+
+  useEffect(() => {
+    if (isOpen) {
+      if (editConnection) {
+        setForm({
+          name: editConnection.name,
+          host: editConnection.host,
+          port: editConnection.port,
+          username: editConnection.username,
+          authMethod: editConnection.authMethod,
+          colorTag: editConnection.colorTag,
+          folderPath: editConnection.folderPath,
+          startupCommands: editConnection.startupCommands ?? "",
+        });
+      } else {
+        setForm(createDefaultFormState());
+      }
+    }
+  }, [isOpen, editConnection]);
+
+  const handleEscape = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isOpen) {
+        onClose();
+      }
+    },
+    [isOpen, onClose]
+  );
+
+  useEffect(() => {
+    window.addEventListener("keydown", handleEscape);
+    return () => window.removeEventListener("keydown", handleEscape);
+  }, [handleEscape]);
+
+  const handleSubmit = useCallback(
+    (e: React.FormEvent) => {
+      e.preventDefault();
+
+      const now = new Date().toISOString();
+
+      const connection: SshConnection = {
+        id: editConnection?.id ?? generateId(),
+        name: form.name.trim(),
+        host: form.host.trim(),
+        port: form.port,
+        username: form.username.trim(),
+        authMethod: form.authMethod,
+        privateKeyId: editConnection?.privateKeyId ?? null,
+        jumpHostId: editConnection?.jumpHostId ?? null,
+        startupCommands: form.startupCommands.trim() || null,
+        colorTag: form.colorTag,
+        folderPath: form.folderPath.trim() || "/",
+        sortOrder: editConnection?.sortOrder ?? 0,
+        createdAt: editConnection?.createdAt ?? now,
+        updatedAt: now,
+      };
+
+      onSave(connection);
+    },
+    [form, editConnection, onSave]
+  );
+
+  const updateField = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => {
+    setForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const inputClasses =
+    "bg-bg-tertiary border border-border rounded-md px-3 py-2 text-sm text-text-primary focus:border-accent outline-none w-full transition-colors";
+
+  const labelClasses = "text-sm text-text-secondary mb-1.5 block";
+
+  return (
+    <AnimatePresence>
+      {isOpen && (
+        <motion.div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.15 }}
+          onClick={onClose}
+        >
+          <motion.div
+            className="relative w-full max-w-lg rounded-xl bg-bg-primary border border-border overflow-hidden"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+              <h2 className="text-base font-medium text-text-primary">
+                {editConnection ? "Edit Connection" : "New Connection"}
+              </h2>
+              <button
+                type="button"
+                onClick={onClose}
+                className="p-1 text-text-muted hover:text-text-primary transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
+              <div>
+                <label className={labelClasses}>Name</label>
+                <input
+                  type="text"
+                  value={form.name}
+                  onChange={(e) => updateField("name", e.target.value)}
+                  className={inputClasses}
+                  placeholder="My Server"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-[1fr_100px] gap-3">
+                <div>
+                  <label className={labelClasses}>Host</label>
+                  <input
+                    type="text"
+                    value={form.host}
+                    onChange={(e) => updateField("host", e.target.value)}
+                    className={inputClasses}
+                    placeholder="hostname or IP"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className={labelClasses}>Port</label>
+                  <input
+                    type="number"
+                    value={form.port}
+                    onChange={(e) => updateField("port", parseInt(e.target.value, 10) || 22)}
+                    className={inputClasses}
+                    min={1}
+                    max={65535}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className={labelClasses}>Username</label>
+                <input
+                  type="text"
+                  value={form.username}
+                  onChange={(e) => updateField("username", e.target.value)}
+                  className={inputClasses}
+                  placeholder="root"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className={labelClasses}>Auth Method</label>
+                <div className="flex gap-2">
+                  {AUTH_METHODS.map((method) => {
+                    const Icon = method.icon;
+                    const isSelected = form.authMethod === method.id;
+                    return (
+                      <button
+                        key={method.id}
+                        type="button"
+                        onClick={() => updateField("authMethod", method.id)}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-md border text-sm transition-colors flex-1 justify-center ${
+                          isSelected
+                            ? "border-accent bg-accent/15 text-accent"
+                            : "border-border bg-bg-tertiary text-text-secondary hover:text-text-primary hover:border-border-focus"
+                        }`}
+                      >
+                        <Icon size={14} />
+                        {method.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <label className={labelClasses}>Color Tag</label>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => updateField("colorTag", null)}
+                    className={`w-6 h-6 rounded-full border-2 transition-colors ${
+                      form.colorTag === null
+                        ? "border-accent bg-bg-tertiary"
+                        : "border-border bg-bg-tertiary hover:border-border-focus"
+                    }`}
+                    title="None"
+                  >
+                    {form.colorTag === null && (
+                      <X size={12} className="text-text-muted mx-auto" />
+                    )}
+                  </button>
+                  {COLOR_TAGS.map((color) => {
+                    const isSelected = form.colorTag === color.name;
+                    return (
+                      <button
+                        key={color.name}
+                        type="button"
+                        onClick={() => updateField("colorTag", color.name)}
+                        className={`w-6 h-6 rounded-full border-2 transition-all ${
+                          isSelected
+                            ? "border-white scale-110"
+                            : "border-transparent hover:scale-110"
+                        }`}
+                        style={{ backgroundColor: color.value }}
+                        title={color.name}
+                      />
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div>
+                <label className={labelClasses}>Folder Path</label>
+                <input
+                  type="text"
+                  value={form.folderPath}
+                  onChange={(e) => updateField("folderPath", e.target.value)}
+                  className={inputClasses}
+                  placeholder="/"
+                />
+              </div>
+
+              <div>
+                <label className={labelClasses}>Startup Commands</label>
+                <textarea
+                  value={form.startupCommands}
+                  onChange={(e) => updateField("startupCommands", e.target.value)}
+                  className={`${inputClasses} resize-none min-h-[80px]`}
+                  placeholder="Commands to run after connection (optional)"
+                  rows={3}
+                />
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 py-2 text-sm text-text-secondary hover:text-text-primary transition-colors rounded-md"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-sm bg-accent hover:bg-accent-hover text-white rounded-md transition-colors font-medium"
+                >
+                  Save & Connect
+                </button>
+              </div>
+            </form>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}

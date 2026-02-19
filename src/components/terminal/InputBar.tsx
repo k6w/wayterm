@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, type KeyboardEvent } from "react";
 import { ChevronRight } from "lucide-react";
+import { motion } from "framer-motion";
 import { useSettingsStore } from "../../stores/settings";
 
 interface InputBarProps {
@@ -86,29 +87,35 @@ export default function InputBar({ sessionId: _sessionId, onSubmit }: InputBarPr
   );
 
   return (
-    <div className="flex w-full items-end gap-2 rounded-lg border border-white/10 bg-white/[0.08] px-3 py-2 backdrop-blur-sm transition-colors focus-within:border-accent">
-      <ChevronRight
-        size={16}
-        className="mt-0.5 shrink-0 text-accent"
-      />
-      <textarea
-        ref={textareaRef}
-        value={value}
-        onChange={(e) => {
-          setValue(e.target.value);
-          requestAnimationFrame(adjustHeight);
-        }}
-        onKeyDown={handleKeyDown}
-        placeholder="Enter command..."
-        rows={1}
-        className="w-full resize-none bg-transparent text-sm leading-5 text-text-primary placeholder:text-text-muted outline-none"
-        style={{
-          fontFamily: settings.appearance.terminalFontFamily,
-          fontSize: `${settings.appearance.terminalFontSize}px`,
-        }}
-        spellCheck={false}
-        autoComplete="off"
-      />
-    </div>
+    <motion.div
+      initial={{ y: 10, opacity: 0 }}
+      animate={{ y: 0, opacity: 1 }}
+      transition={{ duration: 0.2, delay: 0.1 }}
+    >
+      <div className="flex w-full items-end gap-2 rounded-lg border border-white/10 bg-white/[0.08] px-3 py-2 backdrop-blur-sm transition-colors focus-within:border-accent">
+        <ChevronRight
+          size={16}
+          className="mt-0.5 shrink-0 text-accent"
+        />
+        <textarea
+          ref={textareaRef}
+          value={value}
+          onChange={(e) => {
+            setValue(e.target.value);
+            requestAnimationFrame(adjustHeight);
+          }}
+          onKeyDown={handleKeyDown}
+          placeholder="Enter command..."
+          rows={1}
+          className="w-full resize-none bg-transparent text-sm leading-5 text-text-primary placeholder:text-text-muted outline-none"
+          style={{
+            fontFamily: settings.appearance.terminalFontFamily,
+            fontSize: `${settings.appearance.terminalFontSize}px`,
+          }}
+          spellCheck={false}
+          autoComplete="off"
+        />
+      </div>
+    </motion.div>
   );
 }
