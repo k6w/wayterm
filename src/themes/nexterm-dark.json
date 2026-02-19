@@ -1,0 +1,44 @@
+{
+  "id": "nexterm-dark",
+  "name": "Nexterm Dark",
+  "variant": "dark",
+  "terminal": {
+    "foreground": "#d4d4d4",
+    "background": "#0a0a0f",
+    "cursor": "#528bff",
+    "cursorAccent": "#0a0a0f",
+    "selection": "rgba(82, 139, 255, 0.25)",
+    "ansi": [
+      "#1e1e2e", "#f38ba8", "#a6e3a1", "#f9e2af",
+      "#89b4fa", "#cba6f7", "#94e2d5", "#bac2de",
+      "#585b70", "#f38ba8", "#a6e3a1", "#f9e2af",
+      "#89b4fa", "#cba6f7", "#94e2d5", "#a6adc8"
+    ]
+  },
+  "ui": {
+    "bgPrimary": "#0a0a0f",
+    "bgSecondary": "#12121a",
+    "bgTertiary": "#1a1a26",
+    "textPrimary": "#e4e4e9",
+    "textSecondary": "#a0a0b0",
+    "textMuted": "#5a5a70",
+    "accent": "#528bff",
+    "accentHover": "#6b9fff",
+    "border": "rgba(255, 255, 255, 0.08)",
+    "borderFocus": "#528bff",
+    "success": "#a6e3a1",
+    "warning": "#f9e2af",
+    "error": "#f38ba8"
+  },
+  "blur": {
+    "sidebar": 20,
+    "blocks": 4,
+    "inputBar": 12,
+    "overlay": 30
+  },
+  "opacity": {
+    "sidebar": 0.4,
+    "blocks": 0.05,
+    "inputBar": 0.08
+  }
+}
