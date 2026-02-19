@@ -2,6 +2,14 @@ import { create } from "zustand";
 import type { ThemeDefinition } from "../types/theme";
 import nextermDark from "../themes/nexterm-dark.json";
 import nextermLight from "../themes/nexterm-light.json";
+import monokaiPro from "../themes/monokai-pro.json";
+import dracula from "../themes/dracula.json";
+import nord from "../themes/nord.json";
+import solarizedDark from "../themes/solarized-dark.json";
+import solarizedLight from "../themes/solarized-light.json";
+import oneDark from "../themes/one-dark.json";
+import catppuccinMocha from "../themes/catppuccin-mocha.json";
+import tokyoNight from "../themes/tokyo-night.json";
 
 interface ThemeState {
   activeThemeId: string;
@@ -14,6 +22,14 @@ interface ThemeState {
 const builtinThemes: Record<string, ThemeDefinition> = {
   "nexterm-dark": nextermDark as unknown as ThemeDefinition,
   "nexterm-light": nextermLight as unknown as ThemeDefinition,
+  "monokai-pro": monokaiPro as unknown as ThemeDefinition,
+  "dracula": dracula as unknown as ThemeDefinition,
+  "nord": nord as unknown as ThemeDefinition,
+  "solarized-dark": solarizedDark as unknown as ThemeDefinition,
+  "solarized-light": solarizedLight as unknown as ThemeDefinition,
+  "one-dark": oneDark as unknown as ThemeDefinition,
+  "catppuccin-mocha": catppuccinMocha as unknown as ThemeDefinition,
+  "tokyo-night": tokyoNight as unknown as ThemeDefinition,
 };
 
 export const useThemeStore = create<ThemeState>((set, get) => ({

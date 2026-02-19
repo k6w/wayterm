@@ -1,4 +1,6 @@
 import { useTerminalStore } from "../stores/terminal";
+import type { TerminalPane } from "../types/terminal";
+import { getDefaultShell } from "./shell-detect";
 
 interface KeyAction {
   id: string;
@@ -10,15 +12,33 @@ interface KeyAction {
 const isMac = navigator.platform.toLowerCase().includes("mac");
 const mod = isMac ? "Meta" : "Control";
 
+function splitActivePane(direction: "horizontal" | "vertical") {
+  const { activePaneId, panes, splitPane } = useTerminalStore.getState();
+  if (!activePaneId) return;
+  const currentPane = panes[activePaneId];
+  if (!currentPane) return;
+  const shell = getDefaultShell();
+  const newPane: TerminalPane = {
+    id: crypto.randomUUID(),
+    sessionId: "",
+    blocks: [],
+    isActive: true,
+    cwd: currentPane.cwd,
+    shellType: shell.type,
+  };
+  splitPane(activePaneId, direction, newPane);
+}
+
 export function getDefaultKeybindings(): KeyAction[] {
   const store = useTerminalStore.getState();
+  const shell = getDefaultShell();
 
   return [
     {
       id: "new-tab",
       label: "New Tab",
       keys: `${mod}+t`,
-      handler: () => store.addTab("powershell"),
+      handler: () => store.addTab(shell.type),
     },
     {
       id: "close-tab",
@@ -51,13 +71,13 @@ export function getDefaultKeybindings(): KeyAction[] {
       id: "split-horizontal",
       label: "Split Horizontal",
       keys: `${mod}+Shift+d`,
-      handler: () => {},
+      handler: () => splitActivePane("horizontal"),
     },
     {
       id: "split-vertical",
       label: "Split Vertical",
       keys: `${mod}+Shift+e`,
-      handler: () => {},
+      handler: () => splitActivePane("vertical"),
     },
     {
       id: "next-tab",

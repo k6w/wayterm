@@ -1,0 +1,170 @@
+import { useSettingsStore } from "../../stores/settings";
+import { useThemeStore } from "../../stores/theme";
+import type { CursorStyle } from "../../types/settings";
+
+export default function AppearancePanel() {
+  const settings = useSettingsStore((s) => s.settings.appearance);
+  const update = useSettingsStore((s) => s.update);
+  const themes = useThemeStore((s) => s.themes);
+  const activeThemeId = useThemeStore((s) => s.activeThemeId);
+  const setTheme = useThemeStore((s) => s.setTheme);
+
+  const cursorOptions: { value: CursorStyle; label: string }[] = [
+    { value: "block", label: "Block" },
+    { value: "underline", label: "Underline" },
+    { value: "bar", label: "Bar" },
+  ];
+
+  const fontWeights = [100, 200, 300, 400, 500, 600, 700, 800, 900];
+
+  const handleThemeChange = (id: string) => {
+    setTheme(id);
+    update("appearance", { themeId: id });
+  };
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-sm font-medium text-text-primary mb-3">Theme</h3>
+        <div className="grid grid-cols-3 gap-3">
+          {Object.values(themes).map((theme) => (
+            <button
+              key={theme.id}
+              onClick={() => handleThemeChange(theme.id)}
+              className={`flex items-center gap-3 p-3 rounded-lg border transition-colors text-left ${
+                activeThemeId === theme.id
+                  ? "border-accent bg-accent/10"
+                  : "border-border bg-bg-tertiary hover:border-accent/50"
+              }`}
+            >
+              <div
+                className="w-6 h-6 rounded-full border border-border shrink-0"
+                style={{ background: theme.ui.accent }}
+              />
+              <div className="min-w-0">
+                <div className="text-sm text-text-primary truncate">{theme.name}</div>
+                <div className="text-xs text-text-muted capitalize">{theme.variant}</div>
+              </div>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-sm font-medium text-text-primary mb-3">Font</h3>
+        <div className="space-y-4">
+          <div className="flex justify-between items-center gap-4">
+            <label className="text-sm text-text-secondary">Font Family</label>
+            <input
+              type="text"
+              value={settings.terminalFontFamily}
+              onChange={(e) => update("appearance", { terminalFontFamily: e.target.value })}
+              className="bg-bg-tertiary border border-border rounded-md px-3 py-1.5 text-sm text-text-primary focus:border-accent outline-none w-56"
+            />
+          </div>
+          <div className="flex justify-between items-center gap-4">
+            <label className="text-sm text-text-secondary">
+              Font Size ({settings.terminalFontSize}px)
+            </label>
+            <input
+              type="range"
+              min={8}
+              max={24}
+              step={1}
+              value={settings.terminalFontSize}
+              onChange={(e) => update("appearance", { terminalFontSize: Number(e.target.value) })}
+              className="w-40 accent-accent"
+            />
+          </div>
+          <div className="flex justify-between items-center gap-4">
+            <label className="text-sm text-text-secondary">Font Weight</label>
+            <select
+              value={settings.terminalFontWeight}
+              onChange={(e) => update("appearance", { terminalFontWeight: Number(e.target.value) })}
+              className="bg-bg-tertiary border border-border rounded-md px-3 py-1.5 text-sm text-text-primary focus:border-accent outline-none"
+            >
+              {fontWeights.map((w) => (
+                <option key={w} value={w}>
+                  {w}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className="flex justify-between items-center gap-4">
+            <label className="text-sm text-text-secondary">
+              Line Height ({settings.terminalLineHeight.toFixed(1)})
+            </label>
+            <input
+              type="range"
+              min={1.0}
+              max={2.0}
+              step={0.1}
+              value={settings.terminalLineHeight}
+              onChange={(e) => update("appearance", { terminalLineHeight: Number(e.target.value) })}
+              className="w-40 accent-accent"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-sm font-medium text-text-primary mb-3">Cursor</h3>
+        <div className="space-y-4">
+          <div className="flex justify-between items-center gap-4">
+            <label className="text-sm text-text-secondary">Cursor Style</label>
+            <div className="flex gap-2">
+              {cursorOptions.map((opt) => (
+                <button
+                  key={opt.value}
+                  onClick={() => update("appearance", { cursorStyle: opt.value })}
+                  className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${
+                    settings.cursorStyle === opt.value
+                      ? "bg-accent text-white border-accent"
+                      : "bg-bg-tertiary text-text-secondary border-border hover:border-accent"
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="flex justify-between items-center gap-4">
+            <label className="text-sm text-text-secondary">Cursor Blink</label>
+            <button
+              onClick={() => update("appearance", { cursorBlink: !settings.cursorBlink })}
+              className={`relative w-10 h-5 rounded-full transition-colors ${
+                settings.cursorBlink ? "bg-accent" : "bg-bg-tertiary"
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
+                  settings.cursorBlink ? "translate-x-5" : "translate-x-0"
+                }`}
+              />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-sm font-medium text-text-primary mb-3">Window</h3>
+        <div className="space-y-4">
+          <div className="flex justify-between items-center gap-4">
+            <label className="text-sm text-text-secondary">
+              Opacity ({settings.windowOpacity.toFixed(2)})
+            </label>
+            <input
+              type="range"
+              min={0.5}
+              max={1.0}
+              step={0.01}
+              value={settings.windowOpacity}
+              onChange={(e) => update("appearance", { windowOpacity: Number(e.target.value) })}
+              className="w-40 accent-accent"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

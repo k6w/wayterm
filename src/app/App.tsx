@@ -2,6 +2,9 @@ import { useEffect } from "react";
 import { AppProviders } from "./providers";
 import Titlebar from "../components/titlebar/Titlebar";
 import SplitContainer from "../components/terminal/SplitContainer";
+import Sidebar from "../components/sidebar/Sidebar";
+import CommandPalette from "../components/command-palette/CommandPalette";
+import SettingsModal from "../components/settings/SettingsModal";
 import { useTerminalStore } from "../stores/terminal";
 import { getDefaultShell } from "../lib/shell-detect";
 
@@ -31,6 +34,9 @@ function AppContent() {
           </div>
         )}
       </div>
+      <Sidebar />
+      <CommandPalette />
+      <SettingsModal />
     </div>
   );
 }

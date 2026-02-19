@@ -1,6 +1,7 @@
 import { Plus } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 import { useTerminalStore } from "../../stores/terminal";
+import { getDefaultShell } from "../../lib/shell-detect";
 import Tab from "./Tab";
 
 export default function TabStrip() {
@@ -25,7 +26,7 @@ export default function TabStrip() {
       </div>
       <button
         className="flex size-7 shrink-0 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-bg-tertiary hover:text-text-primary"
-        onClick={() => addTab("powershell")}
+        onClick={() => addTab(getDefaultShell().type)}
       >
         <Plus className="size-3.5" />
       </button>

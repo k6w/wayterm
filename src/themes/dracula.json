@@ -1,0 +1,44 @@
+{
+  "id": "dracula",
+  "name": "Dracula",
+  "variant": "dark",
+  "terminal": {
+    "foreground": "#f8f8f2",
+    "background": "#282a36",
+    "cursor": "#bd93f9",
+    "cursorAccent": "#282a36",
+    "selection": "rgba(189, 147, 249, 0.22)",
+    "ansi": [
+      "#21222c", "#ff5555", "#50fa7b", "#f1fa8c",
+      "#bd93f9", "#ff79c6", "#8be9fd", "#f8f8f2",
+      "#6272a4", "#ff6e6e", "#69ff94", "#ffffa5",
+      "#d6acff", "#ff92df", "#a4ffff", "#ffffff"
+    ]
+  },
+  "ui": {
+    "bgPrimary": "#282a36",
+    "bgSecondary": "#2d2f3d",
+    "bgTertiary": "#343746",
+    "textPrimary": "#f8f8f2",
+    "textSecondary": "#bfbfbf",
+    "textMuted": "#6272a4",
+    "accent": "#bd93f9",
+    "accentHover": "#caa8fc",
+    "border": "rgba(255, 255, 255, 0.08)",
+    "borderFocus": "#bd93f9",
+    "success": "#50fa7b",
+    "warning": "#f1fa8c",
+    "error": "#ff5555"
+  },
+  "blur": {
+    "sidebar": 20,
+    "blocks": 4,
+    "inputBar": 12,
+    "overlay": 30
+  },
+  "opacity": {
+    "sidebar": 0.4,
+    "blocks": 0.05,
+    "inputBar": 0.08
+  }
+}

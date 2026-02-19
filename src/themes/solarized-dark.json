@@ -1,0 +1,44 @@
+{
+  "id": "solarized-dark",
+  "name": "Solarized Dark",
+  "variant": "dark",
+  "terminal": {
+    "foreground": "#839496",
+    "background": "#002b36",
+    "cursor": "#268bd2",
+    "cursorAccent": "#002b36",
+    "selection": "rgba(38, 139, 210, 0.22)",
+    "ansi": [
+      "#073642", "#dc322f", "#859900", "#b58900",
+      "#268bd2", "#d33682", "#2aa198", "#eee8d5",
+      "#002b36", "#cb4b16", "#586e75", "#657b83",
+      "#839496", "#6c71c4", "#93a1a1", "#fdf6e3"
+    ]
+  },
+  "ui": {
+    "bgPrimary": "#002b36",
+    "bgSecondary": "#073642",
+    "bgTertiary": "#0a4050",
+    "textPrimary": "#eee8d5",
+    "textSecondary": "#93a1a1",
+    "textMuted": "#586e75",
+    "accent": "#268bd2",
+    "accentHover": "#3a9be0",
+    "border": "rgba(255, 255, 255, 0.08)",
+    "borderFocus": "#268bd2",
+    "success": "#859900",
+    "warning": "#b58900",
+    "error": "#dc322f"
+  },
+  "blur": {
+    "sidebar": 20,
+    "blocks": 4,
+    "inputBar": 12,
+    "overlay": 30
+  },
+  "opacity": {
+    "sidebar": 0.4,
+    "blocks": 0.05,
+    "inputBar": 0.08
+  }
+}

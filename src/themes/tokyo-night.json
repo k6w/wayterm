@@ -1,0 +1,44 @@
+{
+  "id": "tokyo-night",
+  "name": "Tokyo Night",
+  "variant": "dark",
+  "terminal": {
+    "foreground": "#a9b1d6",
+    "background": "#1a1b26",
+    "cursor": "#7aa2f7",
+    "cursorAccent": "#1a1b26",
+    "selection": "rgba(122, 162, 247, 0.22)",
+    "ansi": [
+      "#15161e", "#f7768e", "#9ece6a", "#e0af68",
+      "#7aa2f7", "#bb9af7", "#7dcfff", "#a9b1d6",
+      "#414868", "#f7768e", "#9ece6a", "#e0af68",
+      "#7aa2f7", "#bb9af7", "#7dcfff", "#c0caf5"
+    ]
+  },
+  "ui": {
+    "bgPrimary": "#1a1b26",
+    "bgSecondary": "#1f2029",
+    "bgTertiary": "#24283b",
+    "textPrimary": "#c0caf5",
+    "textSecondary": "#a9b1d6",
+    "textMuted": "#565f89",
+    "accent": "#7aa2f7",
+    "accentHover": "#8db3f9",
+    "border": "rgba(255, 255, 255, 0.08)",
+    "borderFocus": "#7aa2f7",
+    "success": "#9ece6a",
+    "warning": "#e0af68",
+    "error": "#f7768e"
+  },
+  "blur": {
+    "sidebar": 20,
+    "blocks": 4,
+    "inputBar": 12,
+    "overlay": 30
+  },
+  "opacity": {
+    "sidebar": 0.4,
+    "blocks": 0.05,
+    "inputBar": 0.08
+  }
+}
