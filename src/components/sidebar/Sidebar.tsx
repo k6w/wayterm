@@ -5,8 +5,14 @@ import { useTerminalStore } from "../../stores/terminal";
 import QuickActions from "./QuickActions";
 import ConnectionTree from "./ConnectionTree";
 import WorkspaceList from "./WorkspaceList";
+import type { SshConnection } from "../../types/ssh";
 
-export default function Sidebar() {
+interface SidebarProps {
+  onNewSsh?: () => void;
+  onEditSsh?: (conn: SshConnection) => void;
+}
+
+export default function Sidebar({ onNewSsh, onEditSsh }: SidebarProps) {
   const sidebarOpen = useTerminalStore((s) => s.sidebarOpen);
   const toggleSidebar = useTerminalStore((s) => s.toggleSidebar);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -93,12 +99,15 @@ export default function Sidebar() {
             </div>
 
             <div className="flex flex-1 flex-col overflow-y-auto">
-              <QuickActions />
+              <QuickActions onNewSsh={onNewSsh} />
 
               <div className="mx-3 border-t border-white/[0.08]" />
 
               <div className="flex-1 py-1">
-                <ConnectionTree />
+                <ConnectionTree
+                  onAddConnection={onNewSsh}
+                  onEditConnection={onEditSsh}
+                />
               </div>
 
               <div className="mx-3 border-t border-white/[0.08]" />

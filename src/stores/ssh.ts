@@ -1,6 +1,13 @@
 import { create } from "zustand";
-import type { SshConnection, ConnectionStatus } from "../types/ssh";
-import { sshListConnections, sshSaveConnection, sshDeleteConnection } from "../lib/ipc";
+import type { SshConnection, SshKey, ConnectionStatus } from "../types/ssh";
+import {
+  sshListConnections,
+  sshSaveConnection,
+  sshDeleteConnection,
+  sshListKeys,
+  sshImportKey,
+  sshDeleteKey,
+} from "../lib/ipc";
 
 interface SshSessionState {
   connectionId: string;
@@ -10,11 +17,20 @@ interface SshSessionState {
 
 interface SshState {
   connections: SshConnection[];
+  keys: SshKey[];
   sessions: SshSessionState[];
   loaded: boolean;
   load: () => Promise<void>;
   saveConnection: (connection: SshConnection) => Promise<void>;
   deleteConnection: (id: string) => Promise<void>;
+  loadKeys: () => Promise<void>;
+  importKey: (request: {
+    name: string;
+    publicKey: string;
+    privateKeyPem: string;
+    algorithm: string;
+  }) => Promise<SshKey>;
+  removeKey: (id: string) => Promise<void>;
   addSession: (session: SshSessionState) => void;
   removeSession: (sessionId: string) => void;
   updateSessionStatus: (sessionId: string, status: ConnectionStatus) => void;
@@ -22,13 +38,17 @@ interface SshState {
 
 export const useSshStore = create<SshState>((set, get) => ({
   connections: [],
+  keys: [],
   sessions: [],
   loaded: false,
 
   load: async () => {
     try {
-      const list = (await sshListConnections()) as SshConnection[];
-      set({ connections: list, loaded: true });
+      const [list, keyList] = await Promise.all([
+        sshListConnections() as Promise<SshConnection[]>,
+        sshListKeys() as Promise<SshKey[]>,
+      ]);
+      set({ connections: list, keys: keyList, loaded: true });
     } catch {
       set({ loaded: true });
     }
@@ -51,6 +71,28 @@ export const useSshStore = create<SshState>((set, get) => ({
     await sshDeleteConnection(id);
     set((s) => ({
       connections: s.connections.filter((c) => c.id !== id),
+    }));
+  },
+
+  loadKeys: async () => {
+    try {
+      const keyList = (await sshListKeys()) as SshKey[];
+      set({ keys: keyList });
+    } catch {
+      // ignore
+    }
+  },
+
+  importKey: async (request) => {
+    const key = (await sshImportKey(request)) as SshKey;
+    set((s) => ({ keys: [key, ...s.keys] }));
+    return key;
+  },
+
+  removeKey: async (id: string) => {
+    await sshDeleteKey(id);
+    set((s) => ({
+      keys: s.keys.filter((k) => k.id !== id),
     }));
   },
 

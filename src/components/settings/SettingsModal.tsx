@@ -8,6 +8,7 @@ import {
   Keyboard,
   Monitor,
   User,
+  KeyRound,
 } from "lucide-react";
 import { useTerminalStore } from "../../stores/terminal";
 import GeneralPanel from "./GeneralPanel";
@@ -15,9 +16,10 @@ import AppearancePanel from "./AppearancePanel";
 import TerminalPanel from "./TerminalPanel";
 import KeybindingsPanel from "./KeybindingsPanel";
 import SshPanel from "./SshPanel";
+import KeysPanel from "./KeysPanel";
 import ProfilesPanel from "./ProfilesPanel";
 
-type PanelId = "general" | "appearance" | "terminal" | "keybindings" | "ssh" | "profiles";
+type PanelId = "general" | "appearance" | "terminal" | "keybindings" | "ssh" | "keys" | "profiles";
 
 interface NavItem {
   id: PanelId;
@@ -31,6 +33,7 @@ const navItems: NavItem[] = [
   { id: "terminal", label: "Terminal", icon: Terminal },
   { id: "keybindings", label: "Keybindings", icon: Keyboard },
   { id: "ssh", label: "SSH", icon: Monitor },
+  { id: "keys", label: "Keys", icon: KeyRound },
   { id: "profiles", label: "Profiles", icon: User },
 ];
 
@@ -40,6 +43,7 @@ const panels: Record<PanelId, React.ComponentType> = {
   terminal: TerminalPanel,
   keybindings: KeybindingsPanel,
   ssh: SshPanel,
+  keys: KeysPanel,
   profiles: ProfilesPanel,
 };
 
@@ -76,7 +80,7 @@ export default function SettingsModal() {
           onClick={toggleSettings}
         >
           <motion.div
-            className="relative flex w-full max-w-3xl max-h-[80vh] rounded-xl bg-bg-primary border border-border overflow-hidden"
+            className="relative flex w-[768px] h-[540px] rounded-xl bg-bg-primary border border-border overflow-hidden"
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
@@ -107,7 +111,7 @@ export default function SettingsModal() {
             </nav>
 
             <div className="flex-1 min-w-0 flex flex-col">
-              <div className="flex items-center justify-between px-6 py-4 border-b border-border">
+              <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
                 <h2 className="text-base font-medium text-text-primary">
                   {navItems.find((n) => n.id === activePanel)?.label}
                 </h2>
@@ -119,8 +123,19 @@ export default function SettingsModal() {
                 </button>
               </div>
 
-              <div className="flex-1 overflow-y-auto p-6">
-                <ActivePanel />
+              <div className="flex-1 overflow-y-auto overflow-x-hidden relative">
+                <AnimatePresence mode="wait">
+                  <motion.div
+                    key={activePanel}
+                    initial={{ opacity: 0, y: 6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -6 }}
+                    transition={{ duration: 0.15, ease: "easeInOut" }}
+                    className="p-6"
+                  >
+                    <ActivePanel />
+                  </motion.div>
+                </AnimatePresence>
               </div>
             </div>
           </motion.div>

@@ -1,11 +1,12 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import type { SplitNode } from "../../types/terminal";
-import { useTerminalStore } from "../../stores/terminal";
+import { useTerminalStore, countPaneNodes } from "../../stores/terminal";
 import TerminalPane from "./TerminalPane";
 
 interface SplitContainerProps {
   node: SplitNode;
   depth?: number;
+  totalPaneCount?: number;
 }
 
 export { SplitContainer };
@@ -13,14 +14,25 @@ export { SplitContainer };
 export default function SplitContainer({
   node,
   depth = 0,
+  totalPaneCount,
 }: SplitContainerProps) {
   const activePaneId = useTerminalStore((s) => s.activePaneId);
+  const activeTabId = useTerminalStore((s) => s.activeTabId);
+  const tabs = useTerminalStore((s) => s.tabs);
+
+  const paneCount =
+    totalPaneCount ??
+    (() => {
+      const tab = tabs.find((t) => t.id === activeTabId);
+      return tab ? countPaneNodes(tab.panes) : 1;
+    })();
 
   if (node.type === "pane" && node.paneId) {
     return (
       <TerminalPane
         paneId={node.paneId}
         isActive={activePaneId === node.paneId}
+        paneCount={paneCount}
       />
     );
   }
@@ -38,6 +50,7 @@ export default function SplitContainer({
         first={node.children[0]}
         second={node.children[1]}
         depth={depth}
+        totalPaneCount={paneCount}
       />
     );
   }
@@ -51,6 +64,7 @@ interface SplitViewProps {
   first: SplitNode;
   second: SplitNode;
   depth: number;
+  totalPaneCount: number;
 }
 
 function SplitView({
@@ -59,6 +73,7 @@ function SplitView({
   first,
   second,
   depth,
+  totalPaneCount,
 }: SplitViewProps) {
   const [ratio, setRatio] = useState(initialRatio);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -125,15 +140,15 @@ function SplitView({
           flexShrink: 0,
         }}
       >
-        <SplitContainer node={first} depth={depth + 1} />
+        <SplitContainer node={first} depth={depth + 1} totalPaneCount={totalPaneCount} />
       </div>
       <div
         onMouseDown={handleMouseDown}
-        className={`shrink-0 bg-transparent transition-all duration-150 hover:bg-accent/50 hover:shadow-[0_0_8px_rgba(82,139,255,0.3)] ${
+        className={`shrink-0 transition-all duration-150 ${
           isHorizontal
-            ? "w-1 hover:w-1.5 cursor-col-resize"
-            : "h-1 hover:h-1.5 cursor-row-resize"
-        }`}
+            ? "w-[3px] cursor-col-resize hover:w-[5px]"
+            : "h-[3px] cursor-row-resize hover:h-[5px]"
+        } bg-border hover:bg-accent/60 hover:shadow-[0_0_8px_rgba(82,139,255,0.3)]`}
       />
       <div
         className="overflow-hidden"
@@ -143,7 +158,7 @@ function SplitView({
           flexShrink: 0,
         }}
       >
-        <SplitContainer node={second} depth={depth + 1} />
+        <SplitContainer node={second} depth={depth + 1} totalPaneCount={totalPaneCount} />
       </div>
     </div>
   );

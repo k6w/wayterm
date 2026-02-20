@@ -12,7 +12,7 @@ interface KeyAction {
 const isMac = navigator.platform.toLowerCase().includes("mac");
 const mod = isMac ? "Meta" : "Control";
 
-function splitActivePane(direction: "horizontal" | "vertical") {
+export function splitActivePane(direction: "horizontal" | "vertical") {
   const { activePaneId, panes, splitPane } = useTerminalStore.getState();
   if (!activePaneId) return;
   const currentPane = panes[activePaneId];
@@ -24,7 +24,8 @@ function splitActivePane(direction: "horizontal" | "vertical") {
     blocks: [],
     isActive: true,
     cwd: currentPane.cwd,
-    shellType: shell.type,
+    shellType: currentPane.shellType || shell.type,
+    shellPath: currentPane.shellPath,
   };
   splitPane(activePaneId, direction, newPane);
 }
@@ -38,7 +39,7 @@ export function getDefaultKeybindings(): KeyAction[] {
       id: "new-tab",
       label: "New Tab",
       keys: `${mod}+t`,
-      handler: () => store.addTab(shell.type),
+      handler: () => store.addTab(shell.type, shell.path),
     },
     {
       id: "close-tab",
@@ -104,6 +105,36 @@ export function getDefaultKeybindings(): KeyAction[] {
           setActiveTab(tabs[(idx - 1 + tabs.length) % tabs.length].id);
         }
       },
+    },
+    {
+      id: "close-pane",
+      label: "Close Pane",
+      keys: `${mod}+Shift+w`,
+      handler: () => {
+        const { activePaneId, closePaneInTab } = useTerminalStore.getState();
+        if (activePaneId) closePaneInTab(activePaneId);
+      },
+    },
+    {
+      id: "detach-pane",
+      label: "Detach Pane to Tab",
+      keys: `${mod}+Shift+t`,
+      handler: () => {
+        const { activePaneId, detachPaneToTab } = useTerminalStore.getState();
+        if (activePaneId) detachPaneToTab(activePaneId);
+      },
+    },
+    {
+      id: "focus-next-pane",
+      label: "Focus Next Pane",
+      keys: `${mod}+Alt+]`,
+      handler: () => useTerminalStore.getState().focusNextPane(),
+    },
+    {
+      id: "focus-prev-pane",
+      label: "Focus Previous Pane",
+      keys: `${mod}+Alt+[`,
+      handler: () => useTerminalStore.getState().focusPrevPane(),
     },
   ];
 }

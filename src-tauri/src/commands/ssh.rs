@@ -1,4 +1,5 @@
-use crate::db::{self, connections::ConnectionProfile, DbPool};
+use crate::db::{self, connections::ConnectionProfile, keys::SshKey, DbPool};
+use serde::Deserialize;
 use tauri::State;
 use uuid::Uuid;
 
@@ -34,4 +35,145 @@ pub async fn ssh_delete_connection(
     pool: State<'_, DbPool>,
 ) -> Result<(), String> {
     db::connections::delete(&pool, &id)
+}
+
+// SSH Key management commands
+
+#[tauri::command]
+pub async fn ssh_list_keys(
+    pool: State<'_, DbPool>,
+) -> Result<Vec<SshKey>, String> {
+    db::keys::list(&pool)
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ImportKeyRequest {
+    pub name: String,
+    pub public_key: String,
+    pub private_key_pem: String,
+    pub algorithm: String,
+}
+
+#[tauri::command]
+pub async fn ssh_import_key(
+    request: ImportKeyRequest,
+    pool: State<'_, DbPool>,
+) -> Result<SshKey, String> {
+    let id = Uuid::new_v4().to_string();
+    let fingerprint = compute_fingerprint(&request.public_key);
+    let key = SshKey {
+        id: id.clone(),
+        name: request.name,
+        algorithm: request.algorithm,
+        public_key: request.public_key,
+        fingerprint,
+        created_at: String::new(),
+    };
+    // Store private key as raw bytes (in production, encrypt this)
+    let private_bytes = request.private_key_pem.as_bytes();
+    db::keys::insert(&pool, &key, private_bytes)?;
+
+    // Re-fetch to get created_at
+    let keys = db::keys::list(&pool)?;
+    keys.into_iter()
+        .find(|k| k.id == id)
+        .ok_or_else(|| "Key not found after insert".to_string())
+}
+
+#[tauri::command]
+pub async fn ssh_delete_key(
+    id: String,
+    pool: State<'_, DbPool>,
+) -> Result<(), String> {
+    db::keys::delete(&pool, &id)
+}
+
+#[tauri::command]
+pub async fn ssh_get_key_temp_path(
+    key_id: String,
+    pool: State<'_, DbPool>,
+) -> Result<String, String> {
+    use std::io::Write;
+
+    let raw_bytes = db::keys::get_private_key(&pool, &key_id)?;
+
+    // Convert to UTF-8 string, normalize line endings to LF, ensure trailing newline.
+    // OpenSSH is strict: CRLF or missing final newline = "invalid format".
+    let raw_str = String::from_utf8(raw_bytes)
+        .map_err(|e| format!("Key is not valid UTF-8: {}", e))?;
+    let normalized = raw_str.replace("\r\n", "\n").replace('\r', "\n");
+    let pem = if normalized.ends_with('\n') {
+        normalized
+    } else {
+        format!("{}\n", normalized)
+    };
+
+    let temp_dir = std::env::temp_dir();
+    let path = temp_dir.join(format!("nexterm_key_{}", key_id));
+
+    let mut file = std::fs::File::create(&path).map_err(|e| e.to_string())?;
+    file.write_all(pem.as_bytes()).map_err(|e| e.to_string())?;
+    drop(file);
+
+    // Set permissions to 600 on Unix so ssh doesn't complain
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600))
+            .map_err(|e| e.to_string())?;
+    }
+
+    // On Windows, restrict ACL so OpenSSH accepts the key
+    #[cfg(windows)]
+    {
+        let path_str = path.to_string_lossy();
+        // Remove inherited permissions, grant only current user full control
+        let _ = std::process::Command::new("icacls")
+            .args([&*path_str, "/inheritance:r", "/grant:r", &format!("{}:F", whoami())])
+            .output();
+    }
+
+    Ok(path.to_string_lossy().to_string())
+}
+
+#[cfg(windows)]
+fn whoami() -> String {
+    std::process::Command::new("whoami")
+        .output()
+        .ok()
+        .and_then(|o| String::from_utf8(o.stdout).ok())
+        .map(|s| s.trim().to_string())
+        .unwrap_or_else(|| std::env::var("USERNAME").unwrap_or_default())
+}
+
+fn compute_fingerprint(public_key: &str) -> String {
+    // Simple hash-based fingerprint using std
+    use std::collections::hash_map::DefaultHasher;
+    use std::fmt::Write;
+    use std::hash::{Hash, Hasher};
+
+    let mut hasher = DefaultHasher::new();
+    public_key.hash(&mut hasher);
+    let h1 = hasher.finish();
+
+    let mut hasher2 = DefaultHasher::new();
+    format!("{}{}", public_key, h1).hash(&mut hasher2);
+    let h2 = hasher2.finish();
+
+    let bytes: [u8; 16] = [
+        (h1 >> 56) as u8, (h1 >> 48) as u8, (h1 >> 40) as u8, (h1 >> 32) as u8,
+        (h1 >> 24) as u8, (h1 >> 16) as u8, (h1 >> 8) as u8, h1 as u8,
+        (h2 >> 56) as u8, (h2 >> 48) as u8, (h2 >> 40) as u8, (h2 >> 32) as u8,
+        (h2 >> 24) as u8, (h2 >> 16) as u8, (h2 >> 8) as u8, h2 as u8,
+    ];
+
+    let mut out = String::with_capacity(47);
+    for (i, b) in bytes.iter().enumerate() {
+        if i > 0 {
+            out.push(':');
+        }
+        write!(out, "{:02x}", b).unwrap();
+    }
+    out
 }

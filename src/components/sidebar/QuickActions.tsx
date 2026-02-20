@@ -2,13 +2,17 @@ import { Terminal, Monitor, Settings } from "lucide-react";
 import { useTerminalStore } from "../../stores/terminal";
 import { getDefaultShell } from "../../lib/shell-detect";
 
+interface QuickActionsProps {
+  onNewSsh?: () => void;
+}
+
 interface QuickAction {
   icon: React.ReactNode;
   label: string;
   onClick: () => void;
 }
 
-export default function QuickActions() {
+export default function QuickActions({ onNewSsh }: QuickActionsProps) {
   const addTab = useTerminalStore((s) => s.addTab);
   const toggleSettings = useTerminalStore((s) => s.toggleSettings);
   const toggleSidebar = useTerminalStore((s) => s.toggleSidebar);
@@ -19,7 +23,7 @@ export default function QuickActions() {
       label: "New Tab",
       onClick: () => {
         const shell = getDefaultShell();
-        addTab(shell.type);
+        addTab(shell.type, shell.path);
         toggleSidebar();
       },
     },
@@ -28,14 +32,15 @@ export default function QuickActions() {
       label: "New SSH",
       onClick: () => {
         toggleSidebar();
+        onNewSsh?.();
       },
     },
     {
       icon: <Settings size={16} />,
       label: "Settings",
       onClick: () => {
-        toggleSettings();
         toggleSidebar();
+        toggleSettings();
       },
     },
   ];

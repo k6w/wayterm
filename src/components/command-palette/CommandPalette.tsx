@@ -12,15 +12,44 @@ import {
   ArrowRightLeft,
   ChevronLeft,
   ChevronRight,
-  Clock,
+  ExternalLink,
+  Focus,
+  Palette,
+  Eraser,
+  RotateCcw,
+  Copy,
+  MonitorDot,
+  Hash,
+  SquareTerminal,
+  ArrowLeft,
+  Check,
+  Sun,
+  Moon,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useTerminalStore } from "../../stores/terminal";
+import { useThemeStore } from "../../stores/theme";
 import { getDefaultKeybindings } from "../../lib/keybindings";
+import { getDefaultShells } from "../../lib/shell-detect";
+import { clearBuffer, resetTerminal } from "../../lib/terminal-registry";
 
-const ACTION_ICONS: Record<string, LucideIcon> = {
+type SubView = null | "themes";
+
+interface PaletteAction {
+  id: string;
+  label: string;
+  keys?: string;
+  icon: LucideIcon;
+  category: string;
+  /** If set, entering this action opens a sub-view instead of closing the palette */
+  subView?: SubView;
+  handler: () => void;
+}
+
+const KEYBINDING_ICONS: Record<string, LucideIcon> = {
   "new-tab": Plus,
   "close-tab": X,
+  "close-pane": X,
   "toggle-sidebar": PanelLeft,
   "command-palette": ArrowRightLeft,
   settings: Settings,
@@ -28,6 +57,20 @@ const ACTION_ICONS: Record<string, LucideIcon> = {
   "split-vertical": Rows2,
   "next-tab": ChevronRight,
   "prev-tab": ChevronLeft,
+  "detach-pane": ExternalLink,
+  "focus-next-pane": Focus,
+  "focus-prev-pane": Focus,
+};
+
+const SHELL_ICONS: Record<string, LucideIcon> = {
+  powershell: SquareTerminal,
+  cmd: MonitorDot,
+  gitbash: Hash,
+  wsl: Terminal,
+  bash: Terminal,
+  zsh: Terminal,
+  fish: Terminal,
+  sh: Terminal,
 };
 
 function formatShortcut(keys: string): string[] {
@@ -45,26 +88,137 @@ export default function CommandPalette() {
 
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [subView, setSubView] = useState<SubView>(null);
+  const [subQuery, setSubQuery] = useState("");
+  const [subSelectedIndex, setSubSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const subInputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
 
-  const actions = useMemo(() => {
+  const allActions = useMemo(() => {
+    const actions: PaletteAction[] = [];
+
+    // ── Keybinding actions ──
     const bindings = getDefaultKeybindings();
-    return bindings.filter((b) => b.id !== "command-palette");
+    for (const b of bindings) {
+      if (b.id === "command-palette") continue;
+      actions.push({
+        id: b.id,
+        label: b.label,
+        keys: b.keys,
+        icon: KEYBINDING_ICONS[b.id] || Terminal,
+        category: "Actions",
+        handler: b.handler,
+      });
+    }
+
+    // ── Terminal actions ──
+    actions.push({
+      id: "clear-buffer",
+      label: "Clear Terminal Buffer",
+      icon: Eraser,
+      category: "Terminal",
+      handler: () => {
+        const paneId = useTerminalStore.getState().activePaneId;
+        if (paneId) clearBuffer(paneId);
+      },
+    });
+    actions.push({
+      id: "reset-terminal",
+      label: "Reset Terminal",
+      icon: RotateCcw,
+      category: "Terminal",
+      handler: () => {
+        const paneId = useTerminalStore.getState().activePaneId;
+        if (paneId) resetTerminal(paneId);
+      },
+    });
+    actions.push({
+      id: "copy-cwd",
+      label: "Copy Current Path",
+      icon: Copy,
+      category: "Terminal",
+      handler: () => {
+        const state = useTerminalStore.getState();
+        const pane = state.activePaneId ? state.panes[state.activePaneId] : null;
+        if (pane?.cwd) navigator.clipboard.writeText(pane.cwd);
+      },
+    });
+
+    // ── New tab per shell ──
+    const shells = getDefaultShells();
+    for (const shell of shells) {
+      actions.push({
+        id: `new-tab-${shell.type}-${shell.path}`,
+        label: `New ${shell.label} Tab`,
+        icon: SHELL_ICONS[shell.type] || Terminal,
+        category: "New Tab",
+        handler: () => {
+          useTerminalStore.getState().addTab(shell.type, shell.path);
+        },
+      });
+    }
+
+    // ── Appearance: single entry that opens sub-view ──
+    actions.push({
+      id: "change-theme",
+      label: "Change Theme",
+      icon: Palette,
+      category: "Appearance",
+      subView: "themes",
+      handler: () => {},
+    });
+
+    return actions;
   }, []);
 
   const filteredActions = useMemo(() => {
-    if (!query.trim()) return actions;
+    if (!query.trim()) return allActions;
     const lower = query.toLowerCase();
-    return actions.filter((a) => a.label.toLowerCase().includes(lower));
-  }, [query, actions]);
+    return allActions.filter(
+      (a) =>
+        a.label.toLowerCase().includes(lower) ||
+        a.category.toLowerCase().includes(lower)
+    );
+  }, [query, allActions]);
 
   const totalResults = filteredActions.length;
 
+  // Group by category for display
+  const grouped = useMemo(() => {
+    const groups: { category: string; items: { action: PaletteAction; globalIndex: number }[] }[] = [];
+    let currentCategory = "";
+    filteredActions.forEach((action, i) => {
+      if (action.category !== currentCategory) {
+        currentCategory = action.category;
+        groups.push({ category: currentCategory, items: [] });
+      }
+      groups[groups.length - 1].items.push({ action, globalIndex: i });
+    });
+    return groups;
+  }, [filteredActions]);
+
+  // ── Theme sub-view data ──
+  const activeThemeId = useThemeStore((s) => s.activeThemeId);
+  const themes = useThemeStore((s) => s.themes);
+  const setTheme = useThemeStore((s) => s.setTheme);
+
+  const themeList = useMemo(() => Object.values(themes), [themes]);
+
+  const filteredThemes = useMemo(() => {
+    if (!subQuery.trim()) return themeList;
+    const lower = subQuery.toLowerCase();
+    return themeList.filter((t) => t.name.toLowerCase().includes(lower));
+  }, [subQuery, themeList]);
+
+  // ── Reset state on open/close ──
   useEffect(() => {
     if (isOpen) {
       setQuery("");
       setSelectedIndex(0);
+      setSubView(null);
+      setSubQuery("");
+      setSubSelectedIndex(0);
     }
   }, [isOpen]);
 
@@ -73,12 +227,24 @@ export default function CommandPalette() {
   }, [query]);
 
   useEffect(() => {
-    if (isOpen) {
+    setSubSelectedIndex(0);
+  }, [subQuery]);
+
+  useEffect(() => {
+    if (isOpen && !subView) {
       requestAnimationFrame(() => {
         inputRef.current?.focus();
       });
     }
-  }, [isOpen]);
+  }, [isOpen, subView]);
+
+  useEffect(() => {
+    if (subView) {
+      requestAnimationFrame(() => {
+        subInputRef.current?.focus();
+      });
+    }
+  }, [subView]);
 
   const scrollSelectedIntoView = useCallback(
     (index: number) => {
@@ -95,18 +261,85 @@ export default function CommandPalette() {
   const executeAction = useCallback(
     (index: number) => {
       const action = filteredActions[index];
-      if (action) {
-        toggleCommandPalette();
-        requestAnimationFrame(() => {
-          action.handler();
-        });
+      if (!action) return;
+
+      if (action.subView) {
+        setSubView(action.subView);
+        setSubQuery("");
+        setSubSelectedIndex(0);
+        return;
       }
+
+      toggleCommandPalette();
+      requestAnimationFrame(() => {
+        action.handler();
+      });
     },
     [filteredActions, toggleCommandPalette]
   );
 
+  const selectTheme = useCallback(
+    (index: number) => {
+      const t = filteredThemes[index];
+      if (!t) return;
+      setTheme(t.id);
+      toggleCommandPalette();
+    },
+    [filteredThemes, setTheme, toggleCommandPalette]
+  );
+
+  const goBack = useCallback(() => {
+    setSubView(null);
+    setSubQuery("");
+    setSubSelectedIndex(0);
+    requestAnimationFrame(() => {
+      inputRef.current?.focus();
+    });
+  }, []);
+
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
+      if (subView) {
+        // ── Sub-view key handling ──
+        switch (e.key) {
+          case "ArrowDown": {
+            e.preventDefault();
+            const next = subSelectedIndex < filteredThemes.length - 1 ? subSelectedIndex + 1 : 0;
+            setSubSelectedIndex(next);
+            scrollSelectedIntoView(next);
+            break;
+          }
+          case "ArrowUp": {
+            e.preventDefault();
+            const prev = subSelectedIndex > 0 ? subSelectedIndex - 1 : filteredThemes.length - 1;
+            setSubSelectedIndex(prev);
+            scrollSelectedIntoView(prev);
+            break;
+          }
+          case "Enter": {
+            e.preventDefault();
+            if (filteredThemes.length > 0) {
+              selectTheme(subSelectedIndex);
+            }
+            break;
+          }
+          case "Escape": {
+            e.preventDefault();
+            goBack();
+            break;
+          }
+          case "Backspace": {
+            if (!subQuery) {
+              e.preventDefault();
+              goBack();
+            }
+            break;
+          }
+        }
+        return;
+      }
+
+      // ── Main view key handling ──
       switch (e.key) {
         case "ArrowDown": {
           e.preventDefault();
@@ -136,7 +369,7 @@ export default function CommandPalette() {
         }
       }
     },
-    [selectedIndex, totalResults, scrollSelectedIntoView, executeAction, toggleCommandPalette]
+    [subView, selectedIndex, totalResults, subSelectedIndex, filteredThemes, subQuery, scrollSelectedIntoView, executeAction, selectTheme, goBack, toggleCommandPalette]
   );
 
   const handleBackdropClick = useCallback(
@@ -168,16 +401,38 @@ export default function CommandPalette() {
             className="w-full max-w-[560px] overflow-hidden rounded-xl border border-white/[0.12] bg-white/[0.08] shadow-2xl backdrop-blur-xl"
             onKeyDown={handleKeyDown}
           >
+            {/* ── Search bar ── */}
             <div className="flex items-center gap-3 px-4 py-3">
-              <Search className="h-4 w-4 shrink-0 text-text-muted" />
-              <input
-                ref={inputRef}
-                type="text"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Type a command..."
-                className="w-full bg-transparent text-sm text-text-primary outline-none placeholder:text-text-muted"
-              />
+              {subView ? (
+                <button
+                  onClick={goBack}
+                  className="shrink-0 rounded p-0.5 text-text-muted transition-colors hover:bg-white/[0.08] hover:text-text-primary"
+                >
+                  <ArrowLeft className="h-4 w-4" />
+                </button>
+              ) : (
+                <Search className="h-4 w-4 shrink-0 text-text-muted" />
+              )}
+
+              {subView ? (
+                <input
+                  ref={subInputRef}
+                  type="text"
+                  value={subQuery}
+                  onChange={(e) => setSubQuery(e.target.value)}
+                  placeholder="Search themes..."
+                  className="w-full bg-transparent text-sm text-text-primary outline-none placeholder:text-text-muted"
+                />
+              ) : (
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={query}
+                  onChange={(e) => setQuery(e.target.value)}
+                  placeholder="Type a command..."
+                  className="w-full bg-transparent text-sm text-text-primary outline-none placeholder:text-text-muted"
+                />
+              )}
             </div>
 
             <div className="h-px bg-white/[0.08]" />
@@ -186,65 +441,100 @@ export default function CommandPalette() {
               ref={listRef}
               className="max-h-[400px] overflow-y-auto p-1.5"
             >
-              {filteredActions.length > 0 && (
-                <div>
+              {subView === "themes" ? (
+                /* ── Theme sub-view ── */
+                <>
                   <div className="px-2.5 py-1.5 text-xs font-medium text-text-muted">
-                    Actions
+                    Themes
                   </div>
-                  {filteredActions.map((action, index) => {
-                    const Icon = ACTION_ICONS[action.id] || Terminal;
-                    const parts = formatShortcut(action.keys);
-                    const isSelected = index === selectedIndex;
+                  {filteredThemes.map((t, i) => {
+                    const isSelected = i === subSelectedIndex;
+                    const isActive = t.id === activeThemeId;
+                    const VariantIcon = t.variant === "light" ? Sun : Moon;
 
                     return (
                       <button
-                        key={action.id}
+                        key={t.id}
                         data-result-item
-                        onClick={() => executeAction(index)}
-                        onMouseEnter={() => setSelectedIndex(index)}
+                        onClick={() => selectTheme(i)}
+                        onMouseEnter={() => setSubSelectedIndex(i)}
                         className={`flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition-colors ${
                           isSelected
                             ? "bg-accent/20"
                             : "hover:bg-white/[0.08]"
                         }`}
                       >
-                        <Icon className="h-4 w-4 shrink-0 text-text-secondary" />
-                        <span className="flex-1 truncate text-sm text-text-primary">
-                          {action.label}
+                        <VariantIcon className="h-4 w-4 shrink-0 text-text-secondary" />
+                        <span className={`flex-1 truncate text-sm ${isActive ? "text-accent" : "text-text-primary"}`}>
+                          {t.name}
                         </span>
-                        <div className="flex shrink-0 items-center gap-1">
-                          {parts.map((part, i) => (
-                            <kbd
-                              key={i}
-                              className="rounded-md bg-bg-tertiary px-1.5 py-0.5 text-xs text-text-muted"
-                            >
-                              {part}
-                            </kbd>
-                          ))}
-                        </div>
+                        {isActive && (
+                          <Check className="h-3.5 w-3.5 shrink-0 text-accent" />
+                        )}
                       </button>
                     );
                   })}
-                </div>
-              )}
+                  {filteredThemes.length === 0 && subQuery.trim() && (
+                    <div className="px-2.5 py-8 text-center text-sm text-text-muted">
+                      No themes matching &ldquo;{subQuery}&rdquo;
+                    </div>
+                  )}
+                </>
+              ) : (
+                /* ── Main command list ── */
+                <>
+                  {grouped.map((group) => (
+                    <div key={group.category}>
+                      <div className="px-2.5 py-1.5 text-xs font-medium text-text-muted">
+                        {group.category}
+                      </div>
+                      {group.items.map(({ action, globalIndex }) => {
+                        const Icon = action.icon;
+                        const isSelected = globalIndex === selectedIndex;
 
-              {filteredActions.length === 0 && query.trim() && (
-                <div className="px-2.5 py-8 text-center text-sm text-text-muted">
-                  No results for "{query}"
-                </div>
-              )}
+                        return (
+                          <button
+                            key={action.id}
+                            data-result-item
+                            onClick={() => executeAction(globalIndex)}
+                            onMouseEnter={() => setSelectedIndex(globalIndex)}
+                            className={`flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition-colors ${
+                              isSelected
+                                ? "bg-accent/20"
+                                : "hover:bg-white/[0.08]"
+                            }`}
+                          >
+                            <Icon className="h-4 w-4 shrink-0 text-text-secondary" />
+                            <span className="flex-1 truncate text-sm text-text-primary">
+                              {action.label}
+                            </span>
+                            {action.subView ? (
+                              <ChevronRight className="h-3.5 w-3.5 shrink-0 text-text-muted" />
+                            ) : action.keys ? (
+                              <div className="flex shrink-0 items-center gap-1">
+                                {formatShortcut(action.keys).map((part, i) => (
+                                  <kbd
+                                    key={i}
+                                    className="rounded-md bg-bg-tertiary px-1.5 py-0.5 text-xs text-text-muted"
+                                  >
+                                    {part}
+                                  </kbd>
+                                ))}
+                              </div>
+                            ) : null}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ))}
 
-              <div className="mt-1">
-                <div className="px-2.5 py-1.5 text-xs font-medium text-text-muted">
-                  Recent
-                </div>
-                <div className="flex flex-col items-center gap-1 py-4">
-                  <Clock className="h-4 w-4 text-text-muted/50" />
-                  <span className="text-xs text-text-muted">
-                    No recent commands
-                  </span>
-                </div>
-              </div>
+                  {filteredActions.length === 0 && query.trim() && (
+                    <div className="px-2.5 py-8 text-center text-sm text-text-muted">
+                      No results for &ldquo;{query}&rdquo;
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </motion.div>
         </motion.div>

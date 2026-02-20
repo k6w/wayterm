@@ -27,6 +27,7 @@ export interface WorkspaceMeta {
   id: string;
   name: string;
   icon: string | null;
+  layout?: string;
   isDefault: boolean;
   updatedAt: string;
 }

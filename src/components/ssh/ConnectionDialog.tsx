@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Lock, KeyRound, Shield } from "lucide-react";
+import { useSshStore } from "../../stores/ssh";
+import Select from "../ui/Select";
 import type { SshConnection, AuthMethod } from "../../types/ssh";
 
 interface ConnectionDialogProps {
@@ -31,24 +33,18 @@ function generateId(): string {
   return crypto.randomUUID();
 }
 
-function createDefaultFormState(): {
-  name: string;
-  host: string;
-  port: number;
-  username: string;
-  authMethod: AuthMethod;
-  colorTag: string | null;
-  folderPath: string;
-  startupCommands: string;
-} {
+function createDefaultFormState() {
   return {
     name: "",
     host: "",
     port: 22,
     username: "",
-    authMethod: "password",
-    colorTag: null,
-    folderPath: "/",
+    authMethod: "password" as AuthMethod,
+    password: "",
+    privateKeyPath: "",
+    selectedKeyId: "",
+    passphrase: "",
+    colorTag: null as string | null,
     startupCommands: "",
   };
 }
@@ -60,6 +56,7 @@ export default function ConnectionDialog({
   editConnection,
 }: ConnectionDialogProps) {
   const [form, setForm] = useState(createDefaultFormState());
+  const storedKeys = useSshStore((s) => s.keys);
 
   useEffect(() => {
     if (isOpen) {
@@ -70,8 +67,11 @@ export default function ConnectionDialog({
           port: editConnection.port,
           username: editConnection.username,
           authMethod: editConnection.authMethod,
+          password: "",
+          privateKeyPath: "",
+          selectedKeyId: editConnection.privateKeyId ?? "",
+          passphrase: "",
           colorTag: editConnection.colorTag,
-          folderPath: editConnection.folderPath,
           startupCommands: editConnection.startupCommands ?? "",
         });
       } else {
@@ -107,11 +107,11 @@ export default function ConnectionDialog({
         port: form.port,
         username: form.username.trim(),
         authMethod: form.authMethod,
-        privateKeyId: editConnection?.privateKeyId ?? null,
+        privateKeyId: form.selectedKeyId || null,
         jumpHostId: editConnection?.jumpHostId ?? null,
         startupCommands: form.startupCommands.trim() || null,
         colorTag: form.colorTag,
-        folderPath: form.folderPath.trim() || "/",
+        folderPath: "/",
         sortOrder: editConnection?.sortOrder ?? 0,
         createdAt: editConnection?.createdAt ?? now,
         updatedAt: now,
@@ -130,6 +130,14 @@ export default function ConnectionDialog({
     "bg-bg-tertiary border border-border rounded-md px-3 py-2 text-sm text-text-primary focus:border-accent outline-none w-full transition-colors";
 
   const labelClasses = "text-sm text-text-secondary mb-1.5 block";
+
+  const keyOptions = [
+    { value: "", label: "Use path below instead" },
+    ...storedKeys.map((k) => ({
+      value: k.id,
+      label: `${k.name} (${k.algorithm})`,
+    })),
+  ];
 
   return (
     <AnimatePresence>
@@ -238,6 +246,70 @@ export default function ConnectionDialog({
                 </div>
               </div>
 
+              {form.authMethod === "password" && (
+                <div>
+                  <label className={labelClasses}>Password</label>
+                  <input
+                    type="password"
+                    value={form.password}
+                    onChange={(e) => updateField("password", e.target.value)}
+                    className={inputClasses}
+                    placeholder="Enter password"
+                    autoComplete="off"
+                  />
+                  <p className="mt-1 text-xs text-text-muted">
+                    Stored in memory only for this session
+                  </p>
+                </div>
+              )}
+
+              {form.authMethod === "key" && (
+                <div className="space-y-3">
+                  {storedKeys.length > 0 && (
+                    <div>
+                      <label className={labelClasses}>Stored Key</label>
+                      <Select
+                        value={form.selectedKeyId}
+                        onChange={(v) => updateField("selectedKeyId", v)}
+                        options={keyOptions}
+                      />
+                    </div>
+                  )}
+                  {!form.selectedKeyId && (
+                    <div>
+                      <label className={labelClasses}>Private Key Path</label>
+                      <input
+                        type="text"
+                        value={form.privateKeyPath}
+                        onChange={(e) => updateField("privateKeyPath", e.target.value)}
+                        className={inputClasses}
+                        placeholder="~/.ssh/id_ed25519"
+                      />
+                    </div>
+                  )}
+                  <div>
+                    <label className={labelClasses}>Passphrase (optional)</label>
+                    <input
+                      type="password"
+                      value={form.passphrase}
+                      onChange={(e) => updateField("passphrase", e.target.value)}
+                      className={inputClasses}
+                      placeholder="Key passphrase"
+                      autoComplete="off"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {form.authMethod === "agent" && (
+                <div className="rounded-lg border border-border bg-bg-tertiary px-4 py-3">
+                  <p className="text-sm text-text-secondary">
+                    SSH agent forwarding will be used. Make sure your SSH agent is running
+                    and has the appropriate keys loaded.
+                  </p>
+                </div>
+              )}
+
               <div>
                 <label className={labelClasses}>Color Tag</label>
                 <div className="flex items-center gap-2">
@@ -276,17 +348,6 @@ export default function ConnectionDialog({
               </div>
 
               <div>
-                <label className={labelClasses}>Folder Path</label>
-                <input
-                  type="text"
-                  value={form.folderPath}
-                  onChange={(e) => updateField("folderPath", e.target.value)}
-                  className={inputClasses}
-                  placeholder="/"
-                />
-              </div>
-
-              <div>
                 <label className={labelClasses}>Startup Commands</label>
                 <textarea
                   value={form.startupCommands}
@@ -304,6 +365,12 @@ export default function ConnectionDialog({
                   className="px-4 py-2 text-sm text-text-secondary hover:text-text-primary transition-colors rounded-md"
                 >
                   Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-sm bg-bg-tertiary border border-border hover:border-accent text-text-primary rounded-md transition-colors"
+                >
+                  Save
                 </button>
                 <button
                   type="submit"

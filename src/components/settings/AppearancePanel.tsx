@@ -1,5 +1,6 @@
 import { useSettingsStore } from "../../stores/settings";
 import { useThemeStore } from "../../stores/theme";
+import Select from "../ui/Select";
 import type { CursorStyle } from "../../types/settings";
 
 export default function AppearancePanel() {
@@ -15,7 +16,9 @@ export default function AppearancePanel() {
     { value: "bar", label: "Bar" },
   ];
 
-  const fontWeights = [100, 200, 300, 400, 500, 600, 700, 800, 900];
+  const fontWeightOptions = [100, 200, 300, 400, 500, 600, 700, 800, 900].map(
+    (w) => ({ value: String(w), label: String(w) })
+  );
 
   const handleThemeChange = (id: string) => {
     setTheme(id);
@@ -78,17 +81,12 @@ export default function AppearancePanel() {
           </div>
           <div className="flex justify-between items-center gap-4">
             <label className="text-sm text-text-secondary">Font Weight</label>
-            <select
-              value={settings.terminalFontWeight}
-              onChange={(e) => update("appearance", { terminalFontWeight: Number(e.target.value) })}
-              className="bg-bg-tertiary border border-border rounded-md px-3 py-1.5 text-sm text-text-primary focus:border-accent outline-none"
-            >
-              {fontWeights.map((w) => (
-                <option key={w} value={w}>
-                  {w}
-                </option>
-              ))}
-            </select>
+            <Select
+              value={String(settings.terminalFontWeight)}
+              onChange={(v) => update("appearance", { terminalFontWeight: Number(v) })}
+              options={fontWeightOptions}
+              className="w-28"
+            />
           </div>
           <div className="flex justify-between items-center gap-4">
             <label className="text-sm text-text-secondary">

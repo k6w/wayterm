@@ -1,5 +1,6 @@
 pub mod connections;
 pub mod history;
+pub mod keys;
 pub mod migrations;
 pub mod settings;
 pub mod workspaces;

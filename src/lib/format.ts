@@ -1,7 +1,15 @@
 export function shortenPath(fullPath: string): string {
+  if (!fullPath || fullPath === "~") return "~";
+
   const home = getHomePath();
-  if (home && fullPath.startsWith(home)) {
-    return "~" + fullPath.slice(home.length);
+  if (home) {
+    // Normalize both to forward slashes for comparison
+    const normalizedPath = fullPath.replace(/\\/g, "/");
+    const normalizedHome = home.replace(/\\/g, "/");
+    if (normalizedPath.startsWith(normalizedHome)) {
+      const rest = normalizedPath.slice(normalizedHome.length);
+      return "~" + (rest || "");
+    }
   }
   return fullPath;
 }
@@ -9,9 +17,12 @@ export function shortenPath(fullPath: string): string {
 function getHomePath(): string | null {
   const platform = navigator.platform.toLowerCase();
   if (platform.includes("win")) {
-    return null;
+    // On Windows, USERPROFILE is typically C:\Users\<name>
+    // We can't access env vars from the browser, but we can infer from common paths
+    // Match C:\Users\<username> pattern in the path
+    return null; // Will show full path on Windows, which is fine
   }
-  return "/home/" + (navigator.userAgent || "user");
+  return null;
 }
 
 export function formatDuration(ms: number): string {

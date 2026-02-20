@@ -1,14 +1,15 @@
 import { useSettingsStore } from "../../stores/settings";
+import Select from "../ui/Select";
 import type { BellStyle } from "../../types/settings";
 
 export default function TerminalPanel() {
   const settings = useSettingsStore((s) => s.settings.terminal);
   const update = useSettingsStore((s) => s.update);
 
-  const bellOptions: { value: BellStyle; label: string }[] = [
-    { value: "none", label: "None" },
-    { value: "visual", label: "Visual" },
-    { value: "audio", label: "Audio" },
+  const bellOptions = [
+    { value: "none" as BellStyle, label: "None" },
+    { value: "visual" as BellStyle, label: "Visual" },
+    { value: "audio" as BellStyle, label: "Audio" },
   ];
 
   return (
@@ -104,17 +105,12 @@ export default function TerminalPanel() {
         <div className="space-y-4">
           <div className="flex justify-between items-center gap-4">
             <label className="text-sm text-text-secondary">Bell Style</label>
-            <select
+            <Select
               value={settings.bellStyle}
-              onChange={(e) => update("terminal", { bellStyle: e.target.value as BellStyle })}
-              className="bg-bg-tertiary border border-border rounded-md px-3 py-1.5 text-sm text-text-primary focus:border-accent outline-none"
-            >
-              {bellOptions.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
-                </option>
-              ))}
-            </select>
+              onChange={(v) => update("terminal", { bellStyle: v as BellStyle })}
+              options={bellOptions}
+              className="w-32"
+            />
           </div>
         </div>
       </div>

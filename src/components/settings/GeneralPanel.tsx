@@ -1,5 +1,6 @@
 import { useSettingsStore } from "../../stores/settings";
 import { getDefaultShells } from "../../lib/shell-detect";
+import Select from "../ui/Select";
 import type { StartupBehavior } from "../../types/settings";
 
 export default function GeneralPanel() {
@@ -13,6 +14,11 @@ export default function GeneralPanel() {
     { value: "workspace", label: "Open workspace" },
   ];
 
+  const shellOptions = [
+    { value: "", label: "System Default" },
+    ...shells.map((shell) => ({ value: shell.path, label: shell.label })),
+  ];
+
   return (
     <div className="space-y-6">
       <div>
@@ -20,18 +26,12 @@ export default function GeneralPanel() {
         <div className="space-y-4">
           <div className="flex justify-between items-center gap-4">
             <label className="text-sm text-text-secondary">Default Shell</label>
-            <select
+            <Select
               value={settings.defaultShell}
-              onChange={(e) => update("general", { defaultShell: e.target.value })}
-              className="bg-bg-tertiary border border-border rounded-md px-3 py-1.5 text-sm text-text-primary focus:border-accent outline-none"
-            >
-              <option value="">System Default</option>
-              {shells.map((shell) => (
-                <option key={shell.path} value={shell.path}>
-                  {shell.label}
-                </option>
-              ))}
-            </select>
+              onChange={(v) => update("general", { defaultShell: v })}
+              options={shellOptions}
+              className="w-48"
+            />
           </div>
         </div>
       </div>

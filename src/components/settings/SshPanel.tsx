@@ -1,8 +1,12 @@
+import { Server, Trash2 } from "lucide-react";
 import { useSettingsStore } from "../../stores/settings";
+import { useSshStore } from "../../stores/ssh";
 
 export default function SshPanel() {
   const settings = useSettingsStore((s) => s.settings.ssh);
   const update = useSettingsStore((s) => s.update);
+  const connections = useSshStore((s) => s.connections);
+  const deleteConnection = useSshStore((s) => s.deleteConnection);
 
   return (
     <div className="space-y-6">
@@ -59,6 +63,40 @@ export default function SshPanel() {
             />
           </div>
         </div>
+      </div>
+
+      <div>
+        <h3 className="text-sm font-medium text-text-primary mb-3">
+          Saved Connections ({connections.length})
+        </h3>
+        {connections.length === 0 ? (
+          <div className="py-6 text-center text-sm text-text-muted border border-border border-dashed rounded-lg">
+            No saved connections. Use the sidebar to add connections.
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {connections.map((conn) => (
+              <div
+                key={conn.id}
+                className="flex items-center gap-3 px-4 py-2.5 border border-border rounded-lg bg-bg-tertiary"
+              >
+                <Server size={14} className="shrink-0 text-text-muted" />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm text-text-primary truncate">{conn.name}</div>
+                  <div className="text-xs text-text-muted truncate">
+                    {conn.username}@{conn.host}:{conn.port} ({conn.authMethod})
+                  </div>
+                </div>
+                <button
+                  onClick={() => deleteConnection(conn.id)}
+                  className="p-1 text-text-muted hover:text-error transition-colors shrink-0"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

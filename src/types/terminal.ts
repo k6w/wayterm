@@ -18,6 +18,7 @@ export interface TerminalPane {
   isActive: boolean;
   cwd: string;
   shellType: ShellType;
+  shellPath?: string;
   sshConnectionId?: string;
 }
 

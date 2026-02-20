@@ -69,6 +69,27 @@ export async function sshDeleteConnection(id: string): Promise<void> {
   return invoke("ssh_delete_connection", { id });
 }
 
+export async function sshListKeys(): Promise<unknown[]> {
+  return invoke("ssh_list_keys");
+}
+
+export async function sshImportKey(request: {
+  name: string;
+  publicKey: string;
+  privateKeyPem: string;
+  algorithm: string;
+}): Promise<unknown> {
+  return invoke("ssh_import_key", { request });
+}
+
+export async function sshDeleteKey(id: string): Promise<void> {
+  return invoke("ssh_delete_key", { id });
+}
+
+export async function sshGetKeyTempPath(keyId: string): Promise<string> {
+  return invoke("ssh_get_key_temp_path", { keyId });
+}
+
 export async function workspaceList(): Promise<unknown[]> {
   return invoke("workspace_list");
 }
