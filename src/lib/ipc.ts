@@ -31,6 +31,16 @@ export async function terminalKill(sessionId: string): Promise<void> {
   return invoke("terminal_kill", { sessionId });
 }
 
+export async function setVibrancy(
+  enabled: boolean,
+  r = 0,
+  g = 0,
+  b = 0,
+  a = 0,
+): Promise<void> {
+  return invoke("set_vibrancy", { enabled, r, g, b, a });
+}
+
 export async function settingsGetAll(): Promise<Record<string, unknown>> {
   return invoke("settings_get_all");
 }

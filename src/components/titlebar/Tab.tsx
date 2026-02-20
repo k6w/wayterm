@@ -3,6 +3,9 @@ import { Terminal, X, Columns2, Rows2 } from "lucide-react";
 import { motion } from "framer-motion";
 import type { TerminalTab } from "../../types/terminal";
 import { useTerminalStore, countPaneNodes } from "../../stores/terminal";
+import { useSettingsStore } from "../../stores/settings";
+import { useThemeStore } from "../../stores/theme";
+import { hexToRgba } from "../../lib/color";
 import TerminalTree from "./TerminalTree";
 import TabContextMenu from "./TabContextMenu";
 
@@ -40,6 +43,9 @@ export default function Tab({
   const containerRef = useRef<HTMLDivElement>(null);
 
   const panes = useTerminalStore((s) => s.panes);
+  const vibrancyEnabled = useSettingsStore((s) => s.settings.appearance.vibrancyEnabled);
+  const windowOpacity = useSettingsStore((s) => s.settings.appearance.windowOpacity);
+  const theme = useThemeStore((s) => s.active);
   const hasSplits = countPaneNodes(tab.panes) > 1;
 
   // Forward ref to parent for hit-testing
@@ -158,11 +164,16 @@ export default function Tab({
           px-3 text-xs transition-colors select-none cursor-default
           ${
             tab.isActive
-              ? "bg-bg-primary text-text-primary"
+              ? vibrancyEnabled ? "text-text-primary" : "bg-bg-primary text-text-primary"
               : "bg-transparent text-text-secondary hover:bg-bg-tertiary"
           }
           ${isDragSource ? "opacity-50" : ""}
         `}
+        style={
+          tab.isActive && vibrancyEnabled
+            ? { backgroundColor: hexToRgba(theme.ui.bgPrimary, windowOpacity) }
+            : undefined
+        }
         onClick={() => onClick(tab.id)}
         onDoubleClick={handleDoubleClick}
       >

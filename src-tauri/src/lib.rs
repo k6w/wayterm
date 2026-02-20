@@ -42,6 +42,7 @@ pub fn run() {
             commands::workspace::workspace_list,
             commands::workspace::workspace_save,
             commands::workspace::workspace_delete,
+            window::set_vibrancy,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -19,6 +19,8 @@ import {
 } from "lucide-react";
 import { useTerminalStore, collectPaneIds } from "../../stores/terminal";
 import { useThemeStore } from "../../stores/theme";
+import { useSettingsStore } from "../../stores/settings";
+import { hexToRgba } from "../../lib/color";
 import { getDefaultShell, getDefaultShells } from "../../lib/shell-detect";
 import { shortenPath } from "../../lib/format";
 import { splitActivePane } from "../../lib/keybindings";
@@ -39,6 +41,9 @@ export default function StatusBar() {
   const focusNextPane = useTerminalStore((s) => s.focusNextPane);
   const toggleSettings = useTerminalStore((s) => s.toggleSettings);
   const toggleCommandPalette = useTerminalStore((s) => s.toggleCommandPalette);
+  const vibrancyEnabled = useSettingsStore((s) => s.settings.appearance.vibrancyEnabled);
+  const windowOpacity = useSettingsStore((s) => s.settings.appearance.windowOpacity);
+  const theme = useThemeStore((s) => s.active);
 
   const [copiedFlash, setCopiedFlash] = useState(false);
   const [bellEnabled, setBellEnabled] = useState(true);
@@ -71,7 +76,10 @@ export default function StatusBar() {
   };
 
   return (
-    <div className="shrink-0 flex items-center h-6 border-t border-border bg-bg-secondary px-2 gap-0.5 text-[11px] text-text-muted select-none">
+    <div
+      className={`shrink-0 flex items-center h-6 border-t border-border px-2 gap-0.5 text-[11px] text-text-muted select-none ${vibrancyEnabled ? "" : "bg-bg-secondary"}`}
+      style={vibrancyEnabled ? { backgroundColor: hexToRgba(theme.ui.bgSecondary, windowOpacity) } : undefined}
+    >
       {/* === LEFT SIDE === */}
 
       {/* Shell type */}

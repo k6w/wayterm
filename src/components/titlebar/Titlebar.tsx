@@ -2,11 +2,17 @@ import { useCallback } from "react";
 import { Menu } from "lucide-react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useTerminalStore } from "../../stores/terminal";
+import { useSettingsStore } from "../../stores/settings";
+import { useThemeStore } from "../../stores/theme";
+import { hexToRgba } from "../../lib/color";
 import TabStrip from "./TabStrip";
 import WindowControls from "./WindowControls";
 
 export default function Titlebar() {
   const toggleSidebar = useTerminalStore((s) => s.toggleSidebar);
+  const vibrancyEnabled = useSettingsStore((s) => s.settings.appearance.vibrancyEnabled);
+  const windowOpacity = useSettingsStore((s) => s.settings.appearance.windowOpacity);
+  const theme = useThemeStore((s) => s.active);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     // Only start window drag from empty titlebar space
@@ -18,7 +24,8 @@ export default function Titlebar() {
 
   return (
     <div
-      className="flex h-10 w-full shrink-0 items-center border-b border-border bg-bg-secondary"
+      className={`flex h-10 w-full shrink-0 items-center border-b border-border ${vibrancyEnabled ? "" : "bg-bg-secondary"}`}
+      style={vibrancyEnabled ? { backgroundColor: hexToRgba(theme.ui.bgSecondary, windowOpacity) } : undefined}
       onMouseDown={handleMouseDown}
     >
       <button

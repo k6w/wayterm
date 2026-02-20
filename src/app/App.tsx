@@ -8,14 +8,20 @@ import SettingsModal from "../components/settings/SettingsModal";
 import ConnectionDialog from "../components/ssh/ConnectionDialog";
 import StatusBar from "../components/terminal/StatusBar";
 import { useTerminalStore } from "../stores/terminal";
+import { useSettingsStore } from "../stores/settings";
+import { useThemeStore } from "../stores/theme";
 import { useSshStore } from "../stores/ssh";
 import { getDefaultShell } from "../lib/shell-detect";
+import { hexToRgba } from "../lib/color";
 import type { SshConnection } from "../types/ssh";
 
 function AppContent() {
   const tabs = useTerminalStore((s) => s.tabs);
   const activeTabId = useTerminalStore((s) => s.activeTabId);
   const addTab = useTerminalStore((s) => s.addTab);
+  const vibrancyEnabled = useSettingsStore((s) => s.settings.appearance.vibrancyEnabled);
+  const windowOpacity = useSettingsStore((s) => s.settings.appearance.windowOpacity);
+  const theme = useThemeStore((s) => s.active);
   const [sshDialogOpen, setSshDialogOpen] = useState(false);
   const [editingConnection, setEditingConnection] = useState<SshConnection | null>(null);
 
@@ -51,7 +57,16 @@ function AppContent() {
   }, []);
 
   return (
-    <div className="h-full w-full flex flex-col bg-bg-primary text-text-primary overflow-hidden rounded-lg border border-border">
+    <div
+      className={`h-full w-full flex flex-col text-text-primary overflow-hidden rounded-lg border border-border ${
+        vibrancyEnabled ? "" : "bg-bg-primary"
+      }`}
+      style={
+        vibrancyEnabled
+          ? { backgroundColor: hexToRgba(theme.ui.bgPrimary, windowOpacity) }
+          : undefined
+      }
+    >
       <Titlebar />
       <div className="flex-1 min-h-0 relative">
         {tabs.map((tab) => (

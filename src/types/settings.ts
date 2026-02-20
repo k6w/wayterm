@@ -21,6 +21,7 @@ export interface AppearanceSettings {
   uiFontSize: number;
   cursorStyle: CursorStyle;
   cursorBlink: boolean;
+  vibrancyEnabled: boolean;
   windowOpacity: number;
   blurIntensity: number;
   accentColorOverride: string | null;

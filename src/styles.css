@@ -46,6 +46,15 @@ html, body, #root {
   padding: 0;
 }
 
+/* When vibrancy is active, force all xterm layers transparent.
+   The container div provides the semi-transparent rgba tint. */
+.vibrancy-active .xterm,
+.vibrancy-active .xterm-viewport,
+.vibrancy-active .xterm-screen {
+  background-color: transparent !important;
+  background: transparent !important;
+}
+
 .xterm-viewport::-webkit-scrollbar {
   width: 6px;
 }

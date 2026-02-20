@@ -24,6 +24,7 @@ import {
   setCachedTerminal,
   removeCachedTerminal,
 } from "../../lib/terminal-registry";
+import { hexToRgba } from "../../lib/color";
 import "@xterm/xterm/css/xterm.css";
 
 interface TerminalPaneProps {
@@ -229,6 +230,7 @@ export default function TerminalPane({
         termEl.style.height = "100%";
         container.appendChild(termEl);
 
+        const vibrancy = settings.appearance.vibrancyEnabled;
         const term = new Terminal({
           fontFamily: settings.appearance.terminalFontFamily,
           fontSize: settings.appearance.terminalFontSize,
@@ -249,17 +251,26 @@ export default function TerminalPane({
           cursorBlink: settings.appearance.cursorBlink,
           scrollback: settings.terminal.scrollbackLines,
           allowProposedApi: true,
-          theme: makeXtermTheme(theme),
+          // Always true so the canvas renderer uses clearRect (transparent).
+          // When vibrancy is off, solid theme background covers it anyway.
+          allowTransparency: true,
+          theme: makeXtermTheme(theme, vibrancy, settings.appearance.windowOpacity),
         });
 
         const fitAddon = new FitAddon();
         term.loadAddon(fitAddon);
         term.open(termEl);
 
-        try {
-          term.loadAddon(new WebglAddon());
-        } catch {
-          // canvas fallback
+        // WebGL is faster but always opaque — skip it when vibrancy is on
+        let webgl: import("@xterm/addon-webgl").WebglAddon | null = null;
+        if (!vibrancy) {
+          try {
+            const addon = new WebglAddon();
+            term.loadAddon(addon);
+            webgl = addon;
+          } catch {
+            // canvas fallback
+          }
         }
 
         fitAddon.fit();
@@ -336,6 +347,7 @@ export default function TerminalPane({
           sessionId,
           unlistenOutput,
           unlistenExit,
+          webglAddon: webgl,
         });
 
         // Observe resizes
@@ -387,11 +399,35 @@ export default function TerminalPane({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paneId]);
 
-  // ── Sync theme ──
+  // ── Sync theme + vibrancy (manages WebGL addon lifecycle) ──
   useEffect(() => {
-    if (!termRef.current) return;
-    termRef.current.options.theme = makeXtermTheme(theme);
-  }, [theme]);
+    const term = termRef.current;
+    if (!term) return;
+    const vibrancy = settings.appearance.vibrancyEnabled;
+    const opacity = settings.appearance.windowOpacity;
+
+    // Manage WebGL addon — WebGL always renders an opaque canvas,
+    // so it must be removed for any transparency to show.
+    const cached = getCachedTerminal(paneId);
+    if (cached) {
+      if (vibrancy && cached.webglAddon) {
+        try { cached.webglAddon.dispose(); } catch { /* already disposed */ }
+        cached.webglAddon = null;
+      } else if (!vibrancy && !cached.webglAddon) {
+        try {
+          const addon = new WebglAddon();
+          term.loadAddon(addon);
+          cached.webglAddon = addon;
+        } catch {
+          // canvas fallback
+        }
+      }
+    }
+
+    // Update theme (background = transparent when vibrancy on, solid when off)
+    term.options.theme = makeXtermTheme(theme, vibrancy, opacity);
+    term.refresh(0, term.rows - 1);
+  }, [theme, settings.appearance.vibrancyEnabled, settings.appearance.windowOpacity, paneId]);
 
   // ── Sync appearance settings ──
   useEffect(() => {
@@ -442,7 +478,7 @@ export default function TerminalPane({
     <div
       ref={wrapperRef}
       data-pane-id={paneId}
-      className={`relative h-full w-full overflow-hidden ${isSplit ? "rounded-lg" : ""}`}
+      className={`relative h-full w-full overflow-hidden ${isSplit ? "rounded-lg" : ""} ${settings.appearance.vibrancyEnabled ? "vibrancy-active" : ""}`}
       style={{
         border: showFocus
           ? `1.5px solid ${theme.ui.accent}`
@@ -472,7 +508,9 @@ export default function TerminalPane({
         className="h-full w-full"
         style={{
           padding: "6px 4px 0 6px",
-          backgroundColor: theme.terminal.background,
+          backgroundColor: settings.appearance.vibrancyEnabled
+            ? hexToRgba(theme.terminal.background, settings.appearance.windowOpacity)
+            : theme.terminal.background,
         }}
       />
 
@@ -537,10 +575,18 @@ export default function TerminalPane({
   );
 }
 
-function makeXtermTheme(theme: ReturnType<typeof useThemeStore.getState>["active"]) {
+function makeXtermTheme(
+  theme: ReturnType<typeof useThemeStore.getState>["active"],
+  vibrancyEnabled = false,
+  _windowOpacity = 1.0,
+) {
   return {
     foreground: theme.terminal.foreground,
-    background: theme.terminal.background,
+    // When vibrancy is on, xterm itself is fully transparent — the container
+    // div behind it provides the rgba-tinted background.
+    background: vibrancyEnabled
+      ? "rgba(0, 0, 0, 0)"
+      : theme.terminal.background,
     cursor: theme.terminal.cursor,
     cursorAccent: theme.terminal.cursorAccent,
     selectionBackground: theme.terminal.selection,

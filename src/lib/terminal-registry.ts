@@ -1,5 +1,6 @@
 import type { Terminal } from "@xterm/xterm";
 import type { FitAddon } from "@xterm/addon-fit";
+import type { WebglAddon } from "@xterm/addon-webgl";
 import type { UnlistenFn } from "@tauri-apps/api/event";
 
 export interface CachedTerminal {
@@ -10,6 +11,8 @@ export interface CachedTerminal {
   sessionId: string;
   unlistenOutput: UnlistenFn | null;
   unlistenExit: UnlistenFn | null;
+  /** Stored so we can dispose/reload when toggling vibrancy */
+  webglAddon: WebglAddon | null;
 }
 
 const cache = new Map<string, CachedTerminal>();

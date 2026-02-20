@@ -148,17 +148,33 @@ export default function AppearancePanel() {
         <h3 className="text-sm font-medium text-text-primary mb-3">Window</h3>
         <div className="space-y-4">
           <div className="flex justify-between items-center gap-4">
+            <label className="text-sm text-text-secondary">Vibrancy</label>
+            <button
+              onClick={() => update("appearance", { vibrancyEnabled: !settings.vibrancyEnabled })}
+              className={`relative w-10 h-5 rounded-full transition-colors ${
+                settings.vibrancyEnabled ? "bg-accent" : "bg-bg-tertiary"
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
+                  settings.vibrancyEnabled ? "translate-x-5" : "translate-x-0"
+                }`}
+              />
+            </button>
+          </div>
+          <div className={`flex justify-between items-center gap-4 ${settings.vibrancyEnabled ? "" : "opacity-40 pointer-events-none"}`}>
             <label className="text-sm text-text-secondary">
               Opacity ({settings.windowOpacity.toFixed(2)})
             </label>
             <input
               type="range"
-              min={0.5}
+              min={0.3}
               max={1.0}
               step={0.01}
               value={settings.windowOpacity}
               onChange={(e) => update("appearance", { windowOpacity: Number(e.target.value) })}
               className="w-40 accent-accent"
+              disabled={!settings.vibrancyEnabled}
             />
           </div>
         </div>

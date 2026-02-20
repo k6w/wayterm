@@ -20,6 +20,7 @@ const defaultSettings: AppSettings = {
     uiFontSize: 13,
     cursorStyle: "bar",
     cursorBlink: true,
+    vibrancyEnabled: false,
     windowOpacity: 1.0,
     blurIntensity: 1.0,
     accentColorOverride: null,
