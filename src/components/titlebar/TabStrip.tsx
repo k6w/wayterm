@@ -147,7 +147,7 @@ export default function TabStrip() {
 
   return (
     <div className="flex h-full min-w-0 flex-1 items-center">
-      <div className="flex h-full items-center overflow-x-auto overflow-y-hidden">
+      <div className="flex h-full items-center overflow-x-auto overflow-y-hidden scrollbar-none">
         <AnimatePresence initial={false}>
           {tabs.map((tab, i) => (
             <Tab

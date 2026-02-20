@@ -42,6 +42,15 @@ html, body, #root {
   background: rgba(255, 255, 255, 0.25);
 }
 
+/* Hide scrollbar but keep scroll functionality */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
 .xterm {
   padding: 0;
 }
