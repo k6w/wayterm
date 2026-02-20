@@ -57,7 +57,7 @@ function AppContent() {
         {tabs.map((tab) => (
           <div
             key={tab.id}
-            className="absolute inset-0"
+            className="absolute inset-0 p-[3px]"
             style={{ display: tab.id === activeTabId ? "block" : "none" }}
           >
             <SplitContainer node={tab.panes} />

@@ -11,6 +11,9 @@ interface SplitContainerProps {
 
 export { SplitContainer };
 
+/** Gap between panes in pixels */
+const GAP = 6;
+
 export default function SplitContainer({
   node,
   depth = 0,
@@ -124,8 +127,9 @@ function SplitView({
     };
   }, []);
 
-  const firstPercent = `${ratio * 100}%`;
-  const secondPercent = `${(1 - ratio) * 100}%`;
+  // Pane sizes: total = ratio*100% - gap/2 + gap + (1-ratio)*100% - gap/2 = 100%
+  const firstSize = `calc(${ratio * 100}% - ${GAP / 2}px)`;
+  const secondSize = `calc(${(1 - ratio) * 100}% - ${GAP / 2}px)`;
 
   return (
     <div
@@ -133,27 +137,38 @@ function SplitView({
       className={`flex h-full w-full ${isHorizontal ? "flex-row" : "flex-col"}`}
     >
       <div
-        className="overflow-hidden"
+        className="overflow-hidden rounded-lg"
         style={{
-          flexBasis: firstPercent,
+          flexBasis: firstSize,
           flexGrow: 0,
           flexShrink: 0,
         }}
       >
         <SplitContainer node={first} depth={depth + 1} totalPaneCount={totalPaneCount} />
       </div>
+
+      {/* Drag handle — IS the gap between panes */}
       <div
         onMouseDown={handleMouseDown}
-        className={`shrink-0 transition-all duration-150 ${
-          isHorizontal
-            ? "w-[3px] cursor-col-resize hover:w-[5px]"
-            : "h-[3px] cursor-row-resize hover:h-[5px]"
-        } bg-border hover:bg-accent/60 hover:shadow-[0_0_8px_rgba(82,139,255,0.3)]`}
-      />
-      <div
-        className="overflow-hidden"
+        className={`group shrink-0 flex items-center justify-center ${
+          isHorizontal ? "cursor-col-resize" : "cursor-row-resize"
+        }`}
         style={{
-          flexBasis: secondPercent,
+          [isHorizontal ? "width" : "height"]: `${GAP}px`,
+        }}
+      >
+        {/* Subtle indicator line on hover */}
+        <div
+          className={`rounded-full bg-transparent transition-colors duration-150 group-hover:bg-accent/50 ${
+            isHorizontal ? "h-8 w-[2px]" : "w-8 h-[2px]"
+          }`}
+        />
+      </div>
+
+      <div
+        className="overflow-hidden rounded-lg"
+        style={{
+          flexBasis: secondSize,
           flexGrow: 0,
           flexShrink: 0,
         }}

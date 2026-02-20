@@ -122,21 +122,29 @@ async function resolveSpawnConfig(
         }
       }
 
-      // Disable strict host key checking for convenience (user can override via ~/.ssh/config)
+      // Disable strict host key checking for convenience
       args.push("-o", "StrictHostKeyChecking=accept-new");
+
+      // Force pseudo-terminal so the remote shell is interactive
+      args.push("-t");
 
       // Port
       if (conn.port && conn.port !== 22) {
         args.push("-p", String(conn.port));
       }
 
-      // user@host
+      // user@host (must come before the remote command)
       args.push(`${conn.username}@${conn.host}`);
 
-      // Startup commands: execute after login
-      if (conn.startupCommands) {
-        args.push("-t", conn.startupCommands + "; exec $SHELL -l");
-      }
+      // Remote command: silently inject CWD tracking, run user startup
+      // commands if any, then exec into a login shell.
+      // PROMPT_COMMAND makes bash/zsh emit PWD as an OSC title sequence.
+      const cwdTracking =
+        `export PROMPT_COMMAND='printf "\\033]0;%s\\007" "$PWD"'`;
+      const startup = conn.startupCommands
+        ? `${conn.startupCommands}; `
+        : "";
+      args.push(`${cwdTracking}; ${startup}exec $SHELL -l`);
 
       return { shell: "ssh", args, env: [] };
     }
@@ -428,17 +436,21 @@ export default function TerminalPane({
   const showFocus = isActive && paneCount > 1;
   const showCloseBtn = paneCount > 1 && (isActive || hovered);
 
+  const isSplit = paneCount > 1;
+
   return (
     <div
       ref={wrapperRef}
       data-pane-id={paneId}
-      className="relative h-full w-full overflow-hidden"
+      className={`relative h-full w-full overflow-hidden ${isSplit ? "rounded-lg" : ""}`}
       style={{
-        borderLeft: showFocus
-          ? `2px solid ${theme.ui.accent}`
-          : "2px solid transparent",
+        border: showFocus
+          ? `1.5px solid ${theme.ui.accent}`
+          : isSplit
+            ? `1.5px solid ${theme.ui.border || "transparent"}`
+            : "1.5px solid transparent",
         boxShadow: showFocus
-          ? "inset 2px 0 8px rgba(82, 139, 255, 0.15)"
+          ? `0 0 12px ${theme.ui.accent}33`
           : "none",
       }}
       onMouseDown={() => {
@@ -455,11 +467,18 @@ export default function TerminalPane({
         setCtxMenu({ x: e.clientX, y: e.clientY });
       }}
     >
-      <div ref={containerRef} className="h-full w-full" />
+      <div
+        ref={containerRef}
+        className="h-full w-full"
+        style={{
+          padding: "6px 4px 0 6px",
+          backgroundColor: theme.terminal.background,
+        }}
+      />
 
       {showCloseBtn && (
         <div
-          className="absolute top-1 right-1 z-10 flex items-center gap-0.5"
+          className="absolute top-2 right-5 z-10 flex items-center gap-0.5"
           onMouseDown={(e) => e.stopPropagation()}
         >
           <button
