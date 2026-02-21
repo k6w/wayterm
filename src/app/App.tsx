@@ -8,6 +8,7 @@ import CommandPalette from "../components/command-palette/CommandPalette";
 import SettingsModal from "../components/settings/SettingsModal";
 import ConnectionDialog from "../components/ssh/ConnectionDialog";
 import StatusBar from "../components/terminal/StatusBar";
+import UpdateNotification from "../components/ui/UpdateNotification";
 import { useTerminalStore } from "../stores/terminal";
 import { useSettingsStore } from "../stores/settings";
 import { useThemeStore } from "../stores/theme";
@@ -115,6 +116,7 @@ function AppContent() {
       }
     >
       <Titlebar />
+      <UpdateNotification />
       <div className="flex-1 min-h-0 relative">
         {tabs.map((tab) => (
           <div

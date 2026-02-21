@@ -66,6 +66,7 @@ pub fn run() {
             tauri_plugin_autostart::MacosLauncher::LaunchAgent,
             None,
         ))
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(tauri_plugin_single_instance::init(|app, args, cwd| {
             // Second instance launched — send its args to the running window.
             // Resolve the path arg (if any) and emit an event to the frontend.

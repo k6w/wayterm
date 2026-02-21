@@ -30,6 +30,7 @@
   "bundle": {
     "active": true,
     "targets": "all",
+    "createUpdaterArtifacts": true,
     "icon": [
       "icons/32x32.png",
       "icons/128x128.png",
@@ -60,6 +61,14 @@
       "deb": {
         "depends": ["libwebkit2gtk-4.1-0", "libgtk-3-0"]
       }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDgzREZCREMwMkE2MzYxMUUKUldRZVlXTXF3TDNmZ3lJMGxvR2dkbFQzTnZHemwrY2w0SHRNbUN5SFlSZUV6bjZLL1B6eGVhejQK",
+      "endpoints": [
+        "https://github.com/k6w/nexterm-terminal-app/releases/latest/download/latest.json"
+      ]
     }
   }
 }
