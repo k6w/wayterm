@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { useTerminalStore } from "../../stores/terminal";
+import { isMac } from "../../lib/platform";
 import QuickActions from "./QuickActions";
 import ConnectionTree from "./ConnectionTree";
 import WorkspaceList from "./WorkspaceList";
@@ -86,7 +87,7 @@ export default function Sidebar({ onNewSsh, onEditSsh }: SidebarProps) {
               mass: 0.8,
             }}
           >
-            <div className="flex h-10 shrink-0 items-center justify-between border-b border-white/[0.08] px-3">
+            <div className={`flex h-10 shrink-0 items-center justify-between border-b border-white/[0.08] px-3 ${isMac ? "pl-[78px]" : ""}`}>
               <span className="text-sm font-medium text-text-primary">
                 Nexterm
               </span>

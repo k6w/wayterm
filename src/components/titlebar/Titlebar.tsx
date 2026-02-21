@@ -17,6 +17,8 @@ export default function Titlebar() {
   const theme = useThemeStore((s) => s.active);
 
   const handleDoubleClick = useCallback((e: React.MouseEvent) => {
+    // macOS Overlay titlebar handles double-click natively
+    if (isMac) return;
     const target = e.target as HTMLElement;
     if (target.closest('[data-no-drag], button, input, a')) return;
     getCurrentWindow().toggleMaximize();
