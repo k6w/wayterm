@@ -9,6 +9,8 @@ const defaultSettings: AppSettings = {
     startupWorkspaceId: null,
     checkForUpdates: true,
     confirmOnClose: true,
+    closeToTray: false,
+    launchOnStartup: false,
   },
   appearance: {
     themeId: "nexterm-dark",

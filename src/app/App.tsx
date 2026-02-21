@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { AppProviders } from "./providers";
 import Titlebar from "../components/titlebar/Titlebar";
@@ -14,7 +14,6 @@ import { useThemeStore } from "../stores/theme";
 import { useSshStore } from "../stores/ssh";
 import { useWorkspaceStore } from "../stores/workspace";
 import { getDefaultShell } from "../lib/shell-detect";
-import { getLaunchCwd } from "../lib/ipc";
 import { hexToRgba } from "../lib/color";
 import {
   startBufferAutoSave,
@@ -30,52 +29,8 @@ function AppContent() {
   const vibrancyEnabled = useSettingsStore((s) => s.settings.appearance.vibrancyEnabled);
   const windowOpacity = useSettingsStore((s) => s.settings.appearance.windowOpacity);
   const theme = useThemeStore((s) => s.active);
-  const settingsLoaded = useSettingsStore((s) => s.loaded);
-  const workspaceLoaded = useWorkspaceStore((s) => s.loaded);
   const [sshDialogOpen, setSshDialogOpen] = useState(false);
   const [editingConnection, setEditingConnection] = useState<SshConnection | null>(null);
-  const initDone = useRef(false);
-
-  // ── Startup: restore session or create new tab ──
-  // Fires once both settings and workspace data are loaded (in parallel)
-  useEffect(() => {
-    if (!settingsLoaded || !workspaceLoaded) return;
-    if (initDone.current) return;
-    initDone.current = true;
-
-    const startupBehavior = useSettingsStore.getState().settings.general.startupBehavior;
-
-    // CLI launch with explicit path always takes priority
-    getLaunchCwd().then((cwd) => {
-      if (cwd) {
-        const shell = getDefaultShell();
-        addTab(shell.type, shell.path, undefined, cwd);
-        return;
-      }
-
-      if (startupBehavior === "restore") {
-        const restored = useWorkspaceStore.getState().restoreSession();
-        if (restored) return;
-      }
-
-      if (startupBehavior === "workspace") {
-        const wsId = useSettingsStore.getState().settings.general.startupWorkspaceId;
-        if (wsId) {
-          const ws = useWorkspaceStore.getState().workspaces.find((w) => w.id === wsId);
-          if (ws) {
-            useWorkspaceStore.getState().restore(wsId);
-            return;
-          }
-        }
-      }
-
-      // Fallback: open a new tab
-      if (useTerminalStore.getState().tabs.length === 0) {
-        const shell = getDefaultShell();
-        addTab(shell.type, shell.path);
-      }
-    });
-  }, [settingsLoaded, workspaceLoaded]);
 
   // ── Auto-save session on terminal state changes (debounced) ──
   useEffect(() => {

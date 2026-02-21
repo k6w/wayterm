@@ -1,8 +1,10 @@
 import { Minus, Square, X } from "lucide-react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { useSettingsStore } from "../../stores/settings";
 
 export default function WindowControls() {
   const appWindow = getCurrentWindow();
+  const closeToTray = useSettingsStore((s) => s.settings.general.closeToTray);
 
   const handleMinimize = () => {
     appWindow.minimize();
@@ -13,7 +15,11 @@ export default function WindowControls() {
   };
 
   const handleClose = () => {
-    appWindow.close();
+    if (closeToTray) {
+      appWindow.hide();
+    } else {
+      appWindow.close();
+    }
   };
 
   return (

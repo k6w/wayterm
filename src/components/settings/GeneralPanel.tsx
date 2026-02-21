@@ -1,5 +1,6 @@
 import { useSettingsStore } from "../../stores/settings";
 import { getDefaultShells } from "../../lib/shell-detect";
+import { enable as enableAutostart, disable as disableAutostart } from "@tauri-apps/plugin-autostart";
 import Select from "../ui/Select";
 import type { StartupBehavior } from "../../types/settings";
 
@@ -89,6 +90,51 @@ export default function GeneralPanel() {
               <span
                 className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
                   settings.confirmOnClose ? "translate-x-5" : "translate-x-0"
+                }`}
+              />
+            </button>
+          </div>
+          <div className="flex justify-between items-center gap-4">
+            <div>
+              <label className="text-sm text-text-secondary">Close to tray</label>
+              <p className="text-xs text-text-muted mt-0.5">Minimize to system tray instead of quitting</p>
+            </div>
+            <button
+              onClick={() => update("general", { closeToTray: !settings.closeToTray })}
+              className={`relative w-10 h-5 rounded-full transition-colors shrink-0 ${
+                settings.closeToTray ? "bg-accent" : "bg-bg-tertiary"
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
+                  settings.closeToTray ? "translate-x-5" : "translate-x-0"
+                }`}
+              />
+            </button>
+          </div>
+          <div className="flex justify-between items-center gap-4">
+            <div>
+              <label className="text-sm text-text-secondary">Launch on startup</label>
+              <p className="text-xs text-text-muted mt-0.5">Start Nexterm when you log in</p>
+            </div>
+            <button
+              onClick={async () => {
+                const next = !settings.launchOnStartup;
+                try {
+                  if (next) await enableAutostart();
+                  else await disableAutostart();
+                  update("general", { launchOnStartup: next });
+                } catch {
+                  // autostart not available
+                }
+              }}
+              className={`relative w-10 h-5 rounded-full transition-colors shrink-0 ${
+                settings.launchOnStartup ? "bg-accent" : "bg-bg-tertiary"
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
+                  settings.launchOnStartup ? "translate-x-5" : "translate-x-0"
                 }`}
               />
             </button>

@@ -5,7 +5,11 @@ mod ssh;
 mod theme;
 mod window;
 
-use tauri::{Emitter, Manager};
+use tauri::{
+    Emitter, Manager,
+    menu::{Menu, MenuItem},
+    tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
+};
 
 /// Resolve a CLI path argument (e.g. "." or "src/") relative to `cwd`.
 /// Returns `None` if the resolved path is not a valid directory.
@@ -47,9 +51,21 @@ fn get_launch_cwd() -> Option<String> {
     None
 }
 
+fn show_window(app: &tauri::AppHandle) {
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.unminimize();
+        let _ = window.show();
+        let _ = window.set_focus();
+    }
+}
+
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_autostart::init(
+            tauri_plugin_autostart::MacosLauncher::LaunchAgent,
+            None,
+        ))
         .plugin(tauri_plugin_single_instance::init(|app, args, cwd| {
             // Second instance launched — send its args to the running window.
             // Resolve the path arg (if any) and emit an event to the frontend.
@@ -63,11 +79,7 @@ pub fn run() {
                 let _ = app.emit("cli-open-tab", path.clone());
             }
 
-            // Bring the existing window to front
-            if let Some(window) = app.get_webview_window("main") {
-                let _ = window.unminimize();
-                let _ = window.set_focus();
-            }
+            show_window(app);
         }))
         .setup(|app| {
             let app_data = app
@@ -78,6 +90,34 @@ pub fn run() {
             app.manage(pool);
             app.manage(pty::manager::PtyManager::new());
             window::setup(app.get_webview_window("main").as_ref());
+
+            // ── System tray ──
+            let show_item = MenuItem::with_id(app, "show", "Show Nexterm", true, None::<&str>)?;
+            let quit_item = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
+            let menu = Menu::with_items(app, &[&show_item, &quit_item])?;
+
+            let _tray = TrayIconBuilder::new()
+                .icon(app.default_window_icon().unwrap().clone())
+                .tooltip("Nexterm")
+                .menu(&menu)
+                .show_menu_on_left_click(false)
+                .on_menu_event(|app, event| match event.id.as_ref() {
+                    "show" => show_window(app),
+                    "quit" => app.exit(0),
+                    _ => {}
+                })
+                .on_tray_icon_event(|tray, event| {
+                    if let TrayIconEvent::Click {
+                        button: MouseButton::Left,
+                        button_state: MouseButtonState::Up,
+                        ..
+                    } = event
+                    {
+                        show_window(tray.app_handle());
+                    }
+                })
+                .build(app)?;
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

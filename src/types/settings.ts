@@ -9,6 +9,8 @@ export interface GeneralSettings {
   startupWorkspaceId: string | null;
   checkForUpdates: boolean;
   confirmOnClose: boolean;
+  closeToTray: boolean;
+  launchOnStartup: boolean;
 }
 
 export interface AppearanceSettings {
