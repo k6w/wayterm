@@ -44,6 +44,13 @@
     "windows": {
       "webviewInstallMode": {
         "type": "downloadBootstrapper"
+      },
+      "wix": {
+        "fragmentPaths": ["./windows/fragments/context-menu.wxs"],
+        "componentRefs": ["ContextMenuEntries"]
+      },
+      "nsis": {
+        "installerHooks": "./windows/hooks.nsh"
       }
     },
     "macOS": {

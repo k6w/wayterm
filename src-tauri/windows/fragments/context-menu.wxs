@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Fragment>
+    <DirectoryRef Id="TARGETDIR">
+      <Component Id="ContextMenuEntries" Guid="a1b2c3d4-e5f6-7890-abcd-ef1234567890">
+
+        <!-- Right-click on a folder → "Open in Nexterm" -->
+        <RegistryKey
+          Root="HKCU"
+          Key="Software\Classes\Directory\shell\Nexterm"
+          Action="createAndRemoveOnUninstall"
+        >
+          <RegistryValue Type="string" Value="Open in Nexterm" KeyPath="yes" />
+          <RegistryValue Type="string" Name="Icon" Value="[INSTALLDIR]nexterm.exe" />
+        </RegistryKey>
+        <RegistryKey
+          Root="HKCU"
+          Key="Software\Classes\Directory\shell\Nexterm\command"
+          Action="createAndRemoveOnUninstall"
+        >
+          <RegistryValue Type="string" Value="&quot;[INSTALLDIR]nexterm.exe&quot; &quot;%V&quot;" />
+        </RegistryKey>
+
+        <!-- Right-click on folder background → "Open in Nexterm" -->
+        <RegistryKey
+          Root="HKCU"
+          Key="Software\Classes\Directory\Background\shell\Nexterm"
+          Action="createAndRemoveOnUninstall"
+        >
+          <RegistryValue Type="string" Value="Open in Nexterm" />
+          <RegistryValue Type="string" Name="Icon" Value="[INSTALLDIR]nexterm.exe" />
+        </RegistryKey>
+        <RegistryKey
+          Root="HKCU"
+          Key="Software\Classes\Directory\Background\shell\Nexterm\command"
+          Action="createAndRemoveOnUninstall"
+        >
+          <RegistryValue Type="string" Value="&quot;[INSTALLDIR]nexterm.exe&quot; &quot;%V&quot;" />
+        </RegistryKey>
+
+      </Component>
+    </DirectoryRef>
+  </Fragment>
+</Wix>
