@@ -48,10 +48,26 @@ fn clear_effects(window: &WebviewWindow) {
 
 // ── macOS ──
 // Manually add NSVisualEffectView to the window's content view (not the webview).
-// The window_vibrancy crate adds it to the webview's NSView which is the wrong level
-// — the blur ends up inside the webview instead of behind it.
+// The window_vibrancy crate adds it to the webview's NSView which is the wrong level.
 #[cfg(target_os = "macos")]
-const VIBRANCY_TAG: i64 = 91376200;
+fn remove_vibrancy_views(content_view: cocoa::base::id) {
+    use cocoa::base::{id, nil};
+    use objc::{class, msg_send, sel, sel_impl};
+
+    unsafe {
+        let subviews: id = msg_send![content_view, subviews];
+        let count: usize = msg_send![subviews, count];
+        let effect_cls = class!(NSVisualEffectView);
+        // Iterate in reverse so removal doesn't shift indices
+        for i in (0..count).rev() {
+            let subview: id = msg_send![subviews, objectAtIndex: i];
+            let is_effect: bool = msg_send![subview, isKindOfClass: effect_cls];
+            if is_effect {
+                let _: () = msg_send![subview, removeFromSuperview];
+            }
+        }
+    }
+}
 
 #[cfg(target_os = "macos")]
 fn apply_effects(window: &WebviewWindow, _r: u8, _g: u8, _b: u8, _a: u8) {
@@ -64,11 +80,8 @@ fn apply_effects(window: &WebviewWindow, _r: u8, _g: u8, _b: u8, _a: u8) {
     unsafe {
         let content_view: id = ns_win.contentView();
 
-        // Remove existing vibrancy view if present
-        let existing: id = msg_send![content_view, viewWithTag: VIBRANCY_TAG];
-        if existing != nil {
-            let _: () = msg_send![existing, removeFromSuperview];
-        }
+        // Remove any existing vibrancy views first
+        remove_vibrancy_views(content_view);
 
         let bounds: NSRect = msg_send![content_view, bounds];
 
@@ -85,8 +98,6 @@ fn apply_effects(window: &WebviewWindow, _r: u8, _g: u8, _b: u8, _a: u8) {
         let _: () = msg_send![effect_view, setBlendingMode: 0_i64];
         // Auto-resize with window: NSViewWidthSizable (2) | NSViewHeightSizable (16) = 18
         let _: () = msg_send![effect_view, setAutoresizingMask: 18_u64];
-        // Tag for identification/removal
-        let _: () = msg_send![effect_view, setTag: VIBRANCY_TAG];
 
         // Add behind all other subviews (NSWindowBelow = -1)
         let _: () = msg_send![content_view, addSubview: effect_view positioned: -1_i64 relativeTo: nil];
@@ -96,16 +107,13 @@ fn apply_effects(window: &WebviewWindow, _r: u8, _g: u8, _b: u8, _a: u8) {
 #[cfg(target_os = "macos")]
 fn clear_effects(window: &WebviewWindow) {
     use cocoa::appkit::NSWindow;
-    use cocoa::base::{id, nil};
+    use cocoa::base::id;
     use objc::{msg_send, sel, sel_impl};
 
     let ns_win: id = window.ns_window().unwrap() as id;
     unsafe {
         let content_view: id = ns_win.contentView();
-        let existing: id = msg_send![content_view, viewWithTag: VIBRANCY_TAG];
-        if existing != nil {
-            let _: () = msg_send![existing, removeFromSuperview];
-        }
+        remove_vibrancy_views(content_view);
     }
 }
 
