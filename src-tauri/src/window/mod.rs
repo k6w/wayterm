@@ -48,8 +48,8 @@ fn clear_effects(_window: &WebviewWindow) {
 
 // ── Linux ──
 #[cfg(target_os = "linux")]
-fn apply_effects(window: &WebviewWindow, _r: u8, _g: u8, _b: u8, _a: u8) {
-    let _ = window_vibrancy::apply_blur(window, true);
+fn apply_effects(window: &WebviewWindow, r: u8, g: u8, b: u8, a: u8) {
+    let _ = window_vibrancy::apply_blur(window, Some((r, g, b, a)));
 }
 
 #[cfg(target_os = "linux")]
