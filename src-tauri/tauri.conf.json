@@ -65,7 +65,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDgzREZCREMwMkE2MzYxMUUKUldRZVlXTXF3TDNmZ3lJMGxvR2dkbFQzTnZHemwrY2w0SHRNbUN5SFlSZUV6bjZLL1B6eGVhejQK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDJBQTFFQ0NFRUYxOTU5M0QKUldROVdSbnZ6dXloS3JkZjZuR0xKeTl5OTdxYTNtckF3a2srdFR3ZHRES1hPRXJPZWJCbEZaQ04K",
       "endpoints": [
         "https://github.com/k6w/nexterm-terminal-app/releases/latest/download/latest.json"
       ]
