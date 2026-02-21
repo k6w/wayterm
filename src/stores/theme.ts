@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import type { ThemeDefinition } from "../types/theme";
+import { customThemeList, customThemeSave, customThemeDelete } from "../lib/ipc";
 import nextermDark from "../themes/nexterm-dark.json";
 import nextermLight from "../themes/nexterm-light.json";
 import monokaiPro from "../themes/monokai-pro.json";
@@ -10,13 +11,27 @@ import solarizedLight from "../themes/solarized-light.json";
 import oneDark from "../themes/one-dark.json";
 import catppuccinMocha from "../themes/catppuccin-mocha.json";
 import tokyoNight from "../themes/tokyo-night.json";
+import gruvboxDark from "../themes/gruvbox-dark.json";
+import gruvboxLight from "../themes/gruvbox-light.json";
+import rosePine from "../themes/rose-pine.json";
+import everforestDark from "../themes/everforest-dark.json";
+import kanagawa from "../themes/kanagawa.json";
+import githubDark from "../themes/github-dark.json";
 
 interface ThemeState {
   activeThemeId: string;
   themes: Record<string, ThemeDefinition>;
+  /** IDs of user-imported custom themes (not built-in) */
+  customThemeIds: Set<string>;
   active: ThemeDefinition;
   setTheme: (id: string) => void;
   registerTheme: (theme: ThemeDefinition) => void;
+  /** Load custom themes from DB on startup */
+  loadCustomThemes: () => Promise<void>;
+  /** Import a theme JSON, validate it, save to DB, and register */
+  importTheme: (json: string) => Promise<ThemeDefinition>;
+  /** Remove a custom theme from DB and unregister */
+  removeCustomTheme: (id: string) => Promise<void>;
 }
 
 const builtinThemes: Record<string, ThemeDefinition> = {
@@ -30,12 +45,49 @@ const builtinThemes: Record<string, ThemeDefinition> = {
   "one-dark": oneDark as unknown as ThemeDefinition,
   "catppuccin-mocha": catppuccinMocha as unknown as ThemeDefinition,
   "tokyo-night": tokyoNight as unknown as ThemeDefinition,
+  "gruvbox-dark": gruvboxDark as unknown as ThemeDefinition,
+  "gruvbox-light": gruvboxLight as unknown as ThemeDefinition,
+  "rose-pine": rosePine as unknown as ThemeDefinition,
+  "everforest-dark": everforestDark as unknown as ThemeDefinition,
+  "kanagawa": kanagawa as unknown as ThemeDefinition,
+  "github-dark": githubDark as unknown as ThemeDefinition,
 };
+
+/** Validate that a parsed object looks like a ThemeDefinition */
+function validateTheme(obj: unknown): obj is ThemeDefinition {
+  if (!obj || typeof obj !== "object") return false;
+  const t = obj as Record<string, unknown>;
+  if (typeof t.id !== "string" || !t.id) return false;
+  if (typeof t.name !== "string" || !t.name) return false;
+  if (t.variant !== "dark" && t.variant !== "light") return false;
+
+  const term = t.terminal as Record<string, unknown> | undefined;
+  if (!term) return false;
+  if (typeof term.foreground !== "string") return false;
+  if (typeof term.background !== "string") return false;
+  if (!Array.isArray(term.ansi) || term.ansi.length !== 16) return false;
+
+  const ui = t.ui as Record<string, unknown> | undefined;
+  if (!ui) return false;
+  const requiredUi = [
+    "bgPrimary", "bgSecondary", "bgTertiary",
+    "textPrimary", "textSecondary", "textMuted",
+    "accent", "accentHover", "border", "borderFocus",
+    "success", "warning", "error",
+  ];
+  for (const key of requiredUi) {
+    if (typeof ui[key] !== "string") return false;
+  }
+
+  return true;
+}
 
 export const useThemeStore = create<ThemeState>((set, get) => ({
   activeThemeId: "nexterm-dark",
   themes: builtinThemes,
+  customThemeIds: new Set<string>(),
   active: builtinThemes["nexterm-dark"],
+
   setTheme: (id: string) => {
     const theme = get().themes[id];
     if (theme) {
@@ -43,10 +95,105 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
       applyThemeToDom(theme);
     }
   },
+
   registerTheme: (theme: ThemeDefinition) => {
     set((state) => ({
       themes: { ...state.themes, [theme.id]: theme },
     }));
+  },
+
+  loadCustomThemes: async () => {
+    try {
+      const rows = await customThemeList();
+      const newThemes: Record<string, ThemeDefinition> = {};
+      const ids = new Set<string>();
+      for (const row of rows) {
+        try {
+          const parsed = JSON.parse(row.themeJson);
+          if (validateTheme(parsed)) {
+            newThemes[parsed.id] = parsed;
+            ids.add(parsed.id);
+          }
+        } catch {
+          // skip invalid JSON
+        }
+      }
+      set((state) => ({
+        themes: { ...state.themes, ...newThemes },
+        customThemeIds: ids,
+      }));
+    } catch {
+      // DB not ready yet, ignore
+    }
+  },
+
+  importTheme: async (json: string) => {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(json);
+    } catch {
+      throw new Error("Invalid JSON");
+    }
+
+    if (!validateTheme(parsed)) {
+      throw new Error(
+        "Invalid theme format. Ensure id, name, variant, terminal, and ui fields are present."
+      );
+    }
+
+    // Prevent overwriting built-in themes
+    if (builtinThemes[parsed.id]) {
+      throw new Error(
+        `Theme ID "${parsed.id}" conflicts with a built-in theme. Change the "id" field.`
+      );
+    }
+
+    // Ensure blur/opacity defaults if missing
+    const theme: ThemeDefinition = {
+      ...parsed,
+      blur: parsed.blur ?? { sidebar: 20, blocks: 4, inputBar: 12, overlay: 30 },
+      opacity: parsed.opacity ?? { sidebar: 0.4, blocks: 0.05, inputBar: 0.08 },
+    };
+
+    await customThemeSave(theme.id, JSON.stringify(theme));
+
+    set((state) => ({
+      themes: { ...state.themes, [theme.id]: theme },
+      customThemeIds: new Set([...state.customThemeIds, theme.id]),
+    }));
+
+    return theme;
+  },
+
+  removeCustomTheme: async (id: string) => {
+    // Don't allow removing built-in themes
+    if (builtinThemes[id]) return;
+
+    await customThemeDelete(id);
+
+    set((state) => {
+      const { [id]: _, ...rest } = state.themes;
+      const ids = new Set(state.customThemeIds);
+      ids.delete(id);
+
+      // If active theme was removed, fall back to default
+      const needsFallback = state.activeThemeId === id;
+      return {
+        themes: rest,
+        customThemeIds: ids,
+        ...(needsFallback
+          ? {
+              activeThemeId: "nexterm-dark",
+              active: builtinThemes["nexterm-dark"],
+            }
+          : {}),
+      };
+    });
+
+    // Apply fallback theme to DOM if needed
+    if (get().activeThemeId === "nexterm-dark") {
+      applyThemeToDom(builtinThemes["nexterm-dark"]);
+    }
   },
 }));
 

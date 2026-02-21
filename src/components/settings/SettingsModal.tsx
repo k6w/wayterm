@@ -11,6 +11,9 @@ import {
   KeyRound,
 } from "lucide-react";
 import { useTerminalStore } from "../../stores/terminal";
+import { useSettingsStore } from "../../stores/settings";
+import { useThemeStore } from "../../stores/theme";
+import { hexToRgba } from "../../lib/color";
 import GeneralPanel from "./GeneralPanel";
 import AppearancePanel from "./AppearancePanel";
 import TerminalPanel from "./TerminalPanel";
@@ -50,6 +53,9 @@ const panels: Record<PanelId, React.ComponentType> = {
 export default function SettingsModal() {
   const settingsOpen = useTerminalStore((s) => s.settingsOpen);
   const toggleSettings = useTerminalStore((s) => s.toggleSettings);
+  const vibrancy = useSettingsStore((s) => s.settings.appearance.vibrancyEnabled);
+  const opacity = useSettingsStore((s) => s.settings.appearance.windowOpacity);
+  const theme = useThemeStore((s) => s.active);
   const [activePanel, setActivePanel] = useState<PanelId>("general");
 
   const handleEscape = useCallback(
@@ -80,14 +86,28 @@ export default function SettingsModal() {
           onClick={toggleSettings}
         >
           <motion.div
-            className="relative flex w-[768px] h-[540px] rounded-xl bg-bg-primary border border-border overflow-hidden"
+            className="relative flex w-[778px] h-[540px] rounded-xl border border-border overflow-hidden"
+            style={{
+              backgroundColor: vibrancy
+                ? hexToRgba(theme.ui.bgPrimary, opacity * 0.95)
+                : theme.ui.bgPrimary,
+              backdropFilter: vibrancy ? "blur(24px) saturate(1.4)" : undefined,
+              WebkitBackdropFilter: vibrancy ? "blur(24px) saturate(1.4)" : undefined,
+            }}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
             transition={{ duration: 0.2 }}
             onClick={(e) => e.stopPropagation()}
           >
-            <nav className="w-[200px] shrink-0 border-r border-border bg-bg-secondary p-3 flex flex-col gap-1">
+            <nav
+              className="w-[200px] shrink-0 border-r border-border p-3 flex flex-col gap-1"
+              style={{
+                backgroundColor: vibrancy
+                  ? hexToRgba(theme.ui.bgSecondary, opacity * 0.5)
+                  : theme.ui.bgSecondary,
+              }}
+            >
               <div className="text-xs font-medium text-text-muted uppercase tracking-wider px-3 py-2">
                 Settings
               </div>

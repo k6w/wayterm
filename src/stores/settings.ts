@@ -5,7 +5,7 @@ import { settingsGetAll, settingsSet } from "../lib/ipc";
 const defaultSettings: AppSettings = {
   general: {
     defaultShell: "",
-    startupBehavior: "new-tab",
+    startupBehavior: "restore",
     startupWorkspaceId: null,
     checkForUpdates: true,
     confirmOnClose: true,

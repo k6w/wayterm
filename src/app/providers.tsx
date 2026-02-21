@@ -6,6 +6,7 @@ import { useSshStore } from "../stores/ssh";
 import { setupKeybindings } from "../lib/keybindings";
 import { setVibrancy } from "../lib/ipc";
 import { hexToRgb } from "../lib/color";
+import { initHomePath } from "../lib/format";
 
 /** Call the native set_vibrancy command with the current theme color. */
 function syncVibrancy(enabled: boolean, opacity: number) {
@@ -24,13 +25,17 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     applyThemeToDom(theme);
+    initHomePath().catch(() => {});
     useWorkspaceStore.getState().load();
     useSshStore.getState().load();
-    loadSettings().then(() => {
-      const { vibrancyEnabled: v, windowOpacity: o } =
-        useSettingsStore.getState().settings.appearance;
-      syncVibrancy(v, o);
-      setReady(true);
+    // Load custom themes before settings so the saved themeId can resolve
+    useThemeStore.getState().loadCustomThemes().finally(() => {
+      loadSettings().then(() => {
+        const { vibrancyEnabled: v, windowOpacity: o } =
+          useSettingsStore.getState().settings.appearance;
+        syncVibrancy(v, o);
+        setReady(true);
+      });
     });
   }, []);
 

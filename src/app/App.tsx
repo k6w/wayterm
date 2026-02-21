@@ -1,4 +1,5 @@
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { listen } from "@tauri-apps/api/event";
 import { AppProviders } from "./providers";
 import Titlebar from "../components/titlebar/Titlebar";
 import SplitContainer from "../components/terminal/SplitContainer";
@@ -11,8 +12,15 @@ import { useTerminalStore } from "../stores/terminal";
 import { useSettingsStore } from "../stores/settings";
 import { useThemeStore } from "../stores/theme";
 import { useSshStore } from "../stores/ssh";
+import { useWorkspaceStore } from "../stores/workspace";
 import { getDefaultShell } from "../lib/shell-detect";
+import { getLaunchCwd } from "../lib/ipc";
 import { hexToRgba } from "../lib/color";
+import {
+  startBufferAutoSave,
+  stopBufferAutoSave,
+  saveAllBuffers,
+} from "../lib/buffer-persistence";
 import type { SshConnection } from "../types/ssh";
 
 function AppContent() {
@@ -24,13 +32,89 @@ function AppContent() {
   const theme = useThemeStore((s) => s.active);
   const [sshDialogOpen, setSshDialogOpen] = useState(false);
   const [editingConnection, setEditingConnection] = useState<SshConnection | null>(null);
+  const initDone = useRef(false);
 
+  // ── Startup: restore session or create new tab ──
   useEffect(() => {
-    if (tabs.length === 0) {
-      const shell = getDefaultShell();
-      addTab(shell.type, shell.path);
-    }
+    if (initDone.current) return;
+    initDone.current = true;
+
+    const startupBehavior = useSettingsStore.getState().settings.general.startupBehavior;
+
+    // CLI launch with explicit path always takes priority
+    getLaunchCwd().then((cwd) => {
+      if (cwd) {
+        const shell = getDefaultShell();
+        addTab(shell.type, shell.path, undefined, cwd);
+        return;
+      }
+
+      if (startupBehavior === "restore") {
+        const restored = useWorkspaceStore.getState().restoreSession();
+        if (restored) return;
+      }
+
+      if (startupBehavior === "workspace") {
+        const wsId = useSettingsStore.getState().settings.general.startupWorkspaceId;
+        if (wsId) {
+          const ws = useWorkspaceStore.getState().workspaces.find((w) => w.id === wsId);
+          if (ws) {
+            useWorkspaceStore.getState().restore(wsId);
+            return;
+          }
+        }
+      }
+
+      // Fallback: open a new tab
+      if (useTerminalStore.getState().tabs.length === 0) {
+        const shell = getDefaultShell();
+        addTab(shell.type, shell.path);
+      }
+    });
   }, []);
+
+  // ── Auto-save session on terminal state changes (debounced) ──
+  useEffect(() => {
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const unsub = useTerminalStore.subscribe(() => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        useWorkspaceStore.getState().autoSave();
+      }, 2000);
+    });
+
+    // Also save on beforeunload (synchronous best-effort)
+    const handleUnload = () => {
+      useWorkspaceStore.getState().autoSave();
+      saveAllBuffers();
+    };
+    window.addEventListener("beforeunload", handleUnload);
+
+    return () => {
+      unsub();
+      if (timer) clearTimeout(timer);
+      window.removeEventListener("beforeunload", handleUnload);
+    };
+  }, []);
+
+  // ── Buffer auto-save lifecycle ──
+  useEffect(() => {
+    startBufferAutoSave();
+    return () => {
+      stopBufferAutoSave();
+    };
+  }, []);
+
+  // ── Listen for second-instance launches (`nexterm .` while already running) ──
+  useEffect(() => {
+    const unlisten = listen<string>("cli-open-tab", (event) => {
+      const shell = getDefaultShell();
+      addTab(shell.type, shell.path, undefined, event.payload);
+    });
+    return () => {
+      unlisten.then((fn) => fn());
+    };
+  }, [addTab]);
 
   const handleNewSsh = useCallback(() => {
     setEditingConnection(null);

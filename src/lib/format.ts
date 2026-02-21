@@ -1,28 +1,38 @@
-export function shortenPath(fullPath: string): string {
+import { getHomeDir } from "./ipc";
+
+let cachedHome: string | null = null;
+
+/** Call once at app startup to cache the home directory. */
+export async function initHomePath(): Promise<void> {
+  cachedHome = await getHomeDir();
+}
+
+export function shortenPath(fullPath: string, sshUsername?: string): string {
   if (!fullPath || fullPath === "~") return "~";
 
-  const home = getHomePath();
-  if (home) {
-    // Normalize both to forward slashes for comparison
+  // SSH remote path: /home/<user> or /root
+  if (sshUsername) {
+    const remoteHome = sshUsername === "root" ? "/root" : `/home/${sshUsername}`;
+    if (fullPath === remoteHome || fullPath.startsWith(remoteHome + "/")) {
+      return "~" + fullPath.slice(remoteHome.length);
+    }
+  }
+
+  // Local path
+  if (cachedHome) {
+    // Case-insensitive comparison for Windows
     const normalizedPath = fullPath.replace(/\\/g, "/");
-    const normalizedHome = home.replace(/\\/g, "/");
-    if (normalizedPath.startsWith(normalizedHome)) {
+    const normalizedHome = cachedHome.replace(/\\/g, "/");
+
+    if (normalizedPath.toLowerCase().startsWith(normalizedHome.toLowerCase())) {
       const rest = normalizedPath.slice(normalizedHome.length);
-      return "~" + (rest || "");
+      // Convert remaining forward slashes back to OS-style (backslash on Windows)
+      const separator = fullPath.includes("\\") ? "\\" : "/";
+      const displayRest = rest.replace(/\//g, separator);
+      return "~" + (displayRest || "");
     }
   }
   return fullPath;
-}
-
-function getHomePath(): string | null {
-  const platform = navigator.platform.toLowerCase();
-  if (platform.includes("win")) {
-    // On Windows, USERPROFILE is typically C:\Users\<name>
-    // We can't access env vars from the browser, but we can infer from common paths
-    // Match C:\Users\<username> pattern in the path
-    return null; // Will show full path on Windows, which is fine
-  }
-  return null;
 }
 
 export function formatDuration(ms: number): string {

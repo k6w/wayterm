@@ -6,14 +6,16 @@ interface ContextRibbonProps {
   cwd: string;
   gitBranch: string | null;
   gitDirty: boolean;
+  sshUsername?: string;
 }
 
 export default function ContextRibbon({
   cwd,
   gitBranch,
   gitDirty,
+  sshUsername,
 }: ContextRibbonProps) {
-  const displayPath = shortenPath(cwd);
+  const displayPath = shortenPath(cwd, sshUsername);
 
   return (
     <motion.div

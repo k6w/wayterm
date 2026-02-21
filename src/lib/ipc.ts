@@ -112,6 +112,47 @@ export async function workspaceDelete(id: string): Promise<void> {
   return invoke("workspace_delete", { id });
 }
 
+export async function getLaunchCwd(): Promise<string | null> {
+  return invoke("get_launch_cwd");
+}
+
+export async function getHomeDir(): Promise<string | null> {
+  return invoke("get_home_dir");
+}
+
+export async function bufferSaveBatch(
+  entries: { paneId: string; bufferData: string }[]
+): Promise<void> {
+  return invoke("buffer_save_batch", { entries });
+}
+
+export async function bufferLoadBatch(
+  paneIds: string[]
+): Promise<{ paneId: string; bufferData: string }[]> {
+  return invoke("buffer_load_batch", { paneIds });
+}
+
+export async function bufferCleanup(): Promise<number> {
+  return invoke("buffer_cleanup");
+}
+
+export async function customThemeList(): Promise<
+  { id: string; themeJson: string }[]
+> {
+  return invoke("custom_theme_list");
+}
+
+export async function customThemeSave(
+  id: string,
+  themeJson: string
+): Promise<void> {
+  return invoke("custom_theme_save", { id, themeJson });
+}
+
+export async function customThemeDelete(id: string): Promise<void> {
+  return invoke("custom_theme_delete", { id });
+}
+
 export function onTerminalOutput(
   sessionId: string,
   callback: (data: number[]) => void

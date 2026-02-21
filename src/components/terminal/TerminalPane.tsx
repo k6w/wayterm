@@ -24,6 +24,11 @@ import {
   setCachedTerminal,
   removeCachedTerminal,
 } from "../../lib/terminal-registry";
+import {
+  attachSerializeAddon,
+  detachSerializeAddon,
+} from "../../lib/buffer-persistence";
+import { useWorkspaceStore } from "../../stores/workspace";
 import { hexToRgba } from "../../lib/color";
 import "@xterm/xterm/css/xterm.css";
 
@@ -31,6 +36,46 @@ interface TerminalPaneProps {
   paneId: string;
   isActive: boolean;
   paneCount?: number;
+}
+
+/**
+ * Detect real text in PTY output vs ConPTY initialization junk.
+ * ConPTY on Windows (GUI subsystem, production builds) emits escape sequences
+ * before the child process runs. This helper returns true only when the chunk
+ * contains 3+ consecutive printable ASCII chars outside of any ESC sequence.
+ */
+function hasVisibleContent(data: number[]): boolean {
+  let run = 0;
+  let i = 0;
+  while (i < data.length) {
+    const b = data[i];
+    if (b === 0x1b) {
+      run = 0;
+      i++;
+      if (i >= data.length) break;
+      if (data[i] === 0x5b) {
+        // CSI: \x1b[ … ends with 0x40-0x7e
+        i++;
+        while (i < data.length && !(data[i] >= 0x40 && data[i] <= 0x7e)) i++;
+        if (i < data.length) i++;
+      } else if (data[i] === 0x5d) {
+        // OSC: \x1b] … ends with BEL or ST
+        i++;
+        while (i < data.length && data[i] !== 0x07 && data[i] !== 0x1b) i++;
+        if (i < data.length) i++;
+      } else {
+        i++; // simple two-byte escape
+      }
+      continue;
+    }
+    if (b >= 0x20 && b <= 0x7e) {
+      if (++run >= 3) return true;
+    } else {
+      run = 0;
+    }
+    i++;
+  }
+  return false;
 }
 
 /** Returns shell args & env vars that silently set up CWD-in-title reporting */
@@ -104,50 +149,34 @@ async function resolveSpawnConfig(
   pane: import("../../types/terminal").TerminalPane | undefined,
   settings: ReturnType<typeof useSettingsStore.getState>["settings"]
 ): Promise<{ shell: string; args: string[]; env: [string, string][] }> {
-  // ── SSH connection ──
+  // ── SSH connection — spawn ssh directly as the PTY process ──
   if (pane?.sshConnectionId) {
     const conn = useSshStore
       .getState()
       .connections.find((c) => c.id === pane.sshConnectionId);
 
     if (conn) {
-      const args: string[] = [];
+      const sshArgs: string[] = [];
 
-      // Key auth — write stored key to temp file and use -i
+      sshArgs.push("-o", "StrictHostKeyChecking=accept-new");
+
+      // Key auth
       if (conn.authMethod === "key" && conn.privateKeyId) {
         try {
           const keyPath = await sshGetKeyTempPath(conn.privateKeyId);
-          args.push("-i", keyPath);
+          sshArgs.push("-i", keyPath);
         } catch {
-          // Fall through without -i; ssh will try agent/default keys
+          // Fall through without -i
         }
       }
 
-      // Disable strict host key checking for convenience
-      args.push("-o", "StrictHostKeyChecking=accept-new");
-
-      // Force pseudo-terminal so the remote shell is interactive
-      args.push("-t");
-
-      // Port
       if (conn.port && conn.port !== 22) {
-        args.push("-p", String(conn.port));
+        sshArgs.push("-p", String(conn.port));
       }
 
-      // user@host (must come before the remote command)
-      args.push(`${conn.username}@${conn.host}`);
+      sshArgs.push(`${conn.username}@${conn.host}`);
 
-      // Remote command: silently inject CWD tracking, run user startup
-      // commands if any, then exec into a login shell.
-      // PROMPT_COMMAND makes bash/zsh emit PWD as an OSC title sequence.
-      const cwdTracking =
-        `export PROMPT_COMMAND='printf "\\033]0;%s\\007" "$PWD"'`;
-      const startup = conn.startupCommands
-        ? `${conn.startupCommands}; `
-        : "";
-      args.push(`${cwdTracking}; ${startup}exec $SHELL -l`);
-
-      return { shell: "ssh", args, env: [] };
+      return { shell: "ssh", args: sshArgs, env: [] };
     }
   }
 
@@ -156,6 +185,7 @@ async function resolveSpawnConfig(
   const shellPath =
     pane?.shellPath || settings.general.defaultShell || detectedShell.path;
   const integration = getShellIntegration(shellPath);
+
   return { shell: shellPath, args: integration.args, env: integration.env };
 }
 
@@ -181,6 +211,7 @@ export default function TerminalPane({
 
     let resizeObs: ResizeObserver | null = null;
     let cancelled = false;
+    const sshTimers: ReturnType<typeof setTimeout>[] = [];
 
     const cached = getCachedTerminal(paneId);
 
@@ -283,15 +314,34 @@ export default function TerminalPane({
           return;
         }
 
+        // ── Replay saved buffer (if restoring a session) ──
+        const wsState = useWorkspaceStore.getState();
+        if (wsState._buffersReadyPromise) {
+          // Wait at most 150ms so buffer load doesn't delay startup
+          await Promise.race([
+            wsState._buffersReadyPromise,
+            new Promise((r) => setTimeout(r, 150)),
+          ]);
+        }
+        const savedBuffer = useWorkspaceStore.getState().consumeBuffer(paneId);
+        if (savedBuffer) {
+          term.write(savedBuffer);
+          // Clear visible screen — old content stays in scrollback,
+          // new PTY prompt appears on a clean slate
+          term.write("\x1b[2J\x1b[H");
+        }
+
         // Spawn PTY — either SSH or local shell
         const existingPane = useTerminalStore.getState().panes[paneId];
+        const isSsh = !!existingPane?.sshConnectionId;
+
         const { shell: spawnShell, args: spawnArgs, env: spawnEnv } =
           await resolveSpawnConfig(existingPane, settings);
 
         const sessionId = await terminalSpawn({
           shell: spawnShell,
           args: spawnArgs,
-          cwd: "",
+          cwd: existingPane?.cwd || "",
           env: spawnEnv,
           rows: term.rows,
           cols: term.cols,
@@ -307,14 +357,94 @@ export default function TerminalPane({
         sessionRef.current = sessionId;
         updatePaneSession(paneId, sessionId);
 
+        // SSH overlay phases:
+        //   "overlay"  — waiting for first real output, ConPTY junk is dropped
+        //   "settling" — key/agent auth: injecting CWD tracking behind overlay
+        //   "done"     — normal passthrough
+        //
+        // Nothing is written to xterm until the overlay lifts so the
+        // terminal canvas stays empty → acrylic shows through cleanly.
+        let sshPhase: "overlay" | "settling" | "done" = isSsh ? "overlay" : "done";
+        const sshBuffer: Uint8Array[] = [];
+
+        // Advance the user-visible step label after a short delay
+        if (isSsh) {
+          sshTimers.push(
+            setTimeout(() => setSshStep("Authenticating..."), 600)
+          );
+        }
+
         const unlistenOutput = await onTerminalOutput(
           sessionId,
           (data: number[]) => {
-            term.write(new Uint8Array(data));
+            if (sshPhase === "done") {
+              term.write(new Uint8Array(data));
+              return;
+            }
+
+            // Settling — buffer only (xterm stays blank behind overlay)
+            if (sshPhase === "settling") {
+              sshBuffer.push(new Uint8Array(data));
+              return;
+            }
+
+            // Overlay phase — drop ConPTY init junk (escape-only chunks)
+            if (!hasVisibleContent(data)) return;
+
+            // First real content arrived — buffer it (don't write yet)
+            sshBuffer.push(new Uint8Array(data));
+
+            // Check if SSH needs interactive input (password, passphrase, etc.)
+            const text = new TextDecoder().decode(new Uint8Array(data));
+            if (/password|passphrase|yes\/no|verification/i.test(text)) {
+              // Flush buffer so the user can see the prompt and type
+              for (const chunk of sshBuffer) term.write(chunk);
+              sshBuffer.length = 0;
+              sshPhase = "done";
+              setSshOverlay(false);
+              return;
+            }
+
+            // Key/agent auth connected — inject CWD tracking behind overlay
+            sshPhase = "settling";
+            setSshStep("Preparing session...");
+            const encoder = new TextEncoder();
+
+            sshTimers.push(
+              setTimeout(() => {
+                // Leading space = excluded from shell history (HISTCONTROL=ignorespace).
+                // No `export` needed — bash reads PROMPT_COMMAND as a shell var.
+                const cmd =
+                  ' PROMPT_COMMAND=\'printf "\\033]0;%s\\007" "$PWD"\'\n';
+                terminalWrite(
+                  sessionId,
+                  Array.from(encoder.encode(cmd))
+                );
+
+                sshTimers.push(
+                  setTimeout(() => {
+                    // Flush buffered output (MOTD + command echo + prompt)
+                    // to xterm, then erase the command echo line before the
+                    // user ever sees it.
+                    for (const chunk of sshBuffer) term.write(chunk);
+                    sshBuffer.length = 0;
+                    term.write("\x1b[A\x1b[M");
+                    sshPhase = "done";
+                    setSshOverlay(false);
+                  }, 350)
+                );
+              }, 400)
+            );
           }
         );
 
         const unlistenExit = await onTerminalExit(sessionId, () => {
+          sshTimers.forEach((t) => clearTimeout(t));
+          sshTimers.length = 0;
+          if (sshPhase !== "done") {
+            sshPhase = "done";
+            setSshOverlay(false);
+          }
           term.write("\r\n\x1b[90m--- Process exited ---\x1b[0m\r\n");
         });
 
@@ -350,6 +480,9 @@ export default function TerminalPane({
           webglAddon: webgl,
         });
 
+        // Attach serialize addon for buffer persistence
+        attachSerializeAddon(paneId, term);
+
         // Observe resizes
         resizeObs = new ResizeObserver(() => {
           try {
@@ -369,6 +502,8 @@ export default function TerminalPane({
     // ── CLEANUP on unmount ──
     return () => {
       cancelled = true;
+      sshTimers.forEach((t) => clearTimeout(t));
+      sshTimers.length = 0;
       if (resizeObs) resizeObs.disconnect();
 
       const paneStillExists =
@@ -382,6 +517,7 @@ export default function TerminalPane({
         }
       } else {
         // Pane was closed — dispose everything
+        detachSerializeAddon(paneId);
         const c = getCachedTerminal(paneId);
         if (c) {
           if (c.unlistenOutput) c.unlistenOutput();
@@ -463,6 +599,22 @@ export default function TerminalPane({
   const closePaneInTab = useTerminalStore((s) => s.closePaneInTab);
   const detachPaneToTab = useTerminalStore((s) => s.detachPaneToTab);
 
+  // SSH overlay state — computed once at mount from stores
+  const [sshInfo] = useState(() => {
+    const p = useTerminalStore.getState().panes[paneId];
+    if (!p?.sshConnectionId) return null;
+    const conn = useSshStore
+      .getState()
+      .connections.find((c) => c.id === p.sshConnectionId);
+    if (!conn) return null;
+    return {
+      hostLabel: conn.name,
+      authMethod: conn.authMethod,
+    };
+  });
+  const [sshOverlay, setSshOverlay] = useState(() => !!sshInfo && !getCachedTerminal(paneId));
+  const [sshStep, setSshStep] = useState<string>(() => sshInfo && !getCachedTerminal(paneId) ? "Resolving host..." : "");
+
   const [hovered, setHovered] = useState(false);
   const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(
     null
@@ -513,6 +665,41 @@ export default function TerminalPane({
             : theme.terminal.background,
         }}
       />
+
+      {sshOverlay && (
+        <div
+          className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4"
+          style={{
+            backgroundColor: settings.appearance.vibrancyEnabled
+              ? hexToRgba(theme.terminal.background, settings.appearance.windowOpacity)
+              : theme.terminal.background,
+          }}
+        >
+          <div
+            className="h-8 w-8 animate-spin rounded-full border-[2.5px]"
+            style={{
+              borderColor: theme.ui.accent + "25",
+              borderTopColor: theme.ui.accent,
+            }}
+          />
+          <div className="flex flex-col items-center gap-1.5">
+            <span
+              className="text-xs tracking-wide"
+              style={{ color: theme.terminal.foreground + "b0" }}
+            >
+              Connecting to {sshInfo?.hostLabel ?? "remote host"}
+            </span>
+            {sshStep && (
+              <span
+                className="text-[11px] tracking-wide"
+                style={{ color: theme.terminal.foreground + "50" }}
+              >
+                {sshStep}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
 
       {showCloseBtn && (
         <div

@@ -26,6 +26,8 @@ interface TerminalState {
   panes: Record<string, TerminalPane>;
   activeTabId: string | null;
   activePaneId: string | null;
+  /** Stack of recently focused pane IDs (most recent last) for Hyprland-style focus fallback */
+  paneFocusHistory: string[];
   sidebarOpen: boolean;
   commandPaletteOpen: boolean;
   settingsOpen: boolean;
@@ -34,7 +36,7 @@ interface TerminalState {
   dragOverPaneId: string | null;
   dragOverZone: DropZone;
 
-  addTab: (shellType: ShellType, shellPath?: string, sshConnectionId?: string) => string;
+  addTab: (shellType: ShellType, shellPath?: string, sshConnectionId?: string, initialCwd?: string) => string;
   removeTab: (tabId: string) => void;
   setActiveTab: (tabId: string) => void;
   renameTab: (tabId: string, title: string) => void;
@@ -93,6 +95,7 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
   panes: {},
   activeTabId: null,
   activePaneId: null,
+  paneFocusHistory: [],
   sidebarOpen: false,
   commandPaletteOpen: false,
   settingsOpen: false,
@@ -101,7 +104,7 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
   dragOverPaneId: null,
   dragOverZone: null,
 
-  addTab: (shellType: ShellType, shellPath?: string, sshConnectionId?: string) => {
+  addTab: (shellType: ShellType, shellPath?: string, sshConnectionId?: string, initialCwd?: string) => {
     const tabId = crypto.randomUUID();
     const paneId = crypto.randomUUID();
     const pane: TerminalPane = {
@@ -109,7 +112,7 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
       sessionId: "",
       blocks: [],
       isActive: true,
-      cwd: "",
+      cwd: initialCwd || "",
       shellType,
       shellPath,
       sshConnectionId,
@@ -123,12 +126,17 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
       isActive: true,
     };
 
-    set((state) => ({
-      tabs: [...state.tabs.map((t) => ({ ...t, isActive: false })), tab],
-      panes: { ...state.panes, [paneId]: pane },
-      activeTabId: tabId,
-      activePaneId: paneId,
-    }));
+    set((state) => {
+      const history = state.paneFocusHistory.filter((id) => id !== paneId);
+      history.push(paneId);
+      return {
+        tabs: [...state.tabs.map((t) => ({ ...t, isActive: false })), tab],
+        panes: { ...state.panes, [paneId]: pane },
+        activeTabId: tabId,
+        activePaneId: paneId,
+        paneFocusHistory: history,
+      };
+    });
 
     return paneId;
   },
@@ -139,10 +147,12 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
       if (!tab) return state;
 
       const paneIds = collectPaneIds(tab.panes);
+      const removedSet = new Set(paneIds);
       const newPanes = { ...state.panes };
       paneIds.forEach((id) => delete newPanes[id]);
 
       const newTabs = state.tabs.filter((t) => t.id !== tabId);
+      const newHistory = state.paneFocusHistory.filter((id) => !removedSet.has(id));
       let newActiveTabId = state.activeTabId;
       let newActivePaneId = state.activePaneId;
 
@@ -161,6 +171,7 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
         panes: newPanes,
         activeTabId: newActiveTabId,
         activePaneId: newActivePaneId,
+        paneFocusHistory: newHistory,
       };
     });
   },
@@ -169,11 +180,14 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
     set((state) => {
       const tab = state.tabs.find((t) => t.id === tabId);
       if (!tab) return state;
-      const firstPane = getFirstPaneId(tab.panes);
+      // Prefer the last-focused pane in this tab, fall back to first
+      const tabPaneIds = new Set(collectPaneIds(tab.panes));
+      const fromHistory = [...state.paneFocusHistory].reverse().find((id) => tabPaneIds.has(id));
+      const targetPane = fromHistory ?? getFirstPaneId(tab.panes);
       return {
         tabs: state.tabs.map((t) => ({ ...t, isActive: t.id === tabId })),
         activeTabId: tabId,
-        activePaneId: firstPane,
+        activePaneId: targetPane,
       };
     });
   },
@@ -208,7 +222,14 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
   },
 
   setActivePane: (paneId: string) => {
-    set({ activePaneId: paneId });
+    set((state) => {
+      // Push to focus history, deduplicating (remove old entry, add to end)
+      const history = state.paneFocusHistory.filter((id) => id !== paneId);
+      history.push(paneId);
+      // Cap at 50 entries to avoid unbounded growth
+      if (history.length > 50) history.shift();
+      return { activePaneId: paneId, paneFocusHistory: history };
+    });
   },
 
   updatePaneSession: (paneId: string, sessionId: string) => {
@@ -248,7 +269,9 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
           ],
         }),
       }));
-      return { tabs: newTabs, panes: newPanes, activePaneId: newPane.id };
+      const history = state.paneFocusHistory.filter((id) => id !== newPane.id);
+      history.push(newPane.id);
+      return { tabs: newTabs, panes: newPanes, activePaneId: newPane.id, paneFocusHistory: history };
     });
   },
 
@@ -360,6 +383,8 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
       if (!tab) return state;
 
       const paneCount = countPaneNodes(tab.panes);
+      // Remove closed pane from focus history
+      const newHistory = state.paneFocusHistory.filter((id) => id !== paneId);
 
       // Last pane in tab — close the entire tab
       if (paneCount <= 1) {
@@ -368,7 +393,7 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
         delete newPanes[paneId];
 
         let newActiveTabId = state.activeTabId;
-        let newActivePaneId = state.activePaneId;
+        let newActivePaneId: string | null = state.activePaneId;
 
         if (newActiveTabId === tab.id && newTabs.length > 0) {
           const last = newTabs[newTabs.length - 1];
@@ -380,7 +405,7 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
           newActivePaneId = null;
         }
 
-        return { tabs: newTabs, panes: newPanes, activeTabId: newActiveTabId, activePaneId: newActivePaneId };
+        return { tabs: newTabs, panes: newPanes, activeTabId: newActiveTabId, activePaneId: newActivePaneId, paneFocusHistory: newHistory };
       }
 
       // Remove pane from tree, collapsing the parent split
@@ -394,11 +419,16 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
         t.id === tab.id ? { ...t, panes: newTree } : t
       );
 
-      // Pick sibling as new active pane
-      const newActivePaneId =
-        state.activePaneId === paneId ? getFirstPaneId(newTree) : state.activePaneId;
+      // Focus the last-focused surviving pane (Hyprland-style),
+      // falling back to the first pane in the tree
+      let newActivePaneId = state.activePaneId;
+      if (state.activePaneId === paneId) {
+        const remainingIds = new Set(collectPaneIds(newTree));
+        const fromHistory = [...newHistory].reverse().find((id) => remainingIds.has(id));
+        newActivePaneId = fromHistory ?? getFirstPaneId(newTree);
+      }
 
-      return { tabs: newTabs, panes: newPanes, activePaneId: newActivePaneId };
+      return { tabs: newTabs, panes: newPanes, activePaneId: newActivePaneId, paneFocusHistory: newHistory };
     });
   },
 

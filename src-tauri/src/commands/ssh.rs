@@ -127,10 +127,14 @@ pub async fn ssh_get_key_temp_path(
     // On Windows, restrict ACL so OpenSSH accepts the key
     #[cfg(windows)]
     {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+
         let path_str = path.to_string_lossy();
         // Remove inherited permissions, grant only current user full control
         let _ = std::process::Command::new("icacls")
             .args([&*path_str, "/inheritance:r", "/grant:r", &format!("{}:F", whoami())])
+            .creation_flags(CREATE_NO_WINDOW)
             .output();
     }
 
@@ -139,12 +143,14 @@ pub async fn ssh_get_key_temp_path(
 
 #[cfg(windows)]
 fn whoami() -> String {
-    std::process::Command::new("whoami")
-        .output()
-        .ok()
-        .and_then(|o| String::from_utf8(o.stdout).ok())
-        .map(|s| s.trim().to_string())
-        .unwrap_or_else(|| std::env::var("USERNAME").unwrap_or_default())
+    // Build DOMAIN\username from env vars to avoid spawning a visible console process.
+    let domain = std::env::var("USERDOMAIN").unwrap_or_default();
+    let user = std::env::var("USERNAME").unwrap_or_default();
+    if domain.is_empty() {
+        user
+    } else {
+        format!("{}\\{}", domain, user)
+    }
 }
 
 fn compute_fingerprint(public_key: &str) -> String {

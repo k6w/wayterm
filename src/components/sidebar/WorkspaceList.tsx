@@ -1,15 +1,19 @@
-import { useState, useCallback } from "react";
-import { Layout, Save, Trash2, RotateCcw } from "lucide-react";
+import { useState, useCallback, useMemo } from "react";
+import { Layout, Save, Trash2, RotateCcw, RefreshCw } from "lucide-react";
 import { useWorkspaceStore } from "../../stores/workspace";
+import ConfirmDialog from "../ui/ConfirmDialog";
 
 export default function WorkspaceList() {
-  const workspaces = useWorkspaceStore((s) => s.workspaces);
+  const allWorkspaces = useWorkspaceStore((s) => s.workspaces);
+  const workspaces = useMemo(() => allWorkspaces.filter((w) => w.id !== "__session__"), [allWorkspaces]);
   const save = useWorkspaceStore((s) => s.save);
   const restore = useWorkspaceStore((s) => s.restore);
+  const update = useWorkspaceStore((s) => s.update);
   const remove = useWorkspaceStore((s) => s.remove);
 
   const [saving, setSaving] = useState(false);
   const [nameInput, setNameInput] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   const handleSave = useCallback(async () => {
     const name = nameInput.trim() || `Workspace ${workspaces.length + 1}`;
@@ -22,12 +26,11 @@ export default function WorkspaceList() {
     }
   }, [nameInput, workspaces.length, save]);
 
-  const handleDelete = useCallback(
-    async (id: string) => {
-      await remove(id);
-    },
-    [remove]
-  );
+  const handleConfirmDelete = useCallback(async () => {
+    if (!deleteTarget) return;
+    await remove(deleteTarget.id);
+    setDeleteTarget(null);
+  }, [deleteTarget, remove]);
 
   const formatDate = (iso: string): string => {
     const date = new Date(iso);
@@ -103,7 +106,14 @@ export default function WorkspaceList() {
                   <RotateCcw size={11} />
                 </button>
                 <button
-                  onClick={() => handleDelete(ws.id)}
+                  onClick={() => update(ws.id)}
+                  className="flex size-5 items-center justify-center rounded text-text-muted transition-colors hover:bg-white/[0.1] hover:text-accent"
+                  title="Update workspace with current session"
+                >
+                  <RefreshCw size={11} />
+                </button>
+                <button
+                  onClick={() => setDeleteTarget({ id: ws.id, name: ws.name })}
                   className="flex size-5 items-center justify-center rounded text-text-muted transition-colors hover:bg-white/[0.1] hover:text-error"
                   title="Delete workspace"
                 >
@@ -114,6 +124,14 @@ export default function WorkspaceList() {
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Delete Workspace"
+        message={`Are you sure you want to delete "${deleteTarget?.name}"? This cannot be undone.`}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

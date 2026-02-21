@@ -1,12 +1,22 @@
+import { useState, useCallback } from "react";
 import { Server, Trash2 } from "lucide-react";
 import { useSettingsStore } from "../../stores/settings";
 import { useSshStore } from "../../stores/ssh";
+import ConfirmDialog from "../ui/ConfirmDialog";
 
 export default function SshPanel() {
   const settings = useSettingsStore((s) => s.settings.ssh);
   const update = useSettingsStore((s) => s.update);
   const connections = useSshStore((s) => s.connections);
   const deleteConnection = useSshStore((s) => s.deleteConnection);
+
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!deleteTarget) return;
+    await deleteConnection(deleteTarget.id);
+    setDeleteTarget(null);
+  }, [deleteTarget, deleteConnection]);
 
   return (
     <div className="space-y-6">
@@ -88,7 +98,7 @@ export default function SshPanel() {
                   </div>
                 </div>
                 <button
-                  onClick={() => deleteConnection(conn.id)}
+                  onClick={() => setDeleteTarget({ id: conn.id, name: conn.name })}
                   className="p-1 text-text-muted hover:text-error transition-colors shrink-0"
                 >
                   <Trash2 size={14} />
@@ -98,6 +108,14 @@ export default function SshPanel() {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Delete Connection"
+        message={`Are you sure you want to delete "${deleteTarget?.name}"? This cannot be undone.`}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

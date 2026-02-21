@@ -1,0 +1,44 @@
+{
+  "id": "gruvbox-light",
+  "name": "Gruvbox Light",
+  "variant": "light",
+  "terminal": {
+    "foreground": "#3c3836",
+    "background": "#fbf1c7",
+    "cursor": "#d79921",
+    "cursorAccent": "#fbf1c7",
+    "selection": "rgba(214, 153, 33, 0.25)",
+    "ansi": [
+      "#fbf1c7", "#cc241d", "#98971a", "#d79921",
+      "#458588", "#b16286", "#689d6a", "#7c6f64",
+      "#928374", "#9d0006", "#79740e", "#b57614",
+      "#076678", "#8f3f71", "#427b58", "#3c3836"
+    ]
+  },
+  "ui": {
+    "bgPrimary": "#fbf1c7",
+    "bgSecondary": "#f2e5bc",
+    "bgTertiary": "#ebdbb2",
+    "textPrimary": "#3c3836",
+    "textSecondary": "#504945",
+    "textMuted": "#928374",
+    "accent": "#d79921",
+    "accentHover": "#b57614",
+    "border": "rgba(60, 56, 54, 0.12)",
+    "borderFocus": "#d79921",
+    "success": "#98971a",
+    "warning": "#d65d0e",
+    "error": "#cc241d"
+  },
+  "blur": {
+    "sidebar": 20,
+    "blocks": 4,
+    "inputBar": 12,
+    "overlay": 30
+  },
+  "opacity": {
+    "sidebar": 0.4,
+    "blocks": 0.05,
+    "inputBar": 0.08
+  }
+}

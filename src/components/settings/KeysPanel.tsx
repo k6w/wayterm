@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { KeyRound, Plus, Trash2, Upload, Copy, Check, FileKey } from "lucide-react";
 import { useSshStore } from "../../stores/ssh";
+import ConfirmDialog from "../ui/ConfirmDialog";
 import type { SshKey } from "../../types/ssh";
 
 type ImportMode = "paste" | null;
@@ -18,6 +19,7 @@ export default function KeysPanel() {
   const [algorithm, setAlgorithm] = useState<"ed25519" | "rsa">("ed25519");
   const [importing, setImporting] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
     loadKeys();
@@ -55,12 +57,11 @@ export default function KeysPanel() {
     setTimeout(() => setCopiedId(null), 2000);
   }, []);
 
-  const handleDelete = useCallback(
-    async (id: string) => {
-      await removeKey(id);
-    },
-    [removeKey]
-  );
+  const handleConfirmDelete = useCallback(async () => {
+    if (!deleteTarget) return;
+    await removeKey(deleteTarget.id);
+    setDeleteTarget(null);
+  }, [deleteTarget, removeKey]);
 
   return (
     <div className="space-y-6">
@@ -204,7 +205,7 @@ export default function KeysPanel() {
                   )}
                 </button>
                 <button
-                  onClick={() => handleDelete(key.id)}
+                  onClick={() => setDeleteTarget({ id: key.id, name: key.name })}
                   className="p-1.5 text-text-muted hover:text-error transition-colors shrink-0"
                   title="Delete key"
                 >
@@ -215,6 +216,14 @@ export default function KeysPanel() {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Delete SSH Key"
+        message={`Are you sure you want to delete "${deleteTarget?.name}"? Any connections using this key will no longer be able to authenticate.`}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

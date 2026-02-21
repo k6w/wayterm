@@ -1,0 +1,44 @@
+{
+  "id": "rose-pine",
+  "name": "Rose Pine",
+  "variant": "dark",
+  "terminal": {
+    "foreground": "#e0def4",
+    "background": "#191724",
+    "cursor": "#c4a7e7",
+    "cursorAccent": "#191724",
+    "selection": "rgba(196, 167, 231, 0.2)",
+    "ansi": [
+      "#26233a", "#eb6f92", "#31748f", "#f6c177",
+      "#9ccfd8", "#c4a7e7", "#ebbcba", "#e0def4",
+      "#6e6a86", "#eb6f92", "#31748f", "#f6c177",
+      "#9ccfd8", "#c4a7e7", "#ebbcba", "#e0def4"
+    ]
+  },
+  "ui": {
+    "bgPrimary": "#191724",
+    "bgSecondary": "#1f1d2e",
+    "bgTertiary": "#26233a",
+    "textPrimary": "#e0def4",
+    "textSecondary": "#908caa",
+    "textMuted": "#6e6a86",
+    "accent": "#c4a7e7",
+    "accentHover": "#d4bdf7",
+    "border": "rgba(224, 222, 244, 0.08)",
+    "borderFocus": "#c4a7e7",
+    "success": "#31748f",
+    "warning": "#f6c177",
+    "error": "#eb6f92"
+  },
+  "blur": {
+    "sidebar": 20,
+    "blocks": 4,
+    "inputBar": 12,
+    "overlay": 30
+  },
+  "opacity": {
+    "sidebar": 0.4,
+    "blocks": 0.05,
+    "inputBar": 0.08
+  }
+}

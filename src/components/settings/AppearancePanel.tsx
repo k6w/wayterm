@@ -1,3 +1,5 @@
+import { useRef, useState } from "react";
+import { Upload, Trash2, Download } from "lucide-react";
 import { useSettingsStore } from "../../stores/settings";
 import { useThemeStore } from "../../stores/theme";
 import Select from "../ui/Select";
@@ -9,6 +11,12 @@ export default function AppearancePanel() {
   const themes = useThemeStore((s) => s.themes);
   const activeThemeId = useThemeStore((s) => s.activeThemeId);
   const setTheme = useThemeStore((s) => s.setTheme);
+  const customThemeIds = useThemeStore((s) => s.customThemeIds);
+  const importTheme = useThemeStore((s) => s.importTheme);
+  const removeCustomTheme = useThemeStore((s) => s.removeCustomTheme);
+
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [importError, setImportError] = useState<string | null>(null);
 
   const cursorOptions: { value: CursorStyle; label: string }[] = [
     { value: "block", label: "Block" },
@@ -25,12 +33,54 @@ export default function AppearancePanel() {
     update("appearance", { themeId: id });
   };
 
+  const handleImportClick = () => {
+    setImportError(null);
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const theme = await importTheme(text);
+      handleThemeChange(theme.id);
+      setImportError(null);
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : "Failed to import theme");
+    }
+
+    // Reset input so the same file can be re-imported
+    e.target.value = "";
+  };
+
+  const handleExportTheme = (id: string) => {
+    const theme = themes[id];
+    if (!theme) return;
+    const json = JSON.stringify(theme, null, 2);
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${theme.id}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const builtinThemes = Object.values(themes).filter(
+    (t) => !customThemeIds.has(t.id)
+  );
+  const customThemes = Object.values(themes).filter((t) =>
+    customThemeIds.has(t.id)
+  );
+
   return (
     <div className="space-y-6">
       <div>
         <h3 className="text-sm font-medium text-text-primary mb-3">Theme</h3>
         <div className="grid grid-cols-3 gap-3">
-          {Object.values(themes).map((theme) => (
+          {builtinThemes.map((theme) => (
             <button
               key={theme.id}
               onClick={() => handleThemeChange(theme.id)}
@@ -51,6 +101,81 @@ export default function AppearancePanel() {
             </button>
           ))}
         </div>
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-medium text-text-primary">Custom Themes</h3>
+          <button
+            onClick={handleImportClick}
+            className="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-md border border-border bg-bg-tertiary text-text-secondary hover:border-accent/50 hover:text-text-primary transition-colors"
+          >
+            <Upload size={12} />
+            Import JSON
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept=".json"
+            onChange={handleFileChange}
+            className="hidden"
+          />
+        </div>
+
+        {importError && (
+          <div className="mb-3 px-3 py-2 rounded-md bg-error/10 border border-error/30 text-xs text-error">
+            {importError}
+          </div>
+        )}
+
+        {customThemes.length > 0 ? (
+          <div className="grid grid-cols-3 gap-3">
+            {customThemes.map((theme) => (
+              <div
+                key={theme.id}
+                className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
+                  activeThemeId === theme.id
+                    ? "border-accent bg-accent/10"
+                    : "border-border bg-bg-tertiary hover:border-accent/50"
+                }`}
+              >
+                <button
+                  onClick={() => handleThemeChange(theme.id)}
+                  className="flex items-center gap-3 text-left flex-1 min-w-0"
+                >
+                  <div
+                    className="w-6 h-6 rounded-full border border-border shrink-0"
+                    style={{ background: theme.ui.accent }}
+                  />
+                  <div className="min-w-0">
+                    <div className="text-sm text-text-primary truncate">{theme.name}</div>
+                    <div className="text-xs text-text-muted capitalize">{theme.variant}</div>
+                  </div>
+                </button>
+                <div className="flex gap-1 shrink-0">
+                  <button
+                    onClick={() => handleExportTheme(theme.id)}
+                    className="p-1 rounded text-text-muted hover:text-text-primary transition-colors"
+                    title="Export"
+                  >
+                    <Download size={12} />
+                  </button>
+                  <button
+                    onClick={() => removeCustomTheme(theme.id)}
+                    className="p-1 rounded text-text-muted hover:text-error transition-colors"
+                    title="Delete"
+                  >
+                    <Trash2 size={12} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-xs text-text-muted">
+            No custom themes. Import a .json file to get started.
+          </p>
+        )}
       </div>
 
       <div>

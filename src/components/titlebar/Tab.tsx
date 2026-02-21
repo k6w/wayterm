@@ -138,6 +138,7 @@ export default function Tab({
   return (
     <div
       ref={containerRef}
+      data-no-drag
       onMouseDown={handleMouseDown}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}

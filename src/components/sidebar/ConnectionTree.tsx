@@ -1,7 +1,8 @@
-import { useCallback } from "react";
+import { useCallback, useState } from "react";
 import { Server, Plus, Plug, Trash2, Pencil } from "lucide-react";
 import { useSshStore } from "../../stores/ssh";
 import { useTerminalStore } from "../../stores/terminal";
+import ConfirmDialog from "../ui/ConfirmDialog";
 import type { SshConnection } from "../../types/ssh";
 
 interface ConnectionTreeProps {
@@ -26,6 +27,8 @@ export default function ConnectionTree({ onAddConnection, onEditConnection }: Co
   const addTab = useTerminalStore((s) => s.addTab);
   const toggleSidebar = useTerminalStore((s) => s.toggleSidebar);
 
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+
   const handleConnect = useCallback(
     (conn: SshConnection) => {
       addTab("ssh", undefined, conn.id);
@@ -39,13 +42,19 @@ export default function ConnectionTree({ onAddConnection, onEditConnection }: Co
     [addTab, toggleSidebar]
   );
 
-  const handleDelete = useCallback(
-    async (e: React.MouseEvent, id: string) => {
+  const handleRequestDelete = useCallback(
+    (e: React.MouseEvent, conn: SshConnection) => {
       e.stopPropagation();
-      await deleteConnection(id);
+      setDeleteTarget({ id: conn.id, name: conn.name });
     },
-    [deleteConnection]
+    []
   );
+
+  const handleConfirmDelete = useCallback(async () => {
+    if (!deleteTarget) return;
+    await deleteConnection(deleteTarget.id);
+    setDeleteTarget(null);
+  }, [deleteTarget, deleteConnection]);
 
   const handleEdit = useCallback(
     (e: React.MouseEvent, conn: SshConnection) => {
@@ -122,7 +131,7 @@ export default function ConnectionTree({ onAddConnection, onEditConnection }: Co
                   <Pencil size={11} />
                 </button>
                 <button
-                  onClick={(e) => handleDelete(e, conn.id)}
+                  onClick={(e) => handleRequestDelete(e, conn)}
                   className="flex size-5 items-center justify-center rounded text-text-muted transition-colors hover:bg-white/[0.1] hover:text-error"
                   title="Delete"
                 >
@@ -133,6 +142,14 @@ export default function ConnectionTree({ onAddConnection, onEditConnection }: Co
           ))}
         </div>
       )}
+
+      <ConfirmDialog
+        open={!!deleteTarget}
+        title="Delete Connection"
+        message={`Are you sure you want to delete "${deleteTarget?.name}"? This cannot be undone.`}
+        onConfirm={handleConfirmDelete}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

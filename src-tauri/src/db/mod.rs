@@ -1,8 +1,10 @@
 pub mod connections;
+pub mod custom_themes;
 pub mod history;
 pub mod keys;
 pub mod migrations;
 pub mod settings;
+pub mod terminal_buffers;
 pub mod workspaces;
 
 use parking_lot::Mutex;

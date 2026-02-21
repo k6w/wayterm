@@ -20,6 +20,7 @@ import {
 import { useTerminalStore, collectPaneIds } from "../../stores/terminal";
 import { useThemeStore } from "../../stores/theme";
 import { useSettingsStore } from "../../stores/settings";
+import { useSshStore } from "../../stores/ssh";
 import { hexToRgba } from "../../lib/color";
 import { getDefaultShell, getDefaultShells } from "../../lib/shell-detect";
 import { shortenPath } from "../../lib/format";
@@ -48,9 +49,15 @@ export default function StatusBar() {
   const [copiedFlash, setCopiedFlash] = useState(false);
   const [bellEnabled, setBellEnabled] = useState(true);
 
+  // Look up SSH username for remote ~ shortening
+  const sshUsername = useSshStore((s) => {
+    if (!pane?.sshConnectionId) return undefined;
+    return s.connections.find((c) => c.id === pane.sshConnectionId)?.username;
+  });
+
   if (!pane || !activePaneId) return null;
 
-  const displayPath = shortenPath(pane.cwd || "~");
+  const displayPath = shortenPath(pane.cwd || "~", sshUsername);
 
   // Resolve the actual shell for this pane
   const allShells = getDefaultShells();
