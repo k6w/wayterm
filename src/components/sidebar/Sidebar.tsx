@@ -87,7 +87,7 @@ export default function Sidebar({ onNewSsh, onEditSsh }: SidebarProps) {
               mass: 0.8,
             }}
           >
-            <div className={`flex h-10 shrink-0 items-center justify-between border-b border-white/[0.08] px-3 ${isMac ? "pl-[78px]" : ""}`}>
+            <div className={`flex h-10 shrink-0 items-center justify-between border-b border-white/[0.08] px-3 ${isMac ? "pl-[84px]" : ""}`}>
               <span className="text-sm font-medium text-text-primary">
                 Nexterm
               </span>

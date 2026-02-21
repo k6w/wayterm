@@ -155,11 +155,11 @@ export default function Tab({
       )}
 
       <motion.div
-        layout
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        exit={{ opacity: 0, scale: 0.9 }}
-        transition={{ duration: 0.15 }}
+        layout="position"
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: -20 }}
+        transition={{ duration: 0.15, ease: "easeOut" }}
         className={`
           flex h-full max-w-[200px] min-w-[120px] shrink-0 items-center gap-2
           px-3 text-xs transition-colors select-none cursor-default
@@ -222,6 +222,7 @@ export default function Tab({
           <motion.span
             layoutId="active-tab-indicator"
             className="absolute bottom-0 left-0 h-0.5 w-full bg-accent"
+            transition={{ type: "spring", stiffness: 500, damping: 35 }}
           />
         )}
       </motion.div>

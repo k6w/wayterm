@@ -148,7 +148,7 @@ export default function TabStrip() {
   return (
     <div data-tauri-drag-region className="flex h-full min-w-0 flex-1 items-center">
       <div data-tauri-drag-region className="flex h-full items-center overflow-x-auto overflow-y-hidden scrollbar-none">
-        <AnimatePresence initial={false}>
+        <AnimatePresence initial={false} mode="popLayout">
           {tabs.map((tab, i) => (
             <Tab
               key={tab.id}

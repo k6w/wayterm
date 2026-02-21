@@ -36,7 +36,7 @@ export default function Titlebar() {
 
       <div data-tauri-drag-region className="flex h-[37px] w-full items-center">
         {/* macOS: space for native traffic lights */}
-        {isMac && <div className="w-[70px] shrink-0" />}
+        {isMac && <div className="w-[80px] shrink-0" />}
         <button
           className="flex h-full w-10 items-center justify-center text-text-secondary transition-colors hover:bg-bg-tertiary hover:text-text-primary"
           onClick={toggleSidebar}
