@@ -1,7 +1,7 @@
 use tauri::WebviewWindow;
 
 /// Called during app setup.
-/// On macOS: sets window background to transparent for vibrancy support.
+/// On macOS: makes window + webview transparent for vibrancy support.
 /// The frontend calls `set_vibrancy` after settings load.
 pub fn setup(window: Option<&WebviewWindow>) {
     #[cfg(target_os = "macos")]
@@ -17,13 +17,29 @@ pub fn setup(window: Option<&WebviewWindow>) {
 fn macos_setup(window: &WebviewWindow) {
     use cocoa::appkit::{NSColor, NSWindow};
     use cocoa::base::{id, nil};
-    use objc::runtime::YES;
+    use objc::runtime::{NO, YES};
+    use objc::{msg_send, sel, sel_impl};
 
     let ns_win: id = window.ns_window().unwrap() as id;
     unsafe {
+        // Make window non-opaque with clear background
+        ns_win.setOpaque_(NO);
         ns_win.setBackgroundColor_(NSColor::clearColor(nil));
         ns_win.setTitlebarAppearsTransparent_(YES);
     }
+
+    // Make the WKWebView transparent so the NSVisualEffectView behind it shows through
+    let _ = window.with_webview(|webview| {
+        use cocoa::base::id;
+        use objc::runtime::NO;
+        use objc::{msg_send, sel, sel_impl};
+
+        unsafe {
+            let wk_webview: id = webview.inner() as id;
+            // Disable WKWebView background drawing so vibrancy shows through
+            let _: () = msg_send![wk_webview, _setDrawsBackground: NO];
+        }
+    });
 }
 
 #[tauri::command]
@@ -71,13 +87,18 @@ fn remove_vibrancy_views(content_view: cocoa::base::id) {
 
 #[cfg(target_os = "macos")]
 fn apply_effects(window: &WebviewWindow, _r: u8, _g: u8, _b: u8, _a: u8) {
-    use cocoa::appkit::NSWindow;
+    use cocoa::appkit::{NSColor, NSWindow};
     use cocoa::base::{id, nil};
     use cocoa::foundation::NSRect;
+    use objc::runtime::NO;
     use objc::{class, msg_send, sel, sel_impl};
 
     let ns_win: id = window.ns_window().unwrap() as id;
     unsafe {
+        // Ensure window is non-opaque and transparent
+        ns_win.setOpaque_(NO);
+        ns_win.setBackgroundColor_(NSColor::clearColor(nil));
+
         let content_view: id = ns_win.contentView();
 
         // Remove any existing vibrancy views first
@@ -102,6 +123,18 @@ fn apply_effects(window: &WebviewWindow, _r: u8, _g: u8, _b: u8, _a: u8) {
         // Add behind all other subviews (NSWindowBelow = -1)
         let _: () = msg_send![content_view, addSubview: effect_view positioned: -1_i64 relativeTo: nil];
     }
+
+    // Ensure WKWebView background is transparent
+    let _ = window.with_webview(|webview| {
+        use cocoa::base::id;
+        use objc::runtime::NO;
+        use objc::{msg_send, sel, sel_impl};
+
+        unsafe {
+            let wk_webview: id = webview.inner() as id;
+            let _: () = msg_send![wk_webview, _setDrawsBackground: NO];
+        }
+    });
 }
 
 #[cfg(target_os = "macos")]
