@@ -73,23 +73,22 @@ fn clear_effects(window: &WebviewWindow) {
 }
 
 // ── macOS ──
-// macOS vibrancy uses system materials; color is controlled via CSS.
+// HudWindow gives a frosted dark-glass effect similar to Windows acrylic.
+// Active state keeps the vibrancy visible even when the window isn't focused.
 #[cfg(target_os = "macos")]
 fn apply_effects(window: &WebviewWindow, _r: u8, _g: u8, _b: u8, _a: u8) {
-    use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial};
+    use window_vibrancy::{apply_vibrancy, NSVisualEffectMaterial, NSVisualEffectState};
     let _ = apply_vibrancy(
         window,
-        NSVisualEffectMaterial::UnderWindowBackground,
-        None,
+        NSVisualEffectMaterial::HudWindow,
+        Some(NSVisualEffectState::Active),
         None,
     );
 }
 
 #[cfg(target_os = "macos")]
-fn clear_effects(_window: &WebviewWindow) {
-    // macOS NSVisualEffectView has no public clear API in window-vibrancy.
-    // The frontend uses solid CSS backgrounds when vibrancy is off,
-    // which fully covers the native effect.
+fn clear_effects(window: &WebviewWindow) {
+    let _ = window_vibrancy::clear_vibrancy(window);
 }
 
 // ── Linux ──
