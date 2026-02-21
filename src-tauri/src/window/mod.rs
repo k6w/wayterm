@@ -13,7 +13,11 @@ pub fn setup(window: Option<&WebviewWindow>) {
     let _ = window;
 }
 
+// The `cocoa` and `objc` crates are deprecated in favour of `objc2`, but
+// Tauri v2 still exposes raw `*mut c_void` pointers that work with the old
+// crate.  Suppress the cascade of deprecation + cfg warnings here.
 #[cfg(target_os = "macos")]
+#[allow(deprecated, unexpected_cfgs, unused_imports)]
 fn macos_setup(window: &WebviewWindow) {
     use cocoa::appkit::{NSColor, NSWindow};
     use cocoa::base::{id, nil};
@@ -22,7 +26,6 @@ fn macos_setup(window: &WebviewWindow) {
 
     let ns_win: id = window.ns_window().unwrap() as id;
     unsafe {
-        // Make window non-opaque with clear background
         ns_win.setOpaque_(NO);
         ns_win.setBackgroundColor_(NSColor::clearColor(nil));
         ns_win.setTitlebarAppearsTransparent_(YES);
@@ -30,14 +33,10 @@ fn macos_setup(window: &WebviewWindow) {
 
     // Make the WKWebView transparent so the NSVisualEffectView behind it shows through
     let _ = window.with_webview(|webview| {
-        use cocoa::base::id;
-        use objc::runtime::NO;
-        use objc::{msg_send, sel, sel_impl};
-
+        #[allow(deprecated, unexpected_cfgs)]
         unsafe {
-            let wk_webview: id = webview.inner() as id;
-            // Disable WKWebView background drawing so vibrancy shows through
-            let _: () = msg_send![wk_webview, _setDrawsBackground: NO];
+            let wk_webview: cocoa::base::id = webview.inner() as cocoa::base::id;
+            let _: () = objc::msg_send![wk_webview, _setDrawsBackground: objc::runtime::NO];
         }
     });
 }
@@ -66,6 +65,7 @@ fn clear_effects(window: &WebviewWindow) {
 // Manually add NSVisualEffectView to the window's content view (not the webview).
 // The window_vibrancy crate adds it to the webview's NSView which is the wrong level.
 #[cfg(target_os = "macos")]
+#[allow(deprecated, unexpected_cfgs, unused_imports)]
 fn remove_vibrancy_views(content_view: cocoa::base::id) {
     use cocoa::base::{id, nil};
     use objc::{class, msg_send, sel, sel_impl};
@@ -74,7 +74,6 @@ fn remove_vibrancy_views(content_view: cocoa::base::id) {
         let subviews: id = msg_send![content_view, subviews];
         let count: usize = msg_send![subviews, count];
         let effect_cls = class!(NSVisualEffectView);
-        // Iterate in reverse so removal doesn't shift indices
         for i in (0..count).rev() {
             let subview: id = msg_send![subviews, objectAtIndex: i];
             let is_effect: bool = msg_send![subview, isKindOfClass: effect_cls];
@@ -86,6 +85,7 @@ fn remove_vibrancy_views(content_view: cocoa::base::id) {
 }
 
 #[cfg(target_os = "macos")]
+#[allow(deprecated, unexpected_cfgs, unused_imports)]
 fn apply_effects(window: &WebviewWindow, _r: u8, _g: u8, _b: u8, _a: u8) {
     use cocoa::appkit::{NSColor, NSWindow};
     use cocoa::base::{id, nil};
@@ -95,18 +95,15 @@ fn apply_effects(window: &WebviewWindow, _r: u8, _g: u8, _b: u8, _a: u8) {
 
     let ns_win: id = window.ns_window().unwrap() as id;
     unsafe {
-        // Ensure window is non-opaque and transparent
         ns_win.setOpaque_(NO);
         ns_win.setBackgroundColor_(NSColor::clearColor(nil));
 
         let content_view: id = ns_win.contentView();
 
-        // Remove any existing vibrancy views first
         remove_vibrancy_views(content_view);
 
         let bounds: NSRect = msg_send![content_view, bounds];
 
-        // Create NSVisualEffectView
         let cls = class!(NSVisualEffectView);
         let effect_view: id = msg_send![cls, alloc];
         let effect_view: id = msg_send![effect_view, initWithFrame: bounds];
@@ -117,7 +114,7 @@ fn apply_effects(window: &WebviewWindow, _r: u8, _g: u8, _b: u8, _a: u8) {
         let _: () = msg_send![effect_view, setState: 1_i64];
         // BlendingMode: BehindWindow = 0 (blur desktop behind)
         let _: () = msg_send![effect_view, setBlendingMode: 0_i64];
-        // Auto-resize with window: NSViewWidthSizable (2) | NSViewHeightSizable (16) = 18
+        // Auto-resize with window
         let _: () = msg_send![effect_view, setAutoresizingMask: 18_u64];
 
         // Add behind all other subviews (NSWindowBelow = -1)
@@ -126,18 +123,16 @@ fn apply_effects(window: &WebviewWindow, _r: u8, _g: u8, _b: u8, _a: u8) {
 
     // Ensure WKWebView background is transparent
     let _ = window.with_webview(|webview| {
-        use cocoa::base::id;
-        use objc::runtime::NO;
-        use objc::{msg_send, sel, sel_impl};
-
+        #[allow(deprecated, unexpected_cfgs)]
         unsafe {
-            let wk_webview: id = webview.inner() as id;
-            let _: () = msg_send![wk_webview, _setDrawsBackground: NO];
+            let wk_webview: cocoa::base::id = webview.inner() as cocoa::base::id;
+            let _: () = objc::msg_send![wk_webview, _setDrawsBackground: objc::runtime::NO];
         }
     });
 }
 
 #[cfg(target_os = "macos")]
+#[allow(deprecated, unexpected_cfgs, unused_imports)]
 fn clear_effects(window: &WebviewWindow) {
     use cocoa::appkit::NSWindow;
     use cocoa::base::id;
