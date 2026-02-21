@@ -1,5 +1,3 @@
-#![allow(unexpected_cfgs)]
-
 use tauri::WebviewWindow;
 
 pub fn setup(window: Option<&WebviewWindow>) {
@@ -18,7 +16,6 @@ fn macos_setup(window: &WebviewWindow) {
     use cocoa::appkit::{NSColor, NSWindow};
     use cocoa::base::{id, nil};
     use objc::runtime::{NO, YES};
-    use objc::{msg_send, sel, sel_impl};
 
     let ns_win: id = window.ns_window().unwrap() as id;
     unsafe {
