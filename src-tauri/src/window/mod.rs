@@ -27,6 +27,7 @@ fn macos_setup(window: &WebviewWindow) {
     let _ = window.with_webview(|webview| {
         #[allow(deprecated)]
         unsafe {
+            use objc::{sel, sel_impl};
             let wk_webview: cocoa::base::id = webview.inner() as cocoa::base::id;
             let _: () = objc::msg_send![wk_webview, _setDrawsBackground: objc::runtime::NO];
         }
@@ -103,6 +104,7 @@ fn apply_effects(window: &WebviewWindow, _r: u8, _g: u8, _b: u8, _a: u8) {
     let _ = window.with_webview(|webview| {
         #[allow(deprecated)]
         unsafe {
+            use objc::{sel, sel_impl};
             let wk_webview: cocoa::base::id = webview.inner() as cocoa::base::id;
             let _: () = objc::msg_send![wk_webview, _setDrawsBackground: objc::runtime::NO];
         }
