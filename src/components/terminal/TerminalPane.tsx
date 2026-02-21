@@ -314,21 +314,24 @@ export default function TerminalPane({
           return;
         }
 
-        // ── Replay saved buffer (if restoring a session) ──
-        const wsState = useWorkspaceStore.getState();
-        if (wsState._buffersReadyPromise) {
-          // Wait at most 150ms so buffer load doesn't delay startup
-          await Promise.race([
-            wsState._buffersReadyPromise,
-            new Promise((r) => setTimeout(r, 150)),
-          ]);
-        }
-        const savedBuffer = useWorkspaceStore.getState().consumeBuffer(paneId);
-        if (savedBuffer) {
-          term.write(savedBuffer);
-          // Clear visible screen — old content stays in scrollback,
-          // new PTY prompt appears on a clean slate
-          term.write("\x1b[2J\x1b[H");
+        // ── Replay saved buffer (if restoring a session and persistence is enabled) ──
+        const bufferEnabled = useSettingsStore.getState().settings.terminal.bufferPersistence;
+        if (bufferEnabled) {
+          const wsState = useWorkspaceStore.getState();
+          if (wsState._buffersReadyPromise) {
+            // Wait at most 150ms so buffer load doesn't delay startup
+            await Promise.race([
+              wsState._buffersReadyPromise,
+              new Promise((r) => setTimeout(r, 150)),
+            ]);
+          }
+          const savedBuffer = useWorkspaceStore.getState().consumeBuffer(paneId);
+          if (savedBuffer) {
+            term.write(savedBuffer);
+            // Clear visible screen — old content stays in scrollback,
+            // new PTY prompt appears on a clean slate
+            term.write("\x1b[2J\x1b[H");
+          }
         }
 
         // Spawn PTY — either SSH or local shell
@@ -480,8 +483,10 @@ export default function TerminalPane({
           webglAddon: webgl,
         });
 
-        // Attach serialize addon for buffer persistence
-        attachSerializeAddon(paneId, term);
+        // Attach serialize addon for buffer persistence (only when enabled)
+        if (useSettingsStore.getState().settings.terminal.bufferPersistence) {
+          attachSerializeAddon(paneId, term);
+        }
 
         // Observe resizes
         resizeObs = new ResizeObserver(() => {

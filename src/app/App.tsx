@@ -90,7 +90,9 @@ function AppContent() {
     // Also save on beforeunload (synchronous best-effort)
     const handleUnload = () => {
       useWorkspaceStore.getState().autoSave();
-      saveAllBuffers();
+      if (useSettingsStore.getState().settings.terminal.bufferPersistence) {
+        saveAllBuffers();
+      }
     };
     window.addEventListener("beforeunload", handleUnload);
 
@@ -101,13 +103,15 @@ function AppContent() {
     };
   }, []);
 
-  // ── Buffer auto-save lifecycle ──
+  // ── Buffer auto-save lifecycle (only when enabled) ──
+  const bufferPersistence = useSettingsStore((s) => s.settings.terminal.bufferPersistence);
   useEffect(() => {
-    startBufferAutoSave();
-    return () => {
-      stopBufferAutoSave();
-    };
-  }, []);
+    if (bufferPersistence) {
+      startBufferAutoSave();
+      return () => stopBufferAutoSave();
+    }
+    stopBufferAutoSave();
+  }, [bufferPersistence]);
 
   // ── Listen for second-instance launches (`nexterm .` while already running) ──
   useEffect(() => {

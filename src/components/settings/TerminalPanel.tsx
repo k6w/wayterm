@@ -101,6 +101,30 @@ export default function TerminalPanel() {
       </div>
 
       <div>
+        <h3 className="text-sm font-medium text-text-primary mb-3">History</h3>
+        <div className="space-y-4">
+          <div className="flex justify-between items-center gap-4">
+            <div>
+              <label className="text-sm text-text-secondary">Buffer Persistence</label>
+              <p className="text-xs text-text-muted mt-0.5">Save and restore terminal scrollback across sessions</p>
+            </div>
+            <button
+              onClick={() => update("terminal", { bufferPersistence: !settings.bufferPersistence })}
+              className={`relative w-10 h-5 rounded-full transition-colors shrink-0 ${
+                settings.bufferPersistence ? "bg-accent" : "bg-bg-tertiary"
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
+                  settings.bufferPersistence ? "translate-x-5" : "translate-x-0"
+                }`}
+              />
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div>
         <h3 className="text-sm font-medium text-text-primary mb-3">Bell</h3>
         <div className="space-y-4">
           <div className="flex justify-between items-center gap-4">

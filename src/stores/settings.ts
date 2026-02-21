@@ -35,6 +35,7 @@ const defaultSettings: AppSettings = {
     ligatures: true,
     bracketedPaste: true,
     scrollToBottomOnInput: true,
+    bufferPersistence: false,
   },
   ssh: {
     defaultPort: 22,

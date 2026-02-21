@@ -37,6 +37,7 @@ export interface TerminalSettings {
   ligatures: boolean;
   bracketedPaste: boolean;
   scrollToBottomOnInput: boolean;
+  bufferPersistence: boolean;
 }
 
 export interface SshSettings {
