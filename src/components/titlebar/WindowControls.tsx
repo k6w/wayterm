@@ -1,10 +1,14 @@
 import { Minus, Square, X } from "lucide-react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useSettingsStore } from "../../stores/settings";
+import { isMac } from "../../lib/platform";
 
 export default function WindowControls() {
   const appWindow = getCurrentWindow();
   const closeToTray = useSettingsStore((s) => s.settings.general.closeToTray);
+
+  // macOS uses native traffic lights via titleBarStyle: "Overlay"
+  if (isMac) return null;
 
   const handleMinimize = () => {
     appWindow.minimize();

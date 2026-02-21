@@ -1,6 +1,7 @@
 import { useTerminalStore } from "../stores/terminal";
 import type { TerminalPane } from "../types/terminal";
 import { getDefaultShell } from "./shell-detect";
+import { isMac } from "./platform";
 
 interface KeyAction {
   id: string;
@@ -9,7 +10,6 @@ interface KeyAction {
   handler: () => void;
 }
 
-const isMac = navigator.platform.toLowerCase().includes("mac");
 const mod = isMac ? "Meta" : "Control";
 
 export function splitActivePane(direction: "horizontal" | "vertical") {

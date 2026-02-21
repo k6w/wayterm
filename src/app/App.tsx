@@ -16,6 +16,7 @@ import { useSshStore } from "../stores/ssh";
 import { useWorkspaceStore } from "../stores/workspace";
 import { getDefaultShell } from "../lib/shell-detect";
 import { hexToRgba } from "../lib/color";
+import { isMac } from "../lib/platform";
 import {
   startBufferAutoSave,
   stopBufferAutoSave,
@@ -106,9 +107,9 @@ function AppContent() {
 
   return (
     <div
-      className={`h-full w-full flex flex-col text-text-primary overflow-hidden rounded-lg border border-border ${
-        vibrancyEnabled ? "" : "bg-bg-primary"
-      }`}
+      className={`h-full w-full flex flex-col text-text-primary overflow-hidden ${
+        isMac ? "" : "rounded-lg border border-border"
+      } ${vibrancyEnabled ? "" : "bg-bg-primary"}`}
       style={
         vibrancyEnabled
           ? { backgroundColor: hexToRgba(theme.ui.bgPrimary, windowOpacity) }
