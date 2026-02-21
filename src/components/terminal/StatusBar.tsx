@@ -22,6 +22,7 @@ import { useThemeStore } from "../../stores/theme";
 import { useSettingsStore } from "../../stores/settings";
 import { useSshStore } from "../../stores/ssh";
 import { hexToRgba } from "../../lib/color";
+import { vibrancyAlpha } from "../../lib/platform";
 import { getDefaultShell, getDefaultShells } from "../../lib/shell-detect";
 import { shortenPath } from "../../lib/format";
 import { splitActivePane } from "../../lib/keybindings";
@@ -85,7 +86,7 @@ export default function StatusBar() {
   return (
     <div
       className={`shrink-0 flex items-center h-6 border-t border-border px-2 gap-0.5 text-[11px] text-text-muted select-none ${vibrancyEnabled ? "" : "bg-bg-secondary"}`}
-      style={vibrancyEnabled ? { backgroundColor: hexToRgba(theme.ui.bgSecondary, windowOpacity) } : undefined}
+      style={vibrancyEnabled ? { backgroundColor: hexToRgba(theme.ui.bgSecondary, vibrancyAlpha(windowOpacity)) } : undefined}
     >
       {/* === LEFT SIDE === */}
 

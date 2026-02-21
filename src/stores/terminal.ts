@@ -157,10 +157,13 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
       let newActivePaneId = state.activePaneId;
 
       if (newActiveTabId === tabId && newTabs.length > 0) {
-        const last = newTabs[newTabs.length - 1];
-        newActiveTabId = last.id;
-        newTabs.forEach((t) => (t.isActive = t.id === last.id));
-        newActivePaneId = getFirstPaneId(last.panes);
+        // Pick the adjacent tab: prefer right neighbor, fall back to left
+        const closedIndex = state.tabs.findIndex((t) => t.id === tabId);
+        const nextIndex = Math.min(closedIndex, newTabs.length - 1);
+        const next = newTabs[nextIndex];
+        newActiveTabId = next.id;
+        newTabs.forEach((t) => (t.isActive = t.id === next.id));
+        newActivePaneId = getFirstPaneId(next.panes);
       } else if (newTabs.length === 0) {
         newActiveTabId = null;
         newActivePaneId = null;

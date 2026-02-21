@@ -6,7 +6,7 @@ import { useTerminalStore } from "../../stores/terminal";
 import { useSettingsStore } from "../../stores/settings";
 import { useThemeStore } from "../../stores/theme";
 import { hexToRgba } from "../../lib/color";
-import { isMac } from "../../lib/platform";
+import { isMac, vibrancyAlpha } from "../../lib/platform";
 import TabStrip from "./TabStrip";
 import WindowControls from "./WindowControls";
 
@@ -28,7 +28,7 @@ export default function Titlebar() {
     <div
       data-tauri-drag-region
       className={`flex w-full shrink-0 flex-col border-b border-border ${vibrancyEnabled ? "" : "bg-bg-secondary"}`}
-      style={vibrancyEnabled ? { backgroundColor: hexToRgba(theme.ui.bgSecondary, windowOpacity) } : undefined}
+      style={vibrancyEnabled ? { backgroundColor: hexToRgba(theme.ui.bgSecondary, vibrancyAlpha(windowOpacity)) } : undefined}
       onDoubleClick={handleDoubleClick}
     >
       {/* Thin top strip — always part of the titlebar div, always draggable */}

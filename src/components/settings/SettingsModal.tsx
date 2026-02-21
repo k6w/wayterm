@@ -14,6 +14,7 @@ import { useTerminalStore } from "../../stores/terminal";
 import { useSettingsStore } from "../../stores/settings";
 import { useThemeStore } from "../../stores/theme";
 import { hexToRgba } from "../../lib/color";
+import { vibrancyAlpha } from "../../lib/platform";
 import GeneralPanel from "./GeneralPanel";
 import AppearancePanel from "./AppearancePanel";
 import TerminalPanel from "./TerminalPanel";
@@ -89,7 +90,7 @@ export default function SettingsModal() {
             className="relative flex w-[778px] h-[540px] rounded-xl border border-border overflow-hidden"
             style={{
               backgroundColor: vibrancy
-                ? hexToRgba(theme.ui.bgPrimary, opacity * 0.95)
+                ? hexToRgba(theme.ui.bgPrimary, vibrancyAlpha(opacity) * 0.95)
                 : theme.ui.bgPrimary,
               backdropFilter: vibrancy ? "blur(24px) saturate(1.4)" : undefined,
               WebkitBackdropFilter: vibrancy ? "blur(24px) saturate(1.4)" : undefined,
@@ -104,7 +105,7 @@ export default function SettingsModal() {
               className="w-[200px] shrink-0 border-r border-border p-3 flex flex-col gap-1"
               style={{
                 backgroundColor: vibrancy
-                  ? hexToRgba(theme.ui.bgSecondary, opacity * 0.5)
+                  ? hexToRgba(theme.ui.bgSecondary, vibrancyAlpha(opacity) * 0.5)
                   : theme.ui.bgSecondary,
               }}
             >

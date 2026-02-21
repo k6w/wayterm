@@ -6,6 +6,7 @@ import { useTerminalStore, countPaneNodes } from "../../stores/terminal";
 import { useSettingsStore } from "../../stores/settings";
 import { useThemeStore } from "../../stores/theme";
 import { hexToRgba } from "../../lib/color";
+import { vibrancyAlpha } from "../../lib/platform";
 import TerminalTree from "./TerminalTree";
 import TabContextMenu from "./TabContextMenu";
 
@@ -172,7 +173,7 @@ export default function Tab({
         `}
         style={
           tab.isActive && vibrancyEnabled
-            ? { backgroundColor: hexToRgba(theme.ui.bgPrimary, windowOpacity) }
+            ? { backgroundColor: hexToRgba(theme.ui.bgPrimary, vibrancyAlpha(windowOpacity)) }
             : undefined
         }
         onClick={() => onClick(tab.id)}

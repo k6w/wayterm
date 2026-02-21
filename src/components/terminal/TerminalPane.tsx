@@ -30,6 +30,7 @@ import {
 } from "../../lib/buffer-persistence";
 import { useWorkspaceStore } from "../../stores/workspace";
 import { hexToRgba } from "../../lib/color";
+import { vibrancyAlpha } from "../../lib/platform";
 import "@xterm/xterm/css/xterm.css";
 
 interface TerminalPaneProps {
@@ -666,7 +667,7 @@ export default function TerminalPane({
         style={{
           padding: "6px 4px 0 6px",
           backgroundColor: settings.appearance.vibrancyEnabled
-            ? hexToRgba(theme.terminal.background, settings.appearance.windowOpacity)
+            ? hexToRgba(theme.terminal.background, vibrancyAlpha(settings.appearance.windowOpacity))
             : theme.terminal.background,
         }}
       />
@@ -676,7 +677,7 @@ export default function TerminalPane({
           className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4"
           style={{
             backgroundColor: settings.appearance.vibrancyEnabled
-              ? hexToRgba(theme.terminal.background, settings.appearance.windowOpacity)
+              ? hexToRgba(theme.terminal.background, vibrancyAlpha(settings.appearance.windowOpacity))
               : theme.terminal.background,
           }}
         >
