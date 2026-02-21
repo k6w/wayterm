@@ -1,6 +1,6 @@
 # Nexterm
 
-A modern, cross-platform terminal emulator built with Tauri, React, and xterm.js. Features split panes, SSH connection management, 10 built-in themes, workspace persistence, and a glassmorphism UI.
+A modern, cross-platform terminal emulator built with Tauri, React, and xterm.js. Features split panes, SSH connection management, 16 built-in themes, custom theme import, workspace persistence, buffer persistence, auto-updates, and a glassmorphism UI with native vibrancy effects.
 
 ## Features
 
@@ -16,7 +16,9 @@ A modern, cross-platform terminal emulator built with Tauri, React, and xterm.js
   - **Unix:** Zsh, Bash, Fish, sh
 - **Shell integration** — CWD tracking via OSC title sequences for PowerShell, Bash, Zsh, Fish, and CMD
 - **Terminal caching** — xterm instances survive React unmount/remount cycles during splits without losing scrollback or session state
+- **Buffer persistence** — optionally save and restore terminal scrollback across sessions (auto-saves every 30s, 7-day retention)
 - **Context menu** — right-click for Copy, Paste, Select All, Clear Buffer, Reset Terminal, Split, Detach, Close Pane, and Copy Path
+- **CLI integration** — open a directory in a new tab via `nexterm .` or `nexterm /path/to/dir`
 
 ### SSH
 
@@ -33,10 +35,11 @@ A modern, cross-platform terminal emulator built with Tauri, React, and xterm.js
 - **Save workspace** — snapshot current tab/pane layout to SQLite
 - **Restore workspace** — recreate full split tree with fresh PTY sessions, remapped pane IDs, and correct shell types
 - **Manage workspaces** — list, delete, and restore from sidebar with relative timestamps
+- **Session restore** — automatically save and restore your last session on startup
 
 ### Themes
 
-10 built-in themes with full terminal ANSI color definitions and UI token system:
+16 built-in themes with full terminal ANSI color definitions and UI token system:
 
 | Theme | Variant |
 |-------|---------|
@@ -50,10 +53,29 @@ A modern, cross-platform terminal emulator built with Tauri, React, and xterm.js
 | One Dark | Dark |
 | Catppuccin Mocha | Dark |
 | Tokyo Night | Dark |
+| Gruvbox Dark | Dark |
+| Gruvbox Light | Light |
+| Rose Pine | Dark |
+| Everforest Dark | Dark |
+| Kanagawa | Dark |
+| GitHub Dark | Dark |
 
 Each theme defines: terminal colors (16 ANSI + foreground/background/cursor/selection), UI colors (3 background tiers, 3 text tiers, accent, border, error/warning/success), and blur/opacity values for glassmorphism components.
 
+**Custom themes** — import and export themes as JSON files, stored in the local database alongside built-in themes.
+
 Themes can be switched from the status bar, command palette, or settings.
+
+### Platform Integration
+
+- **macOS** — native vibrancy with NSVisualEffectView, transparent titlebar with traffic light positioning, proper dock icon with squircle background
+- **Windows** — acrylic backdrop blur with configurable RGBA color
+- **Linux** — background blur with configurable RGBA color
+- **Window opacity** — adjustable transparency (0.3–1.0) with platform-native blur beneath
+- **System tray** — minimize to tray with Show/Quit menu, left-click to restore
+- **Autostart** — launch on login via macOS LaunchAgent, Windows registry, or Linux desktop entry
+- **Single instance** — second launch passes CLI args to the running instance and focuses the window
+- **Auto-updater** — check for updates from GitHub Releases with in-app notification
 
 ### Command Palette
 
@@ -68,16 +90,16 @@ Themes can be switched from the status bar, command palette, or settings.
 
 Interactive bottom bar with:
 
-- **Left:** Shell type (with path tooltip), CWD (click to copy), git branch (stub), pane counter (click to cycle focus), SSH indicator
+- **Left:** Shell type (with path tooltip), CWD (click to copy), git branch, pane counter (click to cycle focus), SSH indicator
 - **Right:** Clear buffer, split horizontal/vertical, bell toggle, theme picker popup, command palette, settings
 
 ### Settings
 
 7 settings panels accessible via `Ctrl+,`:
 
-- **General** — default shell, startup behavior (new tab / restore / workspace), confirm on close
-- **Appearance** — theme grid, terminal font (family/size/weight/line-height), UI font, cursor style/blink, window opacity, blur intensity, accent color override, compact mode
-- **Terminal** — scrollback lines, copy on select, right-click behavior, bell style, word separators, ligatures, bracketed paste, scroll to bottom on input
+- **General** — default shell, startup behavior (new tab / restore / workspace), confirm on close, close to tray, launch on startup, check for updates
+- **Appearance** — theme grid with custom theme import/export, terminal font (family/size/weight/line-height), UI font, cursor style/blink, window opacity, blur intensity, accent color override, compact mode
+- **Terminal** — scrollback lines, copy on select, right-click behavior, bell style, word separators, ligatures, bracketed paste, scroll to bottom on input, buffer persistence
 - **Keybindings** — visual list of all shortcuts with click-to-record rebinding
 - **SSH** — default port, default username, keepalive interval, connection timeout, saved connections list
 - **Keys** — SSH key import/management
@@ -98,8 +120,8 @@ Interactive bottom bar with:
 | Detach Pane to Tab | `Ctrl+Shift+T` | `Cmd+Shift+T` |
 | Next Tab | `Ctrl+Tab` | `Cmd+Tab` |
 | Previous Tab | `Ctrl+Shift+Tab` | `Cmd+Shift+Tab` |
-| Focus Next Pane | `Ctrl+Alt+]` | `Cmd+Alt+]` |
-| Focus Previous Pane | `Ctrl+Alt+[` | `Cmd+Alt+[` |
+| Focus Next Pane | `Alt+]` | `Alt+]` |
+| Focus Previous Pane | `Alt+[` | `Alt+[` |
 
 All shortcuts are rebindable in settings.
 
@@ -139,6 +161,9 @@ Slide-in panel (`Ctrl+B`) with:
 | uuid | 1.x |
 | window-vibrancy | 0.5 |
 | parking_lot | 0.12 |
+| tauri-plugin-updater | 2.x |
+| tauri-plugin-autostart | 2.5 |
+| tauri-plugin-single-instance | 2.x |
 
 ## Architecture
 
@@ -153,17 +178,16 @@ src/
     terminal/        TerminalPane, SplitContainer, StatusBar, PaneContextMenu, DropZoneOverlay
     titlebar/        Custom titlebar with TabStrip, Tab, TabContextMenu, WindowControls
     ui/              Shared UI primitives
-  lib/               IPC wrapper, keybindings, shell detection, terminal registry, formatters
+  lib/               IPC wrapper, keybindings, shell detection, terminal registry, buffer persistence, formatters
   stores/            Zustand stores (terminal, theme, settings, ssh, workspace)
-  themes/            10 JSON theme definitions
+  themes/            16 JSON theme definitions
   types/             TypeScript type definitions
 
 src-tauri/src/
-  commands/          IPC command handlers (terminal, ssh, settings, workspace)
-  db/                SQLite modules (connections, keys, settings, history, workspaces, migrations)
+  commands/          IPC command handlers (terminal, ssh, settings, workspace, buffer, custom_themes)
+  db/                SQLite modules (connections, keys, settings, history, workspaces, terminal_buffers, custom_themes, migrations)
   pty/               PTY session manager
-  ssh/               SSH client stubs (keys, tunnels)
-  window/            Window vibrancy/blur
+  window/            Window vibrancy/blur (macOS NSVisualEffectView, Windows acrylic, Linux blur)
   theme/             Backend theme utilities
 ```
 
@@ -172,7 +196,7 @@ src-tauri/src/
 5 Zustand stores manage all application state:
 
 - **terminal** — tabs, panes, split trees, active selections, drag-drop state, UI toggles
-- **theme** — active theme, theme registry, CSS variable injection
+- **theme** — active theme, custom themes, theme registry, CSS variable injection
 - **settings** — all user preferences with IPC persistence
 - **ssh** — connections, keys, active sessions
 - **workspace** — workspace CRUD with layout snapshots
@@ -186,10 +210,19 @@ SQLite database (`nexterm.db`) in the app data directory with WAL mode:
 - User settings (key-value)
 - Command history
 - Workspace layouts (serialized split trees)
+- Terminal buffers (scrollback persistence with 7-day retention)
+- Custom themes (JSON definitions)
 
 ### Terminal Lifecycle
 
 xterm.js instances are stored in a global registry outside React. When a pane unmounts during a split operation, the terminal DOM element and PTY session are preserved in cache. On remount, the cached terminal is reattached to the new container without losing scrollback or session state.
+
+## CI/CD
+
+GitHub Actions workflows for continuous integration and release automation:
+
+- **CI** — runs on push/PR to master across Ubuntu, macOS, and Windows: TypeScript type checking, `cargo check`, and Clippy linting
+- **Release** — triggered by `v*` tags, builds platform-specific installers (`.msi`, `.dmg` for Intel + Apple Silicon, `.deb`/`.AppImage`) and publishes to GitHub Releases with Tauri update signing
 
 ## Development
 
