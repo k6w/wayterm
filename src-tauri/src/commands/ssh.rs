@@ -37,8 +37,6 @@ pub async fn ssh_delete_connection(
     db::connections::delete(&pool, &id)
 }
 
-// SSH Key management commands
-
 #[tauri::command]
 pub async fn ssh_list_keys(
     pool: State<'_, DbPool>,
@@ -70,11 +68,9 @@ pub async fn ssh_import_key(
         fingerprint,
         created_at: String::new(),
     };
-    // Store private key as raw bytes (in production, encrypt this)
     let private_bytes = request.private_key_pem.as_bytes();
     db::keys::insert(&pool, &key, private_bytes)?;
 
-    // Re-fetch to get created_at
     let keys = db::keys::list(&pool)?;
     keys.into_iter()
         .find(|k| k.id == id)
@@ -98,8 +94,6 @@ pub async fn ssh_get_key_temp_path(
 
     let raw_bytes = db::keys::get_private_key(&pool, &key_id)?;
 
-    // Convert to UTF-8 string, normalize line endings to LF, ensure trailing newline.
-    // OpenSSH is strict: CRLF or missing final newline = "invalid format".
     let raw_str = String::from_utf8(raw_bytes)
         .map_err(|e| format!("Key is not valid UTF-8: {}", e))?;
     let normalized = raw_str.replace("\r\n", "\n").replace('\r', "\n");
@@ -116,7 +110,6 @@ pub async fn ssh_get_key_temp_path(
     file.write_all(pem.as_bytes()).map_err(|e| e.to_string())?;
     drop(file);
 
-    // Set permissions to 600 on Unix so ssh doesn't complain
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
@@ -124,14 +117,12 @@ pub async fn ssh_get_key_temp_path(
             .map_err(|e| e.to_string())?;
     }
 
-    // On Windows, restrict ACL so OpenSSH accepts the key
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
         const CREATE_NO_WINDOW: u32 = 0x08000000;
 
         let path_str = path.to_string_lossy();
-        // Remove inherited permissions, grant only current user full control
         let _ = std::process::Command::new("icacls")
             .args([&*path_str, "/inheritance:r", "/grant:r", &format!("{}:F", whoami())])
             .creation_flags(CREATE_NO_WINDOW)
@@ -143,7 +134,6 @@ pub async fn ssh_get_key_temp_path(
 
 #[cfg(windows)]
 fn whoami() -> String {
-    // Build DOMAIN\username from env vars to avoid spawning a visible console process.
     let domain = std::env::var("USERDOMAIN").unwrap_or_default();
     let user = std::env::var("USERNAME").unwrap_or_default();
     if domain.is_empty() {
@@ -154,7 +144,6 @@ fn whoami() -> String {
 }
 
 fn compute_fingerprint(public_key: &str) -> String {
-    // Simple hash-based fingerprint using std
     use std::collections::hash_map::DefaultHasher;
     use std::fmt::Write;
     use std::hash::{Hash, Hasher};

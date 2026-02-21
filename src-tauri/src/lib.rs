@@ -1,7 +1,6 @@
 mod commands;
 mod db;
 mod pty;
-mod ssh;
 mod theme;
 mod window;
 
