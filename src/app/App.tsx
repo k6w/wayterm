@@ -30,12 +30,16 @@ function AppContent() {
   const vibrancyEnabled = useSettingsStore((s) => s.settings.appearance.vibrancyEnabled);
   const windowOpacity = useSettingsStore((s) => s.settings.appearance.windowOpacity);
   const theme = useThemeStore((s) => s.active);
+  const settingsLoaded = useSettingsStore((s) => s.loaded);
+  const workspaceLoaded = useWorkspaceStore((s) => s.loaded);
   const [sshDialogOpen, setSshDialogOpen] = useState(false);
   const [editingConnection, setEditingConnection] = useState<SshConnection | null>(null);
   const initDone = useRef(false);
 
   // ── Startup: restore session or create new tab ──
+  // Fires once both settings and workspace data are loaded (in parallel)
   useEffect(() => {
+    if (!settingsLoaded || !workspaceLoaded) return;
     if (initDone.current) return;
     initDone.current = true;
 
@@ -71,7 +75,7 @@ function AppContent() {
         addTab(shell.type, shell.path);
       }
     });
-  }, []);
+  }, [settingsLoaded, workspaceLoaded]);
 
   // ── Auto-save session on terminal state changes (debounced) ──
   useEffect(() => {
