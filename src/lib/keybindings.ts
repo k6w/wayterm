@@ -2,6 +2,7 @@ import { useTerminalStore } from "../stores/terminal";
 import type { TerminalPane } from "../types/terminal";
 import { getDefaultShell } from "./shell-detect";
 import { isMac } from "./platform";
+import { copySelection, pasteToTerminal } from "./terminal-registry";
 
 interface KeyAction {
   id: string;
@@ -135,6 +136,24 @@ export function getDefaultKeybindings(): KeyAction[] {
       label: "Focus Previous Pane",
       keys: `Alt+[`,
       handler: () => useTerminalStore.getState().focusPrevPane(),
+    },
+    {
+      id: "copy",
+      label: "Copy",
+      keys: `Control+Shift+c`,
+      handler: () => {
+        const { activePaneId } = useTerminalStore.getState();
+        if (activePaneId) copySelection(activePaneId);
+      },
+    },
+    {
+      id: "paste",
+      label: "Paste",
+      keys: `Control+Shift+v`,
+      handler: () => {
+        const { activePaneId } = useTerminalStore.getState();
+        if (activePaneId) pasteToTerminal(activePaneId);
+      },
     },
   ];
 }
