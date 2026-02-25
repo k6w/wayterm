@@ -27,6 +27,8 @@ interface SftpPaneProps {
   paneCount?: number;
 }
 
+const EMPTY_ENTRIES: SftpEntry[] = [];
+
 /** Navigate up one directory */
 function parentPath(p: string): string {
   // Handle Windows paths like "C:/"
@@ -73,8 +75,8 @@ export default function SftpPane({
 
   // Store selectors
   const session = useSftpStore((s) => (sessionId ? s.sessions[sessionId] : null));
-  const remoteEntries = useSftpStore((s) => (sessionId ? s.remoteEntries[sessionId] ?? [] : []));
-  const localEntries = useSftpStore((s) => (sessionId ? s.localEntries[sessionId] ?? [] : []));
+  const remoteEntries = useSftpStore((s) => (sessionId ? s.remoteEntries[sessionId] ?? EMPTY_ENTRIES : EMPTY_ENTRIES));
+  const localEntries = useSftpStore((s) => (sessionId ? s.localEntries[sessionId] ?? EMPTY_ENTRIES : EMPTY_ENTRIES));
   const transfers = useSftpStore((s) => s.transfers);
   const localCollapsed = useSftpStore((s) => (sessionId ? s.localCollapsed[sessionId] ?? true : true));
 
