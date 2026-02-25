@@ -1,4 +1,5 @@
 import { useEffect, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle } from "lucide-react";
 
@@ -37,7 +38,7 @@ export default function ConfirmDialog({
     return () => window.removeEventListener("keydown", handleKey);
   }, [handleKey]);
 
-  return (
+  return createPortal(
     <AnimatePresence>
       {open && (
         <motion.div
@@ -49,7 +50,7 @@ export default function ConfirmDialog({
           onClick={onCancel}
         >
           <motion.div
-            className="w-[360px] rounded-xl bg-bg-primary border border-border overflow-hidden shadow-2xl"
+            className="w-[360px] max-w-[calc(100vw-2rem)] rounded-xl bg-bg-primary border border-border overflow-hidden shadow-2xl"
             initial={{ opacity: 0, scale: 0.95, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 8 }}
@@ -95,6 +96,7 @@ export default function ConfirmDialog({
           </motion.div>
         </motion.div>
       )}
-    </AnimatePresence>
+    </AnimatePresence>,
+    document.body
   );
 }
