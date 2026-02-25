@@ -29,6 +29,9 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { useTerminalStore } from "../../stores/terminal";
 import { useThemeStore } from "../../stores/theme";
+import { useSettingsStore } from "../../stores/settings";
+import { hexToRgba } from "../../lib/color";
+import { vibrancyAlpha } from "../../lib/platform";
 import { getDefaultKeybindings } from "../../lib/keybindings";
 import { getDefaultShells } from "../../lib/shell-detect";
 import { clearBuffer, resetTerminal } from "../../lib/terminal-registry";
@@ -85,6 +88,13 @@ export default function CommandPalette() {
   const toggleCommandPalette = useTerminalStore(
     (s) => s.toggleCommandPalette
   );
+  const theme = useThemeStore((s) => s.active);
+  const vibrancy = useSettingsStore((s) => s.settings.appearance.vibrancyEnabled);
+  const windowOpacity = useSettingsStore((s) => s.settings.appearance.windowOpacity);
+
+  const paletteBg = vibrancy
+    ? hexToRgba(theme.ui.bgPrimary, vibrancyAlpha(windowOpacity) * 0.88)
+    : theme.ui.bgPrimary;
 
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
@@ -398,7 +408,12 @@ export default function CommandPalette() {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
-            className="w-full max-w-[560px] overflow-hidden rounded-xl border border-white/[0.12] bg-white/[0.08] shadow-2xl backdrop-blur-xl"
+            className="w-full max-w-[560px] overflow-hidden rounded-xl border border-white/[0.12] shadow-2xl"
+            style={{
+              backgroundColor: paletteBg,
+              backdropFilter: "blur(24px) saturate(1.4)",
+              WebkitBackdropFilter: "blur(24px) saturate(1.4)",
+            }}
             onKeyDown={handleKeyDown}
           >
             {/* ── Search bar ── */}

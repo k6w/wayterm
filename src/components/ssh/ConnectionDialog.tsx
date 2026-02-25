@@ -2,6 +2,10 @@ import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Lock, KeyRound, Shield } from "lucide-react";
 import { useSshStore } from "../../stores/ssh";
+import { useThemeStore } from "../../stores/theme";
+import { useSettingsStore } from "../../stores/settings";
+import { hexToRgba } from "../../lib/color";
+import { vibrancyAlpha } from "../../lib/platform";
 import Select from "../ui/Select";
 import type { SshConnection, AuthMethod } from "../../types/ssh";
 
@@ -57,6 +61,13 @@ export default function ConnectionDialog({
 }: ConnectionDialogProps) {
   const [form, setForm] = useState(createDefaultFormState());
   const storedKeys = useSshStore((s) => s.keys);
+  const theme = useThemeStore((s) => s.active);
+  const vibrancy = useSettingsStore((s) => s.settings.appearance.vibrancyEnabled);
+  const windowOpacity = useSettingsStore((s) => s.settings.appearance.windowOpacity);
+
+  const cardBg = vibrancy
+    ? hexToRgba(theme.ui.bgPrimary, vibrancyAlpha(windowOpacity) * 0.92)
+    : theme.ui.bgPrimary;
 
   useEffect(() => {
     if (isOpen) {
@@ -151,7 +162,12 @@ export default function ConnectionDialog({
           onClick={onClose}
         >
           <motion.div
-            className="relative w-full max-w-lg rounded-xl bg-bg-primary border border-border overflow-hidden"
+            className="relative w-full max-w-lg rounded-xl border border-border overflow-hidden"
+            style={{
+              backgroundColor: cardBg,
+              backdropFilter: vibrancy ? "blur(24px) saturate(1.4)" : undefined,
+              WebkitBackdropFilter: vibrancy ? "blur(24px) saturate(1.4)" : undefined,
+            }}
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}

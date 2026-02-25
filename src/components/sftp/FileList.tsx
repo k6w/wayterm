@@ -1,5 +1,9 @@
 import { useState, useRef, useCallback } from "react";
 import { Folder, FileText, Link } from "lucide-react";
+import { useThemeStore } from "../../stores/theme";
+import { useSettingsStore } from "../../stores/settings";
+import { hexToRgba } from "../../lib/color";
+import { vibrancyAlpha } from "../../lib/platform";
 import type { SftpEntry } from "../../types/sftp";
 
 interface FileListProps {
@@ -9,6 +13,7 @@ interface FileListProps {
   onNavigate: (path: string) => void;
   onContextMenu: (e: React.MouseEvent, entry: SftpEntry) => void;
   onDragStart?: (e: React.DragEvent, entries: SftpEntry[]) => void;
+  onDragEnd?: () => void;
   onDrop?: (e: React.DragEvent) => void;
   emptyMessage?: string;
 }
@@ -55,11 +60,19 @@ export default function FileList({
   onNavigate,
   onContextMenu,
   onDragStart,
+  onDragEnd,
   onDrop,
   emptyMessage = "No files",
 }: FileListProps) {
   const [dragOver, setDragOver] = useState(false);
   const lastClickIndex = useRef<number>(-1);
+  const theme = useThemeStore((s) => s.active);
+  const vibrancy = useSettingsStore((s) => s.settings.appearance.vibrancyEnabled);
+  const windowOpacity = useSettingsStore((s) => s.settings.appearance.windowOpacity);
+
+  const headerBg = vibrancy
+    ? hexToRgba(theme.ui.bgSecondary, vibrancyAlpha(windowOpacity) * 0.8)
+    : hexToRgba(theme.ui.bgSecondary, 0.8);
 
   const handleClick = useCallback(
     (e: React.MouseEvent, entry: SftpEntry, index: number) => {
@@ -118,7 +131,10 @@ export default function FileList({
       onDrop={handleDrop}
     >
       {/* Header */}
-      <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-border bg-bg-secondary/80 backdrop-blur-sm px-2 py-1 text-[11px] font-medium text-text-muted select-none">
+      <div
+        className="sticky top-0 z-10 flex items-center gap-2 border-b border-border backdrop-blur-sm px-2 py-1 text-[11px] font-medium text-text-muted select-none"
+        style={{ backgroundColor: headerBg }}
+      >
         <span className="flex-1 min-w-0">Name</span>
         <span className="w-16 text-right shrink-0">Size</span>
         <span className="w-28 text-right shrink-0">Modified</span>
@@ -158,6 +174,7 @@ export default function FileList({
                     onDragStart(e, dragged);
                   }
                 }}
+                onDragEnd={() => onDragEnd?.()}
               >
                 <div className="flex items-center gap-1.5 flex-1 min-w-0">
                   <EntryIcon entry={entry} />

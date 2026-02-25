@@ -213,6 +213,12 @@ function ThemePicker() {
   const activeThemeId = useThemeStore((s) => s.activeThemeId);
   const themes = useThemeStore((s) => s.themes);
   const setTheme = useThemeStore((s) => s.setTheme);
+  const tpTheme = useThemeStore((s) => s.active);
+  const tpVibrancy = useSettingsStore((s) => s.settings.appearance.vibrancyEnabled);
+  const tpOpacity = useSettingsStore((s) => s.settings.appearance.windowOpacity);
+  const tpMenuBg = tpVibrancy
+    ? hexToRgba(tpTheme.ui.bgSecondary, vibrancyAlpha(tpOpacity) * 0.85)
+    : tpTheme.ui.bgSecondary;
 
   const themeList = Object.values(themes);
 
@@ -246,7 +252,14 @@ function ThemePicker() {
       </button>
 
       {open && (
-        <div className="absolute bottom-full right-0 mb-1.5 z-[200] min-w-[180px] max-h-[300px] overflow-y-auto rounded-lg border border-border bg-bg-secondary py-1 shadow-xl">
+        <div
+          className="absolute bottom-full right-0 mb-1.5 z-[200] min-w-[180px] max-h-[300px] overflow-y-auto rounded-lg border border-border py-1 shadow-xl"
+          style={{
+            backgroundColor: tpMenuBg,
+            backdropFilter: tpVibrancy ? "blur(20px) saturate(1.3)" : undefined,
+            WebkitBackdropFilter: tpVibrancy ? "blur(20px) saturate(1.3)" : undefined,
+          }}
+        >
           <div className="px-3 py-1.5 text-[10px] font-medium text-text-muted uppercase tracking-wider">
             Theme
           </div>

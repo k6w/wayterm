@@ -12,6 +12,10 @@ import {
   FolderOpen,
 } from "lucide-react";
 import { useTerminalStore } from "../../stores/terminal";
+import { useThemeStore } from "../../stores/theme";
+import { useSettingsStore } from "../../stores/settings";
+import { hexToRgba } from "../../lib/color";
+import { vibrancyAlpha } from "../../lib/platform";
 import { splitActivePane } from "../../lib/keybindings";
 import {
   copySelection,
@@ -42,6 +46,12 @@ export default function PaneContextMenu({
   onClose,
 }: PaneContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
+  const themeObj = useThemeStore((s) => s.active);
+  const vibrancy = useSettingsStore((s) => s.settings.appearance.vibrancyEnabled);
+  const windowOpacity = useSettingsStore((s) => s.settings.appearance.windowOpacity);
+  const menuBg = vibrancy
+    ? hexToRgba(themeObj.ui.bgSecondary, vibrancyAlpha(windowOpacity) * 0.85)
+    : themeObj.ui.bgSecondary;
   const detachPaneToTab = useTerminalStore((s) => s.detachPaneToTab);
   const closePaneInTab = useTerminalStore((s) => s.closePaneInTab);
   const setActivePane = useTerminalStore((s) => s.setActivePane);
@@ -178,7 +188,14 @@ export default function PaneContextMenu({
       ref={menuRef}
       style={{ position: "fixed", top: y, left: x, zIndex: 200 }}
     >
-      <div className="min-w-[200px] rounded-lg border border-border bg-bg-secondary py-1 shadow-xl">
+      <div
+        className="min-w-[200px] rounded-lg border border-border py-1 shadow-xl"
+        style={{
+          backgroundColor: menuBg,
+          backdropFilter: vibrancy ? "blur(20px) saturate(1.3)" : undefined,
+          WebkitBackdropFilter: vibrancy ? "blur(20px) saturate(1.3)" : undefined,
+        }}
+      >
         {items.map((item, i) =>
           item.type === "separator" ? (
             <div key={i} className="my-1 h-px bg-border mx-2" />
@@ -188,7 +205,7 @@ export default function PaneContextMenu({
               className={`flex w-full items-center gap-2 px-3 py-1.5 text-xs transition-colors ${
                 item.disabled
                   ? "text-text-muted/40 cursor-default"
-                  : "text-text-primary hover:bg-bg-tertiary"
+                  : "text-text-primary hover:bg-white/[0.06]"
               }`}
               disabled={item.disabled}
               onClick={() => {

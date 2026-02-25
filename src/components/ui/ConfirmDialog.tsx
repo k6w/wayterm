@@ -2,6 +2,10 @@ import { useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { AlertTriangle } from "lucide-react";
+import { useThemeStore } from "../../stores/theme";
+import { useSettingsStore } from "../../stores/settings";
+import { hexToRgba } from "../../lib/color";
+import { vibrancyAlpha } from "../../lib/platform";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -24,6 +28,17 @@ export default function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
+  const theme = useThemeStore((s) => s.active);
+  const vibrancy = useSettingsStore((s) => s.settings.appearance.vibrancyEnabled);
+  const opacity = useSettingsStore((s) => s.settings.appearance.windowOpacity);
+
+  const cardBg = vibrancy
+    ? hexToRgba(theme.ui.bgPrimary, vibrancyAlpha(opacity) * 0.92)
+    : theme.ui.bgPrimary;
+  const footerBg = vibrancy
+    ? hexToRgba(theme.ui.bgSecondary, vibrancyAlpha(opacity) * 0.5)
+    : undefined;
+
   const handleKey = useCallback(
     (e: KeyboardEvent) => {
       if (!open) return;
@@ -50,7 +65,12 @@ export default function ConfirmDialog({
           onClick={onCancel}
         >
           <motion.div
-            className="w-[360px] max-w-[calc(100vw-2rem)] rounded-xl bg-bg-primary border border-border overflow-hidden shadow-2xl"
+            className="w-[360px] max-w-[calc(100vw-2rem)] rounded-xl border border-border overflow-hidden shadow-2xl"
+            style={{
+              backgroundColor: cardBg,
+              backdropFilter: vibrancy ? "blur(24px) saturate(1.4)" : undefined,
+              WebkitBackdropFilter: vibrancy ? "blur(24px) saturate(1.4)" : undefined,
+            }}
             initial={{ opacity: 0, scale: 0.95, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 8 }}
@@ -75,7 +95,10 @@ export default function ConfirmDialog({
                 </p>
               </div>
             </div>
-            <div className="flex items-center justify-end gap-2 px-5 py-3 border-t border-border bg-bg-secondary/50">
+            <div
+              className="flex items-center justify-end gap-2 px-5 py-3 border-t border-border"
+              style={{ backgroundColor: footerBg }}
+            >
               <button
                 onClick={onCancel}
                 className="px-3 py-1.5 text-xs text-text-secondary hover:text-text-primary rounded-md transition-colors"

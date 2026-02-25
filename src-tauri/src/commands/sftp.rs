@@ -2,7 +2,11 @@ use crate::db::{self, DbPool};
 use crate::sftp::session::SftpSessionManager;
 use serde::Serialize;
 use tauri::{AppHandle, Emitter, State};
+use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use uuid::Uuid;
+
+/// Chunk size for streaming uploads / downloads (64 KB).
+const CHUNK_SIZE: usize = 64 * 1024;
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -232,7 +236,7 @@ pub async fn sftp_rename(
 }
 
 /// Download a file from the remote server to the local filesystem.
-/// Emits `sftp:transfer:progress` events.
+/// Emits `sftp:transfer:progress` events with chunked reads.
 #[tauri::command]
 pub async fn sftp_download(
     session_id: String,
@@ -244,7 +248,7 @@ pub async fn sftp_download(
 ) -> Result<(), String> {
     let sessions = sftp_manager.sessions();
 
-    // Get file size first for progress reporting, then download.
+    // Read file in chunks, emitting progress after each.
     let (total_bytes, data) = {
         let sessions = sessions.lock().await;
         let entry = sessions
@@ -265,16 +269,42 @@ pub async fn sftp_download(
                 transfer_id: transfer_id.clone(),
                 bytes_transferred: 0,
                 total_bytes: total,
-                status: "downloading".into(),
+                status: "in_progress".into(),
                 error: None,
             },
         );
 
-        let data = entry
+        // Open the remote file and read in chunks.
+        let mut file = entry
             .sftp
-            .read(remote_path.as_str())
+            .open(remote_path.as_str())
             .await
-            .map_err(|e| format!("read failed: {e}"))?;
+            .map_err(|e| format!("open failed: {e}"))?;
+
+        let mut data = Vec::with_capacity(total as usize);
+        let mut buf = vec![0u8; CHUNK_SIZE];
+
+        loop {
+            let n = file
+                .read(&mut buf)
+                .await
+                .map_err(|e| format!("read failed: {e}"))?;
+            if n == 0 {
+                break;
+            }
+            data.extend_from_slice(&buf[..n]);
+
+            let _ = app.emit(
+                "sftp:transfer:progress",
+                TransferProgress {
+                    transfer_id: transfer_id.clone(),
+                    bytes_transferred: data.len() as u64,
+                    total_bytes: total,
+                    status: "in_progress".into(),
+                    error: None,
+                },
+            );
+        }
 
         (total, data)
     };
@@ -289,7 +319,7 @@ pub async fn sftp_download(
         "sftp:transfer:progress",
         TransferProgress {
             transfer_id,
-            bytes_transferred: data.len() as u64,
+            bytes_transferred: total_bytes,
             total_bytes,
             status: "completed".into(),
             error: None,
@@ -300,7 +330,7 @@ pub async fn sftp_download(
 }
 
 /// Upload a local file to the remote server.
-/// Emits `sftp:transfer:progress` events.
+/// Emits `sftp:transfer:progress` events with chunked writes.
 #[tauri::command]
 pub async fn sftp_upload(
     session_id: String,
@@ -324,12 +354,12 @@ pub async fn sftp_upload(
             transfer_id: transfer_id.clone(),
             bytes_transferred: 0,
             total_bytes,
-            status: "uploading".into(),
+            status: "in_progress".into(),
             error: None,
         },
     );
 
-    // Write to remote.
+    // Create remote file and write in chunks.
     {
         let sessions = sftp_manager.sessions();
         let sessions = sessions.lock().await;
@@ -337,11 +367,34 @@ pub async fn sftp_upload(
             .get(&session_id)
             .ok_or_else(|| format!("SFTP session {session_id} not found"))?;
 
-        entry
+        let mut file = entry
             .sftp
-            .write(remote_path.as_str(), &data)
+            .create(remote_path.as_str())
             .await
-            .map_err(|e| format!("write failed: {e}"))?;
+            .map_err(|e| format!("create failed: {e}"))?;
+
+        let mut bytes_written: u64 = 0;
+        for chunk in data.chunks(CHUNK_SIZE) {
+            file.write_all(chunk)
+                .await
+                .map_err(|e| format!("write failed: {e}"))?;
+            bytes_written += chunk.len() as u64;
+
+            let _ = app.emit(
+                "sftp:transfer:progress",
+                TransferProgress {
+                    transfer_id: transfer_id.clone(),
+                    bytes_transferred: bytes_written,
+                    total_bytes,
+                    status: "in_progress".into(),
+                    error: None,
+                },
+            );
+        }
+
+        file.shutdown()
+            .await
+            .map_err(|e| format!("close failed: {e}"))?;
     }
 
     // Emit completion.

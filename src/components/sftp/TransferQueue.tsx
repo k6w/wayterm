@@ -1,5 +1,9 @@
 import { useState } from "react";
 import { Upload, Download, ChevronDown, ChevronUp, X } from "lucide-react";
+import { useThemeStore } from "../../stores/theme";
+import { useSettingsStore } from "../../stores/settings";
+import { hexToRgba } from "../../lib/color";
+import { vibrancyAlpha } from "../../lib/platform";
 import type { Transfer } from "../../types/sftp";
 
 interface TransferQueueProps {
@@ -26,15 +30,25 @@ export default function TransferQueue({
   onClearCompleted,
 }: TransferQueueProps) {
   const [collapsed, setCollapsed] = useState(true);
+  const theme = useThemeStore((s) => s.active);
+  const vibrancy = useSettingsStore((s) => s.settings.appearance.vibrancyEnabled);
+  const windowOpacity = useSettingsStore((s) => s.settings.appearance.windowOpacity);
 
   if (transfers.length === 0) return null;
+
+  const bgSecondary = vibrancy
+    ? hexToRgba(theme.ui.bgSecondary, vibrancyAlpha(windowOpacity))
+    : theme.ui.bgSecondary;
 
   const completedCount = transfers.filter(
     (t) => t.status === "completed" || t.status === "error"
   ).length;
 
   return (
-    <div className="border-t border-border bg-bg-secondary shrink-0">
+    <div
+      className="border-t border-border shrink-0"
+      style={{ backgroundColor: bgSecondary }}
+    >
       {/* Header */}
       <button
         onClick={() => setCollapsed(!collapsed)}

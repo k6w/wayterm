@@ -10,6 +10,10 @@ import {
   RefreshCw,
   ClipboardPaste,
 } from "lucide-react";
+import { useThemeStore } from "../../stores/theme";
+import { useSettingsStore } from "../../stores/settings";
+import { hexToRgba } from "../../lib/color";
+import { vibrancyAlpha } from "../../lib/platform";
 import type { SftpEntry } from "../../types/sftp";
 
 interface SftpContextMenuProps {
@@ -39,6 +43,13 @@ export default function SftpContextMenu({
   onClose,
 }: SftpContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
+  const theme = useThemeStore((s) => s.active);
+  const vibrancy = useSettingsStore((s) => s.settings.appearance.vibrancyEnabled);
+  const opacity = useSettingsStore((s) => s.settings.appearance.windowOpacity);
+
+  const menuBg = vibrancy
+    ? hexToRgba(theme.ui.bgSecondary, vibrancyAlpha(opacity) * 0.85)
+    : theme.ui.bgSecondary;
 
   // Close on outside click or Escape
   useEffect(() => {
@@ -122,7 +133,14 @@ export default function SftpContextMenu({
       ref={menuRef}
       style={{ position: "fixed", top: y, left: x, zIndex: 200 }}
     >
-      <div className="min-w-[180px] rounded-lg border border-border bg-bg-secondary py-1 shadow-xl">
+      <div
+        className="min-w-[180px] rounded-lg border border-border py-1 shadow-xl"
+        style={{
+          backgroundColor: menuBg,
+          backdropFilter: vibrancy ? "blur(20px) saturate(1.3)" : undefined,
+          WebkitBackdropFilter: vibrancy ? "blur(20px) saturate(1.3)" : undefined,
+        }}
+      >
         {items.map((item, i) =>
           item.type === "separator" ? (
             <div key={i} className="my-1 h-px bg-border mx-2" />

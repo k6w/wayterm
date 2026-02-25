@@ -2,6 +2,10 @@ import { useCallback, useRef, useState, useEffect } from "react";
 import { Plus, Terminal, MonitorDot, Hash, SquareTerminal, HardDrive } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 import { useTerminalStore } from "../../stores/terminal";
+import { useThemeStore } from "../../stores/theme";
+import { useSettingsStore } from "../../stores/settings";
+import { hexToRgba } from "../../lib/color";
+import { vibrancyAlpha } from "../../lib/platform";
 import { getDefaultShell, getDefaultShells } from "../../lib/shell-detect";
 import type { ShellType } from "../../types/terminal";
 import type { DropZone } from "../../stores/terminal";
@@ -190,6 +194,12 @@ function NewTabButton({ onAdd }: { onAdd: (type: ShellType, path?: string) => vo
   const [open, setOpen] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const ntTheme = useThemeStore((s) => s.active);
+  const ntVibrancy = useSettingsStore((s) => s.settings.appearance.vibrancyEnabled);
+  const ntOpacity = useSettingsStore((s) => s.settings.appearance.windowOpacity);
+  const ntMenuBg = ntVibrancy
+    ? hexToRgba(ntTheme.ui.bgSecondary, vibrancyAlpha(ntOpacity) * 0.85)
+    : ntTheme.ui.bgSecondary;
 
   const shells = getDefaultShells();
   const defaultShell = getDefaultShell();
@@ -230,7 +240,12 @@ function NewTabButton({ onAdd }: { onAdd: (type: ShellType, path?: string) => vo
 
       {open && (
         <div
-          className="absolute top-full left-0 z-[200] mt-1 min-w-[170px] rounded-lg border border-border bg-bg-secondary py-1 shadow-xl"
+          className="absolute top-full left-0 z-[200] mt-1 min-w-[170px] rounded-lg border border-border py-1 shadow-xl"
+          style={{
+            backgroundColor: ntMenuBg,
+            backdropFilter: ntVibrancy ? "blur(20px) saturate(1.3)" : undefined,
+            WebkitBackdropFilter: ntVibrancy ? "blur(20px) saturate(1.3)" : undefined,
+          }}
           onMouseEnter={() => {
             if (timerRef.current) clearTimeout(timerRef.current);
           }}

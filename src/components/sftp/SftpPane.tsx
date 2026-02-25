@@ -22,6 +22,9 @@ import PathBreadcrumb from "./PathBreadcrumb";
 import FileList from "./FileList";
 import TransferQueue from "./TransferQueue";
 import SftpContextMenu from "./SftpContextMenu";
+import FileConflictDialog from "./FileConflictDialog";
+import ConfirmDialog from "../ui/ConfirmDialog";
+import InputDialog from "../ui/InputDialog";
 import type { SftpEntry } from "../../types/sftp";
 
 interface SftpPaneProps {
@@ -78,6 +81,33 @@ export default function SftpPane({
     entry: SftpEntry | null;
     side: "local" | "remote";
   } | null>(null);
+
+  // File conflict dialog state
+  const [conflictInfo, setConflictInfo] = useState<{
+    localPath: string;
+    remotePath: string;
+    fileName: string;
+    sessionId: string;
+  } | null>(null);
+
+  // React-level drag state (fallback for when Tauri eats HTML5 drop events)
+  const [dragEntries, setDragEntries] = useState<{
+    paths: string[];
+    source: "local" | "remote";
+  } | null>(null);
+
+  // Delete confirmation dialog state
+  const [deleteInfo, setDeleteInfo] = useState<{
+    entries: SftpEntry[];
+  } | null>(null);
+
+  // Rename input dialog state
+  const [renameInfo, setRenameInfo] = useState<{
+    entry: SftpEntry;
+  } | null>(null);
+
+  // New folder input dialog state
+  const [newFolderOpen, setNewFolderOpen] = useState(false);
 
   // Store selectors
   const session = useSftpStore((s) => (sessionId ? s.sessions[sessionId] : null));
@@ -199,6 +229,40 @@ export default function SftpPane({
     [sessionId, loadLocalDir]
   );
 
+  // -- Upload with conflict check --
+
+  const uploadWithCheck = useCallback(
+    (sid: string, localPath: string, remotePath: string) => {
+      const fileName = remotePath.split("/").pop() || remotePath;
+      const exists = remoteEntries.some((e) => e.name === fileName);
+      if (exists) {
+        setConflictInfo({ localPath, remotePath, fileName, sessionId: sid });
+      } else {
+        uploadFile(sid, localPath, remotePath);
+      }
+    },
+    [remoteEntries, uploadFile]
+  );
+
+  const handleConflictReplace = useCallback(() => {
+    if (!conflictInfo) return;
+    uploadFile(conflictInfo.sessionId, conflictInfo.localPath, conflictInfo.remotePath);
+    setConflictInfo(null);
+  }, [conflictInfo, uploadFile]);
+
+  const handleConflictRename = useCallback(
+    (newPath: string) => {
+      if (!conflictInfo) return;
+      uploadFile(conflictInfo.sessionId, conflictInfo.localPath, newPath);
+      setConflictInfo(null);
+    },
+    [conflictInfo, uploadFile]
+  );
+
+  const handleConflictSkip = useCallback(() => {
+    setConflictInfo(null);
+  }, []);
+
   // -- Toolbar actions --
 
   const handleUpload = useCallback(() => {
@@ -206,9 +270,9 @@ export default function SftpPane({
     const selected = localEntries.filter((e) => localSelected.has(e.path) && !e.isDir);
     for (const entry of selected) {
       const targetPath = remoteCwd.replace(/\/+$/, "") + "/" + entry.name;
-      uploadFile(sessionId, entry.path, targetPath);
+      uploadWithCheck(sessionId, entry.path, targetPath);
     }
-  }, [sessionId, localEntries, localSelected, remoteCwd, uploadFile]);
+  }, [sessionId, localEntries, localSelected, remoteCwd, uploadWithCheck]);
 
   const handleDownload = useCallback(() => {
     if (!sessionId) return;
@@ -222,38 +286,59 @@ export default function SftpPane({
 
   const handleNewFolder = useCallback(() => {
     if (!sessionId) return;
-    const name = window.prompt("New folder name:");
-    if (!name) return;
-    const path = remoteCwd.replace(/\/+$/, "") + "/" + name;
-    remoteMkdir(sessionId, path);
-  }, [sessionId, remoteCwd, remoteMkdir]);
+    setNewFolderOpen(true);
+  }, [sessionId]);
+
+  const handleNewFolderConfirm = useCallback(
+    (name: string) => {
+      if (!sessionId) return;
+      const path = remoteCwd.replace(/\/+$/, "") + "/" + name;
+      remoteMkdir(sessionId, path);
+      setNewFolderOpen(false);
+    },
+    [sessionId, remoteCwd, remoteMkdir]
+  );
 
   const handleDelete = useCallback(() => {
     if (!sessionId) return;
     const selected = remoteEntries.filter((e) => remoteSelected.has(e.path));
     if (selected.length === 0) return;
-    const confirmed = window.confirm(
-      `Delete ${selected.length} item${selected.length > 1 ? "s" : ""}?`
-    );
-    if (!confirmed) return;
-    for (const entry of selected) {
+    setDeleteInfo({ entries: selected });
+  }, [sessionId, remoteEntries, remoteSelected]);
+
+  const handleDeleteConfirm = useCallback(() => {
+    if (!sessionId || !deleteInfo) return;
+    for (const entry of deleteInfo.entries) {
       remoteRemove(sessionId, entry.path, entry.isDir);
     }
     setRemoteSelected(new Set());
-  }, [sessionId, remoteEntries, remoteSelected, remoteRemove]);
+    setDeleteInfo(null);
+  }, [sessionId, deleteInfo, remoteRemove]);
 
   const handleRename = useCallback(() => {
     if (!sessionId) return;
     const selected = remoteEntries.filter((e) => remoteSelected.has(e.path));
     if (selected.length !== 1) return;
-    const entry = selected[0];
-    const newName = window.prompt("Rename to:", entry.name);
-    if (!newName || newName === entry.name) return;
-    const dir = entry.path.substring(0, entry.path.lastIndexOf("/"));
-    const newPath = dir + "/" + newName;
-    remoteRename(sessionId, entry.path, newPath);
-    setRemoteSelected(new Set());
-  }, [sessionId, remoteEntries, remoteSelected, remoteRename]);
+    setRenameInfo({ entry: selected[0] });
+  }, [sessionId, remoteEntries, remoteSelected]);
+
+  const handleRenameConfirm = useCallback(
+    (newName: string) => {
+      if (!sessionId || !renameInfo) return;
+      if (newName === renameInfo.entry.name) {
+        setRenameInfo(null);
+        return;
+      }
+      const dir = renameInfo.entry.path.substring(
+        0,
+        renameInfo.entry.path.lastIndexOf("/")
+      );
+      remoteRename(sessionId, renameInfo.entry.path, dir + "/" + newName);
+      setRemoteSelected(new Set());
+      setRenameInfo(null);
+    },
+    [sessionId, renameInfo, remoteRename]
+  );
 
   const handleRefresh = useCallback(() => {
     if (!sessionId) return;
@@ -292,21 +377,17 @@ export default function SftpPane({
         case "upload":
           if (entry) {
             const target = remoteCwd.replace(/\/+$/, "") + "/" + entry.name;
-            uploadFile(sessionId, entry.path, target);
+            uploadWithCheck(sessionId, entry.path, target);
           }
           break;
         case "rename":
           if (entry) {
-            const newName = window.prompt("Rename to:", entry.name);
-            if (!newName || newName === entry.name) return;
-            const dir = entry.path.substring(0, entry.path.lastIndexOf("/"));
-            remoteRename(sessionId, entry.path, dir + "/" + newName);
+            setRenameInfo({ entry });
           }
           break;
         case "delete":
           if (entry) {
-            const ok = window.confirm(`Delete "${entry.name}"?`);
-            if (ok) remoteRemove(sessionId, entry.path, entry.isDir);
+            setDeleteInfo({ entries: [entry] });
           }
           break;
         case "copy_path":
@@ -330,50 +411,74 @@ export default function SftpPane({
       navigateLocal,
       navigateRemote,
       downloadFile,
-      uploadFile,
-      remoteRename,
-      remoteRemove,
+      uploadWithCheck,
       handleNewFolder,
       handleRefresh,
     ]
   );
 
   // Drag start handler for cross-pane drag
-  const handleDragStart = useCallback(
+  const handleDragStartLocal = useCallback(
     (e: React.DragEvent, entries: SftpEntry[]) => {
-      e.dataTransfer.setData(
-        "application/sftp-entries",
-        JSON.stringify(entries.map((en) => en.path))
-      );
+      const paths = entries.map((en) => en.path);
+      e.dataTransfer.setData("application/sftp-entries", JSON.stringify(paths));
       e.dataTransfer.effectAllowed = "copy";
+      setDragEntries({ paths, source: "local" });
     },
     []
   );
+
+  const handleDragStartRemote = useCallback(
+    (e: React.DragEvent, entries: SftpEntry[]) => {
+      const paths = entries.map((en) => en.path);
+      e.dataTransfer.setData("application/sftp-entries", JSON.stringify(paths));
+      e.dataTransfer.effectAllowed = "copy";
+      setDragEntries({ paths, source: "remote" });
+    },
+    []
+  );
+
+  const handleDragEnd = useCallback(() => {
+    setDragEntries(null);
+  }, []);
 
   // Drop on remote pane → upload local files
   const handleDropOnRemote = useCallback(
     (e: React.DragEvent) => {
       if (!sessionId) return;
-      const data = e.dataTransfer.getData("application/sftp-entries");
-      if (data) {
-        const paths: string[] = JSON.parse(data);
+      // Prefer React state (works even if Tauri eats the dataTransfer)
+      let paths: string[] | null = null;
+      if (dragEntries && dragEntries.source === "local") {
+        paths = dragEntries.paths;
+      } else {
+        const data = e.dataTransfer.getData("application/sftp-entries");
+        if (data) paths = JSON.parse(data);
+      }
+      if (paths) {
         for (const p of paths) {
           const name = p.split(/[/\\]/).pop() || p;
           const target = remoteCwd.replace(/\/+$/, "") + "/" + name;
-          uploadFile(sessionId, p, target);
+          uploadWithCheck(sessionId, p, target);
         }
       }
+      setDragEntries(null);
     },
-    [sessionId, remoteCwd, uploadFile]
+    [sessionId, remoteCwd, uploadWithCheck, dragEntries]
   );
 
   // Drop on local pane → download remote files
   const handleDropOnLocal = useCallback(
     (e: React.DragEvent) => {
       if (!sessionId) return;
-      const data = e.dataTransfer.getData("application/sftp-entries");
-      if (data) {
-        const paths: string[] = JSON.parse(data);
+      // Prefer React state (works even if Tauri eats the dataTransfer)
+      let paths: string[] | null = null;
+      if (dragEntries && dragEntries.source === "remote") {
+        paths = dragEntries.paths;
+      } else {
+        const data = e.dataTransfer.getData("application/sftp-entries");
+        if (data) paths = JSON.parse(data);
+      }
+      if (paths) {
         for (const p of paths) {
           const name = p.split("/").pop() || p;
           const sep = localCwd.includes("\\") ? "\\" : "/";
@@ -381,8 +486,9 @@ export default function SftpPane({
           downloadFile(sessionId, p, target);
         }
       }
+      setDragEntries(null);
     },
-    [sessionId, localCwd, downloadFile]
+    [sessionId, localCwd, downloadFile, dragEntries]
   );
 
   // Listen for Tauri desktop file drag-over/leave/drop → upload to remote
@@ -398,12 +504,19 @@ export default function SftpPane({
         const store = useSftpStore.getState();
         const sess = store.sessions[sid];
         if (!sess) return;
-        const paths = event.payload.paths;
-        if (!paths || paths.length === 0) return;
-        for (const filePath of paths) {
+        const filePaths = event.payload.paths;
+        if (!filePaths || filePaths.length === 0) return;
+        const remEntries = store.remoteEntries[sid] ?? [];
+        const remNames = new Set(remEntries.map((e) => e.name));
+        for (const filePath of filePaths) {
           const name = filePath.split(/[/\\]/).pop() || filePath;
           const target = sess.remoteCwd.replace(/\/+$/, "") + "/" + name;
-          store.upload(sid, filePath, target);
+          if (remNames.has(name)) {
+            // Show conflict dialog for the first conflicting file
+            setConflictInfo({ localPath: filePath, remotePath: target, fileName: name, sessionId: sid });
+          } else {
+            store.upload(sid, filePath, target);
+          }
         }
       }
     );
@@ -589,7 +702,8 @@ export default function SftpPane({
                 onContextMenu={(e, entry) =>
                   setCtxMenu({ x: e.clientX, y: e.clientY, entry, side: "local" })
                 }
-                onDragStart={handleDragStart}
+                onDragStart={handleDragStartLocal}
+                onDragEnd={handleDragEnd}
                 onDrop={handleDropOnLocal}
                 emptyMessage="Empty directory"
               />
@@ -633,7 +747,8 @@ export default function SftpPane({
             onContextMenu={(e, entry) =>
               setCtxMenu({ x: e.clientX, y: e.clientY, entry, side: "remote" })
             }
-            onDragStart={handleDragStart}
+            onDragStart={handleDragStartRemote}
+            onDragEnd={handleDragEnd}
             onDrop={handleDropOnRemote}
             emptyMessage="Empty directory"
           />
@@ -657,6 +772,56 @@ export default function SftpPane({
           onClose={() => setCtxMenu(null)}
         />
       )}
+
+      {/* Delete confirmation dialog */}
+      <ConfirmDialog
+        open={deleteInfo !== null}
+        title={
+          deleteInfo && deleteInfo.entries.length > 1
+            ? `Delete ${deleteInfo.entries.length} items?`
+            : `Delete "${deleteInfo?.entries[0]?.name ?? ""}"?`
+        }
+        message="This action cannot be undone. The selected items will be permanently removed from the remote server."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        variant="danger"
+        onConfirm={handleDeleteConfirm}
+        onCancel={() => setDeleteInfo(null)}
+      />
+
+      {/* Rename input dialog */}
+      <InputDialog
+        open={renameInfo !== null}
+        title="Rename"
+        label="Enter a new name for this item."
+        defaultValue={renameInfo?.entry.name ?? ""}
+        placeholder="New name"
+        confirmLabel="Rename"
+        onConfirm={handleRenameConfirm}
+        onCancel={() => setRenameInfo(null)}
+      />
+
+      {/* New folder input dialog */}
+      <InputDialog
+        open={newFolderOpen}
+        title="New Folder"
+        label="Enter a name for the new folder."
+        placeholder="Folder name"
+        confirmLabel="Create"
+        onConfirm={handleNewFolderConfirm}
+        onCancel={() => setNewFolderOpen(false)}
+      />
+
+      {/* File conflict dialog */}
+      <FileConflictDialog
+        open={conflictInfo !== null}
+        fileName={conflictInfo?.fileName ?? ""}
+        remoteNames={new Set(remoteEntries.map((e) => e.name))}
+        remoteDir={remoteCwd}
+        onReplace={handleConflictReplace}
+        onRename={handleConflictRename}
+        onSkip={handleConflictSkip}
+      />
 
       {/* Desktop drag-drop overlay */}
       {desktopDragOver && (

@@ -1,5 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { ChevronDown, Check } from "lucide-react";
+import { useThemeStore } from "../../stores/theme";
+import { useSettingsStore } from "../../stores/settings";
+import { hexToRgba } from "../../lib/color";
+import { vibrancyAlpha } from "../../lib/platform";
 
 export interface SelectOption {
   value: string;
@@ -25,6 +29,12 @@ export default function Select({
   const containerRef = useRef<HTMLDivElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [dropUp, setDropUp] = useState(false);
+  const theme = useThemeStore((s) => s.active);
+  const vibrancy = useSettingsStore((s) => s.settings.appearance.vibrancyEnabled);
+  const windowOpacity = useSettingsStore((s) => s.settings.appearance.windowOpacity);
+  const dropBg = vibrancy
+    ? hexToRgba(theme.ui.bgSecondary, vibrancyAlpha(windowOpacity) * 0.85)
+    : theme.ui.bgSecondary;
 
   const selected = options.find((o) => o.value === value);
 
@@ -86,9 +96,14 @@ export default function Select({
       {open && (
         <div
           ref={dropdownRef}
-          className={`absolute z-50 w-full min-w-[140px] rounded-lg border border-border bg-bg-secondary shadow-lg overflow-hidden ${
+          className={`absolute z-50 w-full min-w-[140px] rounded-lg border border-border shadow-lg overflow-hidden ${
             dropUp ? "bottom-full mb-1" : "top-full mt-1"
           }`}
+          style={{
+            backgroundColor: dropBg,
+            backdropFilter: vibrancy ? "blur(20px) saturate(1.3)" : undefined,
+            WebkitBackdropFilter: vibrancy ? "blur(20px) saturate(1.3)" : undefined,
+          }}
         >
           <div className="max-h-[200px] overflow-y-auto py-1">
             {options.map((option) => {
