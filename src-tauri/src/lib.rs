@@ -1,6 +1,7 @@
 mod commands;
 mod db;
 mod pty;
+mod sftp;
 mod theme;
 mod window;
 
@@ -89,6 +90,7 @@ pub fn run() {
             let pool = db::init(&app_data).expect("failed to init database");
             app.manage(pool);
             app.manage(pty::manager::PtyManager::new());
+            app.manage(sftp::session::SftpSessionManager::new());
             window::setup(app.get_webview_window("main").as_ref());
 
             // ── System tray ──
@@ -151,6 +153,16 @@ pub fn run() {
             commands::known_hosts::ssh_known_hosts_list,
             commands::known_hosts::ssh_known_hosts_remove,
             commands::known_hosts::ssh_known_hosts_clear,
+            commands::sftp::sftp_connect,
+            commands::sftp::sftp_disconnect,
+            commands::sftp::sftp_list_dir,
+            commands::sftp::sftp_mkdir,
+            commands::sftp::sftp_remove,
+            commands::sftp::sftp_rename,
+            commands::sftp::sftp_download,
+            commands::sftp::sftp_upload,
+            commands::sftp::sftp_chmod,
+            commands::sftp::local_list_dir,
             window::set_vibrancy,
             get_launch_cwd,
             get_home_dir,

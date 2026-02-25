@@ -24,6 +24,9 @@ window-vibrancy = "0.5"
 dirs = "6"
 parking_lot = "0.12"
 tauri-plugin-single-instance = "2"
+russh = { version = "0.54", default-features = false, features = ["flate2", "ring", "rsa"] }
+russh-sftp = "2.1"
+async-trait = "0.1"
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
