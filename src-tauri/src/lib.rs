@@ -137,6 +137,7 @@ pub fn run() {
             commands::ssh::ssh_list_keys,
             commands::ssh::ssh_import_key,
             commands::ssh::ssh_delete_key,
+            commands::ssh::ssh_update_key,
             commands::ssh::ssh_get_key_temp_path,
             commands::workspace::workspace_list,
             commands::workspace::workspace_save,

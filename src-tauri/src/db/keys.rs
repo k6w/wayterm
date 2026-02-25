@@ -72,3 +72,13 @@ pub fn delete(pool: &DbPool, id: &str) -> Result<(), String> {
         .map_err(|e| e.to_string())?;
     Ok(())
 }
+
+pub fn update(pool: &DbPool, id: &str, name: &str, public_key: &str) -> Result<(), String> {
+    let conn = pool.lock();
+    conn.execute(
+        "UPDATE keys SET name = ?2, public_key = ?3 WHERE id = ?1",
+        rusqlite::params![id, name, public_key],
+    )
+    .map_err(|e| e.to_string())?;
+    Ok(())
+}

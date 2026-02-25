@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { KeyRound, Plus, Trash2, Upload, Copy, Check, FileKey } from "lucide-react";
+import { KeyRound, Plus, Trash2, Upload, Copy, Check, FileKey, Pencil } from "lucide-react";
 import { useSshStore } from "../../stores/ssh";
 import ConfirmDialog from "../ui/ConfirmDialog";
 import type { SshKey } from "../../types/ssh";
@@ -11,8 +11,10 @@ export default function KeysPanel() {
   const loadKeys = useSshStore((s) => s.loadKeys);
   const importKey = useSshStore((s) => s.importKey);
   const removeKey = useSshStore((s) => s.removeKey);
+  const updateKey = useSshStore((s) => s.updateKey);
 
   const [importMode, setImportMode] = useState<ImportMode>(null);
+  const [editingKey, setEditingKey] = useState<{ id: string; name: string; publicKey: string } | null>(null);
   const [name, setName] = useState("");
   const [publicKey, setPublicKey] = useState("");
   const [privateKey, setPrivateKey] = useState("");
@@ -182,35 +184,102 @@ export default function KeysPanel() {
             {keys.map((key) => (
               <div
                 key={key.id}
-                className="flex items-center gap-3 px-4 py-3 border border-border rounded-lg bg-bg-tertiary"
+                className="border border-border rounded-lg bg-bg-tertiary"
               >
-                <KeyRound size={14} className="shrink-0 text-text-muted" />
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm text-text-primary truncate">
-                    {key.name}
+                <div className="flex items-center gap-3 px-4 py-3">
+                  <KeyRound size={14} className="shrink-0 text-text-muted" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm text-text-primary truncate">
+                      {key.name}
+                    </div>
+                    <div className="text-xs text-text-muted truncate font-mono">
+                      {key.algorithm} &middot; {key.fingerprint.slice(0, 23)}...
+                    </div>
                   </div>
-                  <div className="text-xs text-text-muted truncate font-mono">
-                    {key.algorithm} &middot; {key.fingerprint.slice(0, 23)}...
-                  </div>
+                  <button
+                    onClick={() => handleCopy(key)}
+                    className="p-1.5 text-text-muted hover:text-text-primary transition-colors shrink-0"
+                    title="Copy public key"
+                  >
+                    {copiedId === key.id ? (
+                      <Check size={14} className="text-green-400" />
+                    ) : (
+                      <Copy size={14} />
+                    )}
+                  </button>
+                  <button
+                    onClick={() =>
+                      setEditingKey(
+                        editingKey?.id === key.id
+                          ? null
+                          : { id: key.id, name: key.name, publicKey: key.publicKey }
+                      )
+                    }
+                    className="p-1.5 text-text-muted hover:text-text-primary transition-colors shrink-0"
+                    title="Edit key"
+                  >
+                    <Pencil size={14} />
+                  </button>
+                  <button
+                    onClick={() => setDeleteTarget({ id: key.id, name: key.name })}
+                    className="p-1.5 text-text-muted hover:text-error transition-colors shrink-0"
+                    title="Delete key"
+                  >
+                    <Trash2 size={14} />
+                  </button>
                 </div>
-                <button
-                  onClick={() => handleCopy(key)}
-                  className="p-1.5 text-text-muted hover:text-text-primary transition-colors shrink-0"
-                  title="Copy public key"
-                >
-                  {copiedId === key.id ? (
-                    <Check size={14} className="text-green-400" />
-                  ) : (
-                    <Copy size={14} />
-                  )}
-                </button>
-                <button
-                  onClick={() => setDeleteTarget({ id: key.id, name: key.name })}
-                  className="p-1.5 text-text-muted hover:text-error transition-colors shrink-0"
-                  title="Delete key"
-                >
-                  <Trash2 size={14} />
-                </button>
+                {editingKey?.id === key.id && (
+                  <div className="space-y-3 px-4 pb-4 pt-1 border-t border-border">
+                    <div>
+                      <label className="text-sm text-text-secondary mb-1.5 block">
+                        Key Name
+                      </label>
+                      <input
+                        type="text"
+                        value={editingKey.name}
+                        onChange={(e) =>
+                          setEditingKey({ ...editingKey, name: e.target.value })
+                        }
+                        className="bg-bg-primary border border-border rounded-md px-3 py-2 text-sm text-text-primary focus:border-accent outline-none w-full transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-sm text-text-secondary mb-1.5 block">
+                        Public Key
+                      </label>
+                      <textarea
+                        value={editingKey.publicKey}
+                        onChange={(e) =>
+                          setEditingKey({ ...editingKey, publicKey: e.target.value })
+                        }
+                        className="bg-bg-primary border border-border rounded-md px-3 py-2 text-sm text-text-primary focus:border-accent outline-none w-full transition-colors resize-none font-mono text-xs"
+                        rows={3}
+                      />
+                    </div>
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        onClick={() => setEditingKey(null)}
+                        className="px-3 py-1.5 text-sm text-text-secondary hover:text-text-primary transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={async () => {
+                          await updateKey(
+                            editingKey.id,
+                            editingKey.name,
+                            editingKey.publicKey
+                          );
+                          setEditingKey(null);
+                        }}
+                        disabled={!editingKey.name.trim()}
+                        className="px-4 py-1.5 text-sm bg-accent hover:bg-accent-hover text-white rounded-md transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        Save
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>

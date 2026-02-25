@@ -7,6 +7,7 @@ import {
   sshListKeys,
   sshImportKey,
   sshDeleteKey,
+  sshUpdateKey,
 } from "../lib/ipc";
 
 interface SshSessionState {
@@ -31,6 +32,7 @@ interface SshState {
     algorithm: string;
   }) => Promise<SshKey>;
   removeKey: (id: string) => Promise<void>;
+  updateKey: (id: string, name: string, publicKey: string) => Promise<void>;
   addSession: (session: SshSessionState) => void;
   removeSession: (sessionId: string) => void;
   updateSessionStatus: (sessionId: string, status: ConnectionStatus) => void;
@@ -93,6 +95,15 @@ export const useSshStore = create<SshState>((set, get) => ({
     await sshDeleteKey(id);
     set((s) => ({
       keys: s.keys.filter((k) => k.id !== id),
+    }));
+  },
+
+  updateKey: async (id: string, name: string, publicKey: string) => {
+    await sshUpdateKey({ id, name, publicKey });
+    set((s) => ({
+      keys: s.keys.map((k) =>
+        k.id === id ? { ...k, name, publicKey } : k
+      ),
     }));
   },
 

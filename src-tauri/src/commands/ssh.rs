@@ -85,6 +85,22 @@ pub async fn ssh_delete_key(
     db::keys::delete(&pool, &id)
 }
 
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct UpdateKeyRequest {
+    pub id: String,
+    pub name: String,
+    pub public_key: String,
+}
+
+#[tauri::command]
+pub async fn ssh_update_key(
+    request: UpdateKeyRequest,
+    pool: State<'_, DbPool>,
+) -> Result<(), String> {
+    db::keys::update(&pool, &request.id, &request.name, &request.public_key)
+}
+
 #[tauri::command]
 pub async fn ssh_get_key_temp_path(
     key_id: String,

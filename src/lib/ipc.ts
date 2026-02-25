@@ -96,6 +96,14 @@ export async function sshDeleteKey(id: string): Promise<void> {
   return invoke("ssh_delete_key", { id });
 }
 
+export async function sshUpdateKey(request: {
+  id: string;
+  name: string;
+  publicKey: string;
+}): Promise<void> {
+  return invoke("ssh_update_key", { request });
+}
+
 export async function sshGetKeyTempPath(keyId: string): Promise<string> {
   return invoke("ssh_get_key_temp_path", { keyId });
 }
