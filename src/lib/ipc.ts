@@ -108,6 +108,25 @@ export async function sshGetKeyTempPath(keyId: string): Promise<string> {
   return invoke("ssh_get_key_temp_path", { keyId });
 }
 
+export interface KnownHost {
+  hostname: string;
+  keyType: string;
+  fingerprintPreview: string;
+  lineNumber: number;
+}
+
+export async function sshKnownHostsList(): Promise<KnownHost[]> {
+  return invoke("ssh_known_hosts_list");
+}
+
+export async function sshKnownHostsRemove(hostname: string): Promise<void> {
+  return invoke("ssh_known_hosts_remove", { hostname });
+}
+
+export async function sshKnownHostsClear(): Promise<void> {
+  return invoke("ssh_known_hosts_clear");
+}
+
 export async function workspaceList(): Promise<unknown[]> {
   return invoke("workspace_list");
 }
