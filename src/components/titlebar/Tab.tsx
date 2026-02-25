@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Terminal, X, Columns2, Rows2 } from "lucide-react";
+import { Terminal, X, Columns2, Rows2, HardDrive } from "lucide-react";
 import { motion } from "framer-motion";
 import type { TerminalTab } from "../../types/terminal";
 import { useTerminalStore, countPaneNodes } from "../../stores/terminal";
@@ -185,6 +185,8 @@ export default function Tab({
           ) : (
             <Rows2 className="size-3.5 shrink-0" />
           )
+        ) : tab.shellType === "sftp" ? (
+          <HardDrive className="size-3.5 shrink-0" />
         ) : (
           <Terminal className="size-3.5 shrink-0" />
         )}

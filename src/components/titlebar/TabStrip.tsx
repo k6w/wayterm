@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState, useEffect } from "react";
-import { Plus, Terminal, MonitorDot, Hash, SquareTerminal } from "lucide-react";
+import { Plus, Terminal, MonitorDot, Hash, SquareTerminal, HardDrive } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 import { useTerminalStore } from "../../stores/terminal";
 import { getDefaultShell, getDefaultShells } from "../../lib/shell-detect";
@@ -182,6 +182,8 @@ const SHELL_ICONS: Record<string, React.ReactNode> = {
   zsh: <Terminal size={14} />,
   fish: <Terminal size={14} />,
   sh: <Terminal size={14} />,
+  ssh: <Terminal size={14} />,
+  sftp: <HardDrive size={14} />,
 };
 
 function NewTabButton({ onAdd }: { onAdd: (type: ShellType, path?: string) => void }) {

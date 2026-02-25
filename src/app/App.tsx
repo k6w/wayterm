@@ -13,6 +13,8 @@ import { useTerminalStore } from "../stores/terminal";
 import { useSettingsStore } from "../stores/settings";
 import { useThemeStore } from "../stores/theme";
 import { useSshStore } from "../stores/ssh";
+import { useSftpStore } from "../stores/sftp";
+import { onSftpTransferProgress } from "../lib/ipc";
 import { useWorkspaceStore } from "../stores/workspace";
 import { getDefaultShell } from "../lib/shell-detect";
 import { hexToRgba } from "../lib/color";
@@ -80,6 +82,16 @@ function AppContent() {
       unlisten.then((fn) => fn());
     };
   }, [addTab]);
+
+  // ── Listen for SFTP transfer progress events ──
+  useEffect(() => {
+    const unlisten = onSftpTransferProgress((data) => {
+      useSftpStore.getState().updateTransferProgress(
+        data.transferId, data.bytesTransferred, data.totalBytes, data.status, data.error
+      );
+    });
+    return () => { unlisten.then((fn) => fn()); };
+  }, []);
 
   const handleNewSsh = useCallback(() => {
     setEditingConnection(null);

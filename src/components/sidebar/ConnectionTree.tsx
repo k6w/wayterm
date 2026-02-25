@@ -1,7 +1,7 @@
 import { useCallback, useState } from "react";
-import { Server, Plus, Plug, Trash2, Pencil } from "lucide-react";
+import { Server, Plus, Plug, Trash2, Pencil, FolderOpen } from "lucide-react";
 import { useSshStore } from "../../stores/ssh";
-import { useTerminalStore } from "../../stores/terminal";
+import { useTerminalStore, getFirstPaneId } from "../../stores/terminal";
 import ConfirmDialog from "../ui/ConfirmDialog";
 import type { SshConnection } from "../../types/ssh";
 
@@ -36,6 +36,28 @@ export default function ConnectionTree({ onAddConnection, onEditConnection }: Co
       const newTab = tabs[tabs.length - 1];
       if (newTab) {
         renameTab(newTab.id, conn.name);
+      }
+      toggleSidebar();
+    },
+    [addTab, toggleSidebar]
+  );
+
+  const handleSftp = useCallback(
+    (conn: SshConnection) => {
+      addTab("sftp");
+      const { tabs, renameTab } = useTerminalStore.getState();
+      const newTab = tabs[tabs.length - 1];
+      if (newTab) {
+        renameTab(newTab.id, `SFTP: ${conn.name}`);
+        const paneId = getFirstPaneId(newTab.panes);
+        if (paneId) {
+          useTerminalStore.setState((s) => ({
+            panes: {
+              ...s.panes,
+              [paneId]: { ...s.panes[paneId], sftpConnectionId: conn.id },
+            },
+          }));
+        }
       }
       toggleSidebar();
     },
@@ -122,6 +144,16 @@ export default function ConnectionTree({ onAddConnection, onEditConnection }: Co
                   title="Connect"
                 >
                   <Plug size={11} />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleSftp(conn);
+                  }}
+                  className="flex size-5 items-center justify-center rounded text-text-muted transition-colors hover:bg-white/[0.1] hover:text-accent"
+                  title="SFTP"
+                >
+                  <FolderOpen size={11} />
                 </button>
                 <button
                   onClick={(e) => handleEdit(e, conn)}

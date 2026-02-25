@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import type { SplitNode } from "../../types/terminal";
 import { useTerminalStore, countPaneNodes } from "../../stores/terminal";
 import TerminalPane from "./TerminalPane";
+import SftpPane from "../sftp/SftpPane";
 
 interface SplitContainerProps {
   node: SplitNode;
@@ -31,6 +32,16 @@ export default function SplitContainer({
     })();
 
   if (node.type === "pane" && node.paneId) {
+    const pane = useTerminalStore.getState().panes[node.paneId];
+    if (pane?.shellType === "sftp") {
+      return (
+        <SftpPane
+          paneId={node.paneId}
+          isActive={activePaneId === node.paneId}
+          paneCount={paneCount}
+        />
+      );
+    }
     return (
       <TerminalPane
         paneId={node.paneId}
