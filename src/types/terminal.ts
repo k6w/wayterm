@@ -1,4 +1,4 @@
-export type ShellType = "powershell" | "cmd" | "gitbash" | "wsl" | "bash" | "zsh" | "fish" | "sh" | "ssh";
+export type ShellType = "powershell" | "cmd" | "gitbash" | "wsl" | "bash" | "zsh" | "fish" | "sh" | "ssh" | "sftp";
 
 export type SplitDirection = "horizontal" | "vertical";
 
@@ -20,6 +20,7 @@ export interface TerminalPane {
   shellType: ShellType;
   shellPath?: string;
   sshConnectionId?: string;
+  sftpConnectionId?: string;
 }
 
 export interface Block {

@@ -1,5 +1,6 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
+import type { SftpEntry } from "../types/sftp";
 
 export async function terminalSpawn(request: {
   shell: string;
@@ -195,5 +196,55 @@ export function onTerminalExit(
 ): Promise<UnlistenFn> {
   return listen(`terminal:exit:${sessionId}`, () => {
     callback();
+  });
+}
+
+// ── SFTP commands ──
+
+export async function sftpConnect(connectionId: string): Promise<string> {
+  return invoke("sftp_connect", { connectionId });
+}
+
+export async function sftpDisconnect(sessionId: string): Promise<void> {
+  return invoke("sftp_disconnect", { sessionId });
+}
+
+export async function sftpListDir(sessionId: string, path: string): Promise<SftpEntry[]> {
+  return invoke("sftp_list_dir", { sessionId, path });
+}
+
+export async function sftpMkdir(sessionId: string, path: string): Promise<void> {
+  return invoke("sftp_mkdir", { sessionId, path });
+}
+
+export async function sftpRemove(sessionId: string, path: string, isDir: boolean): Promise<void> {
+  return invoke("sftp_remove", { sessionId, path, isDir });
+}
+
+export async function sftpRename(sessionId: string, oldPath: string, newPath: string): Promise<void> {
+  return invoke("sftp_rename", { sessionId, oldPath, newPath });
+}
+
+export async function sftpDownload(sessionId: string, remotePath: string, localPath: string, transferId: string): Promise<void> {
+  return invoke("sftp_download", { sessionId, remotePath, localPath, transferId });
+}
+
+export async function sftpUpload(sessionId: string, localPath: string, remotePath: string, transferId: string): Promise<void> {
+  return invoke("sftp_upload", { sessionId, localPath, remotePath, transferId });
+}
+
+export async function sftpChmod(sessionId: string, path: string, mode: number): Promise<void> {
+  return invoke("sftp_chmod", { sessionId, path, mode });
+}
+
+export async function localListDir(path: string): Promise<SftpEntry[]> {
+  return invoke("local_list_dir", { path });
+}
+
+export function onSftpTransferProgress(
+  callback: (data: { transferId: string; bytesTransferred: number; totalBytes: number; status: string; error: string | null }) => void
+): Promise<UnlistenFn> {
+  return listen("sftp:transfer:progress", (event) => {
+    callback(event.payload as { transferId: string; bytesTransferred: number; totalBytes: number; status: string; error: string | null });
   });
 }
