@@ -15,6 +15,9 @@ import { useTerminalStore } from "../../stores/terminal";
 import { useSshStore } from "../../stores/ssh";
 import { useSftpStore } from "../../stores/sftp";
 import { useThemeStore } from "../../stores/theme";
+import { useSettingsStore } from "../../stores/settings";
+import { hexToRgba } from "../../lib/color";
+import { vibrancyAlpha } from "../../lib/platform";
 import PathBreadcrumb from "./PathBreadcrumb";
 import FileList from "./FileList";
 import TransferQueue from "./TransferQueue";
@@ -52,6 +55,8 @@ export default function SftpPane({
   paneCount = 1,
 }: SftpPaneProps) {
   const theme = useThemeStore((s) => s.active);
+  const vibrancy = useSettingsStore((s) => s.settings.appearance.vibrancyEnabled);
+  const windowOpacity = useSettingsStore((s) => s.settings.appearance.windowOpacity);
   const setActivePane = useTerminalStore((s) => s.setActivePane);
   const pane = useTerminalStore((s) => s.panes[paneId]);
 
@@ -60,6 +65,7 @@ export default function SftpPane({
   const [connecting, setConnecting] = useState(true);
   const [connectionName, setConnectionName] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [desktopDragOver, setDesktopDragOver] = useState(false);
 
   // Selection state
   const [localSelected, setLocalSelected] = useState<Set<string>>(new Set());
@@ -379,25 +385,54 @@ export default function SftpPane({
     [sessionId, localCwd, downloadFile]
   );
 
-  // Listen for Tauri desktop file drops → upload to remote
+  // Listen for Tauri desktop file drag-over/leave/drop → upload to remote
   useEffect(() => {
     if (!sessionId || !isActive) return;
-    const unlisten = listen<{ paths: string[] }>("tauri://drag-drop", (event) => {
-      const sid = sessionIdRef.current;
-      if (!sid) return;
-      const session = useSftpStore.getState().sessions[sid];
-      if (!session) return;
-      for (const filePath of event.payload.paths) {
-        const name = filePath.split(/[/\\]/).pop() || filePath;
-        const target = session.remoteCwd.replace(/\/+$/, "") + "/" + name;
-        useSftpStore.getState().upload(sid, filePath, target);
+
+    const unlistenDrop = listen<{ paths: string[]; position: { x: number; y: number } }>(
+      "tauri://drag-drop",
+      (event) => {
+        setDesktopDragOver(false);
+        const sid = sessionIdRef.current;
+        if (!sid) return;
+        const store = useSftpStore.getState();
+        const sess = store.sessions[sid];
+        if (!sess) return;
+        const paths = event.payload.paths;
+        if (!paths || paths.length === 0) return;
+        for (const filePath of paths) {
+          const name = filePath.split(/[/\\]/).pop() || filePath;
+          const target = sess.remoteCwd.replace(/\/+$/, "") + "/" + name;
+          store.upload(sid, filePath, target);
+        }
       }
+    );
+
+    const unlistenOver = listen("tauri://drag-over", () => {
+      setDesktopDragOver(true);
     });
-    return () => { unlisten.then((fn) => fn()); };
+
+    const unlistenLeave = listen("tauri://drag-leave", () => {
+      setDesktopDragOver(false);
+    });
+
+    return () => {
+      unlistenDrop.then((fn) => fn());
+      unlistenOver.then((fn) => fn());
+      unlistenLeave.then((fn) => fn());
+    };
   }, [sessionId, isActive]);
 
   const isSplit = paneCount > 1;
   const showFocus = isActive && paneCount > 1;
+
+  // Vibrancy-aware background colors
+  const bgPrimary = vibrancy
+    ? hexToRgba(theme.ui.bgPrimary, vibrancyAlpha(windowOpacity))
+    : theme.ui.bgPrimary;
+  const bgSecondary = vibrancy
+    ? hexToRgba(theme.ui.bgSecondary, vibrancyAlpha(windowOpacity))
+    : theme.ui.bgSecondary;
 
   // -- Connecting / error state --
   if (connecting || error) {
@@ -405,7 +440,7 @@ export default function SftpPane({
       <div
         className={`relative flex h-full w-full flex-col items-center justify-center ${isSplit ? "rounded-lg" : ""}`}
         style={{
-          backgroundColor: theme.ui.bgPrimary,
+          backgroundColor: bgPrimary,
           border: showFocus
             ? `1.5px solid ${theme.ui.accent}`
             : isSplit
@@ -452,7 +487,7 @@ export default function SftpPane({
     <div
       className={`relative flex h-full w-full flex-col overflow-hidden ${isSplit ? "rounded-lg" : ""}`}
       style={{
-        backgroundColor: theme.ui.bgPrimary,
+        backgroundColor: bgPrimary,
         border: showFocus
           ? `1.5px solid ${theme.ui.accent}`
           : isSplit
@@ -466,7 +501,7 @@ export default function SftpPane({
       <div
         className="flex items-center gap-1 border-b px-2 py-1 shrink-0"
         style={{
-          backgroundColor: theme.ui.bgSecondary,
+          backgroundColor: bgSecondary,
           borderColor: theme.ui.border,
         }}
       >
@@ -621,6 +656,33 @@ export default function SftpPane({
           onAction={handleContextAction}
           onClose={() => setCtxMenu(null)}
         />
+      )}
+
+      {/* Desktop drag-drop overlay */}
+      {desktopDragOver && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center pointer-events-none">
+          <div
+            className="absolute inset-0 rounded-lg"
+            style={{
+              backgroundColor: theme.ui.accent + "12",
+              border: `2px dashed ${theme.ui.accent}`,
+            }}
+          />
+          <div
+            className="relative flex flex-col items-center gap-3 rounded-xl px-8 py-6"
+            style={{ backgroundColor: theme.ui.bgSecondary + "e6" }}
+          >
+            <Upload size={28} style={{ color: theme.ui.accent }} />
+            <div className="flex flex-col items-center gap-1">
+              <span className="text-sm font-medium" style={{ color: theme.ui.textPrimary }}>
+                Drop files to upload
+              </span>
+              <span className="text-xs" style={{ color: theme.ui.textMuted }}>
+                Files will be uploaded to {remoteCwd}
+              </span>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
