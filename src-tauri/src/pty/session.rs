@@ -33,8 +33,19 @@ impl PtySession {
             cmd.arg(arg);
         }
         cmd.cwd(cwd);
+        
+        // Check if TERM is already set in the environment
+        let mut has_term = false;
         for (key, value) in env {
             cmd.env(key, value);
+            if key == "TERM" {
+                has_term = true;
+            }
+        }
+        
+        // Set TERM to a sensible default if not provided
+        if !has_term {
+            cmd.env("TERM", "xterm-256color");
         }
 
         let child = pair.slave.spawn_command(cmd).map_err(|e| e.to_string())?;
