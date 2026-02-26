@@ -9,6 +9,7 @@ import {
   PanelLeftClose,
   PanelLeft,
   ArrowUp,
+  ExternalLink,
 } from "lucide-react";
 import { listen } from "@tauri-apps/api/event";
 import { useTerminalStore } from "../../stores/terminal";
@@ -61,6 +62,8 @@ export default function SftpPane({
   const vibrancy = useSettingsStore((s) => s.settings.appearance.vibrancyEnabled);
   const windowOpacity = useSettingsStore((s) => s.settings.appearance.windowOpacity);
   const setActivePane = useTerminalStore((s) => s.setActivePane);
+  const closePaneInTab = useTerminalStore((s) => s.closePaneInTab);
+  const detachPaneToTab = useTerminalStore((s) => s.detachPaneToTab);
   const pane = useTerminalStore((s) => s.panes[paneId]);
 
   const sessionIdRef = useRef<string | null>(null);
@@ -116,6 +119,8 @@ export default function SftpPane({
   const transfers = useSftpStore((s) => s.transfers);
   const localCollapsed = useSftpStore((s) => (sessionId ? s.localCollapsed[sessionId] ?? true : true));
 
+  const updatePaneSession = useTerminalStore((s) => s.updatePaneSession);
+
   const connect = useSftpStore((s) => s.connect);
   const disconnect = useSftpStore((s) => s.disconnect);
   const loadRemoteDir = useSftpStore((s) => s.loadRemoteDir);
@@ -150,6 +155,15 @@ export default function SftpPane({
         .connections.find((c) => c.id === sftpConnId);
       setConnectionName(conn?.name ?? conn?.host ?? "remote host");
 
+      // Reuse an existing session (e.g. after a split causes a remount)
+      const existingSid = pane?.sessionId;
+      if (existingSid && useSftpStore.getState().sessions[existingSid]) {
+        sessionIdRef.current = existingSid;
+        setSessionId(existingSid);
+        setConnecting(false);
+        return;
+      }
+
       try {
         const sid = await connect(sftpConnId, conn?.name ?? "SFTP");
         if (cancelled) {
@@ -158,6 +172,8 @@ export default function SftpPane({
         }
         sessionIdRef.current = sid;
         setSessionId(sid);
+        // Persist so the session survives remounts (e.g. split/unsplit)
+        updatePaneSession(paneId, sid);
         setConnecting(false);
       } catch (err) {
         if (!cancelled) {
@@ -169,9 +185,14 @@ export default function SftpPane({
 
     return () => {
       cancelled = true;
-      if (sessionIdRef.current) {
-        disconnect(sessionIdRef.current).catch(() => {});
-        sessionIdRef.current = null;
+      const sid = sessionIdRef.current;
+      sessionIdRef.current = null;
+      if (!sid) return;
+      // Only disconnect when the pane is truly removed (tab closed).
+      // If the pane still exists in the store, this is just a remount
+      // caused by a split layout change — keep the session alive.
+      if (!useTerminalStore.getState().panes[paneId]) {
+        disconnect(sid).catch(() => {});
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -536,8 +557,11 @@ export default function SftpPane({
     };
   }, [sessionId, isActive]);
 
+  const [hovered, setHovered] = useState(false);
+
   const isSplit = paneCount > 1;
   const showFocus = isActive && paneCount > 1;
+  const showCloseBtn = paneCount > 1 && (isActive || hovered);
 
   // Vibrancy-aware background colors
   const bgPrimary = vibrancy
@@ -609,63 +633,93 @@ export default function SftpPane({
         boxShadow: showFocus ? `0 0 12px ${theme.ui.accent}33` : "none",
       }}
       onMouseDown={() => setActivePane(paneId)}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
     >
       {/* Toolbar */}
       <div
-        className="flex items-center gap-1 border-b px-2 py-1 shrink-0"
+        className="flex items-center border-b shrink-0"
         style={{
           backgroundColor: bgSecondary,
           borderColor: theme.ui.border,
         }}
       >
-        <ToolbarButton
-          icon={<Upload size={13} />}
-          label="Upload"
-          onClick={handleUpload}
-          disabled={localSelected.size === 0}
-          theme={theme}
-        />
-        <ToolbarButton
-          icon={<Download size={13} />}
-          label="Download"
-          onClick={handleDownload}
-          disabled={remoteSelected.size === 0}
-          theme={theme}
-        />
-        <div className="mx-0.5 h-4 w-px" style={{ backgroundColor: theme.ui.border }} />
-        <ToolbarButton
-          icon={<FolderPlus size={13} />}
-          label="New Folder"
-          onClick={handleNewFolder}
-          theme={theme}
-        />
-        <ToolbarButton
-          icon={<Trash2 size={13} />}
-          label="Delete"
-          onClick={handleDelete}
-          disabled={remoteSelected.size === 0}
-          theme={theme}
-        />
-        <ToolbarButton
-          icon={<Edit3 size={13} />}
-          label="Rename"
-          onClick={handleRename}
-          disabled={remoteSelected.size !== 1}
-          theme={theme}
-        />
-        <ToolbarButton
-          icon={<RefreshCw size={13} />}
-          label="Refresh"
-          onClick={handleRefresh}
-          theme={theme}
-        />
-        <span className="flex-1" />
-        <ToolbarButton
-          icon={localCollapsed ? <PanelLeft size={13} /> : <PanelLeftClose size={13} />}
-          label={localCollapsed ? "Show Local" : "Hide Local"}
-          onClick={toggleLocal}
-          theme={theme}
-        />
+        {/* Scrollable action buttons */}
+        <div className="flex items-center gap-1 px-2 py-1 overflow-x-auto min-w-0 flex-1">
+          <ToolbarButton
+            icon={<Upload size={13} />}
+            label="Upload"
+            onClick={handleUpload}
+            disabled={localSelected.size === 0}
+            theme={theme}
+          />
+          <ToolbarButton
+            icon={<Download size={13} />}
+            label="Download"
+            onClick={handleDownload}
+            disabled={remoteSelected.size === 0}
+            theme={theme}
+          />
+          <div className="mx-0.5 h-4 w-px shrink-0" style={{ backgroundColor: theme.ui.border }} />
+          <ToolbarButton
+            icon={<FolderPlus size={13} />}
+            label="New Folder"
+            onClick={handleNewFolder}
+            theme={theme}
+          />
+          <ToolbarButton
+            icon={<Trash2 size={13} />}
+            label="Delete"
+            onClick={handleDelete}
+            disabled={remoteSelected.size === 0}
+            theme={theme}
+          />
+          <ToolbarButton
+            icon={<Edit3 size={13} />}
+            label="Rename"
+            onClick={handleRename}
+            disabled={remoteSelected.size !== 1}
+            theme={theme}
+          />
+          <ToolbarButton
+            icon={<RefreshCw size={13} />}
+            label="Refresh"
+            onClick={handleRefresh}
+            theme={theme}
+          />
+        </div>
+        {/* Always-visible right section: toggle + split controls */}
+        <div className="shrink-0 flex items-center gap-0.5 px-1 py-1 border-l" style={{ borderColor: theme.ui.border }}>
+          <ToolbarButton
+            icon={localCollapsed ? <PanelLeft size={13} /> : <PanelLeftClose size={13} />}
+            label={localCollapsed ? "Show Local" : "Hide Local"}
+            onClick={toggleLocal}
+            theme={theme}
+          />
+          {showCloseBtn && (
+            <>
+              <div className="mx-0.5 h-4 w-px" style={{ backgroundColor: theme.ui.border }} />
+              <button
+                onClick={(e) => { e.stopPropagation(); detachPaneToTab(paneId); }}
+                className="flex h-5 w-5 items-center justify-center rounded opacity-50 transition-opacity hover:opacity-100"
+                style={{ color: theme.ui.textMuted }}
+                title="Detach to tab"
+              >
+                <ExternalLink size={10} />
+              </button>
+              <button
+                onClick={(e) => { e.stopPropagation(); closePaneInTab(paneId); }}
+                className="flex h-5 w-5 items-center justify-center rounded opacity-50 transition-opacity hover:opacity-100"
+                style={{ color: theme.ui.textMuted }}
+                title="Close pane"
+              >
+                <svg width="10" height="10" viewBox="0 0 10 10" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round">
+                  <path d="M1 1l8 8M9 1l-8 8" />
+                </svg>
+              </button>
+            </>
+          )}
+        </div>
       </div>
 
       {/* Dual pane area */}
@@ -869,7 +923,7 @@ function ToolbarButton({ icon, label, onClick, disabled, theme }: ToolbarButtonP
       onClick={onClick}
       disabled={disabled}
       title={label}
-      className={`flex items-center gap-1 rounded px-1.5 py-1 text-[11px] transition-colors ${
+      className={`shrink-0 flex items-center gap-1 rounded px-1.5 py-1 text-[11px] transition-colors ${
         disabled
           ? "opacity-30 cursor-default"
           : "hover:bg-white/[0.06] cursor-pointer"
