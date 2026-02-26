@@ -255,10 +255,15 @@ export default function TerminalPane({
         if (!rect || rect.width === 0 || rect.height === 0) return;
         try {
           cached.fitAddon.fit();
-          const c = getCachedTerminal(paneId);
-          if (c?.sessionId) {
-            terminalResize(c.sessionId, cached.terminal.rows, cached.terminal.cols);
-          }
+          // Use requestAnimationFrame to ensure DOM layout is settled
+          // before reading terminal dimensions, otherwise we get stale
+          // row/col values which causes desync with the PTY
+          requestAnimationFrame(() => {
+            const c = getCachedTerminal(paneId);
+            if (c?.sessionId) {
+              terminalResize(c.sessionId, cached.terminal.rows, cached.terminal.cols);
+            }
+          });
         } catch {
           // ignore
         }
@@ -506,10 +511,15 @@ export default function TerminalPane({
           if (!rect || rect.width === 0 || rect.height === 0) return;
           try {
             fitAddon.fit();
-            const c = getCachedTerminal(paneId);
-            if (c?.sessionId) {
-              terminalResize(c.sessionId, term.rows, term.cols);
-            }
+            // Use requestAnimationFrame to ensure DOM layout is settled
+            // before reading terminal dimensions, otherwise we get stale
+            // row/col values which causes desync with the PTY
+            requestAnimationFrame(() => {
+              const c = getCachedTerminal(paneId);
+              if (c?.sessionId) {
+                terminalResize(c.sessionId, term.rows, term.cols);
+              }
+            });
           } catch {
             // ignore
           }
