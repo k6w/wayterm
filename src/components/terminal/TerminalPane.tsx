@@ -223,25 +223,36 @@ export default function TerminalPane({
       fitRef.current = cached.fitAddon;
       sessionRef.current = cached.sessionId;
 
-      // Refit after reattach so dimensions match the new container
+      // Refit after reattach so dimensions match the new container.
+      // Double rAF ensures the browser has finished layout before we
+      // read container dimensions — a single rAF fires too early and
+      // produces wrong column counts (text wraps at the wrong width).
       requestAnimationFrame(() => {
-        if (cancelled) return;
-        try {
-          cached.fitAddon.fit();
-          if (cached.sessionId) {
-            terminalResize(
-              cached.sessionId,
-              cached.terminal.rows,
-              cached.terminal.cols
-            );
+        requestAnimationFrame(() => {
+          if (cancelled) return;
+          try {
+            cached.fitAddon.fit();
+            if (cached.sessionId) {
+              terminalResize(
+                cached.sessionId,
+                cached.terminal.rows,
+                cached.terminal.cols
+              );
+            }
+          } catch {
+            // ignore
           }
-        } catch {
-          // ignore
-        }
+        });
       });
 
-      // Observe future resizes
-      resizeObs = new ResizeObserver(() => {
+      // Observe future resizes.
+      // Guard against zero-size entries: when a tab is hidden with
+      // display:none its container collapses to 0×0 and fitAddon.fit()
+      // would resize the terminal to ~2 cols × 1 row, causing the PTY
+      // to send SIGWINCH and every running program to reflow its output.
+      resizeObs = new ResizeObserver((entries) => {
+        const rect = entries[0]?.contentRect;
+        if (!rect || rect.width === 0 || rect.height === 0) return;
         try {
           cached.fitAddon.fit();
           const c = getCachedTerminal(paneId);
@@ -489,8 +500,10 @@ export default function TerminalPane({
           attachSerializeAddon(paneId, term);
         }
 
-        // Observe resizes
-        resizeObs = new ResizeObserver(() => {
+        // Observe resizes — skip zero-size callbacks (hidden tab)
+        resizeObs = new ResizeObserver((entries) => {
+          const rect = entries[0]?.contentRect;
+          if (!rect || rect.width === 0 || rect.height === 0) return;
           try {
             fitAddon.fit();
             const c = getCachedTerminal(paneId);
