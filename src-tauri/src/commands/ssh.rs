@@ -1,6 +1,7 @@
-use crate::db::{self, connections::ConnectionProfile, keys::SshKey, port_forwards::PortForward, DbPool};
+use crate::db::{self, connections::ConnectionProfile, keys::SshKey, port_forwards::{PortForward, self}, DbPool};
 use crate::port_forward::PortForwardManager;
 use serde::Deserialize;
+use std::path::PathBuf;
 use tauri::State;
 use uuid::Uuid;
 
@@ -240,30 +241,86 @@ pub async fn ssh_toggle_port_forward(
     pool: State<'_, DbPool>,
     port_forward_manager: State<'_, PortForwardManager>,
 ) -> Result<(), String> {
+    // Lookup port forward config from DB
+    let forward = port_forwards::get(&pool, &id)?
+        .ok_or_else(|| "Port forward not found".to_string())?;
+
     if is_active {
-        // Get the port forward config
-        let forwards = db::port_forwards::list(&pool, "")?;
-        let forward = forwards.iter()
-            .find(|f| f.id == id)
-            .ok_or_else(|| "Port forward not found".to_string())?;
-        
-        // Get the session ID - either from parameter or we need an active connection
-        let sess_id = session_id.ok_or_else(|| {
-            "No active SSH session. Please connect to the server first.".to_string()
-        })?;
-        
-        // Start the port forward (convert i32 to u16)
-        port_forward_manager.start_port_forward(
-            id.clone(),
-            forward.local_port as u16,
-            forward.remote_host.clone(),
-            forward.remote_port as u16,
-            sess_id,
-        ).await?;
+        // Try in-process russh manager first
+        let start_result = if let Some(ref sess_id) = session_id {
+            port_forward_manager
+                .start_port_forward(
+                    id.clone(),
+                    forward.local_port as u16,
+                    forward.remote_host.clone(),
+                    forward.remote_port as u16,
+                    sess_id.clone(),
+                )
+                .await
+        } else {
+            Err("No active SSH session ID provided".to_string())
+        };
+
+        if start_result.is_err() {
+            // Fallback to local ssh -L command using connection profile
+            let connection = crate::db::connections::get(&pool, &forward.connection_id)?
+                .ok_or_else(|| "Connection profile not found".to_string())?;
+
+            let key_option = if connection.auth_method == "key" {
+                if let Some(key_id) = connection.private_key_id.as_deref() {
+                    Some(write_key_to_temp(&pool, key_id)?)
+                } else {
+                    None
+                }
+            } else {
+                None
+            };
+
+            let mut ssh_args = vec!["-N".to_string()];
+            let mapping = format!("{}:{}:{}", forward.local_port, forward.remote_host, forward.remote_port);
+            ssh_args.push("-L".to_string());
+            ssh_args.push(mapping);
+            if connection.port != 22 {
+                ssh_args.push("-p".to_string());
+                ssh_args.push(connection.port.to_string());
+            }
+            ssh_args.push("-o".to_string());
+            ssh_args.push("StrictHostKeyChecking=accept-new".to_string());
+
+            if let Some(key_path) = key_option.as_ref() {
+                ssh_args.push("-i".to_string());
+                ssh_args.push(key_path.to_string_lossy().to_string());
+            }
+
+            ssh_args.push(format!("{}@{}", connection.username, connection.host));
+
+            port_forward_manager.start_local_tunnel(id.clone(), "ssh", &ssh_args)?;
+        }
     } else {
-        // Stop the port forward
-        port_forward_manager.stop_port_forward(&id)?;
+        let _ = port_forward_manager.stop_port_forward(&id);
+        let _ = port_forward_manager.stop_local_tunnel(&id);
     }
-    
+
     db::port_forwards::toggle_active(&pool, &id, is_active)
+}
+
+fn write_key_to_temp(pool: &DbPool, key_id: &str) -> Result<PathBuf, String> {
+    let raw = crate::db::keys::get_private_key(pool, key_id)?;
+    let raw_str = String::from_utf8(raw).map_err(|e| format!("Key is not valid UTF-8: {e}"))?;
+    let normalized = raw_str.replace("\r\n", "\n").replace('\r', "\n");
+    let content = if normalized.ends_with('\n') {
+        normalized
+    } else {
+        format!("{}\n", normalized)
+    };
+    let path = std::env::temp_dir().join(format!("nexterm_key_{}", key_id));
+    std::fs::write(&path, content.as_bytes()).map_err(|e| e.to_string())?;
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).map_err(|e| e.to_string())?;
+    }
+
+    Ok(path)
 }

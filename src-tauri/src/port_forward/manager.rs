@@ -2,7 +2,7 @@ use parking_lot::Mutex;
 use russh::client::{Handle, Handler};
 use russh::keys::ssh_key::PublicKey;
 use std::collections::HashMap;
-use std::net::TcpListener;
+use std::process::{Child, Command, Stdio};
 use std::sync::Arc;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpListener as TokioTcpListener;
@@ -15,6 +15,8 @@ pub struct PortForwardManager {
     active_forwards: Arc<Mutex<HashMap<String, ActivePortForward>>>,
     /// Maps session IDs to SSH client handles for port forwarding
     ssh_handles: Arc<Mutex<HashMap<String, Arc<ClientHandle>>>>,
+    /// Fallback local ssh -L child processes for direct session-based forwarding.
+    local_tunnels: Arc<Mutex<HashMap<String, Child>>>,
 }
 
 struct ActivePortForward {
@@ -27,22 +29,26 @@ impl PortForwardManager {
         Self {
             active_forwards: Arc::new(Mutex::new(HashMap::new())),
             ssh_handles: Arc::new(Mutex::new(HashMap::new())),
+            local_tunnels: Arc::new(Mutex::new(HashMap::new())),
         }
     }
 
     /// Register an SSH handle for a session (used by terminal/sftp connections)
+    #[allow(dead_code)]
     pub fn register_ssh_handle(&self, session_id: String, handle: ClientHandle) {
         let mut handles = self.ssh_handles.lock();
         handles.insert(session_id, Arc::new(handle));
     }
 
     /// Unregister an SSH handle when a session disconnects
+    #[allow(dead_code)]
     pub fn unregister_ssh_handle(&self, session_id: &str) {
         let mut handles = self.ssh_handles.lock();
         handles.remove(session_id);
     }
 
     /// Get an SSH handle for a session
+    #[allow(dead_code)]
     pub fn get_ssh_handle(&self, session_id: &str) -> Option<Arc<ClientHandle>> {
         let handles = self.ssh_handles.lock();
         handles.get(session_id).cloned()
@@ -168,17 +174,50 @@ impl PortForwardManager {
     }
 
     /// Check if a port forward is active
+    #[allow(dead_code)]
     pub fn is_active(&self, forward_id: &str) -> bool {
         let forwards = self.active_forwards.lock();
         forwards.contains_key(forward_id)
     }
 
     /// Stop all port forwards (used when disconnecting)
+    #[allow(dead_code)]
     pub fn stop_all(&self) {
         let forwards = self.active_forwards.lock();
         for (_id, forward) in forwards.iter() {
             let _ = forward.stop_sender.try_send(());
         }
+        let mut tunnels = self.local_tunnels.lock();
+        for (_id, mut child) in tunnels.drain() {
+            let _ = child.kill();
+            let _ = child.wait();
+        }
+    }
+
+    /// Start a fallback local ssh tunnel (ssh -N -L ...) when no russh handle is registered.
+    pub fn start_local_tunnel(&self, forward_id: String, ssh_cmd: &str, args: &[String]) -> Result<(), String> {
+        let child = Command::new(ssh_cmd)
+            .args(args)
+            .stdin(Stdio::null())
+            .stdout(Stdio::null())
+            .stderr(Stdio::null())
+            .spawn()
+            .map_err(|e| format!("Failed to spawn ssh tunnel process: {}", e))?;
+
+        let mut tunnels = self.local_tunnels.lock();
+        tunnels.insert(forward_id, child);
+
+        Ok(())
+    }
+
+    /// Stop a fallback local ssh tunnel.
+    pub fn stop_local_tunnel(&self, forward_id: &str) -> Result<(), String> {
+        let mut tunnels = self.local_tunnels.lock();
+        if let Some(mut child) = tunnels.remove(forward_id) {
+            child.kill().map_err(|e| format!("Failed to kill ssh tunnel: {}", e))?;
+            let _ = child.wait();
+        }
+        Ok(())
     }
 }
 
@@ -188,49 +227,41 @@ async fn handle_local_connection(
     remote_host: &str,
     remote_port: u16,
 ) -> Result<(), String> {
-    // Open a channel to the remote host
-    let mut channel = ssh_handle.channel_open_session()
+    // Open a direct-tcpip channel to the remote host (ssh tunnel side)
+    let channel = ssh_handle
+        .channel_open_direct_tcpip(remote_host, remote_port as u32, "127.0.0.1", 0)
         .await
-        .map_err(|e| format!("Failed to open SSH channel: {}", e))?;
+        .map_err(|e| format!("Failed to open SSH direct tcpip channel: {}", e))?;
 
-    // Request remote port forwarding using direct_tcpip
-    // This is the standard SSH port forwarding mechanism
-    channel.request_direct_tcpip(
-        remote_host,
-        remote_port,
-        "127.0.0.1",
-        0,
-    ).await
-    .map_err(|e| format!("Failed to request port forward: {}", e))?;
+    // Split local and remote streams for bidirectional copying
+    let (mut local_reader, mut local_writer) = tokio::io::split(local_stream);
+    let (mut remote_read_half, remote_write_half) = channel.split();
+    let mut remote_reader = remote_read_half.make_reader();
+    let mut remote_writer = remote_write_half.make_writer();
 
-    // Get the socket for the channel to use for forwarding
-    let mut remote_stream = channel
-        .into_stream()
-        .await
-        .map_err(|e| format!("Failed to get channel stream: {}", e))?;
-
-    // Bidirectional forwarding between local and remote
     let mut local_buf = [0u8; 8192];
     let mut remote_buf = [0u8; 8192];
 
     loop {
         tokio::select! {
-            result = local_stream.read(&mut local_buf) => {
+            result = local_reader.read(&mut local_buf) => {
                 let n = result.map_err(|e| format!("Read error: {}", e))?;
                 if n == 0 {
                     break;
                 }
-                // Forward to remote
-                remote_stream.write_all(&local_buf[..n]).await
+                remote_writer
+                    .write_all(&local_buf[..n])
+                    .await
                     .map_err(|e| format!("Write to remote error: {}", e))?;
             }
-            result = remote_stream.read(&mut remote_buf) => {
+            result = remote_reader.read(&mut remote_buf) => {
                 let n = result.map_err(|e| format!("Read from remote error: {}", e))?;
                 if n == 0 {
                     break;
                 }
-                // Forward to local
-                local_stream.write_all(&remote_buf[..n]).await
+                local_writer
+                    .write_all(&remote_buf[..n])
+                    .await
                     .map_err(|e| format!("Write to local error: {}", e))?;
             }
         }
@@ -242,11 +273,13 @@ async fn handle_local_connection(
 /// Client handler for SSH port forwarding
 pub struct ClientHandler;
 
-#[async_trait::async_trait]
 impl Handler for ClientHandler {
     type Error = russh::Error;
 
-    async fn check_server_key(&mut self, _server_public_key: &PublicKey) -> Result<bool, Self::Error> {
-        Ok(true)
+    fn check_server_key(
+        &mut self,
+        _server_public_key: &PublicKey,
+    ) -> impl std::future::Future<Output = Result<bool, Self::Error>> + Send {
+        async move { Ok(true) }
     }
 }

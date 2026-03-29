@@ -45,7 +45,7 @@ interface SshState {
   loadPortForwards: (connectionId: string) => Promise<void>;
   savePortForward: (forward: PortForward) => Promise<void>;
   deletePortForward: (id: string) => Promise<void>;
-  togglePortForward: (id: string, isActive: boolean) => Promise<void>;
+  togglePortForward: (id: string, isActive: boolean, sessionId?: string) => Promise<void>;
 }
 
 export const useSshStore = create<SshState>((set, get) => ({

@@ -100,6 +100,38 @@ pub fn toggle_active(pool: &DbPool, id: &str, is_active: bool) -> Result<(), Str
     Ok(())
 }
 
+pub fn get(pool: &DbPool, id: &str) -> Result<Option<PortForward>, String> {
+    let conn = pool.lock();
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, connection_id, type, local_port, remote_host, remote_port, is_active, created_at, updated_at
+             FROM port_forwards WHERE id = ?1",
+        )
+        .map_err(|e: Error| e.to_string())?;
+
+    let mut rows = stmt
+        .query_map([id], |row| {
+            Ok(PortForward {
+                id: row.get(0)?,
+                connection_id: row.get(1)?,
+                port_forward_type: row.get(2)?,
+                local_port: row.get(3)?,
+                remote_host: row.get(4)?,
+                remote_port: row.get(5)?,
+                is_active: row.get::<_, i32>(6)? != 0,
+                created_at: row.get(7)?,
+                updated_at: row.get(8)?,
+            })
+        })
+        .map_err(|e: Error| e.to_string())?;
+
+    if let Some(result) = rows.next() {
+        Ok(Some(result.map_err(|e: Error| e.to_string())?))
+    } else {
+        Ok(None)
+    }
+}
+
 /// Check if a port forward with the same local port already exists for a connection
 pub fn exists_by_local_port(pool: &DbPool, connection_id: &str, local_port: i32) -> Result<bool, String> {
     let conn = pool.lock();

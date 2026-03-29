@@ -8,7 +8,7 @@ import { setupKeybindings } from "../lib/keybindings";
 import { setVibrancy, getLaunchCwd } from "../lib/ipc";
 import { hexToRgb } from "../lib/color";
 import { initHomePath } from "../lib/format";
-import { getDefaultShell } from "../lib/shell-detect";
+import { getPreferredShell } from "../lib/shell-detect";
 
 /** Call the native set_vibrancy command with the current theme color. */
 function syncVibrancy(enabled: boolean, opacity: number) {
@@ -49,8 +49,9 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       // ── Startup: restore session or create new tab (runs immediately, no extra render) ──
       const startupBehavior = useSettingsStore.getState().settings.general.startupBehavior;
 
+      const defaultShellPath = useSettingsStore.getState().settings.general.defaultShell;
       if (launchCwd) {
-        const shell = getDefaultShell();
+        const shell = getPreferredShell(defaultShellPath);
         useTerminalStore.getState().addTab(shell.type, shell.path, undefined, launchCwd);
         return;
       }
@@ -73,7 +74,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
 
       // Fallback: open a new tab
       if (useTerminalStore.getState().tabs.length === 0) {
-        const shell = getDefaultShell();
+        const shell = getPreferredShell(defaultShellPath);
         useTerminalStore.getState().addTab(shell.type, shell.path);
       }
     });

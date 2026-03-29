@@ -33,3 +33,12 @@ export function getDefaultShell(): DetectedShell {
   const shells = getDefaultShells();
   return shells[0];
 }
+
+export function getShellByPath(shellPath?: string): DetectedShell | undefined {
+  if (!shellPath) return undefined;
+  return getDefaultShells().find((shell) => shell.path === shellPath);
+}
+
+export function getPreferredShell(shellPath?: string): DetectedShell {
+  return getShellByPath(shellPath) ?? getDefaultShell();
+}

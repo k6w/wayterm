@@ -16,7 +16,7 @@ import { useSshStore } from "../stores/ssh";
 import { useSftpStore } from "../stores/sftp";
 import { onSftpTransferProgress } from "../lib/ipc";
 import { useWorkspaceStore } from "../stores/workspace";
-import { getDefaultShell } from "../lib/shell-detect";
+import { getPreferredShell } from "../lib/shell-detect";
 import { hexToRgba } from "../lib/color";
 import { isMac, vibrancyAlpha } from "../lib/platform";
 import {
@@ -75,7 +75,8 @@ function AppContent() {
   // ── Listen for second-instance launches (`nexterm .` while already running) ──
   useEffect(() => {
     const unlisten = listen<string>("cli-open-tab", (event) => {
-      const shell = getDefaultShell();
+      const defaultShellPath = useSettingsStore.getState().settings.general.defaultShell;
+      const shell = getPreferredShell(defaultShellPath);
       addTab(shell.type, shell.path, undefined, event.payload);
     });
     return () => {

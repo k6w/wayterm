@@ -1,6 +1,7 @@
 import { Terminal, Monitor, Settings } from "lucide-react";
 import { useTerminalStore } from "../../stores/terminal";
-import { getDefaultShell } from "../../lib/shell-detect";
+import { useSettingsStore } from "../../stores/settings";
+import { getPreferredShell } from "../../lib/shell-detect";
 
 interface QuickActionsProps {
   onNewSsh?: () => void;
@@ -16,13 +17,14 @@ export default function QuickActions({ onNewSsh }: QuickActionsProps) {
   const addTab = useTerminalStore((s) => s.addTab);
   const toggleSettings = useTerminalStore((s) => s.toggleSettings);
   const toggleSidebar = useTerminalStore((s) => s.toggleSidebar);
+  const defaultShellPath = useSettingsStore((s) => s.settings.general.defaultShell);
 
   const actions: QuickAction[] = [
     {
       icon: <Terminal size={16} />,
       label: "New Tab",
       onClick: () => {
-        const shell = getDefaultShell();
+        const shell = getPreferredShell(defaultShellPath);
         addTab(shell.type, shell.path);
         toggleSidebar();
       },

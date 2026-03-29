@@ -112,3 +112,40 @@ pub fn delete(pool: &DbPool, id: &str) -> Result<(), String> {
         .map_err(|e| e.to_string())?;
     Ok(())
 }
+
+pub fn get(pool: &DbPool, id: &str) -> Result<Option<ConnectionProfile>, String> {
+    let conn = pool.lock();
+    let mut stmt = conn
+        .prepare(
+            "SELECT id, name, host, port, username, auth_method, private_key_id, jump_host_id, startup_commands, color_tag, folder_path, sort_order, created_at, updated_at
+             FROM connections WHERE id = ?1",
+        )
+        .map_err(|e| e.to_string())?;
+
+    let mut rows = stmt
+        .query_map([id], |row| {
+            Ok(ConnectionProfile {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                host: row.get(2)?,
+                port: row.get(3)?,
+                username: row.get(4)?,
+                auth_method: row.get(5)?,
+                private_key_id: row.get(6)?,
+                jump_host_id: row.get(7)?,
+                startup_commands: row.get(8)?,
+                color_tag: row.get(9)?,
+                folder_path: row.get(10)?,
+                sort_order: row.get(11)?,
+                created_at: row.get(12)?,
+                updated_at: row.get(13)?,
+            })
+        })
+        .map_err(|e| e.to_string())?;
+
+    if let Some(result) = rows.next() {
+        Ok(Some(result.map_err(|e| e.to_string())?))
+    } else {
+        Ok(None)
+    }
+}

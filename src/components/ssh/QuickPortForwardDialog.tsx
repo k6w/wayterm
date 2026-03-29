@@ -222,6 +222,12 @@ export default function QuickPortForwardDialog({
                 </button>
               )}
 
+              {error && !isAdding && (
+                <div className="text-xs text-error bg-error/10 px-2 py-1.5 rounded border border-error/30">
+                  {error}
+                </div>
+              )}
+
               {/* Port forwards list */}
               {portForwards.length === 0 && !isAdding ? (
                 <div className="py-6 text-center text-xs text-text-muted border border-dashed border-border rounded-lg">

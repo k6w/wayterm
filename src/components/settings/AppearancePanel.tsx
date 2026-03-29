@@ -84,6 +84,7 @@ export default function AppearancePanel() {
             <button
               key={theme.id}
               onClick={() => handleThemeChange(theme.id)}
+              onMouseEnter={() => setTheme(theme.id)}
               className={`flex items-center gap-3 p-3 rounded-lg border transition-colors text-left ${
                 activeThemeId === theme.id
                   ? "border-accent bg-accent/10"
@@ -141,6 +142,7 @@ export default function AppearancePanel() {
               >
                 <button
                   onClick={() => handleThemeChange(theme.id)}
+                  onMouseEnter={() => setTheme(theme.id)}
                   className="flex items-center gap-3 text-left flex-1 min-w-0"
                 >
                   <div

@@ -6,7 +6,7 @@ import { useThemeStore } from "../../stores/theme";
 import { useSettingsStore } from "../../stores/settings";
 import { hexToRgba } from "../../lib/color";
 import { vibrancyAlpha } from "../../lib/platform";
-import { getDefaultShell, getDefaultShells } from "../../lib/shell-detect";
+import { getPreferredShell, getDefaultShells } from "../../lib/shell-detect";
 import type { ShellType } from "../../types/terminal";
 import type { DropZone } from "../../stores/terminal";
 import Tab from "./Tab";
@@ -202,7 +202,8 @@ function NewTabButton({ onAdd }: { onAdd: (type: ShellType, path?: string) => vo
     : ntTheme.ui.bgSecondary;
 
   const shells = getDefaultShells();
-  const defaultShell = getDefaultShell();
+  const defaultShellSetting = useSettingsStore((s) => s.settings.general.defaultShell);
+  const defaultShell = getPreferredShell(defaultShellSetting);
 
   const handleEnter = () => {
     if (timerRef.current) clearTimeout(timerRef.current);
