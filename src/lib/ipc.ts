@@ -68,6 +68,10 @@ export async function historyAdd(
   return invoke("terminal_history_add", { sessionId, command, exitCode, cwd });
 }
 
+export async function pathExists(path: string): Promise<boolean> {
+  return invoke("path_exists", { path });
+}
+
 export async function sshListConnections(): Promise<unknown[]> {
   return invoke("ssh_list_connections");
 }
@@ -277,4 +281,14 @@ export async function sshDeletePortForward(id: string): Promise<void> {
 
 export async function sshTogglePortForward(id: string, isActive: boolean, sessionId?: string): Promise<void> {
   return invoke("ssh_toggle_port_forward", { id, isActive, sessionId });
+}
+
+// ── Git commands ──
+
+export async function gitGetBranch(path: string): Promise<string | null> {
+  return invoke("git_get_branch", { path });
+}
+
+export async function gitIsDirty(path: string): Promise<boolean> {
+  return invoke("git_is_dirty", { path });
 }

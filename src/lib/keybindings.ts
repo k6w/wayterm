@@ -1,4 +1,5 @@
 import { useTerminalStore } from "../stores/terminal";
+import { useSettingsStore } from "../stores/settings";
 import type { TerminalPane } from "../types/terminal";
 import { getDefaultShell } from "./shell-detect";
 import { isMac } from "./platform";
@@ -158,6 +159,30 @@ export function getDefaultKeybindings(): KeyAction[] {
   ];
 }
 
+/**
+ * Get effective keybindings by merging default keybindings with user overrides
+ * from settings. User overrides take precedence over defaults.
+ */
+export function getEffectiveKeybindings(): KeyAction[] {
+  const defaultBindings = getDefaultKeybindings();
+  const userKeybindings = useSettingsStore.getState().settings.keybindings;
+  
+  if (!userKeybindings || Object.keys(userKeybindings).length === 0) {
+    return defaultBindings;
+  }
+  
+  return defaultBindings.map(binding => {
+    const userKeys = userKeybindings[binding.id];
+    if (userKeys) {
+      return {
+        ...binding,
+        keys: userKeys
+      };
+    }
+    return binding;
+  });
+}
+
 function matchesKeybinding(e: KeyboardEvent, keys: string): boolean {
   const parts = keys.split("+");
   const key = parts[parts.length - 1].toLowerCase();
@@ -180,7 +205,7 @@ export function setupKeybindings(): () => void {
   // This ensures app shortcuts (Ctrl+Tab, Ctrl+T, etc.) aren't swallowed
   // by the terminal when it has focus.
   const handler = (e: KeyboardEvent) => {
-    const bindings = getDefaultKeybindings();
+    const bindings = getEffectiveKeybindings();
     const overrides = useTerminalStore.getState();
     if (overrides.settingsOpen || overrides.commandPaletteOpen) {
       if (e.key === "Escape") {

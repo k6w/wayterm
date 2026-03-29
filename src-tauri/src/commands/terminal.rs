@@ -88,3 +88,8 @@ pub async fn terminal_history_add(
 ) -> Result<i64, String> {
     db::history::add(&pool, &session_id, &command, exit_code, cwd.as_deref())
 }
+
+#[tauri::command]
+pub async fn path_exists(path: String) -> Result<bool, String> {
+    Ok(std::path::Path::new(&path).exists())
+}

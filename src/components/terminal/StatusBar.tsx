@@ -28,6 +28,7 @@ import { getDefaultShell, getDefaultShells } from "../../lib/shell-detect";
 import { shortenPath } from "../../lib/format";
 import { splitActivePane } from "../../lib/keybindings";
 import { clearBuffer } from "../../lib/terminal-registry";
+import { gitGetBranch, gitIsDirty } from "../../lib/ipc";
 import QuickPortForwardDialog from "../ssh/QuickPortForwardDialog";
 
 const btnClass =
@@ -113,8 +114,8 @@ export default function StatusBar() {
         </span>
       </button>
 
-      {/* Git branch (stub) */}
-      {pane.cwd && <GitBranchInfo />}
+      {/* Git branch */}
+      {pane.cwd && <GitBranchInfo cwd={pane.cwd} />}
 
       {/* Pane indicator */}
       {paneCount > 1 && (
@@ -235,6 +236,7 @@ function ThemePicker() {
   const activeThemeId = useThemeStore((s) => s.activeThemeId);
   const themes = useThemeStore((s) => s.themes);
   const setTheme = useThemeStore((s) => s.setTheme);
+  const previewTheme = useThemeStore((s) => s.previewTheme);
   const tpTheme = useThemeStore((s) => s.active);
   const tpVibrancy = useSettingsStore((s) => s.settings.appearance.vibrancyEnabled);
   const tpOpacity = useSettingsStore((s) => s.settings.appearance.windowOpacity);
@@ -291,6 +293,8 @@ function ThemePicker() {
               className={`flex w-full items-center gap-2 px-3 py-1.5 text-xs transition-colors hover:bg-bg-tertiary ${
                 t.id === activeThemeId ? "text-accent" : "text-text-primary"
               }`}
+              onMouseEnter={() => previewTheme(t.id)}
+              onMouseLeave={() => previewTheme(null)}
               onClick={() => {
                 setTheme(t.id);
                 setOpen(false);
@@ -317,11 +321,49 @@ function Separator() {
   return <div className="w-px h-3 bg-border mx-0.5" />;
 }
 
-function GitBranchInfo() {
-  const branch: string | null = null;
-  const dirty = false;
+interface GitBranchInfoProps {
+  cwd: string;
+}
 
-  if (!branch) return null;
+function GitBranchInfo({ cwd }: GitBranchInfoProps) {
+  const [branch, setBranch] = useState<string | null>(null);
+  const [dirty, setDirty] = useState(false);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function fetchGitInfo() {
+      try {
+        const [branchResult, dirtyResult] = await Promise.all([
+          gitGetBranch(cwd),
+          gitIsDirty(cwd),
+        ]);
+        if (!cancelled) {
+          setBranch(branchResult);
+          setDirty(dirtyResult);
+        }
+      } catch {
+        // Git not available or not a repo
+        if (!cancelled) {
+          setBranch(null);
+          setDirty(false);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      }
+    }
+
+    fetchGitInfo();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [cwd]);
+
+  if (loading || !branch) return null;
 
   return (
     <>

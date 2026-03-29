@@ -11,6 +11,7 @@ export default function AppearancePanel() {
   const themes = useThemeStore((s) => s.themes);
   const activeThemeId = useThemeStore((s) => s.activeThemeId);
   const setTheme = useThemeStore((s) => s.setTheme);
+  const previewTheme = useThemeStore((s) => s.previewTheme);
   const customThemeIds = useThemeStore((s) => s.customThemeIds);
   const importTheme = useThemeStore((s) => s.importTheme);
   const removeCustomTheme = useThemeStore((s) => s.removeCustomTheme);
@@ -84,7 +85,8 @@ export default function AppearancePanel() {
             <button
               key={theme.id}
               onClick={() => handleThemeChange(theme.id)}
-              onMouseEnter={() => setTheme(theme.id)}
+              onMouseEnter={() => previewTheme(theme.id)}
+              onMouseLeave={() => previewTheme(null)}
               className={`flex items-center gap-3 p-3 rounded-lg border transition-colors text-left ${
                 activeThemeId === theme.id
                   ? "border-accent bg-accent/10"
@@ -142,7 +144,8 @@ export default function AppearancePanel() {
               >
                 <button
                   onClick={() => handleThemeChange(theme.id)}
-                  onMouseEnter={() => setTheme(theme.id)}
+                  onMouseEnter={() => previewTheme(theme.id)}
+                  onMouseLeave={() => previewTheme(null)}
                   className="flex items-center gap-3 text-left flex-1 min-w-0"
                 >
                   <div

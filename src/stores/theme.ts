@@ -17,6 +17,8 @@ import rosePine from "../themes/rose-pine.json";
 import everforestDark from "../themes/everforest-dark.json";
 import kanagawa from "../themes/kanagawa.json";
 import githubDark from "../themes/github-dark.json";
+import vibrantDark from "../themes/vibrant-dark.json";
+import vibrantLight from "../themes/vibrant-light.json";
 
 interface ThemeState {
   activeThemeId: string;
@@ -24,7 +26,11 @@ interface ThemeState {
   /** IDs of user-imported custom themes (not built-in) */
   customThemeIds: Set<string>;
   active: ThemeDefinition;
+  /** Preview theme (temporary, applied on hover) */
+  previewThemeId: string | null;
   setTheme: (id: string) => void;
+  /** Preview a theme temporarily (e.g., on hover). Returns cleanup function. */
+  previewTheme: (id: string | null) => void;
   registerTheme: (theme: ThemeDefinition) => void;
   /** Load custom themes from DB on startup */
   loadCustomThemes: () => Promise<void>;
@@ -51,6 +57,8 @@ const builtinThemes: Record<string, ThemeDefinition> = {
   "everforest-dark": everforestDark as unknown as ThemeDefinition,
   "kanagawa": kanagawa as unknown as ThemeDefinition,
   "github-dark": githubDark as unknown as ThemeDefinition,
+  "vibrant-dark": vibrantDark as unknown as ThemeDefinition,
+  "vibrant-light": vibrantLight as unknown as ThemeDefinition,
 };
 
 /** Validate that a parsed object looks like a ThemeDefinition */
@@ -87,12 +95,30 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
   themes: builtinThemes,
   customThemeIds: new Set<string>(),
   active: builtinThemes["nexterm-dark"],
+  previewThemeId: null,
 
   setTheme: (id: string) => {
     const theme = get().themes[id];
     if (theme) {
-      set({ activeThemeId: id, active: theme });
+      set({ activeThemeId: id, active: theme, previewThemeId: null });
       applyThemeToDom(theme);
+    }
+  },
+
+  previewTheme: (id: string | null) => {
+    if (id === null) {
+      // Clear preview, restore active theme
+      const current = get().themes[get().activeThemeId];
+      if (current) {
+        set({ previewThemeId: null, active: current });
+        applyThemeToDom(current);
+      }
+    } else {
+      const theme = get().themes[id];
+      if (theme) {
+        set({ previewThemeId: id, active: theme });
+        applyThemeToDom(theme);
+      }
     }
   },
 

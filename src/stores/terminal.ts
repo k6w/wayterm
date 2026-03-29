@@ -6,6 +6,7 @@ import type {
   Block,
   ShellType,
 } from "../types/terminal";
+import { getDefaultShell } from "../lib/shell-detect";
 
 export type DropZone = "left" | "right" | "top" | "bottom" | null;
 
@@ -479,10 +480,80 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
     const state = get();
     const tab = state.tabs.find((t) => t.id === tabId);
     if (!tab) return;
-    // Find the first pane's shellPath for accurate duplication
-    const firstPaneId = getFirstPaneId(tab.panes);
-    const firstPane = firstPaneId ? state.panes[firstPaneId] : null;
-    get().addTab(tab.shellType, firstPane?.shellPath);
+    
+    // Create a deep copy of the tab's pane tree structure
+    const cloneTree = (node: SplitNode): SplitNode => {
+      if (node.type === "pane") {
+        const originalPane = state.panes[node.paneId!];
+        if (!originalPane) {
+          // If pane doesn't exist, return a new pane with default shell
+          const newPaneId = crypto.randomUUID();
+          const shell = getDefaultShell();
+          const newPane: TerminalPane = {
+            id: newPaneId,
+            sessionId: "",
+            blocks: [],
+            isActive: false,
+            cwd: "",
+            shellType: tab.shellType,
+            shellPath: shell.path,
+          };
+          set((s) => ({ panes: { ...s.panes, [newPaneId]: newPane } }));
+          return { type: "pane", paneId: newPaneId };
+        }
+        
+        // Clone the pane with a new ID
+        const newPaneId = crypto.randomUUID();
+        const newPane: TerminalPane = {
+          id: newPaneId,
+          sessionId: "", // New session will be created when terminal initializes
+          blocks: originalPane.blocks.map(block => ({
+            ...block,
+            id: crypto.randomUUID(),
+            startedAt: new Date().toISOString(),
+            finishedAt: block.finishedAt ? new Date().toISOString() : null,
+          })),
+          isActive: false,
+          cwd: originalPane.cwd,
+          shellType: originalPane.shellType,
+          shellPath: originalPane.shellPath,
+          sshConnectionId: originalPane.sshConnectionId,
+          sftpConnectionId: originalPane.sftpConnectionId,
+        };
+        set((s) => ({ panes: { ...s.panes, [newPaneId]: newPane } }));
+        return { type: "pane", paneId: newPaneId };
+      } else {
+        // Clone split node
+        return {
+          type: "split",
+          direction: node.direction,
+          ratio: node.ratio,
+          children: [
+            cloneTree(node.children![0]),
+            cloneTree(node.children![1]),
+          ],
+        };
+      }
+    };
+    
+    const clonedPanesTree = cloneTree(tab.panes);
+    
+    // Create new tab with cloned structure
+    const newTabId = crypto.randomUUID();
+    const newTab: TerminalTab = {
+      id: newTabId,
+      title: `${tab.title} (Copy)`,
+      icon: tab.icon,
+      shellType: tab.shellType,
+      panes: clonedPanesTree,
+      isActive: true,
+    };
+    
+    set((s) => ({
+      tabs: [...s.tabs.map(t => ({ ...t, isActive: false })), newTab],
+      activeTabId: newTabId,
+      activePaneId: getFirstPaneId(clonedPanesTree),
+    }));
   },
 
   closeOtherTabs: (tabId: string) => {

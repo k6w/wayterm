@@ -32,7 +32,7 @@ import { useThemeStore } from "../../stores/theme";
 import { useSettingsStore } from "../../stores/settings";
 import { hexToRgba } from "../../lib/color";
 import { vibrancyAlpha } from "../../lib/platform";
-import { getDefaultKeybindings } from "../../lib/keybindings";
+import { getEffectiveKeybindings } from "../../lib/keybindings";
 import { getDefaultShells } from "../../lib/shell-detect";
 import { clearBuffer, resetTerminal } from "../../lib/terminal-registry";
 
@@ -109,7 +109,7 @@ export default function CommandPalette() {
     const actions: PaletteAction[] = [];
 
     // ── Keybinding actions ──
-    const bindings = getDefaultKeybindings();
+    const bindings = getEffectiveKeybindings();
     for (const b of bindings) {
       if (b.id === "command-palette") continue;
       actions.push({
@@ -212,6 +212,7 @@ export default function CommandPalette() {
   const activeThemeId = useThemeStore((s) => s.activeThemeId);
   const themes = useThemeStore((s) => s.themes);
   const setTheme = useThemeStore((s) => s.setTheme);
+  const previewTheme = useThemeStore((s) => s.previewTheme);
 
   const themeList = useMemo(() => Object.values(themes), [themes]);
 
@@ -317,6 +318,9 @@ export default function CommandPalette() {
             const next = subSelectedIndex < filteredThemes.length - 1 ? subSelectedIndex + 1 : 0;
             setSubSelectedIndex(next);
             scrollSelectedIntoView(next);
+            // Preview theme on keyboard navigation
+            const nextTheme = filteredThemes[next];
+            if (nextTheme) previewTheme(nextTheme.id);
             break;
           }
           case "ArrowUp": {
@@ -324,6 +328,9 @@ export default function CommandPalette() {
             const prev = subSelectedIndex > 0 ? subSelectedIndex - 1 : filteredThemes.length - 1;
             setSubSelectedIndex(prev);
             scrollSelectedIntoView(prev);
+            // Preview theme on keyboard navigation
+            const prevTheme = filteredThemes[prev];
+            if (prevTheme) previewTheme(prevTheme.id);
             break;
           }
           case "Enter": {
@@ -379,7 +386,7 @@ export default function CommandPalette() {
         }
       }
     },
-    [subView, selectedIndex, totalResults, subSelectedIndex, filteredThemes, subQuery, scrollSelectedIntoView, executeAction, selectTheme, goBack, toggleCommandPalette]
+    [subView, selectedIndex, totalResults, subSelectedIndex, filteredThemes, subQuery, scrollSelectedIntoView, executeAction, selectTheme, goBack, toggleCommandPalette, previewTheme]
   );
 
   const handleBackdropClick = useCallback(
@@ -472,7 +479,10 @@ export default function CommandPalette() {
                         key={t.id}
                         data-result-item
                         onClick={() => selectTheme(i)}
-                        onMouseEnter={() => setSubSelectedIndex(i)}
+                        onMouseEnter={() => {
+                          setSubSelectedIndex(i);
+                        }}
+                        onMouseLeave={() => previewTheme(null)}
                         className={`flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition-colors ${
                           isSelected
                             ? "bg-accent/20"

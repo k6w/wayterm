@@ -146,6 +146,13 @@ function getShellIntegration(shellPath: string): {
 }
 
 /** Decide what binary + args to spawn based on pane config */
+export class SshConnectionNotFoundError extends Error {
+  constructor(connectionId: string) {
+    super(`SSH connection with ID "${connectionId}" not found`);
+    this.name = "SshConnectionNotFoundError";
+  }
+}
+
 async function resolveSpawnConfig(
   pane: import("../../types/terminal").TerminalPane | undefined,
   settings: ReturnType<typeof useSettingsStore.getState>["settings"]
@@ -156,29 +163,31 @@ async function resolveSpawnConfig(
       .getState()
       .connections.find((c) => c.id === pane.sshConnectionId);
 
-    if (conn) {
-      const sshArgs: string[] = [];
-
-      sshArgs.push("-o", "StrictHostKeyChecking=accept-new");
-
-      // Key auth
-      if (conn.authMethod === "key" && conn.privateKeyId) {
-        try {
-          const keyPath = await sshGetKeyTempPath(conn.privateKeyId);
-          sshArgs.push("-i", keyPath);
-        } catch {
-          // Fall through without -i
-        }
-      }
-
-      if (conn.port && conn.port !== 22) {
-        sshArgs.push("-p", String(conn.port));
-      }
-
-      sshArgs.push(`${conn.username}@${conn.host}`);
-
-      return { shell: "ssh", args: sshArgs, env: [] };
+    if (!conn) {
+      throw new SshConnectionNotFoundError(pane.sshConnectionId);
     }
+
+    const sshArgs: string[] = [];
+
+    sshArgs.push("-o", "StrictHostKeyChecking=accept-new");
+
+    // Key auth
+    if (conn.authMethod === "key" && conn.privateKeyId) {
+      try {
+        const keyPath = await sshGetKeyTempPath(conn.privateKeyId);
+        sshArgs.push("-i", keyPath);
+      } catch {
+        // Fall through without -i
+      }
+    }
+
+    if (conn.port && conn.port !== 22) {
+      sshArgs.push("-p", String(conn.port));
+    }
+
+    sshArgs.push(`${conn.username}@${conn.host}`);
+
+    return { shell: "ssh", args: sshArgs, env: [] };
   }
 
   // ── Local shell ──
@@ -355,8 +364,21 @@ export default function TerminalPane({
         const existingPane = useTerminalStore.getState().panes[paneId];
         const isSsh = !!existingPane?.sshConnectionId;
 
-        const { shell: spawnShell, args: spawnArgs, env: spawnEnv } =
-          await resolveSpawnConfig(existingPane, settings);
+        let spawnShell: string, spawnArgs: string[], spawnEnv: [string, string][];
+        try {
+          const config = await resolveSpawnConfig(existingPane, settings);
+          spawnShell = config.shell;
+          spawnArgs = config.args;
+          spawnEnv = config.env;
+        } catch (err) {
+          if (err instanceof SshConnectionNotFoundError) {
+            term.write(`\x1b[31mError: ${err.message}\x1b[0m\r\n`);
+            term.write("\x1b[90mConnection not found. Please check your SSH settings.\x1b[0m\r\n");
+          } else {
+            term.write(`\x1b[31mError: Failed to resolve spawn config\x1b[0m\r\n`);
+          }
+          return;
+        }
 
         const sessionId = await terminalSpawn({
           shell: spawnShell,

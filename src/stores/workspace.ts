@@ -153,11 +153,12 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     }
 
     // ── Recreate tabs with fresh IDs and remapped split trees ──
-    const newTabs: TerminalTab[] = saved.tabs.map((tab, i) => ({
+    const newTabs: TerminalTab[] = saved.tabs.map((tab) => ({
       ...tab,
       id: crypto.randomUUID(),
       panes: remapNode(tab.panes, idMap),
-      isActive: i === saved.tabs.length - 1,
+      // Preserve the original isActive state
+      isActive: tab.isActive,
     }));
 
     // ── Recreate panes with new IDs (sessions will spawn on mount) ──
@@ -172,14 +173,17 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       };
     }
 
-    const lastTab = newTabs[newTabs.length - 1];
+    // Find the originally active tab
+    const activeTab = newTabs.find(tab => tab.isActive);
+    const activeTabId = activeTab?.id ?? newTabs[newTabs.length - 1]?.id;
+    const activePaneId = activeTab ? getFirstPaneId(activeTab.panes) : null;
 
     // ── Apply to terminal store ──
     useTerminalStore.setState({
       tabs: newTabs,
       panes: newPanes,
-      activeTabId: lastTab.id,
-      activePaneId: getFirstPaneId(lastTab.panes),
+      activeTabId,
+      activePaneId,
     });
 
     // Kick off buffer loading for named workspace restore
@@ -242,11 +246,12 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
     }
 
     // ── Recreate tabs with fresh IDs and remapped split trees ──
-    const newTabs: TerminalTab[] = saved.tabs.map((tab, i) => ({
+    const newTabs: TerminalTab[] = saved.tabs.map((tab) => ({
       ...tab,
       id: crypto.randomUUID(),
       panes: remapNode(tab.panes, idMap),
-      isActive: i === saved.tabs.length - 1,
+      // Preserve the original isActive state
+      isActive: tab.isActive,
     }));
 
     // ── Recreate panes with new IDs ──
@@ -261,13 +266,16 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       };
     }
 
-    const lastTab = newTabs[newTabs.length - 1];
+    // Find the originally active tab
+    const activeTab = newTabs.find(tab => tab.isActive);
+    const activeTabId = activeTab?.id ?? newTabs[newTabs.length - 1]?.id;
+    const activePaneId = activeTab ? getFirstPaneId(activeTab.panes) : null;
 
     useTerminalStore.setState({
       tabs: newTabs,
       panes: newPanes,
-      activeTabId: lastTab.id,
-      activePaneId: getFirstPaneId(lastTab.panes),
+      activeTabId,
+      activePaneId,
     });
 
     // Kick off buffer loading (async, TerminalPane will await the promise)
