@@ -1,6 +1,7 @@
 mod commands;
 mod db;
 mod pty;
+mod port_forward;
 mod sftp;
 mod theme;
 mod window;
@@ -91,6 +92,7 @@ pub fn run() {
             app.manage(pool);
             app.manage(pty::manager::PtyManager::new());
             app.manage(sftp::session::SftpSessionManager::new());
+            app.manage(port_forward::PortForwardManager::new());
             window::setup(app.get_webview_window("main").as_ref());
 
             // ── System tray ──
@@ -141,6 +143,10 @@ pub fn run() {
             commands::ssh::ssh_delete_key,
             commands::ssh::ssh_update_key,
             commands::ssh::ssh_get_key_temp_path,
+            commands::ssh::ssh_list_port_forwards,
+            commands::ssh::ssh_save_port_forward,
+            commands::ssh::ssh_delete_port_forward,
+            commands::ssh::ssh_toggle_port_forward,
             commands::workspace::workspace_list,
             commands::workspace::workspace_save,
             commands::workspace::workspace_delete,

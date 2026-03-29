@@ -3,6 +3,7 @@ pub mod custom_themes;
 pub mod history;
 pub mod keys;
 pub mod migrations;
+pub mod port_forwards;
 pub mod settings;
 pub mod terminal_buffers;
 pub mod workspaces;

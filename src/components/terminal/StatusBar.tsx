@@ -16,6 +16,7 @@ import {
   Check,
   Sun,
   Moon,
+  ArrowRightLeft,
 } from "lucide-react";
 import { useTerminalStore, collectPaneIds } from "../../stores/terminal";
 import { useThemeStore } from "../../stores/theme";
@@ -27,6 +28,7 @@ import { getDefaultShell, getDefaultShells } from "../../lib/shell-detect";
 import { shortenPath } from "../../lib/format";
 import { splitActivePane } from "../../lib/keybindings";
 import { clearBuffer } from "../../lib/terminal-registry";
+import QuickPortForwardDialog from "../ssh/QuickPortForwardDialog";
 
 const btnClass =
   "flex items-center justify-center h-5 w-5 rounded transition-colors cursor-pointer hover:bg-bg-tertiary";
@@ -49,6 +51,7 @@ export default function StatusBar() {
 
   const [copiedFlash, setCopiedFlash] = useState(false);
   const [bellEnabled, setBellEnabled] = useState(true);
+  const [showQuickPortForward, setShowQuickPortForward] = useState(false);
 
   // Look up SSH username for remote ~ shortening
   const sshUsername = useSshStore((s) => {
@@ -138,6 +141,13 @@ export default function StatusBar() {
             <span className="size-1.5 rounded-full bg-success shrink-0" />
             <span>SSH</span>
           </span>
+          <button
+            className={btnClass}
+            onClick={() => setShowQuickPortForward(true)}
+            title="Quick Port Forward"
+          >
+            <ArrowRightLeft size={13} />
+          </button>
         </>
       )}
 
@@ -145,6 +155,18 @@ export default function StatusBar() {
       <div className="flex-1" />
 
       {/* === RIGHT SIDE === */}
+
+      {/* Clear buffer */}
+
+      {/* Quick Port Forward Dialog */}
+      {pane.sshConnectionId && (
+        <QuickPortForwardDialog
+          isOpen={showQuickPortForward}
+          onClose={() => setShowQuickPortForward(false)}
+          connectionId={pane.sshConnectionId}
+          sessionId={pane.sessionId}
+        />
+      )}
 
       {/* Clear buffer */}
       <button

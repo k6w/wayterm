@@ -3,6 +3,7 @@ use super::DbPool;
 const MIGRATION_001: &str = include_str!("../../migrations/001_initial.sql");
 const MIGRATION_002: &str = include_str!("../../migrations/002_terminal_buffers.sql");
 const MIGRATION_003: &str = include_str!("../../migrations/003_custom_themes.sql");
+const MIGRATION_004: &str = include_str!("../../migrations/004_port_forwards.sql");
 
 pub fn run(pool: &DbPool) -> Result<(), String> {
     let conn = pool.lock();
@@ -37,6 +38,13 @@ pub fn run(pool: &DbPool) -> Result<(), String> {
         conn.execute_batch(MIGRATION_003)
             .map_err(|e| e.to_string())?;
         conn.execute("INSERT INTO schema_version (version) VALUES (3)", [])
+            .map_err(|e| e.to_string())?;
+    }
+
+    if current < 4 {
+        conn.execute_batch(MIGRATION_004)
+            .map_err(|e| e.to_string())?;
+        conn.execute("INSERT INTO schema_version (version) VALUES (4)", [])
             .map_err(|e| e.to_string())?;
     }
 

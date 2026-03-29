@@ -248,3 +248,33 @@ export function onSftpTransferProgress(
     callback(event.payload as { transferId: string; bytesTransferred: number; totalBytes: number; status: string; error: string | null });
   });
 }
+
+// ── Port forwarding commands ──
+
+export interface PortForward {
+  id: string;
+  connectionId: string;
+  portForwardType: string;
+  localPort: number;
+  remoteHost: string;
+  remotePort: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export async function sshListPortForwards(connectionId: string): Promise<PortForward[]> {
+  return invoke("ssh_list_port_forwards", { connectionId });
+}
+
+export async function sshSavePortForward(forward: PortForward): Promise<void> {
+  return invoke("ssh_save_port_forward", { forward });
+}
+
+export async function sshDeletePortForward(id: string): Promise<void> {
+  return invoke("ssh_delete_port_forward", { id });
+}
+
+export async function sshTogglePortForward(id: string, isActive: boolean, sessionId?: string): Promise<void> {
+  return invoke("ssh_toggle_port_forward", { id, isActive, sessionId });
+}

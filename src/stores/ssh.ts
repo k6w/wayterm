@@ -8,6 +8,11 @@ import {
   sshImportKey,
   sshDeleteKey,
   sshUpdateKey,
+  sshListPortForwards,
+  sshSavePortForward,
+  sshDeletePortForward,
+  sshTogglePortForward,
+  type PortForward,
 } from "../lib/ipc";
 
 interface SshSessionState {
@@ -20,6 +25,7 @@ interface SshState {
   connections: SshConnection[];
   keys: SshKey[];
   sessions: SshSessionState[];
+  portForwards: PortForward[];
   loaded: boolean;
   load: () => Promise<void>;
   saveConnection: (connection: SshConnection) => Promise<void>;
@@ -36,6 +42,10 @@ interface SshState {
   addSession: (session: SshSessionState) => void;
   removeSession: (sessionId: string) => void;
   updateSessionStatus: (sessionId: string, status: ConnectionStatus) => void;
+  loadPortForwards: (connectionId: string) => Promise<void>;
+  savePortForward: (forward: PortForward) => Promise<void>;
+  deletePortForward: (id: string) => Promise<void>;
+  togglePortForward: (id: string, isActive: boolean) => Promise<void>;
 }
 
 export const useSshStore = create<SshState>((set, get) => ({
@@ -123,5 +133,50 @@ export const useSshStore = create<SshState>((set, get) => ({
         ses.sessionId === sessionId ? { ...ses, status } : ses
       ),
     }));
+  },
+
+  portForwards: [],
+
+  loadPortForwards: async (connectionId: string) => {
+    try {
+      const forwards = await sshListPortForwards(connectionId);
+      set({ portForwards: forwards });
+    } catch {
+      set({ portForwards: [] });
+    }
+  },
+
+  savePortForward: async (forward: PortForward) => {
+    await sshSavePortForward(forward);
+    const existing = get().portForwards;
+    const idx = existing.findIndex((f) => f.id === forward.id);
+    if (idx >= 0) {
+      const updated = [...existing];
+      updated[idx] = forward;
+      set({ portForwards: updated });
+    } else {
+      set({ portForwards: [...existing, forward] });
+    }
+  },
+
+  deletePortForward: async (id: string) => {
+    await sshDeletePortForward(id);
+    set((s) => ({
+      portForwards: s.portForwards.filter((f) => f.id !== id),
+    }));
+  },
+
+  togglePortForward: async (id: string, isActive: boolean, sessionId?: string) => {
+    try {
+      await sshTogglePortForward(id, isActive, sessionId);
+      set((s) => ({
+        portForwards: s.portForwards.map((f) =>
+          f.id === id ? { ...f, isActive } : f
+        ),
+      }));
+    } catch (e) {
+      // Re-throw the error so the UI can handle it
+      throw e;
+    }
   },
 }));

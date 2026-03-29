@@ -1,4 +1,5 @@
-use crate::db::{self, connections::ConnectionProfile, keys::SshKey, DbPool};
+use crate::db::{self, connections::ConnectionProfile, keys::SshKey, port_forwards::PortForward, DbPool};
+use crate::port_forward::PortForwardManager;
 use serde::Deserialize;
 use tauri::State;
 use uuid::Uuid;
@@ -187,4 +188,82 @@ fn compute_fingerprint(public_key: &str) -> String {
         write!(out, "{:02x}", b).unwrap();
     }
     out
+}
+
+// Port forwarding commands
+
+#[tauri::command]
+pub async fn ssh_list_port_forwards(
+    connection_id: String,
+    pool: State<'_, DbPool>,
+) -> Result<Vec<PortForward>, String> {
+    db::port_forwards::list(&pool, &connection_id)
+}
+
+#[tauri::command]
+pub async fn ssh_save_port_forward(
+    forward: PortForward,
+    pool: State<'_, DbPool>,
+) -> Result<(), String> {
+    let mut f = forward;
+    if f.id.is_empty() {
+        f.id = Uuid::new_v4().to_string();
+    }
+    // Check if exists by trying to update first
+    let existing = db::port_forwards::list(&pool, &f.connection_id)?
+        .iter()
+        .any(|p| p.id == f.id);
+    if existing {
+        db::port_forwards::update(&pool, &f)
+    } else {
+        // Check for duplicate local port
+        if db::port_forwards::exists_by_local_port(&pool, &f.connection_id, f.local_port)? {
+            return Err("A port forward with this local port already exists".to_string());
+        }
+        db::port_forwards::insert(&pool, &f)
+    }
+}
+
+#[tauri::command]
+pub async fn ssh_delete_port_forward(
+    id: String,
+    pool: State<'_, DbPool>,
+) -> Result<(), String> {
+    db::port_forwards::delete(&pool, &id)
+}
+
+#[tauri::command]
+pub async fn ssh_toggle_port_forward(
+    id: String,
+    is_active: bool,
+    session_id: Option<String>,
+    pool: State<'_, DbPool>,
+    port_forward_manager: State<'_, PortForwardManager>,
+) -> Result<(), String> {
+    if is_active {
+        // Get the port forward config
+        let forwards = db::port_forwards::list(&pool, "")?;
+        let forward = forwards.iter()
+            .find(|f| f.id == id)
+            .ok_or_else(|| "Port forward not found".to_string())?;
+        
+        // Get the session ID - either from parameter or we need an active connection
+        let sess_id = session_id.ok_or_else(|| {
+            "No active SSH session. Please connect to the server first.".to_string()
+        })?;
+        
+        // Start the port forward (convert i32 to u16)
+        port_forward_manager.start_port_forward(
+            id.clone(),
+            forward.local_port as u16,
+            forward.remote_host.clone(),
+            forward.remote_port as u16,
+            sess_id,
+        ).await?;
+    } else {
+        // Stop the port forward
+        port_forward_manager.stop_port_forward(&id)?;
+    }
+    
+    db::port_forwards::toggle_active(&pool, &id, is_active)
 }
