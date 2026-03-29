@@ -21,6 +21,7 @@ export interface AppearanceSettings {
   terminalLineHeight: number;
   uiFontFamily: string;
   uiFontSize: number;
+  uiScale: number;
   cursorStyle: CursorStyle;
   cursorBlink: boolean;
   vibrancyEnabled: boolean;
@@ -28,6 +29,8 @@ export interface AppearanceSettings {
   blurIntensity: number;
   accentColorOverride: string | null;
   compactMode: boolean;
+  tabPosition: "top" | "bottom" | "left" | "right";
+  windowDecorations: "custom" | "native";
 }
 
 export interface TerminalSettings {

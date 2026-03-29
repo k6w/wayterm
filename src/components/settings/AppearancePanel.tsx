@@ -309,6 +309,91 @@ export default function AppearancePanel() {
           </div>
         </div>
       </div>
+
+      <div>
+        <h3 className="text-sm font-medium text-text-primary mb-3">UI Scale</h3>
+        <div className="space-y-4">
+          <div className="flex justify-between items-center gap-4">
+            <label className="text-sm text-text-secondary">
+              Scale ({settings.uiScale.toFixed(2)}x)
+            </label>
+            <input
+              type="range"
+              min={0.75}
+              max={1.5}
+              step={0.05}
+              value={settings.uiScale}
+              onChange={(e) => update("appearance", { uiScale: Number(e.target.value) })}
+              className="w-40 accent-accent"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-sm font-medium text-text-primary mb-3">Tab Position</h3>
+        <div className="flex justify-between items-center gap-4">
+          <div className="flex gap-2">
+            {(["top", "bottom", "left", "right"] as const).map((pos) => (
+              <button
+                key={pos}
+                onClick={() => update("appearance", { tabPosition: pos })}
+                className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${
+                  settings.tabPosition === pos
+                    ? "bg-accent text-white border-accent"
+                    : "bg-bg-tertiary text-text-secondary border-border hover:border-accent"
+                }`}
+              >
+                {pos.charAt(0).toUpperCase() + pos.slice(1)}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-sm font-medium text-text-primary mb-3">Window Decorations</h3>
+        <div className="flex justify-between items-center gap-4">
+          <div className="flex gap-2">
+            {(["custom", "native"] as const).map((dec) => (
+              <button
+                key={dec}
+                onClick={() => update("appearance", { windowDecorations: dec })}
+                className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${
+                  settings.windowDecorations === dec
+                    ? "bg-accent text-white border-accent"
+                    : "bg-bg-tertiary text-text-secondary border-border hover:border-accent"
+                }`}
+              >
+                {dec.charAt(0).toUpperCase() + dec.slice(1)}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-sm font-medium text-text-primary mb-3">Accent Color</h3>
+        <div className="flex justify-between items-center gap-4">
+          <label className="text-sm text-text-secondary">Custom Accent</label>
+          <div className="flex items-center gap-2">
+            <input
+              type="color"
+              value={settings.accentColorOverride || "#6366f1"}
+              onChange={(e) => update("appearance", { accentColorOverride: e.target.value })}
+              className="w-8 h-8 rounded cursor-pointer bg-transparent"
+            />
+            {settings.accentColorOverride && (
+              <button
+                onClick={() => update("appearance", { accentColorOverride: null })}
+                className="text-xs text-text-muted hover:text-text-primary"
+              >
+                Clear
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

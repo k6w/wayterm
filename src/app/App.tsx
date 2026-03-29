@@ -32,9 +32,15 @@ function AppContent() {
   const addTab = useTerminalStore((s) => s.addTab);
   const vibrancyEnabled = useSettingsStore((s) => s.settings.appearance.vibrancyEnabled);
   const windowOpacity = useSettingsStore((s) => s.settings.appearance.windowOpacity);
+  const uiScale = useSettingsStore((s) => s.settings.appearance.uiScale);
   const theme = useThemeStore((s) => s.active);
   const [sshDialogOpen, setSshDialogOpen] = useState(false);
   const [editingConnection, setEditingConnection] = useState<SshConnection | null>(null);
+
+  // ── Apply UI scale ──
+  useEffect(() => {
+    document.documentElement.style.setProperty("--ui-scale", String(uiScale));
+  }, [uiScale]);
 
   // ── Auto-save session on terminal state changes (debounced) ──
   useEffect(() => {

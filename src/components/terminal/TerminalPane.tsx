@@ -3,6 +3,7 @@ import { ExternalLink } from "lucide-react";
 import { Terminal } from "@xterm/xterm";
 import { WebglAddon } from "@xterm/addon-webgl";
 import { FitAddon } from "@xterm/addon-fit";
+import { WebLinksAddon } from "@xterm/addon-web-links";
 import { useThemeStore } from "../../stores/theme";
 import { useSettingsStore } from "../../stores/settings";
 import { useTerminalStore } from "../../stores/terminal";
@@ -313,10 +314,19 @@ export default function TerminalPane({
           allowTransparency: true,
           theme: makeXtermTheme(theme, vibrancy, settings.appearance.windowOpacity),
         });
+        
+        // Enable font ligatures via CSS when enabled
+        if (settings.terminal.ligatures) {
+          term.element?.style.setProperty("--font-features", "\"liga\" 1, \"calt\" 1, \"zero\" 1");
+        }
 
         const fitAddon = new FitAddon();
         term.loadAddon(fitAddon);
         term.open(termEl);
+
+        // Enable web links - clickable URLs and file paths
+        const webLinksAddon = new WebLinksAddon();
+        term.loadAddon(webLinksAddon);
 
         // WebGL is faster but always opaque — skip it when vibrancy is on
         let webgl: import("@xterm/addon-webgl").WebglAddon | null = null;

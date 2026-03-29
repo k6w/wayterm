@@ -72,3 +72,18 @@ html, body, #root {
   background: rgba(255, 255, 255, 0.15);
   border-radius: 3px;
 }
+
+/* Font ligatures support - enabled via terminal settings */
+.xterm .xterm-screen {
+  font-feature-settings: "liga" 1, "calt" 1, "zero" 1;
+}
+
+/* UI Scale - applied via CSS custom property */
+:root {
+  --ui-scale: 1;
+}
+
+.app-container {
+  transform: scale(var(--ui-scale));
+  transform-origin: top left;
+}
