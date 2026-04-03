@@ -11,16 +11,12 @@ use tokio::sync::mpsc;
 type ClientHandle = Handle<ClientHandler>;
 
 pub struct PortForwardManager {
-    /// Active port forwarding sessions, keyed by forward ID
     active_forwards: Arc<Mutex<HashMap<String, ActivePortForward>>>,
-    /// Maps session IDs to SSH client handles for port forwarding
     ssh_handles: Arc<Mutex<HashMap<String, Arc<ClientHandle>>>>,
-    /// Fallback local ssh -L child processes for direct session-based forwarding.
     local_tunnels: Arc<Mutex<HashMap<String, Child>>>,
 }
 
 struct ActivePortForward {
-    /// Channel sender to stop the forwarder
     stop_sender: mpsc::Sender<()>,
 }
 
@@ -33,28 +29,24 @@ impl PortForwardManager {
         }
     }
 
-    /// Register an SSH handle for a session (used by terminal/sftp connections)
     #[allow(dead_code)]
     pub fn register_ssh_handle(&self, session_id: String, handle: ClientHandle) {
         let mut handles = self.ssh_handles.lock();
         handles.insert(session_id, Arc::new(handle));
     }
 
-    /// Unregister an SSH handle when a session disconnects
     #[allow(dead_code)]
     pub fn unregister_ssh_handle(&self, session_id: &str) {
         let mut handles = self.ssh_handles.lock();
         handles.remove(session_id);
     }
 
-    /// Get an SSH handle for a session
     #[allow(dead_code)]
     pub fn get_ssh_handle(&self, session_id: &str) -> Option<Arc<ClientHandle>> {
         let handles = self.ssh_handles.lock();
         handles.get(session_id).cloned()
     }
 
-    /// Start a port forward
     pub async fn start_port_forward(
         &self,
         forward_id: String,
@@ -63,7 +55,6 @@ impl PortForwardManager {
         remote_port: u16,
         session_id: String,
     ) -> Result<(), String> {
-        // Check if already active
         {
             let forwards = self.active_forwards.lock();
             if forwards.contains_key(&forward_id) {
@@ -71,20 +62,16 @@ impl PortForwardManager {
             }
         }
 
-        // Get SSH handle
         let ssh_handle = self.get_ssh_handle(&session_id).ok_or_else(|| {
             "No active SSH connection found. Please connect to the server first.".to_string()
         })?;
 
-        // Bind to local port using tokio for async compatibility
         let listener = TokioTcpListener::bind(format!("127.0.0.1:{}", local_port))
             .await
             .map_err(|e| format!("Failed to bind to local port {}: {}", local_port, e))?;
 
-        // Create stop channel
         let (stop_sender, mut stop_receiver) = mpsc::channel::<()>(1);
 
-        // Store the active forward
         {
             let mut forwards = self.active_forwards.lock();
             forwards.insert(forward_id.clone(), ActivePortForward {
@@ -92,16 +79,13 @@ impl PortForwardManager {
             });
         }
 
-        // Clone necessary data for the async task
         let active_forwards = Arc::clone(&self.active_forwards);
         let remote_host_clone = remote_host.clone();
         let remote_port_clone = remote_port;
         let forward_id_clone = forward_id.clone();
 
-        // Spawn the port forwarding task
         tokio::spawn(async move {
             loop {
-                // Check for stop signal
                 tokio::select! {
                     _ = stop_receiver.recv() => {
                         break;
@@ -109,12 +93,10 @@ impl PortForwardManager {
                     _ = tokio::time::sleep(std::time::Duration::from_millis(100)) => {}
                 }
 
-                // Try to accept a connection
                 tokio::select! {
                     result = listener.accept() => {
                         match result {
                             Ok((local_stream, _addr)) => {
-                                // Clone handle for this connection
                                 let handle = Arc::clone(&ssh_handle);
                                 let remote_host = remote_host_clone.clone();
                                 let remote_port = remote_port_clone;
@@ -139,7 +121,6 @@ impl PortForwardManager {
                     _ = tokio::time::sleep(std::time::Duration::from_millis(50)) => {}
                 }
 
-                // Check if still active
                 {
                     let forwards = active_forwards.lock();
                     if !forwards.contains_key(&forward_id_clone) {
@@ -148,7 +129,6 @@ impl PortForwardManager {
                 }
             }
 
-            // Clean up
             let mut forwards = active_forwards.lock();
             forwards.remove(&forward_id_clone);
         });
@@ -156,16 +136,13 @@ impl PortForwardManager {
         Ok(())
     }
 
-    /// Stop a port forward
     pub fn stop_port_forward(&self, forward_id: &str) -> Result<(), String> {
         let forwards = self.active_forwards.lock();
         
         if let Some(active_forward) = forwards.get(forward_id) {
-            // Send stop signal
             let sender = active_forward.stop_sender.clone();
-            drop(forwards); // Release lock before sending
+            drop(forwards);
             
-            // Try to send stop signal (may fail if channel is closed)
             let _ = sender.try_send(());
             Ok(())
         } else {
@@ -173,14 +150,12 @@ impl PortForwardManager {
         }
     }
 
-    /// Check if a port forward is active
     #[allow(dead_code)]
     pub fn is_active(&self, forward_id: &str) -> bool {
         let forwards = self.active_forwards.lock();
         forwards.contains_key(forward_id)
     }
 
-    /// Stop all port forwards (used when disconnecting)
     #[allow(dead_code)]
     pub fn stop_all(&self) {
         let forwards = self.active_forwards.lock();
@@ -194,7 +169,6 @@ impl PortForwardManager {
         }
     }
 
-    /// Start a fallback local ssh tunnel (ssh -N -L ...) when no russh handle is registered.
     pub fn start_local_tunnel(&self, forward_id: String, ssh_cmd: &str, args: &[String]) -> Result<(), String> {
         let child = Command::new(ssh_cmd)
             .args(args)
@@ -210,7 +184,6 @@ impl PortForwardManager {
         Ok(())
     }
 
-    /// Stop a fallback local ssh tunnel.
     pub fn stop_local_tunnel(&self, forward_id: &str) -> Result<(), String> {
         let mut tunnels = self.local_tunnels.lock();
         if let Some(mut child) = tunnels.remove(forward_id) {
@@ -227,13 +200,11 @@ async fn handle_local_connection(
     remote_host: &str,
     remote_port: u16,
 ) -> Result<(), String> {
-    // Open a direct-tcpip channel to the remote host (ssh tunnel side)
     let channel = ssh_handle
         .channel_open_direct_tcpip(remote_host, remote_port as u32, "127.0.0.1", 0)
         .await
         .map_err(|e| format!("Failed to open SSH direct tcpip channel: {}", e))?;
 
-    // Split local and remote streams for bidirectional copying
     let (mut local_reader, mut local_writer) = tokio::io::split(local_stream);
     let (mut remote_read_half, remote_write_half) = channel.split();
     let mut remote_reader = remote_read_half.make_reader();
@@ -270,7 +241,6 @@ async fn handle_local_connection(
     Ok(())
 }
 
-/// Client handler for SSH port forwarding
 pub struct ClientHandler;
 
 impl Handler for ClientHandler {

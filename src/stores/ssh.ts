@@ -91,7 +91,6 @@ export const useSshStore = create<SshState>((set, get) => ({
       const keyList = (await sshListKeys()) as SshKey[];
       set({ keys: keyList });
     } catch {
-      // ignore
     }
   },
 
@@ -175,7 +174,6 @@ export const useSshStore = create<SshState>((set, get) => ({
         ),
       }));
     } catch (e) {
-      // Re-throw the error so the UI can handle it
       throw e;
     }
   },

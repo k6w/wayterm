@@ -23,20 +23,14 @@ import vibrantLight from "../themes/vibrant-light.json";
 interface ThemeState {
   activeThemeId: string;
   themes: Record<string, ThemeDefinition>;
-  /** IDs of user-imported custom themes (not built-in) */
   customThemeIds: Set<string>;
   active: ThemeDefinition;
-  /** Preview theme (temporary, applied on hover) */
   previewThemeId: string | null;
   setTheme: (id: string) => void;
-  /** Preview a theme temporarily (e.g., on hover). Returns cleanup function. */
   previewTheme: (id: string | null) => void;
   registerTheme: (theme: ThemeDefinition) => void;
-  /** Load custom themes from DB on startup */
   loadCustomThemes: () => Promise<void>;
-  /** Import a theme JSON, validate it, save to DB, and register */
   importTheme: (json: string) => Promise<ThemeDefinition>;
-  /** Remove a custom theme from DB and unregister */
   removeCustomTheme: (id: string) => Promise<void>;
 }
 
@@ -61,7 +55,6 @@ const builtinThemes: Record<string, ThemeDefinition> = {
   "vibrant-light": vibrantLight as unknown as ThemeDefinition,
 };
 
-/** Validate that a parsed object looks like a ThemeDefinition */
 function validateTheme(obj: unknown): obj is ThemeDefinition {
   if (!obj || typeof obj !== "object") return false;
   const t = obj as Record<string, unknown>;
@@ -107,7 +100,6 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
 
   previewTheme: (id: string | null) => {
     if (id === null) {
-      // Clear preview, restore active theme
       const current = get().themes[get().activeThemeId];
       if (current) {
         set({ previewThemeId: null, active: current });
@@ -141,7 +133,6 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
             ids.add(parsed.id);
           }
         } catch {
-          // skip invalid JSON
         }
       }
       set((state) => ({
@@ -149,7 +140,6 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
         customThemeIds: ids,
       }));
     } catch {
-      // DB not ready yet, ignore
     }
   },
 
@@ -167,14 +157,12 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
       );
     }
 
-    // Prevent overwriting built-in themes
     if (builtinThemes[parsed.id]) {
       throw new Error(
         `Theme ID "${parsed.id}" conflicts with a built-in theme. Change the "id" field.`
       );
     }
 
-    // Ensure blur/opacity defaults if missing
     const theme: ThemeDefinition = {
       ...parsed,
       blur: parsed.blur ?? { sidebar: 20, blocks: 4, inputBar: 12, overlay: 30 },
@@ -192,20 +180,19 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
   },
 
   removeCustomTheme: async (id: string) => {
-    // Don't allow removing built-in themes
     if (builtinThemes[id]) return;
 
     await customThemeDelete(id);
 
     set((state) => {
-      const { [id]: _, ...rest } = state.themes;
+      const themes = { ...state.themes };
+      delete themes[id];
       const ids = new Set(state.customThemeIds);
       ids.delete(id);
 
-      // If active theme was removed, fall back to default
       const needsFallback = state.activeThemeId === id;
       return {
-        themes: rest,
+        themes,
         customThemeIds: ids,
         ...(needsFallback
           ? {
@@ -216,7 +203,6 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
       };
     });
 
-    // Apply fallback theme to DOM if needed
     if (get().activeThemeId === "nexterm-dark") {
       applyThemeToDom(builtinThemes["nexterm-dark"]);
     }

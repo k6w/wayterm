@@ -66,10 +66,13 @@ export const useSftpStore = create<SftpState>((set, get) => ({
   disconnect: async (sessionId) => {
     await sftpDisconnect(sessionId);
     set((s) => {
-      const { [sessionId]: _, ...restSessions } = s.sessions;
-      const { [sessionId]: _r, ...restRemote } = s.remoteEntries;
-      const { [sessionId]: _l, ...restLocal } = s.localEntries;
-      return { sessions: restSessions, remoteEntries: restRemote, localEntries: restLocal };
+      const sessions = { ...s.sessions };
+      delete sessions[sessionId];
+      const remoteEntries = { ...s.remoteEntries };
+      delete remoteEntries[sessionId];
+      const localEntries = { ...s.localEntries };
+      delete localEntries[sessionId];
+      return { sessions, remoteEntries, localEntries };
     });
   },
 
@@ -83,7 +86,6 @@ export const useSftpStore = create<SftpState>((set, get) => ({
           : s.sessions,
       }));
     } catch {
-      // ignore navigation errors
     }
   },
 
@@ -97,7 +99,6 @@ export const useSftpStore = create<SftpState>((set, get) => ({
           : s.sessions,
       }));
     } catch {
-      // ignore
     }
   },
 

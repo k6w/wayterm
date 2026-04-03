@@ -52,7 +52,6 @@ export default function AppearancePanel() {
       setImportError(err instanceof Error ? err.message : "Failed to import theme");
     }
 
-    // Reset input so the same file can be re-imported
     e.target.value = "";
   };
 
@@ -64,7 +63,8 @@ export default function AppearancePanel() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${theme.id}.json`;
+    const sanitizedId = theme.id.replace(/[^a-zA-Z0-9-_]/g, '_');
+    a.download = `${sanitizedId}.json`;
     a.click();
     URL.revokeObjectURL(url);
   };

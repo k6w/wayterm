@@ -28,7 +28,6 @@ interface TerminalState {
   panes: Record<string, TerminalPane>;
   activeTabId: string | null;
   activePaneId: string | null;
-  /** Stack of recently focused pane IDs (most recent last) for Hyprland-style focus fallback */
   paneFocusHistory: string[];
   sidebarOpen: boolean;
   commandPaletteOpen: boolean;
@@ -159,7 +158,6 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
       let newActivePaneId = state.activePaneId;
 
       if (newActiveTabId === tabId && newTabs.length > 0) {
-        // Pick the adjacent tab: prefer right neighbor, fall back to left
         const closedIndex = state.tabs.findIndex((t) => t.id === tabId);
         const nextIndex = Math.min(closedIndex, newTabs.length - 1);
         const next = newTabs[nextIndex];
@@ -185,7 +183,6 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
     set((state) => {
       const tab = state.tabs.find((t) => t.id === tabId);
       if (!tab) return state;
-      // Prefer the last-focused pane in this tab, fall back to first
       const tabPaneIds = new Set(collectPaneIds(tab.panes));
       const fromHistory = [...state.paneFocusHistory].reverse().find((id) => tabPaneIds.has(id));
       const targetPane = fromHistory ?? getFirstPaneId(tab.panes);
@@ -228,10 +225,8 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
 
   setActivePane: (paneId: string) => {
     set((state) => {
-      // Push to focus history, deduplicating (remove old entry, add to end)
       const history = state.paneFocusHistory.filter((id) => id !== paneId);
       history.push(paneId);
-      // Cap at 50 entries to avoid unbounded growth
       if (history.length > 50) history.shift();
       return { activePaneId: paneId, paneFocusHistory: history };
     });
@@ -388,10 +383,8 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
       if (!tab) return state;
 
       const paneCount = countPaneNodes(tab.panes);
-      // Remove closed pane from focus history
       const newHistory = state.paneFocusHistory.filter((id) => id !== paneId);
 
-      // Last pane in tab — close the entire tab
       if (paneCount <= 1) {
         const newTabs = state.tabs.filter((t) => t.id !== tab.id);
         const newPanes = { ...state.panes };
@@ -413,7 +406,6 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
         return { tabs: newTabs, panes: newPanes, activeTabId: newActiveTabId, activePaneId: newActivePaneId, paneFocusHistory: newHistory };
       }
 
-      // Remove pane from tree, collapsing the parent split
       const newTree = removePaneFromTree(tab.panes, paneId);
       if (!newTree) return state;
 
@@ -424,8 +416,6 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
         t.id === tab.id ? { ...t, panes: newTree } : t
       );
 
-      // Focus the last-focused surviving pane (Hyprland-style),
-      // falling back to the first pane in the tree
       let newActivePaneId = state.activePaneId;
       if (state.activePaneId === paneId) {
         const remainingIds = new Set(collectPaneIds(newTree));
@@ -442,17 +432,14 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
       const tab = state.tabs.find((t) => collectPaneIds(t.panes).includes(paneId));
       if (!tab) return state;
 
-      // No-op if pane is the only one in the tab
       if (countPaneNodes(tab.panes) <= 1) return state;
 
-      // Remove pane from the current tab's split tree
       const newTree = removePaneFromTree(tab.panes, paneId);
       if (!newTree) return state;
 
       const pane = state.panes[paneId];
       const shellType = pane?.shellType ?? "powershell";
 
-      // Create a new tab wrapping the detached pane
       const newTabId = crypto.randomUUID();
       const newTab: TerminalTab = {
         id: newTabId,
@@ -463,7 +450,6 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
         isActive: true,
       };
 
-      // Update the source tab's tree
       const updatedTabs = state.tabs.map((t) =>
         t.id === tab.id ? { ...t, panes: newTree, isActive: false } : { ...t, isActive: false }
       );
@@ -481,12 +467,10 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
     const tab = state.tabs.find((t) => t.id === tabId);
     if (!tab) return;
     
-    // Create a deep copy of the tab's pane tree structure
     const cloneTree = (node: SplitNode): SplitNode => {
       if (node.type === "pane") {
         const originalPane = state.panes[node.paneId!];
         if (!originalPane) {
-          // If pane doesn't exist, return a new pane with default shell
           const newPaneId = crypto.randomUUID();
           const shell = getDefaultShell();
           const newPane: TerminalPane = {
@@ -502,11 +486,10 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
           return { type: "pane", paneId: newPaneId };
         }
         
-        // Clone the pane with a new ID
         const newPaneId = crypto.randomUUID();
         const newPane: TerminalPane = {
           id: newPaneId,
-          sessionId: "", // New session will be created when terminal initializes
+          sessionId: "",
           blocks: originalPane.blocks.map(block => ({
             ...block,
             id: crypto.randomUUID(),
@@ -523,7 +506,6 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
         set((s) => ({ panes: { ...s.panes, [newPaneId]: newPane } }));
         return { type: "pane", paneId: newPaneId };
       } else {
-        // Clone split node
         return {
           type: "split",
           direction: node.direction,
@@ -538,7 +520,6 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
     
     const clonedPanesTree = cloneTree(tab.panes);
     
-    // Create new tab with cloned structure
     const newTabId = crypto.randomUUID();
     const newTab: TerminalTab = {
       id: newTabId,
@@ -560,7 +541,6 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
     const state = get();
     const toClose = state.tabs.filter((t) => t.id !== tabId);
     toClose.forEach((t) => get().removeTab(t.id));
-    // Ensure the surviving tab is active
     get().setActiveTab(tabId);
   },
 
@@ -644,11 +624,9 @@ function removePaneFromTree(node: SplitNode, targetPaneId: string): SplitNode | 
 
   const [left, right] = node.children;
 
-  // If target is a direct child, return the sibling
   if (left.type === "pane" && left.paneId === targetPaneId) return right;
   if (right.type === "pane" && right.paneId === targetPaneId) return left;
 
-  // Recurse into children
   const newLeft = removePaneFromTree(left, targetPaneId);
   const newRight = removePaneFromTree(right, targetPaneId);
 
