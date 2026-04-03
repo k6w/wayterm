@@ -37,9 +37,9 @@ interface GitStore {
   currentBranch: string | null;
   isLoading: boolean;
   error: string | null;
-  fetchStatus: (path: string) => Promise<void>;
-  fetchBranches: (path: string) => Promise<void>;
-  fetchCommits: (path: string, limit?: number) => Promise<void>;
+  fetchStatus: (path: string, connectionId?: string) => Promise<void>;
+  fetchBranches: (path: string, connectionId?: string) => Promise<void>;
+  fetchCommits: (path: string, limit?: number, connectionId?: string) => Promise<void>;
   fetchRemotes: (path: string) => Promise<void>;
   fetchDiff: (path: string, file?: string) => Promise<GitDiff[]>;
   checkout: (path: string, branch: string) => Promise<void>;
@@ -62,10 +62,10 @@ export const useGitStore = create<GitStore>((set, get) => ({
   isLoading: false,
   error: null,
 
-  fetchStatus: async (path: string) => {
+  fetchStatus: async (path: string, connectionId?: string) => {
     set({ isLoading: true, error: null });
     try {
-      const rawStatus = await gitGetStatus(path);
+      const rawStatus = await gitGetStatus(path, connectionId);
       const status: GitStatusExtended = {
         ...rawStatus,
         modified: [],
@@ -81,20 +81,20 @@ export const useGitStore = create<GitStore>((set, get) => ({
     }
   },
 
-  fetchBranches: async (path: string) => {
+  fetchBranches: async (path: string, connectionId?: string) => {
     set({ isLoading: true, error: null });
     try {
-      const branches = await gitGetBranches(path);
+      const branches = await gitGetBranches(path, connectionId);
       set({ branches, isLoading: false });
     } catch (error) {
       set({ error: String(error), isLoading: false });
     }
   },
 
-  fetchCommits: async (path: string, limit = 50) => {
+  fetchCommits: async (path: string, limit = 50, connectionId?: string) => {
     set({ isLoading: true, error: null });
     try {
-      const commits = await gitGetCommits(path, limit);
+      const commits = await gitGetCommits(path, limit, connectionId);
       set({ commits, isLoading: false });
     } catch (error) {
       set({ error: String(error), isLoading: false });

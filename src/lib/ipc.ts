@@ -293,16 +293,16 @@ export async function gitIsDirty(path: string): Promise<boolean> {
   return invoke("git_is_dirty", { path });
 }
 
-export async function gitGetStatus(path: string): Promise<import("../types/git").GitStatus> {
-  return invoke("git_get_status", { path });
+export async function gitGetStatus(path: string, connectionId?: string): Promise<import("../types/git").GitStatus> {
+  return invoke("git_get_status", { path, connectionId });
 }
 
-export async function gitGetBranches(path: string): Promise<import("../types/git").GitBranch[]> {
-  return invoke("git_get_branches", { path });
+export async function gitGetBranches(path: string, connectionId?: string): Promise<import("../types/git").GitBranch[]> {
+  return invoke("git_get_branches", { path, connectionId });
 }
 
-export async function gitGetCommits(path: string, limit: number): Promise<import("../types/git").GitCommit[]> {
-  return invoke("git_get_commits", { path, limit });
+export async function gitGetCommits(path: string, limit: number, connectionId?: string): Promise<import("../types/git").GitCommit[]> {
+  return invoke("git_get_commits", { path, limit, connectionId });
 }
 
 export async function gitGetRemotes(path: string): Promise<import("../types/git").GitRemote[]> {

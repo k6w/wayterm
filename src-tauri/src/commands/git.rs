@@ -1,6 +1,58 @@
 use serde::{Deserialize, Serialize};
 use std::path::Path;
 use std::process::Command;
+use crate::db::{DbPool, connections};
+use tauri::State;
+
+async fn execute_ssh_git_command(pool: &DbPool, connection_id: &str, command: &str, cwd: &str) -> Result<String, String> {
+    let conn = connections::get(pool, connection_id)?
+        .ok_or_else(|| "Connection not found".to_string())?;
+    
+    let mut ssh_cmd = Command::new("ssh");
+    ssh_cmd.arg("-p").arg(conn.port.to_string());
+    ssh_cmd.arg("-o").arg("StrictHostKeyChecking=accept-new");
+    
+    if conn.auth_method == "key" {
+        if let Some(key_id) = conn.private_key_id.as_deref() {
+            let key_path = write_temp_key(pool, key_id)?;
+            ssh_cmd.arg("-i").arg(key_path);
+        }
+    }
+    
+    let full_command = format!("cd {} && {}", cwd, command);
+    ssh_cmd.arg(format!("{}@{}", conn.username, conn.host));
+    ssh_cmd.arg(full_command);
+    
+    let output = ssh_cmd.output()
+        .map_err(|e| format!("Failed to execute SSH command: {}", e))?;
+    
+    if !output.status.success() {
+        return Err(String::from_utf8_lossy(&output.stderr).to_string());
+    }
+    
+    Ok(String::from_utf8_lossy(&output.stdout).to_string())
+}
+
+fn write_temp_key(pool: &DbPool, key_id: &str) -> Result<String, String> {
+    let raw = crate::db::keys::get_private_key(pool, key_id)?;
+    let raw_str = String::from_utf8(raw).map_err(|e| format!("Key is not valid UTF-8: {}", e))?;
+    let normalized = raw_str.replace("\r\n", "\n").replace('\r', "\n");
+    let content = if normalized.ends_with('\n') {
+        normalized
+    } else {
+        format!("{}\n", normalized)
+    };
+    let path = std::env::temp_dir().join(format!("nexterm_key_{}", key_id));
+    std::fs::write(&path, content.as_bytes()).map_err(|e| e.to_string())?;
+    
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).map_err(|e| e.to_string())?;
+    }
+    
+    Ok(path.to_string_lossy().to_string())
+}
 
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -88,7 +140,11 @@ pub async fn git_is_dirty(path: String) -> Result<bool, String> {
 }
 
 #[tauri::command]
-pub async fn git_get_status(path: String) -> Result<GitStatus, String> {
+pub async fn git_get_status(path: String, connection_id: Option<String>, pool: State<'_, DbPool>) -> Result<GitStatus, String> {
+    if let Some(conn_id) = connection_id {
+        return git_get_status_ssh(&pool, &conn_id, &path).await;
+    }
+
     if !Path::new(&path).join(".git").exists() {
         return Err("Not a git repository".to_string());
     }
@@ -165,7 +221,11 @@ pub async fn git_get_status(path: String) -> Result<GitStatus, String> {
 }
 
 #[tauri::command]
-pub async fn git_get_branches(path: String) -> Result<Vec<GitBranch>, String> {
+pub async fn git_get_branches(path: String, connection_id: Option<String>, pool: State<'_, DbPool>) -> Result<Vec<GitBranch>, String> {
+    if let Some(conn_id) = connection_id {
+        return git_get_branches_ssh(&pool, &conn_id, &path).await;
+    }
+
     let output = Command::new("git")
         .args(["branch", "-vv", "--all"])
         .current_dir(&path)
@@ -210,7 +270,11 @@ pub async fn git_get_branches(path: String) -> Result<Vec<GitBranch>, String> {
 }
 
 #[tauri::command]
-pub async fn git_get_commits(path: String, limit: i32) -> Result<Vec<GitCommit>, String> {
+pub async fn git_get_commits(path: String, limit: i32, connection_id: Option<String>, pool: State<'_, DbPool>) -> Result<Vec<GitCommit>, String> {
+    if let Some(conn_id) = connection_id {
+        return git_get_commits_ssh(&pool, &conn_id, &path, limit).await;
+    }
+
     let output = Command::new("git")
         .args([
             "log",
@@ -483,4 +547,155 @@ pub async fn git_stash_pop(path: String) -> Result<(), String> {
     }
 
     Ok(())
+}
+
+
+async fn git_get_status_ssh(pool: &DbPool, connection_id: &str, path: &str) -> Result<GitStatus, String> {
+    let output = execute_ssh_git_command(pool, connection_id, "git status --porcelain --branch && echo '---' && git stash list", path).await?;
+    
+    let mut staged = 0;
+    let mut unstaged = 0;
+    let mut untracked = 0;
+    let mut conflicted = 0;
+    let mut ahead = 0;
+    let mut behind = 0;
+    let mut branch = String::from("main");
+    let mut stashes = 0;
+    let mut in_stash_section = false;
+    
+    for line in output.lines() {
+        if line == "---" {
+            in_stash_section = true;
+            continue;
+        }
+        
+        if in_stash_section {
+            stashes += 1;
+            continue;
+        }
+        
+        if line.starts_with("##") {
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            if parts.len() > 1 {
+                branch = parts[1].split("...").next().unwrap_or("main").to_string();
+            }
+            if let Some(tracking) = line.split('[').nth(1) {
+                if tracking.contains("ahead") {
+                    if let Some(num) = tracking.split("ahead ").nth(1) {
+                        ahead = num.split(']').next().unwrap_or("0").parse().unwrap_or(0);
+                    }
+                }
+                if tracking.contains("behind") {
+                    if let Some(num) = tracking.split("behind ").nth(1) {
+                        behind = num.split(']').next().unwrap_or("0").parse().unwrap_or(0);
+                    }
+                }
+            }
+            continue;
+        }
+        
+        let chars: Vec<char> = line.chars().collect();
+        if chars.len() < 2 {
+            continue;
+        }
+        
+        match (chars[0], chars[1]) {
+            ('?', '?') => untracked += 1,
+            ('U', _) | (_, 'U') | ('A', 'A') | ('D', 'D') => conflicted += 1,
+            (x, ' ') if x != ' ' && x != '?' => staged += 1,
+            (' ', y) if y != ' ' && y != '?' => unstaged += 1,
+            (x, y) if x != ' ' && y != ' ' && x != '?' && y != '?' => {
+                staged += 1;
+                unstaged += 1;
+            }
+            _ => {}
+        }
+    }
+    
+    Ok(GitStatus {
+        branch,
+        ahead,
+        behind,
+        staged,
+        unstaged,
+        untracked,
+        conflicted,
+        stashes,
+    })
+}
+
+async fn git_get_branches_ssh(pool: &DbPool, connection_id: &str, path: &str) -> Result<Vec<GitBranch>, String> {
+    let output = execute_ssh_git_command(pool, connection_id, "git branch -vv --all", path).await?;
+    
+    let mut branches = Vec::new();
+    
+    for line in output.lines() {
+        let line = line.trim();
+        if line.is_empty() {
+            continue;
+        }
+        
+        let current = line.starts_with('*');
+        let line = if current { &line[2..] } else { line };
+        let parts: Vec<&str> = line.split_whitespace().collect();
+        
+        if parts.is_empty() {
+            continue;
+        }
+        
+        let name = parts[0].to_string();
+        let remote = name.starts_with("remotes/");
+        
+        branches.push(GitBranch {
+            name,
+            current,
+            remote,
+            upstream: None,
+            last_commit: None,
+            last_commit_date: None,
+        });
+    }
+    
+    Ok(branches)
+}
+
+async fn git_get_commits_ssh(pool: &DbPool, connection_id: &str, path: &str, limit: i32) -> Result<Vec<GitCommit>, String> {
+    let cmd = format!("git log -{} --pretty=format:'%H|%h|%an|%ae|%at|%s' --name-only", limit);
+    let output = execute_ssh_git_command(pool, connection_id, &cmd, path).await?;
+    
+    let mut commits = Vec::new();
+    let mut current_commit: Option<GitCommit> = None;
+    let mut files = Vec::new();
+    
+    for line in output.lines() {
+        if line.contains('|') {
+            if let Some(mut commit) = current_commit.take() {
+                commit.files = files.clone();
+                commits.push(commit);
+                files.clear();
+            }
+            
+            let parts: Vec<&str> = line.split('|').collect();
+            if parts.len() >= 6 {
+                current_commit = Some(GitCommit {
+                    hash: parts[0].to_string(),
+                    short_hash: parts[1].to_string(),
+                    author: parts[2].to_string(),
+                    email: parts[3].to_string(),
+                    date: parts[4].parse().unwrap_or(0),
+                    message: parts[5].to_string(),
+                    files: Vec::new(),
+                });
+            }
+        } else if !line.is_empty() {
+            files.push(line.to_string());
+        }
+    }
+    
+    if let Some(mut commit) = current_commit {
+        commit.files = files;
+        commits.push(commit);
+    }
+    
+    Ok(commits)
 }

@@ -16,22 +16,24 @@ export function GitPanel() {
   const panes = useTerminalStore((s) => s.panes);
   const activePane = activePaneId ? panes[activePaneId] : null;
   const cwd = activePane?.cwd || '';
+  const connectionId = activePane?.sshConnectionId;
+  const isSSH = activePane?.shellType === 'ssh';
   const [lastCwd, setLastCwd] = useState('');
 
   useEffect(() => {
     if (cwd && cwd !== '~' && cwd.length > 0 && cwd !== lastCwd) {
       setLastCwd(cwd);
-      fetchStatus(cwd);
-      fetchBranches(cwd);
-      fetchCommits(cwd, 50);
+      fetchStatus(cwd, isSSH ? connectionId : undefined);
+      fetchBranches(cwd, isSSH ? connectionId : undefined);
+      fetchCommits(cwd, 50, isSSH ? connectionId : undefined);
     }
-  }, [cwd, lastCwd, fetchStatus, fetchBranches, fetchCommits]);
+  }, [cwd, lastCwd, connectionId, isSSH, fetchStatus, fetchBranches, fetchCommits]);
 
   const handleRefresh = () => {
     if (cwd && cwd !== '~' && cwd.length > 0) {
-      fetchStatus(cwd);
-      fetchBranches(cwd);
-      fetchCommits(cwd, 50);
+      fetchStatus(cwd, isSSH ? connectionId : undefined);
+      fetchBranches(cwd, isSSH ? connectionId : undefined);
+      fetchCommits(cwd, 50, isSSH ? connectionId : undefined);
     }
   };
 
@@ -373,7 +375,7 @@ export function GitPanel() {
                   <div className="flex-1 min-w-0">
                     <div className="text-xs font-medium text-text-primary break-words">{commit.message}</div>
                     <div className="text-[10px] text-text-muted mt-1">
-                      {commit.author} • {new Date(commit.date).toLocaleString()}
+                      {commit.author} • {new Date(commit.date * 1000).toLocaleString()}
                     </div>
                     <div className="text-[10px] text-text-tertiary font-mono mt-0.5">
                       {commit.hash.substring(0, 7)}
