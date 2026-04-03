@@ -1,4 +1,4 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X } from "lucide-react";
 import { useTerminalStore } from "../../stores/terminal";
@@ -6,7 +6,11 @@ import { isMac } from "../../lib/platform";
 import QuickActions from "./QuickActions";
 import ConnectionTree from "./ConnectionTree";
 import WorkspaceList from "./WorkspaceList";
+import { GitPanel } from "../git/GitPanel";
+import { DatabasePanel } from "../database/DatabasePanel";
+import { ClipboardManager } from "../ui/ClipboardManager";
 import type { SshConnection } from "../../types/ssh";
+import { GitBranch, Database, Clipboard, FolderTree, Layers } from "lucide-react";
 
 interface SidebarProps {
   onNewSsh?: () => void;
@@ -17,6 +21,7 @@ export default function Sidebar({ onNewSsh, onEditSsh }: SidebarProps) {
   const sidebarOpen = useTerminalStore((s) => s.sidebarOpen);
   const toggleSidebar = useTerminalStore((s) => s.toggleSidebar);
   const panelRef = useRef<HTMLDivElement>(null);
+  const [activeView, setActiveView] = useState<'connections' | 'git' | 'database' | 'clipboard'>('connections');
 
   const handleClose = useCallback(() => {
     if (sidebarOpen) {
@@ -99,23 +104,67 @@ export default function Sidebar({ onNewSsh, onEditSsh }: SidebarProps) {
               </button>
             </div>
 
+            <div className="flex flex-col gap-2 p-2 border-b border-white/[0.08]">
+              <div className="flex gap-1">
+                <button
+                  onClick={() => setActiveView('connections')}
+                  className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded text-xs transition-colors ${
+                    activeView === 'connections' ? 'bg-white/[0.12] text-text-primary' : 'text-text-muted hover:bg-white/[0.08]'
+                  }`}
+                >
+                  <FolderTree size={14} />
+                  <span>SSH</span>
+                </button>
+                <button
+                  onClick={() => setActiveView('git')}
+                  className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded text-xs transition-colors ${
+                    activeView === 'git' ? 'bg-white/[0.12] text-text-primary' : 'text-text-muted hover:bg-white/[0.08]'
+                  }`}
+                >
+                  <GitBranch size={14} />
+                  <span>Git</span>
+                </button>
+                <button
+                  onClick={() => setActiveView('database')}
+                  className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded text-xs transition-colors ${
+                    activeView === 'database' ? 'bg-white/[0.12] text-text-primary' : 'text-text-muted hover:bg-white/[0.08]'
+                  }`}
+                >
+                  <Database size={14} />
+                  <span>DB</span>
+                </button>
+                <button
+                  onClick={() => setActiveView('clipboard')}
+                  className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded text-xs transition-colors ${
+                    activeView === 'clipboard' ? 'bg-white/[0.12] text-text-primary' : 'text-text-muted hover:bg-white/[0.08]'
+                  }`}
+                >
+                  <Clipboard size={14} />
+                  <span>Clip</span>
+                </button>
+              </div>
+            </div>
+
             <div className="flex flex-1 flex-col overflow-y-auto">
-              <QuickActions onNewSsh={onNewSsh} />
-
-              <div className="mx-3 border-t border-white/[0.08]" />
-
-              <div className="flex-1 py-1">
-                <ConnectionTree
-                  onAddConnection={onNewSsh}
-                  onEditConnection={onEditSsh}
-                />
-              </div>
-
-              <div className="mx-3 border-t border-white/[0.08]" />
-
-              <div className="py-1">
-                <WorkspaceList />
-              </div>
+              {activeView === 'connections' && (
+                <>
+                  <QuickActions onNewSsh={onNewSsh} />
+                  <div className="mx-3 border-t border-white/[0.08]" />
+                  <div className="flex-1 py-1">
+                    <ConnectionTree
+                      onAddConnection={onNewSsh}
+                      onEditConnection={onEditSsh}
+                    />
+                  </div>
+                  <div className="mx-3 border-t border-white/[0.08]" />
+                  <div className="py-1">
+                    <WorkspaceList />
+                  </div>
+                </>
+              )}
+              {activeView === 'git' && <GitPanel />}
+              {activeView === 'database' && <DatabasePanel />}
+              {activeView === 'clipboard' && <ClipboardManager />}
             </div>
           </motion.div>
         </>

@@ -1,5 +1,6 @@
 pub mod connections;
 pub mod custom_themes;
+pub mod database_connections;
 pub mod history;
 pub mod keys;
 pub mod migrations;

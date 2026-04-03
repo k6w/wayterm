@@ -3,6 +3,7 @@ import type { FitAddon } from "@xterm/addon-fit";
 import type { WebglAddon } from "@xterm/addon-webgl";
 import type { UnlistenFn } from "@tauri-apps/api/event";
 import { bufferSaveBatch } from "./ipc";
+import { useClipboardStore } from "../stores/clipboard";
 
 export interface CachedTerminal {
   terminal: Terminal;
@@ -42,6 +43,7 @@ export function copySelection(paneId: string): boolean {
   const sel = term.getSelection();
   if (!sel) return false;
   navigator.clipboard.writeText(sel);
+  useClipboardStore.getState().addEntry(sel, 'terminal');
   return true;
 }
 

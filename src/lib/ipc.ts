@@ -292,3 +292,87 @@ export async function gitGetBranch(path: string): Promise<string | null> {
 export async function gitIsDirty(path: string): Promise<boolean> {
   return invoke("git_is_dirty", { path });
 }
+
+export async function gitGetStatus(path: string): Promise<import("../types/git").GitStatus> {
+  return invoke("git_get_status", { path });
+}
+
+export async function gitGetBranches(path: string): Promise<import("../types/git").GitBranch[]> {
+  return invoke("git_get_branches", { path });
+}
+
+export async function gitGetCommits(path: string, limit: number): Promise<import("../types/git").GitCommit[]> {
+  return invoke("git_get_commits", { path, limit });
+}
+
+export async function gitGetRemotes(path: string): Promise<import("../types/git").GitRemote[]> {
+  return invoke("git_get_remotes", { path });
+}
+
+export async function gitGetDiff(path: string, file?: string): Promise<import("../types/git").GitDiff[]> {
+  return invoke("git_get_diff", { path, file });
+}
+
+export async function gitCheckout(path: string, branch: string): Promise<void> {
+  return invoke("git_checkout", { path, branch });
+}
+
+export async function gitPull(path: string): Promise<void> {
+  return invoke("git_pull", { path });
+}
+
+export async function gitPush(path: string): Promise<void> {
+  return invoke("git_push", { path });
+}
+
+export async function gitCommit(path: string, message: string): Promise<void> {
+  return invoke("git_commit", { path, message });
+}
+
+export async function gitStage(path: string, files: string[]): Promise<void> {
+  return invoke("git_stage", { path, files });
+}
+
+export async function gitUnstage(path: string, files: string[]): Promise<void> {
+  return invoke("git_unstage", { path, files });
+}
+
+export async function gitStash(path: string, message?: string): Promise<void> {
+  return invoke("git_stash", { path, message });
+}
+
+export async function gitStashPop(path: string): Promise<void> {
+  return invoke("git_stash_pop", { path });
+}
+
+export async function dbConnect(connectionId: string): Promise<void> {
+  return invoke("db_connect", { connectionId });
+}
+
+export async function dbDisconnect(connectionId: string): Promise<void> {
+  return invoke("db_disconnect", { connectionId });
+}
+
+export async function dbExecuteQuery(connectionId: string, query: string): Promise<import("../types/database").QueryResult> {
+  return invoke("db_execute_query", { connectionId, query });
+}
+
+export async function dbGetTables(connectionId: string): Promise<import("../types/database").DatabaseTable[]> {
+  return invoke("db_get_tables", { connectionId });
+}
+
+export async function dbGetTableSchema(connectionId: string, table: string): Promise<import("../types/database").DatabaseTable> {
+  return invoke("db_get_table_schema", { connectionId, table });
+}
+
+export async function dbListConnections(): Promise<import("../types/database").DatabaseConnection[]> {
+  return invoke("db_list_connections");
+}
+
+export async function dbSaveConnection(connection: import("../types/database").DatabaseConnection): Promise<void> {
+  return invoke("db_save_connection", { connection });
+}
+
+export async function dbDeleteConnection(id: string): Promise<void> {
+  return invoke("db_delete_connection", { id });
+}

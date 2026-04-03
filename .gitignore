@@ -6,3 +6,7 @@ src-tauri/target/
 *.key
 *.key.pub
 /docs
+FEATURES_COMPLETE.md
+.gitignore
+IMPLEMENTATION_STATUS.md
+FUTURE_FEATURES.md

@@ -4,11 +4,14 @@ import { Terminal } from "@xterm/xterm";
 import { WebglAddon } from "@xterm/addon-webgl";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebLinksAddon } from "@xterm/addon-web-links";
+import { SearchAddon } from "@xterm/addon-search";
 import { useThemeStore } from "../../stores/theme";
 import { useSettingsStore } from "../../stores/settings";
 import { useTerminalStore } from "../../stores/terminal";
+import { useSearchStore } from "../../stores/search";
 import DropZoneOverlay from "./DropZoneOverlay";
 import PaneContextMenu from "./PaneContextMenu";
+import { SearchBar } from "../search/SearchBar";
 import {
   terminalSpawn,
   terminalWrite,
@@ -210,10 +213,13 @@ export default function TerminalPane({
   const termRef = useRef<Terminal | null>(null);
   const fitRef = useRef<FitAddon | null>(null);
   const sessionRef = useRef<string | null>(null);
+  const searchAddonRef = useRef<SearchAddon | null>(null);
 
   const theme = useThemeStore((s) => s.active);
   const settings = useSettingsStore((s) => s.settings);
   const updatePaneSession = useTerminalStore((s) => s.updatePaneSession);
+  const { query, options } = useSearchStore();
+  const [showSearch, setShowSearch] = useState(false);
 
   // ── Mount: reuse cached terminal or create fresh ──
   useEffect(() => {
@@ -327,6 +333,10 @@ export default function TerminalPane({
         // Enable web links - clickable URLs and file paths
         const webLinksAddon = new WebLinksAddon();
         term.loadAddon(webLinksAddon);
+
+        const searchAddon = new SearchAddon();
+        term.loadAddon(searchAddon);
+        searchAddonRef.current = searchAddon;
 
         // WebGL is faster but always opaque — skip it when vibrancy is on
         let webgl: import("@xterm/addon-webgl").WebglAddon | null = null;
@@ -652,6 +662,39 @@ export default function TerminalPane({
     }
   }, [isActive]);
 
+  useEffect(() => {
+    if (!searchAddonRef.current || !query) return;
+    searchAddonRef.current.findNext(query, options);
+  }, [query, options]);
+
+  useEffect(() => {
+    if (!isActive) return;
+    
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f' && !e.shiftKey) {
+        e.preventDefault();
+        e.stopPropagation();
+        setShowSearch(true);
+      }
+      if (e.key === 'Escape' && showSearch) {
+        e.preventDefault();
+        e.stopPropagation();
+        setShowSearch(false);
+      }
+    };
+
+    const handleOpenSearch = () => {
+      setShowSearch(true);
+    };
+    
+    window.addEventListener('keydown', handleKeyDown, true);
+    window.addEventListener('nexterm:open-search', handleOpenSearch);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown, true);
+      window.removeEventListener('nexterm:open-search', handleOpenSearch);
+    };
+  }, [isActive, showSearch]);
+
   // ── UI state ──
   const draggingTabId = useTerminalStore((s) => s.draggingTabId);
   const dragOverPaneId = useTerminalStore((s) => s.dragOverPaneId);
@@ -716,6 +759,13 @@ export default function TerminalPane({
         setCtxMenu({ x: e.clientX, y: e.clientY });
       }}
     >
+      {showSearch && (
+        <SearchBar
+          terminalId={paneId}
+          onClose={() => setShowSearch(false)}
+        />
+      )}
+
       <div
         ref={containerRef}
         className="h-full w-full"

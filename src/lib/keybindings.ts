@@ -1,5 +1,6 @@
 import { useTerminalStore } from "../stores/terminal";
 import { useSettingsStore } from "../stores/settings";
+import { useClipboardStore } from "../stores/clipboard";
 import type { TerminalPane } from "../types/terminal";
 import { getDefaultShell } from "./shell-detect";
 import { isMac } from "./platform";
@@ -154,6 +155,20 @@ export function getDefaultKeybindings(): KeyAction[] {
       handler: () => {
         const { activePaneId } = useTerminalStore.getState();
         if (activePaneId) pasteToTerminal(activePaneId);
+      },
+    },
+    {
+      id: "search-terminal",
+      label: "Search in Terminal",
+      keys: `${mod}+f`,
+      handler: () => {},
+    },
+    {
+      id: "clipboard-manager",
+      label: "Clipboard Manager",
+      keys: `${mod}+Shift+v`,
+      handler: () => {
+        store.toggleSidebar();
       },
     },
   ];

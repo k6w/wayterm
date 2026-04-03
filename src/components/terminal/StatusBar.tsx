@@ -17,6 +17,9 @@ import {
   Sun,
   Moon,
   ArrowRightLeft,
+  Search,
+  Clipboard,
+  Database,
 } from "lucide-react";
 import { useTerminalStore, collectPaneIds } from "../../stores/terminal";
 import { useThemeStore } from "../../stores/theme";
@@ -30,6 +33,7 @@ import { splitActivePane } from "../../lib/keybindings";
 import { clearBuffer } from "../../lib/terminal-registry";
 import { gitGetBranch, gitIsDirty } from "../../lib/ipc";
 import QuickPortForwardDialog from "../ssh/QuickPortForwardDialog";
+import { GitStatusWidget } from "../git/GitStatusWidget";
 
 const btnClass =
   "flex items-center justify-center h-5 w-5 rounded transition-colors cursor-pointer hover:bg-bg-tertiary";
@@ -53,6 +57,11 @@ export default function StatusBar() {
   const [copiedFlash, setCopiedFlash] = useState(false);
   const [bellEnabled, setBellEnabled] = useState(true);
   const [showQuickPortForward, setShowQuickPortForward] = useState(false);
+
+  const handleSearchClick = () => {
+    const event = new CustomEvent('nexterm:open-search');
+    window.dispatchEvent(event);
+  };
 
   // Look up SSH username for remote ~ shortening
   const sshUsername = useSshStore((s) => {
@@ -115,7 +124,7 @@ export default function StatusBar() {
       </button>
 
       {/* Git branch */}
-      {pane.cwd && <GitBranchInfo cwd={pane.cwd} />}
+      <GitStatusWidget />
 
       {/* Pane indicator */}
       {paneCount > 1 && (
@@ -156,6 +165,15 @@ export default function StatusBar() {
       <div className="flex-1" />
 
       {/* === RIGHT SIDE === */}
+
+      {/* Search */}
+      <button
+        className={btnClass}
+        onClick={handleSearchClick}
+        title="Search in Terminal (Ctrl+F)"
+      >
+        <Search size={13} />
+      </button>
 
       {/* Clear buffer */}
 
