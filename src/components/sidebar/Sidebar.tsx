@@ -92,7 +92,7 @@ export default function Sidebar({ onNewSsh, onEditSsh }: SidebarProps) {
               mass: 0.8,
             }}
           >
-            <div className={`flex h-10 shrink-0 items-center justify-between border-b border-white/[0.08] px-3 ${isMac ? "pl-[84px]" : ""}`}>
+            <div className={`flex h-10 shrink-0 items-center justify-between border-b border-white/[0.08] px-3 bg-white/[0.02] ${isMac ? "pl-[84px]" : ""}`}>
               <span className="text-sm font-medium text-text-primary">
                 Nexterm
               </span>
@@ -104,7 +104,7 @@ export default function Sidebar({ onNewSsh, onEditSsh }: SidebarProps) {
               </button>
             </div>
 
-            <div className="flex flex-col gap-2 p-2 border-b border-white/[0.08]">
+            <div className="flex flex-col gap-2 p-2 border-b border-white/[0.08] bg-white/[0.02]">
               <div className="flex gap-1">
                 <button
                   onClick={() => setActiveView('connections')}
