@@ -28,6 +28,9 @@ export default function TabStrip() {
   const removeTab = useTerminalStore((s) => s.removeTab);
   const setActiveTab = useTerminalStore((s) => s.setActiveTab);
   const renameTab = useTerminalStore((s) => s.renameTab);
+  const tabPosition = useSettingsStore((s) => s.settings.appearance.tabPosition);
+
+  const isVertical = tabPosition === 'left' || tabPosition === 'right';
 
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dropIndex, setDropIndex] = useState<number | null>(null);
@@ -150,8 +153,12 @@ export default function TabStrip() {
   );
 
   return (
-    <div data-tauri-drag-region className="flex h-full min-w-0 flex-1 items-center">
-      <div data-tauri-drag-region className="flex h-full items-center overflow-x-auto overflow-y-hidden scrollbar-none">
+    <div data-tauri-drag-region className={`flex min-w-0 items-center ${
+      isVertical ? 'flex-col w-full flex-1 overflow-y-auto' : 'h-full flex-1 overflow-x-auto'
+    }`}>
+      <div data-tauri-drag-region className={`flex items-center scrollbar-none ${
+        isVertical ? 'flex-col w-full' : 'h-full'
+      }`}>
         <AnimatePresence initial={false} mode="popLayout">
           {tabs.map((tab, i) => (
             <Tab
@@ -165,13 +172,15 @@ export default function TabStrip() {
               onClick={setActiveTab}
               onClose={removeTab}
               onRename={handleRename}
+              isVertical={isVertical}
             />
           ))}
         </AnimatePresence>
       </div>
-      <NewTabButton onAdd={addTab} />
-      {/* Remaining space is draggable via the parent's data-tauri-drag-region + JS handler */}
-      <div data-tauri-drag-region className="h-full flex-1 min-w-[20px]" />
+      <NewTabButton onAdd={addTab} isVertical={isVertical} />
+      <div data-tauri-drag-region className={`shrink-0 ${
+        isVertical ? 'w-full flex-1 min-h-[20px]' : 'h-full flex-1 min-w-[20px]'
+      }`} />
     </div>
   );
 }
@@ -190,7 +199,7 @@ const SHELL_ICONS: Record<string, React.ReactNode> = {
   sftp: <HardDrive size={14} />,
 };
 
-function NewTabButton({ onAdd }: { onAdd: (type: ShellType, path?: string) => void }) {
+function NewTabButton({ onAdd, isVertical }: { onAdd: (type: ShellType, path?: string) => void; isVertical: boolean }) {
   const [open, setOpen] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -224,12 +233,16 @@ function NewTabButton({ onAdd }: { onAdd: (type: ShellType, path?: string) => vo
   return (
     <div
       ref={containerRef}
-      className="relative shrink-0"
+      className={`relative shrink-0 ${
+        isVertical ? 'w-full' : ''
+      }`}
       onMouseEnter={handleEnter}
       onMouseLeave={handleLeave}
     >
       <button
-        className="flex size-7 items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-bg-tertiary hover:text-text-primary"
+        className={`flex items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-bg-tertiary hover:text-text-primary ${
+          isVertical ? 'w-full h-10 my-1' : 'size-7'
+        }`}
         onClick={() => {
           onAdd(defaultShell.type, defaultShell.path);
           setOpen(false);
@@ -237,11 +250,14 @@ function NewTabButton({ onAdd }: { onAdd: (type: ShellType, path?: string) => vo
         title={`New tab (${defaultShell.label})`}
       >
         <Plus className="size-3.5" />
+        {isVertical && <span className="ml-2 text-xs">New Tab</span>}
       </button>
 
       {open && (
         <div
-          className="absolute top-full left-0 z-[200] mt-1 min-w-[170px] rounded-lg border border-border py-1 shadow-xl"
+          className={`absolute z-[200] min-w-[170px] rounded-lg border border-border py-1 shadow-xl ${
+            isVertical ? 'left-full top-0 ml-2' : 'top-full left-0 mt-1'
+          }`}
           style={{
             backgroundColor: ntMenuBg,
             backdropFilter: ntVibrancy ? "blur(20px) saturate(1.3)" : undefined,

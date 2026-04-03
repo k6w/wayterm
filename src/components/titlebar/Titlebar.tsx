@@ -1,6 +1,5 @@
 import { useCallback } from "react";
 import { Menu } from "lucide-react";
-
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useTerminalStore } from "../../stores/terminal";
 import { useSettingsStore } from "../../stores/settings";
@@ -14,39 +13,59 @@ export default function Titlebar() {
   const toggleSidebar = useTerminalStore((s) => s.toggleSidebar);
   const vibrancyEnabled = useSettingsStore((s) => s.settings.appearance.vibrancyEnabled);
   const windowOpacity = useSettingsStore((s) => s.settings.appearance.windowOpacity);
+  const tabPosition = useSettingsStore((s) => s.settings.appearance.tabPosition);
   const theme = useThemeStore((s) => s.active);
 
   const handleDoubleClick = useCallback((e: React.MouseEvent) => {
-    // macOS Overlay titlebar handles double-click natively
     if (isMac) return;
     const target = e.target as HTMLElement;
     if (target.closest('[data-no-drag], button, input, a')) return;
     getCurrentWindow().toggleMaximize();
   }, []);
 
+  const isVertical = tabPosition === 'left' || tabPosition === 'right';
+  const borderClass = tabPosition === 'top' ? 'border-b' : 
+                      tabPosition === 'bottom' ? 'border-t' : 
+                      tabPosition === 'left' ? 'border-r' : 'border-l';
+
   return (
     <div
       data-tauri-drag-region
-      className={`flex w-full shrink-0 flex-col border-b border-border ${vibrancyEnabled ? "" : "bg-bg-secondary"}`}
+      className={`flex shrink-0 border-border ${vibrancyEnabled ? "" : "bg-bg-secondary"} ${
+        isVertical 
+          ? `flex-col w-[200px] h-full ${borderClass}` 
+          : `flex-col w-full ${borderClass}`
+      }`}
       style={vibrancyEnabled ? { backgroundColor: hexToRgba(theme.ui.bgSecondary, vibrancyAlpha(windowOpacity)) } : undefined}
       onDoubleClick={handleDoubleClick}
     >
-      {/* Thin top strip — always part of the titlebar div, always draggable */}
-      <div data-tauri-drag-region className="h-[3px] w-full shrink-0" />
+      {!isVertical && <div data-tauri-drag-region className="h-[3px] w-full shrink-0" />}
+      {isVertical && <div data-tauri-drag-region className="w-full h-[3px] shrink-0" />}
 
-      <div data-tauri-drag-region className="flex h-[37px] w-full items-center">
-        {/* macOS: space for native traffic lights */}
-        {isMac && <div className="w-[80px] shrink-0" />}
+      <div data-tauri-drag-region className={`flex items-center ${
+        isVertical ? 'flex-col w-full' : 'h-[37px] w-full'
+      }`}>
+        {isMac && !isVertical && <div className="w-[80px] shrink-0" />}
+        
         <button
-          className="flex h-full w-10 items-center justify-center text-text-secondary transition-colors hover:bg-bg-tertiary hover:text-text-primary"
+          className={`flex items-center justify-center text-text-secondary transition-colors hover:bg-bg-tertiary hover:text-text-primary ${
+            isVertical ? 'w-full h-10' : 'h-full w-10'
+          }`}
           onClick={toggleSidebar}
         >
           <Menu size={18} />
         </button>
 
         <TabStrip />
-        <WindowControls />
+        
+        {!isVertical && <WindowControls />}
       </div>
+      
+      {isVertical && (
+        <div className="mt-auto">
+          <WindowControls />
+        </div>
+      )}
     </div>
   );
 }

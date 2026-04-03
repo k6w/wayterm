@@ -298,7 +298,7 @@ export default function AppearancePanel() {
             </label>
             <input
               type="range"
-              min={0.3}
+              min={0.1}
               max={1.0}
               step={0.01}
               value={settings.windowOpacity}
@@ -323,7 +323,11 @@ export default function AppearancePanel() {
               max={1.5}
               step={0.05}
               value={settings.uiScale}
-              onChange={(e) => update("appearance", { uiScale: Number(e.target.value) })}
+              onChange={(e) => {
+                const scale = Number(e.target.value);
+                update("appearance", { uiScale: scale });
+                document.documentElement.style.fontSize = `${16 * scale}px`;
+              }}
               className="w-40 accent-accent"
             />
           </div>
@@ -358,7 +362,10 @@ export default function AppearancePanel() {
             {(["custom", "native"] as const).map((dec) => (
               <button
                 key={dec}
-                onClick={() => update("appearance", { windowDecorations: dec })}
+                onClick={() => {
+                  update("appearance", { windowDecorations: dec });
+                  window.location.reload();
+                }}
                 className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${
                   settings.windowDecorations === dec
                     ? "bg-accent text-white border-accent"
@@ -370,30 +377,10 @@ export default function AppearancePanel() {
             ))}
           </div>
         </div>
+        <p className="text-xs text-text-muted mt-2">Requires restart to take effect</p>
       </div>
 
-      <div>
-        <h3 className="text-sm font-medium text-text-primary mb-3">Accent Color</h3>
-        <div className="flex justify-between items-center gap-4">
-          <label className="text-sm text-text-secondary">Custom Accent</label>
-          <div className="flex items-center gap-2">
-            <input
-              type="color"
-              value={settings.accentColorOverride || "#6366f1"}
-              onChange={(e) => update("appearance", { accentColorOverride: e.target.value })}
-              className="w-8 h-8 rounded cursor-pointer bg-transparent"
-            />
-            {settings.accentColorOverride && (
-              <button
-                onClick={() => update("appearance", { accentColorOverride: null })}
-                className="text-xs text-text-muted hover:text-text-primary"
-              >
-                Clear
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
+
     </div>
   );
 }

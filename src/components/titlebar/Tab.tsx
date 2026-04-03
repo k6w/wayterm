@@ -20,6 +20,7 @@ interface TabProps {
   onClose: (id: string) => void;
   onClick: (id: string) => void;
   onRename: (id: string, title: string) => void;
+  isVertical?: boolean;
 }
 
 export default function Tab({
@@ -32,6 +33,7 @@ export default function Tab({
   onClose,
   onClick,
   onRename,
+  isVertical = false,
 }: TabProps) {
   const [hovered, setHovered] = useState(false);
   const [editing, setEditing] = useState(false);
@@ -157,13 +159,18 @@ export default function Tab({
 
       <motion.div
         layout="position"
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        exit={{ opacity: 0, x: -20 }}
+        initial={{ opacity: 0, x: isVertical ? 0 : -20, y: isVertical ? -20 : 0 }}
+        animate={{ opacity: 1, x: 0, y: 0 }}
+        exit={{ opacity: 0, x: isVertical ? 0 : -20, y: isVertical ? -20 : 0 }}
         transition={{ duration: 0.15, ease: "easeOut" }}
         className={`
-          flex h-full max-w-[200px] min-w-[120px] shrink-0 items-center gap-2
-          px-3 text-xs transition-colors select-none cursor-default
+          relative flex items-center gap-2 text-xs transition-colors select-none cursor-default
+          px-3 shrink-0
+          ${
+            isVertical 
+              ? 'w-full min-h-[44px] py-2.5 justify-start' 
+              : 'h-full min-w-[120px] max-w-[200px]'
+          }
           ${
             tab.isActive
               ? vibrancyEnabled ? "text-text-primary" : "bg-bg-primary text-text-primary"
@@ -224,7 +231,11 @@ export default function Tab({
         {tab.isActive && (
           <motion.span
             layoutId="active-tab-indicator"
-            className="absolute bottom-0 left-0 h-0.5 w-full bg-accent"
+            className={`absolute bg-accent ${
+              isVertical 
+                ? 'left-0 top-0 w-[3px] h-full' 
+                : 'bottom-0 left-0 h-[2px] w-full'
+            }`}
             transition={{ type: "spring", stiffness: 500, damping: 35 }}
           />
         )}

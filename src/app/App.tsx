@@ -33,13 +33,14 @@ function AppContent() {
   const vibrancyEnabled = useSettingsStore((s) => s.settings.appearance.vibrancyEnabled);
   const windowOpacity = useSettingsStore((s) => s.settings.appearance.windowOpacity);
   const uiScale = useSettingsStore((s) => s.settings.appearance.uiScale);
+  const tabPosition = useSettingsStore((s) => s.settings.appearance.tabPosition);
   const theme = useThemeStore((s) => s.active);
   const [sshDialogOpen, setSshDialogOpen] = useState(false);
   const [editingConnection, setEditingConnection] = useState<SshConnection | null>(null);
 
   // ── Apply UI scale ──
   useEffect(() => {
-    document.documentElement.style.setProperty("--ui-scale", String(uiScale));
+    document.documentElement.style.fontSize = `${16 * uiScale}px`;
   }, [uiScale]);
 
   // ── Auto-save session on terminal state changes (debounced) ──
@@ -124,20 +125,26 @@ function AppContent() {
     setEditingConnection(null);
   }, []);
 
+  const isVerticalTabs = tabPosition === 'left' || tabPosition === 'right';
+  const isBottomTabs = tabPosition === 'bottom';
+
   return (
     <div
-      className={`h-full w-full flex flex-col text-text-primary overflow-hidden ${
+      className={`h-full w-full flex text-text-primary overflow-hidden ${
         isMac ? "" : "rounded-lg border border-border"
-      } ${vibrancyEnabled ? "" : "bg-bg-primary"}`}
+      } ${vibrancyEnabled ? "" : "bg-bg-primary"} ${
+        isVerticalTabs ? 'flex-row' : 'flex-col'
+      }`}
       style={
         vibrancyEnabled
           ? { backgroundColor: hexToRgba(theme.ui.bgPrimary, vibrancyAlpha(windowOpacity)) }
           : undefined
       }
     >
-      <Titlebar />
+      {tabPosition === 'left' && <Titlebar />}
+      {tabPosition === 'top' && <Titlebar />}
       <UpdateNotification />
-      <div className="flex-1 min-h-0 relative">
+      <div className="flex-1 min-h-0 min-w-0 relative">
         {tabs.map((tab) => (
           <div
             key={tab.id}
@@ -153,6 +160,8 @@ function AppContent() {
           </div>
         )}
       </div>
+      {tabPosition === 'bottom' && <Titlebar />}
+      {tabPosition === 'right' && <Titlebar />}
       <StatusBar />
       <Sidebar onNewSsh={handleNewSsh} onEditSsh={handleEditSsh} />
       <CommandPalette />
