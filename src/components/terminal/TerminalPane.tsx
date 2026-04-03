@@ -766,8 +766,9 @@ export default function TerminalPane({
         style={{
           padding: "6px 4px 0 6px",
           backgroundColor: settings.appearance.vibrancyEnabled
-            ? hexToRgba(theme.terminal.background, vibrancyAlpha(settings.appearance.windowOpacity))
-            : theme.terminal.background,
+            ? hexToRgba(theme.terminal.background, vibrancyAlpha(settings.appearance.windowOpacity) * 0.7)
+            : hexToRgba(theme.terminal.background, 0.85),
+          borderRadius: showSearch ? '0 0 8px 8px' : '8px',
         }}
       />
 
@@ -776,8 +777,9 @@ export default function TerminalPane({
           className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4"
           style={{
             backgroundColor: settings.appearance.vibrancyEnabled
-              ? hexToRgba(theme.terminal.background, vibrancyAlpha(settings.appearance.windowOpacity))
-              : theme.terminal.background,
+              ? hexToRgba(theme.terminal.background, vibrancyAlpha(settings.appearance.windowOpacity) * 0.7)
+              : hexToRgba(theme.terminal.background, 0.85),
+            borderRadius: showSearch ? '0 0 8px 8px' : '8px',
           }}
         >
           <div
