@@ -8,7 +8,6 @@ import { SearchAddon } from "@xterm/addon-search";
 import { useThemeStore } from "../../stores/theme";
 import { useSettingsStore } from "../../stores/settings";
 import { useTerminalStore } from "../../stores/terminal";
-import { useSearchStore } from "../../stores/search";
 import DropZoneOverlay from "./DropZoneOverlay";
 import PaneContextMenu from "./PaneContextMenu";
 import { SearchBar } from "../search/SearchBar";
@@ -218,7 +217,6 @@ export default function TerminalPane({
   const theme = useThemeStore((s) => s.active);
   const settings = useSettingsStore((s) => s.settings);
   const updatePaneSession = useTerminalStore((s) => s.updatePaneSession);
-  const { query, options } = useSearchStore();
   const [showSearch, setShowSearch] = useState(false);
 
   // ── Mount: reuse cached terminal or create fresh ──
@@ -663,11 +661,6 @@ export default function TerminalPane({
   }, [isActive]);
 
   useEffect(() => {
-    if (!searchAddonRef.current || !query) return;
-    searchAddonRef.current.findNext(query, options);
-  }, [query, options]);
-
-  useEffect(() => {
     if (!isActive) return;
     
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -759,9 +752,10 @@ export default function TerminalPane({
         setCtxMenu({ x: e.clientX, y: e.clientY });
       }}
     >
-      {showSearch && (
+      {showSearch && searchAddonRef.current && (
         <SearchBar
           terminalId={paneId}
+          searchAddon={searchAddonRef.current}
           onClose={() => setShowSearch(false)}
         />
       )}

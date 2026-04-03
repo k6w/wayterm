@@ -1,36 +1,37 @@
 import { useState, useEffect, useRef } from 'react';
-import { useSearchStore } from '../../stores/search';
 import { Search, X, ChevronUp, ChevronDown, CaseSensitive, Regex, WholeWord } from 'lucide-react';
+import type { SearchAddon } from '@xterm/addon-search';
 
 interface SearchBarProps {
   terminalId: string;
+  searchAddon: SearchAddon | null;
   onClose: () => void;
 }
 
-export function SearchBar({ terminalId, onClose }: SearchBarProps) {
-  const { query, matches, currentMatchIndex, options, setQuery, setOptions, findNext, findPrevious, clearSearch } = useSearchStore();
-  const [localQuery, setLocalQuery] = useState(query);
+export function SearchBar({ terminalId, searchAddon, onClose }: SearchBarProps) {
+  const [query, setQuery] = useState('');
+  const [caseSensitive, setCaseSensitive] = useState(false);
+  const [wholeWord, setWholeWord] = useState(false);
+  const [regex, setRegex] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     inputRef.current?.focus();
   }, []);
 
-  useEffect(() => {
-    setLocalQuery(query);
-  }, [query]);
-
   const handleSearch = (value: string) => {
-    setLocalQuery(value);
     setQuery(value);
+    if (searchAddon && value) {
+      searchAddon.findNext(value, { caseSensitive, wholeWord, regex });
+    }
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
+    if (e.key === 'Enter' && searchAddon && query) {
       if (e.shiftKey) {
-        findPrevious();
+        searchAddon.findPrevious(query, { caseSensitive, wholeWord, regex });
       } else {
-        findNext();
+        searchAddon.findNext(query, { caseSensitive, wholeWord, regex });
       }
     } else if (e.key === 'Escape') {
       onClose();
@@ -38,20 +39,43 @@ export function SearchBar({ terminalId, onClose }: SearchBarProps) {
   };
 
   const toggleCaseSensitive = () => {
-    setOptions({ caseSensitive: !options.caseSensitive });
+    setCaseSensitive(!caseSensitive);
+    if (searchAddon && query) {
+      searchAddon.findNext(query, { caseSensitive: !caseSensitive, wholeWord, regex });
+    }
   };
 
   const toggleRegex = () => {
-    setOptions({ regex: !options.regex });
+    setRegex(!regex);
+    if (searchAddon && query) {
+      searchAddon.findNext(query, { caseSensitive, wholeWord, regex: !regex });
+    }
   };
 
   const toggleWholeWord = () => {
-    setOptions({ wholeWord: !options.wholeWord });
+    setWholeWord(!wholeWord);
+    if (searchAddon && query) {
+      searchAddon.findNext(query, { caseSensitive, wholeWord: !wholeWord, regex });
+    }
   };
 
   const handleClose = () => {
-    clearSearch();
+    if (searchAddon) {
+      searchAddon.clearDecorations();
+    }
     onClose();
+  };
+
+  const handleFindNext = () => {
+    if (searchAddon && query) {
+      searchAddon.findNext(query, { caseSensitive, wholeWord, regex });
+    }
+  };
+
+  const handleFindPrevious = () => {
+    if (searchAddon && query) {
+      searchAddon.findPrevious(query, { caseSensitive, wholeWord, regex });
+    }
   };
 
   return (
@@ -61,23 +85,17 @@ export function SearchBar({ terminalId, onClose }: SearchBarProps) {
       <input
         ref={inputRef}
         type="text"
-        value={localQuery}
+        value={query}
         onChange={(e) => handleSearch(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder="Find in terminal..."
         className="flex-1 px-2 py-1 bg-white/[0.05] border border-white/[0.08] rounded text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent"
       />
 
-      {matches.length > 0 && (
-        <span className="text-[10px] text-text-muted whitespace-nowrap">
-          {currentMatchIndex + 1} of {matches.length}
-        </span>
-      )}
-
       <div className="flex items-center gap-1">
         <button
           onClick={toggleCaseSensitive}
-          className={`p-1 rounded transition-colors ${options.caseSensitive ? 'bg-accent text-white' : 'hover:bg-white/[0.08] text-text-muted'}`}
+          className={`p-1 rounded transition-colors ${caseSensitive ? 'bg-accent text-white' : 'hover:bg-white/[0.08] text-text-muted'}`}
           title="Match Case"
         >
           <CaseSensitive className="w-3.5 h-3.5" />
@@ -85,7 +103,7 @@ export function SearchBar({ terminalId, onClose }: SearchBarProps) {
         
         <button
           onClick={toggleWholeWord}
-          className={`p-1 rounded transition-colors ${options.wholeWord ? 'bg-accent text-white' : 'hover:bg-white/[0.08] text-text-muted'}`}
+          className={`p-1 rounded transition-colors ${wholeWord ? 'bg-accent text-white' : 'hover:bg-white/[0.08] text-text-muted'}`}
           title="Match Whole Word"
         >
           <WholeWord className="w-3.5 h-3.5" />
@@ -93,7 +111,7 @@ export function SearchBar({ terminalId, onClose }: SearchBarProps) {
         
         <button
           onClick={toggleRegex}
-          className={`p-1 rounded transition-colors ${options.regex ? 'bg-accent text-white' : 'hover:bg-white/[0.08] text-text-muted'}`}
+          className={`p-1 rounded transition-colors ${regex ? 'bg-accent text-white' : 'hover:bg-white/[0.08] text-text-muted'}`}
           title="Use Regular Expression"
         >
           <Regex className="w-3.5 h-3.5" />
@@ -102,8 +120,8 @@ export function SearchBar({ terminalId, onClose }: SearchBarProps) {
 
       <div className="flex items-center gap-1 border-l border-white/[0.08] pl-2">
         <button
-          onClick={findPrevious}
-          disabled={matches.length === 0}
+          onClick={handleFindPrevious}
+          disabled={!query}
           className="p-1 hover:bg-white/[0.08] rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           title="Previous Match (Shift+Enter)"
         >
@@ -111,8 +129,8 @@ export function SearchBar({ terminalId, onClose }: SearchBarProps) {
         </button>
         
         <button
-          onClick={findNext}
-          disabled={matches.length === 0}
+          onClick={handleFindNext}
+          disabled={!query}
           className="p-1 hover:bg-white/[0.08] rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           title="Next Match (Enter)"
         >

@@ -8,7 +8,7 @@ import ConnectionTree from "./ConnectionTree";
 import WorkspaceList from "./WorkspaceList";
 import { GitPanel } from "../git/GitPanel";
 import { DatabasePanel } from "../database/DatabasePanel";
-import { ClipboardManager } from "../ui/ClipboardManager";
+import { ClipboardPanel } from "../ui/ClipboardPanel";
 import type { SshConnection } from "../../types/ssh";
 import { GitBranch, Database, Clipboard, FolderTree, Layers } from "lucide-react";
 
@@ -164,7 +164,7 @@ export default function Sidebar({ onNewSsh, onEditSsh }: SidebarProps) {
               )}
               {activeView === 'git' && <GitPanel />}
               {activeView === 'database' && <DatabasePanel />}
-              {activeView === 'clipboard' && <ClipboardManager />}
+              {activeView === 'clipboard' && <ClipboardPanel />}
             </div>
           </motion.div>
         </>
