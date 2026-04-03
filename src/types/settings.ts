@@ -59,8 +59,14 @@ export interface ShellProfile {
   args: string[];
   env: Record<string, string>;
   workingDirectory: string;
+  icon: string;
   themeOverride: string | null;
-  fontOverride: string | null;
+  fontFamilyOverride: string | null;
+  fontSizeOverride: number | null;
+  fontWeightOverride: number | null;
+  cursorStyleOverride: CursorStyle | null;
+  scrollbackOverride: number | null;
+  ligaturesOverride: boolean | null;
 }
 
 export interface AppSettings {

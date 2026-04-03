@@ -320,8 +320,9 @@ export default function TerminalPane({
         });
         
         // Enable font ligatures via CSS when enabled
-        if (settings.terminal.ligatures) {
-          term.element?.style.setProperty("--font-features", "\"liga\" 1, \"calt\" 1, \"zero\" 1");
+        const ligaturesEnabled = settings.terminal.ligatures;
+        if (ligaturesEnabled) {
+          term.element?.classList.add('terminal-ligatures');
         }
 
         const fitAddon = new FitAddon();

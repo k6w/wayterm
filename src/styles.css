@@ -74,8 +74,10 @@ html, body, #root {
 }
 
 /* Font ligatures support - enabled via terminal settings */
-.xterm .xterm-screen {
-  font-feature-settings: "liga" 1, "calt" 1, "zero" 1;
+.terminal-ligatures .xterm-rows {
+  font-variant-ligatures: normal;
+  font-feature-settings: "liga" 1, "calt" 1, "dlig" 1, "zero" 1;
+  text-rendering: optimizeLegibility;
 }
 
 /* UI Scale - applied via CSS custom property */
