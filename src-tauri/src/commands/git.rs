@@ -4,11 +4,41 @@ use std::process::Command;
 use crate::db::{DbPool, connections};
 use tauri::State;
 
+#[cfg(target_os = "windows")]
+use std::os::windows::process::CommandExt;
+
+#[cfg(target_os = "windows")]
+const CREATE_NO_WINDOW: u32 = 0x08000000;
+
+#[cfg(not(target_os = "windows"))]
+trait CommandExt {
+    fn creation_flags(&mut self, _flags: u32) -> &mut Self;
+}
+
+#[cfg(not(target_os = "windows"))]
+impl CommandExt for Command {
+    fn creation_flags(&mut self, _flags: u32) -> &mut Self {
+        self
+    }
+}
+
+fn configure_silent_command(cmd: &mut Command) -> &mut Command {
+    cmd.stdin(std::process::Stdio::null())
+        .stdout(std::process::Stdio::piped())
+        .stderr(std::process::Stdio::piped());
+    
+    #[cfg(target_os = "windows")]
+    cmd.creation_flags(CREATE_NO_WINDOW);
+    
+    cmd
+}
+
 async fn execute_ssh_git_command(pool: &DbPool, connection_id: &str, command: &str, cwd: &str) -> Result<String, String> {
     let conn = connections::get(pool, connection_id)?
         .ok_or_else(|| "Connection not found".to_string())?;
     
     let mut ssh_cmd = Command::new("ssh");
+    configure_silent_command(&mut ssh_cmd);
     ssh_cmd.arg("-p").arg(conn.port.to_string());
     ssh_cmd.arg("-o").arg("StrictHostKeyChecking=accept-new");
     
@@ -110,9 +140,9 @@ pub struct GitDiff {
 
 #[tauri::command]
 pub async fn git_get_branch(path: String) -> Result<Option<String>, String> {
-    let output = Command::new("git")
+    let output = configure_silent_command(Command::new("git")
         .args(["rev-parse", "--abbrev-ref", "HEAD"])
-        .current_dir(&path)
+        .current_dir(&path))
         .output()
         .map_err(|e| format!("Failed to execute git: {}", e))?;
 
@@ -126,9 +156,9 @@ pub async fn git_get_branch(path: String) -> Result<Option<String>, String> {
 
 #[tauri::command]
 pub async fn git_is_dirty(path: String) -> Result<bool, String> {
-    let output = Command::new("git")
+    let output = configure_silent_command(Command::new("git")
         .args(["status", "--porcelain"])
-        .current_dir(&path)
+        .current_dir(&path))
         .output()
         .map_err(|e| format!("Failed to execute git: {}", e))?;
 
@@ -151,9 +181,9 @@ pub async fn git_get_status(path: String, connection_id: Option<String>, pool: S
 
     let branch = git_get_branch(path.clone()).await?.unwrap_or_else(|| "HEAD".to_string());
 
-    let status_output = Command::new("git")
+    let status_output = configure_silent_command(Command::new("git")
         .args(["status", "--porcelain", "--branch"])
-        .current_dir(&path)
+        .current_dir(&path))
         .output()
         .map_err(|e| format!("Failed to get status: {}", e))?;
 
@@ -200,9 +230,9 @@ pub async fn git_get_status(path: String, connection_id: Option<String>, pool: S
         }
     }
 
-    let stash_output = Command::new("git")
+    let stash_output = configure_silent_command(Command::new("git")
         .args(["stash", "list"])
-        .current_dir(&path)
+        .current_dir(&path))
         .output()
         .map_err(|e| format!("Failed to get stashes: {}", e))?;
 
@@ -226,9 +256,9 @@ pub async fn git_get_branches(path: String, connection_id: Option<String>, pool:
         return git_get_branches_ssh(&pool, &conn_id, &path).await;
     }
 
-    let output = Command::new("git")
+    let output = configure_silent_command(Command::new("git")
         .args(["branch", "-vv", "--all"])
-        .current_dir(&path)
+        .current_dir(&path))
         .output()
         .map_err(|e| format!("Failed to get branches: {}", e))?;
 
@@ -275,14 +305,14 @@ pub async fn git_get_commits(path: String, limit: i32, connection_id: Option<Str
         return git_get_commits_ssh(&pool, &conn_id, &path, limit).await;
     }
 
-    let output = Command::new("git")
+    let output = configure_silent_command(Command::new("git")
         .args([
             "log",
             &format!("-{}", limit),
             "--pretty=format:%H|%h|%an|%ae|%at|%s",
             "--name-only",
         ])
-        .current_dir(&path)
+        .current_dir(&path))
         .output()
         .map_err(|e| format!("Failed to get commits: {}", e))?;
 
@@ -330,9 +360,9 @@ pub async fn git_get_commits(path: String, limit: i32, connection_id: Option<Str
 
 #[tauri::command]
 pub async fn git_get_remotes(path: String) -> Result<Vec<GitRemote>, String> {
-    let output = Command::new("git")
+    let output = configure_silent_command(Command::new("git")
         .args(["remote", "-v"])
-        .current_dir(&path)
+        .current_dir(&path))
         .output()
         .map_err(|e| format!("Failed to get remotes: {}", e))?;
 
@@ -375,9 +405,9 @@ pub async fn git_get_diff(path: String, file: Option<String>) -> Result<Vec<GitD
         args.push(f);
     }
 
-    let output = Command::new("git")
+    let output = configure_silent_command(Command::new("git")
         .args(&args)
-        .current_dir(&path)
+        .current_dir(&path))
         .output()
         .map_err(|e| format!("Failed to get diff: {}", e))?;
 
@@ -405,9 +435,9 @@ pub async fn git_get_diff(path: String, file: Option<String>) -> Result<Vec<GitD
 
 #[tauri::command]
 pub async fn git_checkout(path: String, branch: String) -> Result<(), String> {
-    let output = Command::new("git")
+    let output = configure_silent_command(Command::new("git")
         .args(["checkout", &branch])
-        .current_dir(&path)
+        .current_dir(&path))
         .output()
         .map_err(|e| format!("Failed to checkout: {}", e))?;
 
@@ -421,9 +451,9 @@ pub async fn git_checkout(path: String, branch: String) -> Result<(), String> {
 
 #[tauri::command]
 pub async fn git_pull(path: String) -> Result<(), String> {
-    let output = Command::new("git")
+    let output = configure_silent_command(Command::new("git")
         .args(["pull"])
-        .current_dir(&path)
+        .current_dir(&path))
         .output()
         .map_err(|e| format!("Failed to pull: {}", e))?;
 
@@ -437,9 +467,9 @@ pub async fn git_pull(path: String) -> Result<(), String> {
 
 #[tauri::command]
 pub async fn git_push(path: String) -> Result<(), String> {
-    let output = Command::new("git")
+    let output = configure_silent_command(Command::new("git")
         .args(["push"])
-        .current_dir(&path)
+        .current_dir(&path))
         .output()
         .map_err(|e| format!("Failed to push: {}", e))?;
 
@@ -453,9 +483,9 @@ pub async fn git_push(path: String) -> Result<(), String> {
 
 #[tauri::command]
 pub async fn git_commit(path: String, message: String) -> Result<(), String> {
-    let output = Command::new("git")
+    let output = configure_silent_command(Command::new("git")
         .args(["commit", "-m", &message])
-        .current_dir(&path)
+        .current_dir(&path))
         .output()
         .map_err(|e| format!("Failed to commit: {}", e))?;
 
@@ -474,9 +504,9 @@ pub async fn git_stage(path: String, files: Vec<String>) -> Result<(), String> {
         args.push(file);
     }
 
-    let output = Command::new("git")
+    let output = configure_silent_command(Command::new("git")
         .args(&args)
-        .current_dir(&path)
+        .current_dir(&path))
         .output()
         .map_err(|e| format!("Failed to stage: {}", e))?;
 
@@ -495,9 +525,9 @@ pub async fn git_unstage(path: String, files: Vec<String>) -> Result<(), String>
         args.push(file);
     }
 
-    let output = Command::new("git")
+    let output = configure_silent_command(Command::new("git")
         .args(&args)
-        .current_dir(&path)
+        .current_dir(&path))
         .output()
         .map_err(|e| format!("Failed to unstage: {}", e))?;
 
@@ -512,15 +542,15 @@ pub async fn git_unstage(path: String, files: Vec<String>) -> Result<(), String>
 #[tauri::command]
 pub async fn git_stash(path: String, message: Option<String>) -> Result<(), String> {
     let output = if let Some(msg) = message {
-        Command::new("git")
+        configure_silent_command(Command::new("git")
             .args(["stash", "push", "-m", &msg])
-            .current_dir(&path)
+            .current_dir(&path))
             .output()
             .map_err(|e| format!("Failed to stash: {}", e))?
     } else {
-        Command::new("git")
+        configure_silent_command(Command::new("git")
             .args(["stash", "push"])
-            .current_dir(&path)
+            .current_dir(&path))
             .output()
             .map_err(|e| format!("Failed to stash: {}", e))?
     };
@@ -535,9 +565,9 @@ pub async fn git_stash(path: String, message: Option<String>) -> Result<(), Stri
 
 #[tauri::command]
 pub async fn git_stash_pop(path: String) -> Result<(), String> {
-    let output = Command::new("git")
+    let output = configure_silent_command(Command::new("git")
         .args(["stash", "pop"])
-        .current_dir(&path)
+        .current_dir(&path))
         .output()
         .map_err(|e| format!("Failed to pop stash: {}", e))?;
 
@@ -548,7 +578,6 @@ pub async fn git_stash_pop(path: String) -> Result<(), String> {
 
     Ok(())
 }
-
 
 async fn git_get_status_ssh(pool: &DbPool, connection_id: &str, path: &str) -> Result<GitStatus, String> {
     let output = execute_ssh_git_command(pool, connection_id, "git status --porcelain --branch && echo '---' && git stash list", path).await?;
