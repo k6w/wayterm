@@ -51,7 +51,7 @@ export default function SftpContextMenu({
     ? hexToRgba(theme.ui.bgSecondary, vibrancyAlpha(opacity) * 0.85)
     : theme.ui.bgSecondary;
 
-  // Close on outside click or Escape
+  
   useEffect(() => {
     const handleClick = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
@@ -69,7 +69,7 @@ export default function SftpContextMenu({
     };
   }, [onClose]);
 
-  // Clamp menu position to viewport
+  
   useEffect(() => {
     if (!menuRef.current) return;
     const rect = menuRef.current.getBoundingClientRect();
@@ -84,7 +84,7 @@ export default function SftpContextMenu({
   const items: MenuItem[] = [];
 
   if (!entry) {
-    // Background context menu (no entry selected)
+    
     items.push(
       { type: "item", label: "New Folder", icon: <FolderPlus size={14} />, action: "new_folder" },
       { type: "item", label: "Refresh", icon: <RefreshCw size={14} />, action: "refresh" },
@@ -92,7 +92,7 @@ export default function SftpContextMenu({
       { type: "item", label: "Paste", icon: <ClipboardPaste size={14} />, action: "paste" },
     );
   } else if (side === "remote") {
-    // Remote entry
+    
     if (entry.isDir) {
       items.push(
         { type: "item", label: "Open", icon: <FolderOpen size={14} />, action: "open" },
@@ -111,7 +111,7 @@ export default function SftpContextMenu({
       { type: "item", label: "Copy Path", icon: <Copy size={14} />, action: "copy_path" },
     );
   } else {
-    // Local entry
+    
     if (entry.isDir) {
       items.push(
         { type: "item", label: "Open", icon: <FolderOpen size={14} />, action: "open" },

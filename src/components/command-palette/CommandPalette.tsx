@@ -44,7 +44,7 @@ interface PaletteAction {
   keys?: string;
   icon: LucideIcon;
   category: string;
-  /** If set, entering this action opens a sub-view instead of closing the palette */
+  
   subView?: SubView;
   handler: () => void;
 }
@@ -108,7 +108,7 @@ export default function CommandPalette() {
   const allActions = useMemo(() => {
     const actions: PaletteAction[] = [];
 
-    // ── Keybinding actions ──
+    
     const bindings = getEffectiveKeybindings();
     for (const b of bindings) {
       if (b.id === "command-palette") continue;
@@ -122,7 +122,7 @@ export default function CommandPalette() {
       });
     }
 
-    // ── Terminal actions ──
+    
     actions.push({
       id: "clear-buffer",
       label: "Clear Terminal Buffer",
@@ -155,7 +155,7 @@ export default function CommandPalette() {
       },
     });
 
-    // ── New tab per shell ──
+    
     const shells = getDefaultShells();
     for (const shell of shells) {
       actions.push({
@@ -169,7 +169,7 @@ export default function CommandPalette() {
       });
     }
 
-    // ── Appearance: single entry that opens sub-view ──
+    
     actions.push({
       id: "change-theme",
       label: "Change Theme",
@@ -194,7 +194,7 @@ export default function CommandPalette() {
 
   const totalResults = filteredActions.length;
 
-  // Group by category for display
+  
   const grouped = useMemo(() => {
     const groups: { category: string; items: { action: PaletteAction; globalIndex: number }[] }[] = [];
     let currentCategory = "";
@@ -208,7 +208,7 @@ export default function CommandPalette() {
     return groups;
   }, [filteredActions]);
 
-  // ── Theme sub-view data ──
+  
   const activeThemeId = useThemeStore((s) => s.activeThemeId);
   const themes = useThemeStore((s) => s.themes);
   const setTheme = useThemeStore((s) => s.setTheme);
@@ -222,7 +222,7 @@ export default function CommandPalette() {
     return themeList.filter((t) => t.name.toLowerCase().includes(lower));
   }, [subQuery, themeList]);
 
-  // ── Reset state on open/close ──
+  
   useEffect(() => {
     if (isOpen) {
       setQuery("");
@@ -311,14 +311,14 @@ export default function CommandPalette() {
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (subView) {
-        // ── Sub-view key handling ──
+        
         switch (e.key) {
           case "ArrowDown": {
             e.preventDefault();
             const next = subSelectedIndex < filteredThemes.length - 1 ? subSelectedIndex + 1 : 0;
             setSubSelectedIndex(next);
             scrollSelectedIntoView(next);
-            // Preview theme on keyboard navigation
+            
             const nextTheme = filteredThemes[next];
             if (nextTheme) previewTheme(nextTheme.id);
             break;
@@ -328,7 +328,7 @@ export default function CommandPalette() {
             const prev = subSelectedIndex > 0 ? subSelectedIndex - 1 : filteredThemes.length - 1;
             setSubSelectedIndex(prev);
             scrollSelectedIntoView(prev);
-            // Preview theme on keyboard navigation
+            
             const prevTheme = filteredThemes[prev];
             if (prevTheme) previewTheme(prevTheme.id);
             break;
@@ -356,7 +356,7 @@ export default function CommandPalette() {
         return;
       }
 
-      // ── Main view key handling ──
+      
       switch (e.key) {
         case "ArrowDown": {
           e.preventDefault();
@@ -423,7 +423,7 @@ export default function CommandPalette() {
             }}
             onKeyDown={handleKeyDown}
           >
-            {/* ── Search bar ── */}
+            {}
             <div className="flex items-center gap-3 px-4 py-3">
               {subView ? (
                 <button
@@ -464,7 +464,7 @@ export default function CommandPalette() {
               className="max-h-[400px] overflow-y-auto p-1.5"
             >
               {subView === "themes" ? (
-                /* ── Theme sub-view ── */
+                
                 <>
                   <div className="px-2.5 py-1.5 text-xs font-medium text-text-muted">
                     Themes
@@ -506,7 +506,7 @@ export default function CommandPalette() {
                   )}
                 </>
               ) : (
-                /* ── Main command list ── */
+                
                 <>
                   {grouped.map((group) => (
                     <div key={group.category}>

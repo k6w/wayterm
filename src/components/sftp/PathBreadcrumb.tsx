@@ -11,19 +11,19 @@ export default function PathBreadcrumb({
   onNavigate,
   label,
 }: PathBreadcrumbProps) {
-  // Normalize path: handle both Unix "/" and Windows "C:\" paths
+  
   const isWindows = /^[A-Za-z]:[\\/]/.test(path);
   const separator = "/";
   const normalizedPath = path.replace(/\\/g, "/");
 
-  // Split into segments
+  
   const parts = normalizedPath.split("/").filter(Boolean);
 
-  // Build clickable segments with their full path
+  
   const segments: { name: string; fullPath: string }[] = [];
 
   if (isWindows) {
-    // Windows: first part is "C:", root is "C:/"
+    
     if (parts.length > 0) {
       segments.push({ name: parts[0], fullPath: parts[0] + "/" });
       for (let i = 1; i < parts.length; i++) {
@@ -32,13 +32,13 @@ export default function PathBreadcrumb({
           fullPath: parts.slice(0, i + 1).join(separator) + (i === 0 ? "/" : ""),
         });
       }
-      // Fix windows paths
+      
       for (let i = 1; i < segments.length; i++) {
         segments[i].fullPath = parts[0] + "/" + parts.slice(1, i + 1).join(separator);
       }
     }
   } else {
-    // Unix: root is "/"
+    
     for (let i = 0; i < parts.length; i++) {
       segments.push({
         name: parts[i],
@@ -55,7 +55,7 @@ export default function PathBreadcrumb({
         </span>
       )}
 
-      {/* Root segment */}
+      {}
       <button
         onClick={() => onNavigate(isWindows && parts.length > 0 ? parts[0] + "/" : "/")}
         className="shrink-0 text-text-secondary hover:text-text-primary transition-colors"
@@ -63,7 +63,7 @@ export default function PathBreadcrumb({
         {isWindows && parts.length > 0 ? parts[0] + separator : "/"}
       </button>
 
-      {/* Path segments (skip first for Windows since root already shown) */}
+      {}
       {(isWindows ? segments.slice(1) : segments).map((seg, i, arr) => {
         const isLast = i === arr.length - 1;
         return (

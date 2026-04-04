@@ -9,7 +9,7 @@ interface SearchBarProps {
   onClose: () => void;
 }
 
-export function SearchBar({ terminalId, searchAddon, onClose }: SearchBarProps) {
+export function SearchBar({ searchAddon, onClose }: SearchBarProps) {
   const [query, setQuery] = useState('');
   const [caseSensitive, setCaseSensitive] = useState(false);
   const [wholeWord, setWholeWord] = useState(false);

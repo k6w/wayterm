@@ -49,7 +49,7 @@ export default function TransferQueue({
       className="border-t border-border shrink-0"
       style={{ backgroundColor: bgSecondary }}
     >
-      {/* Header */}
+      {}
       <button
         onClick={() => setCollapsed(!collapsed)}
         className="flex w-full items-center gap-2 px-3 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-white/[0.04] transition-colors"
@@ -73,7 +73,7 @@ export default function TransferQueue({
         )}
       </button>
 
-      {/* Transfer list */}
+      {}
       {!collapsed && (
         <div className="max-h-[140px] overflow-auto">
           {transfers.map((transfer) => {
@@ -89,7 +89,7 @@ export default function TransferQueue({
                 className="flex items-center gap-2 px-3 py-[3px] text-xs"
                 style={{ height: 28 }}
               >
-                {/* Direction icon */}
+                {}
                 <span className={STATUS_COLORS[transfer.status]}>
                   {transfer.direction === "upload" ? (
                     <Upload size={12} />
@@ -98,12 +98,12 @@ export default function TransferQueue({
                   )}
                 </span>
 
-                {/* File name */}
+                {}
                 <span className="truncate min-w-0 flex-1 text-text-secondary">
                   {transfer.fileName}
                 </span>
 
-                {/* Progress bar */}
+                {}
                 <div className="w-20 h-1.5 rounded-full bg-white/[0.06] shrink-0 overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all ${STATUS_BAR_COLORS[transfer.status]}`}
@@ -113,7 +113,7 @@ export default function TransferQueue({
                   />
                 </div>
 
-                {/* Percentage / status */}
+                {}
                 <span
                   className={`w-10 text-right text-[10px] tabular-nums shrink-0 ${STATUS_COLORS[transfer.status]}`}
                 >

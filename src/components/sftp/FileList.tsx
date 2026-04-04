@@ -18,7 +18,7 @@ interface FileListProps {
   emptyMessage?: string;
 }
 
-/** Format bytes to human-readable size */
+
 function formatSize(bytes: number): string {
   if (bytes === 0) return "0 B";
   const units = ["B", "KB", "MB", "GB", "TB"];
@@ -28,7 +28,7 @@ function formatSize(bytes: number): string {
   return `${val < 10 ? val.toFixed(1) : Math.round(val)} ${units[i]}`;
 }
 
-/** Format Unix timestamp string to human-readable date */
+
 function formatDate(timestamp: string | null): string {
   if (!timestamp) return "--";
   const num = Number(timestamp);
@@ -77,7 +77,7 @@ export default function FileList({
   const handleClick = useCallback(
     (e: React.MouseEvent, entry: SftpEntry, index: number) => {
       if (e.shiftKey && lastClickIndex.current >= 0) {
-        // Range select
+        
         const start = Math.min(lastClickIndex.current, index);
         const end = Math.max(lastClickIndex.current, index);
         for (let i = start; i <= end; i++) {
@@ -130,7 +130,7 @@ export default function FileList({
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
-      {/* Header */}
+      {}
       <div
         className="sticky top-0 z-10 flex items-center gap-2 border-b border-border backdrop-blur-sm px-2 py-1 text-[11px] font-medium text-text-muted select-none"
         style={{ backgroundColor: headerBg }}

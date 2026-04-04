@@ -2,11 +2,15 @@ export interface GitStatus {
   branch: string;
   ahead: number;
   behind: number;
-  staged: number;
-  unstaged: number;
-  untracked: number;
+  staged: string[];
+  unstaged: string[];
+  untracked: string[];
   conflicted: number;
-  stashes: number;
+  stashes: GitFileStatus[];
+}
+
+export interface GitFileStatus {
+  message: string;
 }
 
 export interface GitBranch {

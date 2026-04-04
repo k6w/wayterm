@@ -12,8 +12,8 @@ use tauri::{
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
 };
 
-/// Resolve a CLI path argument (e.g. "." or "src/") relative to `cwd`.
-/// Returns `None` if the resolved path is not a valid directory.
+
+
 fn resolve_cli_path(arg: &str, cwd: &str) -> Option<String> {
     let base = std::path::Path::new(cwd);
     let candidate = if std::path::Path::new(arg).is_absolute() {
@@ -25,9 +25,9 @@ fn resolve_cli_path(arg: &str, cwd: &str) -> Option<String> {
     if !resolved.is_dir() {
         return None;
     }
-    // canonicalize() on Windows returns \\?\ extended-length paths which
-    // confuse PowerShell (shows Microsoft.PowerShell.Core\FileSystem:: prefix).
-    // Strip the prefix to get a normal path.
+    
+    
+    
     let s = resolved.to_string_lossy().to_string();
     let s = s.strip_prefix(r"\\?\").unwrap_or(&s).to_string();
     Some(s)

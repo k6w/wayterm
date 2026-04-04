@@ -2,6 +2,7 @@ use crate::db::DbPool;
 use rusqlite::params;
 use serde::{Deserialize, Serialize};
 
+#[allow(dead_code)]
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct DatabaseConnection {
     pub id: String,
@@ -17,6 +18,7 @@ pub struct DatabaseConnection {
     pub color: Option<String>,
 }
 
+#[allow(dead_code)]
 pub fn list(pool: &DbPool) -> Result<Vec<DatabaseConnection>, String> {
     let conn = pool.lock();
     let mut stmt = conn
@@ -42,6 +44,7 @@ pub fn list(pool: &DbPool) -> Result<Vec<DatabaseConnection>, String> {
         .map_err(|e| e.to_string())
 }
 
+#[allow(dead_code)]
 pub fn save(pool: &DbPool, conn_data: &DatabaseConnection) -> Result<(), String> {
     let conn = pool.lock();
     conn.execute(
@@ -63,6 +66,7 @@ pub fn save(pool: &DbPool, conn_data: &DatabaseConnection) -> Result<(), String>
     Ok(())
 }
 
+#[allow(dead_code)]
 pub fn delete(pool: &DbPool, id: &str) -> Result<(), String> {
     let conn = pool.lock();
     conn.execute("DELETE FROM database_connections WHERE id = ?1", params![id])

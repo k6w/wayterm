@@ -203,7 +203,7 @@ export function onTerminalExit(
   });
 }
 
-// ── SFTP commands ──
+
 
 export async function sftpConnect(connectionId: string): Promise<string> {
   return invoke("sftp_connect", { connectionId });
@@ -253,7 +253,7 @@ export function onSftpTransferProgress(
   });
 }
 
-// ── Port forwarding commands ──
+
 
 export interface PortForward {
   id: string;
@@ -283,7 +283,7 @@ export async function sshTogglePortForward(id: string, isActive: boolean, sessio
   return invoke("ssh_toggle_port_forward", { id, isActive, sessionId });
 }
 
-// ── Git commands ──
+
 
 export async function gitGetBranch(path: string): Promise<string | null> {
   return invoke("git_get_branch", { path });

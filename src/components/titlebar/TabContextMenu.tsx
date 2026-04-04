@@ -63,7 +63,7 @@ export default function TabContextMenu({
   const isLast = tabIndex === tabCount - 1;
   const hasTabsToRight = tabIndex < tabCount - 1;
 
-  // Get CWD of the tab's first pane
+  
   const tab = tabs.find((t) => t.id === tabId);
   const firstPaneId = tab ? collectPaneIds(tab.panes)[0] : null;
   const firstPane = firstPaneId ? panes[firstPaneId] : null;
@@ -85,7 +85,7 @@ export default function TabContextMenu({
     };
   }, [onClose]);
 
-  // Clamp position
+  
   useEffect(() => {
     if (!menuRef.current) return;
     const rect = menuRef.current.getBoundingClientRect();

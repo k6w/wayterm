@@ -42,12 +42,7 @@ interface TerminalPaneProps {
   paneCount?: number;
 }
 
-/**
- * Detect real text in PTY output vs ConPTY initialization junk.
- * ConPTY on Windows (GUI subsystem, production builds) emits escape sequences
- * before the child process runs. This helper returns true only when the chunk
- * contains 3+ consecutive printable ASCII chars outside of any ESC sequence.
- */
+
 function hasVisibleContent(data: number[]): boolean {
   let run = 0;
   let i = 0;
@@ -58,17 +53,17 @@ function hasVisibleContent(data: number[]): boolean {
       i++;
       if (i >= data.length) break;
       if (data[i] === 0x5b) {
-        // CSI: \x1b[ … ends with 0x40-0x7e
+        
         i++;
         while (i < data.length && !(data[i] >= 0x40 && data[i] <= 0x7e)) i++;
         if (i < data.length) i++;
       } else if (data[i] === 0x5d) {
-        // OSC: \x1b] … ends with BEL or ST
+        
         i++;
         while (i < data.length && data[i] !== 0x07 && data[i] !== 0x1b) i++;
         if (i < data.length) i++;
       } else {
-        i++; // simple two-byte escape
+        i++; 
       }
       continue;
     }
@@ -82,7 +77,7 @@ function hasVisibleContent(data: number[]): boolean {
   return false;
 }
 
-/** Returns shell args & env vars that silently set up CWD-in-title reporting */
+
 function getShellIntegration(shellPath: string): {
   args: string[];
   env: [string, string][];
@@ -136,8 +131,8 @@ function getShellIntegration(shellPath: string): {
     };
   }
 
-  // cmd.exe — override prompt to emit OSC title sequence with current directory
-  // $e = ESC, $p = current path, $e\ = ST (string terminator), $g = >
+  
+  
   if (lower.includes("cmd")) {
     return {
       args: ["/K", "prompt $e]0;$p$e\\$p$g"],
@@ -148,7 +143,7 @@ function getShellIntegration(shellPath: string): {
   return { args: [], env: [] };
 }
 
-/** Decide what binary + args to spawn based on pane config */
+
 export class SshConnectionNotFoundError extends Error {
   constructor(connectionId: string) {
     super(`SSH connection with ID "${connectionId}" not found`);
@@ -160,7 +155,7 @@ async function resolveSpawnConfig(
   pane: import("../../types/terminal").TerminalPane | undefined,
   settings: ReturnType<typeof useSettingsStore.getState>["settings"]
 ): Promise<{ shell: string; args: string[]; env: [string, string][] }> {
-  // ── SSH connection — spawn ssh directly as the PTY process ──
+  
   if (pane?.sshConnectionId) {
     const conn = useSshStore
       .getState()
@@ -174,13 +169,13 @@ async function resolveSpawnConfig(
 
     sshArgs.push("-o", "StrictHostKeyChecking=accept-new");
 
-    // Key auth
+    
     if (conn.authMethod === "key" && conn.privateKeyId) {
       try {
         const keyPath = await sshGetKeyTempPath(conn.privateKeyId);
         sshArgs.push("-i", keyPath);
       } catch {
-        // Fall through without -i
+        
       }
     }
 
@@ -193,7 +188,7 @@ async function resolveSpawnConfig(
     return { shell: "ssh", args: sshArgs, env: [] };
   }
 
-  // ── Local shell ──
+  
   const detectedShell = getDefaultShell();
   const shellPath =
     pane?.shellPath || settings.general.defaultShell || detectedShell.path;
@@ -219,7 +214,7 @@ export default function TerminalPane({
   const updatePaneSession = useTerminalStore((s) => s.updatePaneSession);
   const [showSearch, setShowSearch] = useState(false);
 
-  // ── Mount: reuse cached terminal or create fresh ──
+  
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -231,16 +226,16 @@ export default function TerminalPane({
     const cached = getCachedTerminal(paneId);
 
     if (cached) {
-      // ── REATTACH existing terminal DOM ──
+      
       container.appendChild(cached.element);
       termRef.current = cached.terminal;
       fitRef.current = cached.fitAddon;
       sessionRef.current = cached.sessionId;
 
-      // Refit after reattach so dimensions match the new container.
-      // Double rAF ensures the browser has finished layout before we
-      // read container dimensions — a single rAF fires too early and
-      // produces wrong column counts (text wraps at the wrong width).
+      
+      
+      
+      
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
           if (cancelled) return;
@@ -254,24 +249,24 @@ export default function TerminalPane({
               );
             }
           } catch {
-            // ignore
+            
           }
         });
       });
 
-      // Observe future resizes.
-      // Guard against zero-size entries: when a tab is hidden with
-      // display:none its container collapses to 0×0 and fitAddon.fit()
-      // would resize the terminal to ~2 cols × 1 row, causing the PTY
-      // to send SIGWINCH and every running program to reflow its output.
+      
+      
+      
+      
+      
       resizeObs = new ResizeObserver((entries) => {
         const rect = entries[0]?.contentRect;
         if (!rect || rect.width === 0 || rect.height === 0) return;
         try {
           cached.fitAddon.fit();
-          // Use requestAnimationFrame to ensure DOM layout is settled
-          // before reading terminal dimensions, otherwise we get stale
-          // row/col values which causes desync with the PTY
+          
+          
+          
           requestAnimationFrame(() => {
             const c = getCachedTerminal(paneId);
             if (c?.sessionId) {
@@ -279,14 +274,14 @@ export default function TerminalPane({
             }
           });
         } catch {
-          // ignore
+          
         }
       });
       resizeObs.observe(container);
     } else {
-      // ── CREATE new terminal ──
+      
       (async () => {
-        // Create a portable wrapper div that xterm opens into
+        
         const termEl = document.createElement("div");
         termEl.style.width = "100%";
         termEl.style.height = "100%";
@@ -313,13 +308,13 @@ export default function TerminalPane({
           cursorBlink: settings.appearance.cursorBlink,
           scrollback: settings.terminal.scrollbackLines,
           allowProposedApi: true,
-          // Always true so the canvas renderer uses clearRect (transparent).
-          // When vibrancy is off, solid theme background covers it anyway.
+          
+          
           allowTransparency: true,
           theme: makeXtermTheme(theme, vibrancy, settings.appearance.windowOpacity),
         });
         
-        // Enable font ligatures via CSS when enabled
+        
         const ligaturesEnabled = settings.terminal.ligatures;
         if (ligaturesEnabled) {
           term.element?.classList.add('terminal-ligatures');
@@ -329,7 +324,7 @@ export default function TerminalPane({
         term.loadAddon(fitAddon);
         term.open(termEl);
 
-        // Enable web links - clickable URLs and file paths
+        
         const webLinksAddon = new WebLinksAddon();
         term.loadAddon(webLinksAddon);
 
@@ -337,7 +332,7 @@ export default function TerminalPane({
         term.loadAddon(searchAddon);
         searchAddonRef.current = searchAddon;
 
-        // WebGL is faster but always opaque — skip it when vibrancy is on
+        
         let webgl: import("@xterm/addon-webgl").WebglAddon | null = null;
         if (!vibrancy) {
           try {
@@ -345,7 +340,7 @@ export default function TerminalPane({
             term.loadAddon(addon);
             webgl = addon;
           } catch {
-            // canvas fallback
+            
           }
         }
 
@@ -359,12 +354,12 @@ export default function TerminalPane({
           return;
         }
 
-        // ── Replay saved buffer (if restoring a session and persistence is enabled) ──
+        
         const bufferEnabled = useSettingsStore.getState().settings.terminal.bufferPersistence;
         if (bufferEnabled) {
           const wsState = useWorkspaceStore.getState();
           if (wsState._buffersReadyPromise) {
-            // Wait at most 150ms so buffer load doesn't delay startup
+            
             await Promise.race([
               wsState._buffersReadyPromise,
               new Promise((r) => setTimeout(r, 150)),
@@ -373,13 +368,13 @@ export default function TerminalPane({
           const savedBuffer = useWorkspaceStore.getState().consumeBuffer(paneId);
           if (savedBuffer) {
             term.write(savedBuffer);
-            // Clear visible screen — old content stays in scrollback,
-            // new PTY prompt appears on a clean slate
+            
+            
             term.write("\x1b[2J\x1b[H");
           }
         }
 
-        // Spawn PTY — either SSH or local shell
+        
         const existingPane = useTerminalStore.getState().panes[paneId];
         const isSsh = !!existingPane?.sshConnectionId;
 
@@ -418,17 +413,17 @@ export default function TerminalPane({
         sessionRef.current = sessionId;
         updatePaneSession(paneId, sessionId);
 
-        // SSH overlay phases:
-        //   "overlay"  — waiting for first real output, ConPTY junk is dropped
-        //   "settling" — key/agent auth: injecting CWD tracking behind overlay
-        //   "done"     — normal passthrough
-        //
-        // Nothing is written to xterm until the overlay lifts so the
-        // terminal canvas stays empty → acrylic shows through cleanly.
+        
+        
+        
+        
+        
+        
+        
         let sshPhase: "overlay" | "settling" | "done" = isSsh ? "overlay" : "done";
         const sshBuffer: Uint8Array[] = [];
 
-        // Advance the user-visible step label after a short delay
+        
         if (isSsh) {
           sshTimers.push(
             setTimeout(() => setSshStep("Authenticating..."), 600)
@@ -443,22 +438,22 @@ export default function TerminalPane({
               return;
             }
 
-            // Settling — buffer only (xterm stays blank behind overlay)
+            
             if (sshPhase === "settling") {
               sshBuffer.push(new Uint8Array(data));
               return;
             }
 
-            // Overlay phase — drop ConPTY init junk (escape-only chunks)
+            
             if (!hasVisibleContent(data)) return;
 
-            // First real content arrived — buffer it (don't write yet)
+            
             sshBuffer.push(new Uint8Array(data));
 
-            // Check if SSH needs interactive input (password, passphrase, etc.)
+            
             const text = new TextDecoder().decode(new Uint8Array(data));
             if (/password|passphrase|yes\/no|verification/i.test(text)) {
-              // Flush buffer so the user can see the prompt and type
+              
               for (const chunk of sshBuffer) term.write(chunk);
               sshBuffer.length = 0;
               sshPhase = "done";
@@ -466,15 +461,15 @@ export default function TerminalPane({
               return;
             }
 
-            // Key/agent auth connected — inject CWD tracking behind overlay
+            
             sshPhase = "settling";
             setSshStep("Preparing session...");
             const encoder = new TextEncoder();
 
             sshTimers.push(
               setTimeout(() => {
-                // Leading space = excluded from shell history (HISTCONTROL=ignorespace).
-                // No `export` needed — bash reads PROMPT_COMMAND as a shell var.
+                
+                
                 const cmd =
                   ' PROMPT_COMMAND=\'printf "\\033]0;%s\\007" "$PWD"\'\n';
                 terminalWrite(
@@ -484,9 +479,9 @@ export default function TerminalPane({
 
                 sshTimers.push(
                   setTimeout(() => {
-                    // Flush buffered output (MOTD + command echo + prompt)
-                    // to xterm, then erase the command echo line before the
-                    // user ever sees it.
+                    
+                    
+                    
                     for (const chunk of sshBuffer) term.write(chunk);
                     sshBuffer.length = 0;
                     term.write("\x1b[A\x1b[M");
@@ -510,8 +505,8 @@ export default function TerminalPane({
         });
 
         term.onData((data: string) => {
-          // Read sessionId from cache — NOT from React refs, which get
-          // invalidated when the component unmounts/remounts during splits.
+          
+          
           const c = getCachedTerminal(paneId);
           if (c?.sessionId) {
             const bytes = Array.from(new TextEncoder().encode(data));

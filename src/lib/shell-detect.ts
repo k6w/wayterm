@@ -22,21 +22,18 @@ const UNIX_SHELLS: DetectedShell[] = [
   { type: "sh", path: "/bin/sh", label: "Shell" },
 ];
 
-/**
- * Check if a shell executable exists at the given path.
- * Uses Tauri backend to verify file existence.
- */
+
 async function shellExists(shellPath: string): Promise<boolean> {
   try {
     return await invoke<boolean>("path_exists", { path: shellPath });
   } catch {
-    // If the command doesn't exist, assume the path is valid
-    // (e.g., for system commands like "cmd.exe" that are always available)
+    
+    
     return true;
   }
 }
 
-// Sync versions - use these for runtime (backward compatible)
+
 export function getDefaultShells(): DetectedShell[] {
   const platform = navigator.platform.toLowerCase();
   return platform.includes("win") ? WINDOWS_SHELLS : UNIX_SHELLS;
@@ -57,11 +54,11 @@ export function getPreferredShell(shellPath?: string): DetectedShell {
   return getShellByPath(shellPath) ?? getDefaultShell();
 }
 
-// Async versions - use these when you need to verify the shell exists
+
 export async function getDefaultShellsVerified(): Promise<DetectedShell[]> {
   const shells = getDefaultShells();
   
-  // Filter to only shells that actually exist
+  
   const existingShells: DetectedShell[] = [];
   for (const shell of shells) {
     if (await shellExists(shell.path)) {
@@ -69,7 +66,7 @@ export async function getDefaultShellsVerified(): Promise<DetectedShell[]> {
     }
   }
   
-  // If no shells exist, return all shells (fallback to trying anyway)
+  
   return existingShells.length > 0 ? existingShells : shells;
 }
 

@@ -38,12 +38,12 @@ function AppContent() {
   const [sshDialogOpen, setSshDialogOpen] = useState(false);
   const [editingConnection, setEditingConnection] = useState<SshConnection | null>(null);
 
-  // ── Apply UI scale ──
+  
   useEffect(() => {
     document.documentElement.style.fontSize = `${16 * uiScale}px`;
   }, [uiScale]);
 
-  // ── Auto-save session on terminal state changes (debounced) ──
+  
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | null = null;
     const unsub = useTerminalStore.subscribe(() => {
@@ -53,7 +53,7 @@ function AppContent() {
       }, 2000);
     });
 
-    // Also save on beforeunload (synchronous best-effort)
+    
     const handleUnload = () => {
       useWorkspaceStore.getState().autoSave();
       if (useSettingsStore.getState().settings.terminal.bufferPersistence) {
@@ -69,7 +69,7 @@ function AppContent() {
     };
   }, []);
 
-  // ── Buffer auto-save lifecycle (only when enabled) ──
+  
   const bufferPersistence = useSettingsStore((s) => s.settings.terminal.bufferPersistence);
   useEffect(() => {
     if (bufferPersistence) {
@@ -79,7 +79,7 @@ function AppContent() {
     stopBufferAutoSave();
   }, [bufferPersistence]);
 
-  // ── Listen for second-instance launches (`nexterm .` while already running) ──
+  
   useEffect(() => {
     const unlisten = listen<string>("cli-open-tab", (event) => {
       const defaultShellPath = useSettingsStore.getState().settings.general.defaultShell;
@@ -91,7 +91,7 @@ function AppContent() {
     };
   }, [addTab]);
 
-  // ── Listen for SFTP transfer progress events ──
+  
   useEffect(() => {
     const unlisten = onSftpTransferProgress((data) => {
       useSftpStore.getState().updateTransferProgress(
@@ -126,7 +126,6 @@ function AppContent() {
   }, []);
 
   const isVerticalTabs = tabPosition === 'left' || tabPosition === 'right';
-  const isBottomTabs = tabPosition === 'bottom';
 
   return (
     <div

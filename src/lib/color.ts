@@ -1,4 +1,4 @@
-/** Parse a hex color like "#0a0a0f" into [r, g, b]. */
+
 export function hexToRgb(hex: string): [number, number, number] {
   const h = hex.replace("#", "");
   return [
@@ -8,17 +8,14 @@ export function hexToRgb(hex: string): [number, number, number] {
   ];
 }
 
-/**
- * Convert a hex color string to an rgba() string with the given alpha.
- * If the input is already an rgb/rgba string, it replaces the alpha.
- */
+
 export function hexToRgba(hex: string, alpha: number): string {
   if (hex.startsWith("rgba(")) {
-    // Replace existing alpha: "rgba(r, g, b, oldAlpha)" -> "rgba(r, g, b, newAlpha)"
+    
     return hex.replace(/,\s*[\d.]+\)$/, `, ${alpha})`);
   }
   if (hex.startsWith("rgb(")) {
-    // "rgb(r, g, b)" -> "rgba(r, g, b, alpha)"
+    
     return hex.replace("rgb(", "rgba(").replace(")", `, ${alpha})`);
   }
   const h = hex.replace("#", "");

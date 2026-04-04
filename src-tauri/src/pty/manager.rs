@@ -28,7 +28,7 @@ impl PtyManager {
         cols: u16,
         app: AppHandle,
     ) -> Result<(), String> {
-        // Validate minimum terminal size to prevent issues
+        
         if rows < 2 || cols < 2 {
             return Err(format!("Invalid terminal size: {}x{} (minimum 2x2)", rows, cols));
         }

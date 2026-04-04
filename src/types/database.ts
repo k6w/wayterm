@@ -6,6 +6,7 @@ export interface DatabaseConnection {
   port: number;
   database: string;
   username: string;
+  password?: string;
   ssl: boolean;
   connectionString?: string;
   color?: string;
@@ -40,6 +41,7 @@ export interface QueryHistory {
   query: string;
   timestamp: number;
   executionTime: number;
+  duration: number;
   rowCount: number;
   connectionId: string;
   success: boolean;

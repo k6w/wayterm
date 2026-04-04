@@ -52,11 +52,13 @@ pub struct QueryResult {
     pub error: Option<String>,
 }
 
+#[allow(dead_code)]
 pub struct DatabaseManager {
     connections: Arc<Mutex<HashMap<String, rusqlite::Connection>>>,
 }
 
 impl DatabaseManager {
+    #[allow(dead_code)]
     pub fn new() -> Self {
         Self {
             connections: Arc::new(Mutex::new(HashMap::new())),

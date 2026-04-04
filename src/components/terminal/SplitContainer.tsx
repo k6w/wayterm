@@ -12,7 +12,7 @@ interface SplitContainerProps {
 
 export { SplitContainer };
 
-/** Gap between panes in pixels */
+
 const GAP = 6;
 
 export default function SplitContainer({
@@ -138,7 +138,7 @@ function SplitView({
     };
   }, []);
 
-  // Pane sizes: total = ratio*100% - gap/2 + gap + (1-ratio)*100% - gap/2 = 100%
+  
   const firstSize = `calc(${ratio * 100}% - ${GAP / 2}px)`;
   const secondSize = `calc(${(1 - ratio) * 100}% - ${GAP / 2}px)`;
 
@@ -158,7 +158,7 @@ function SplitView({
         <SplitContainer node={first} depth={depth + 1} totalPaneCount={totalPaneCount} />
       </div>
 
-      {/* Drag handle — IS the gap between panes */}
+      {}
       <div
         onMouseDown={handleMouseDown}
         className={`group shrink-0 flex items-center justify-center ${
@@ -168,7 +168,7 @@ function SplitView({
           [isHorizontal ? "width" : "height"]: `${GAP}px`,
         }}
       >
-        {/* Subtle indicator line on hover */}
+        {}
         <div
           className={`rounded-full bg-transparent transition-colors duration-150 group-hover:bg-accent/50 ${
             isHorizontal ? "h-8 w-[2px]" : "w-8 h-[2px]"

@@ -61,7 +61,7 @@ export default function ProfilesPanel() {
 
   return (
     <div className="space-y-8">
-      {/* Available Shells */}
+      {}
       <div>
         <h3 className="text-sm font-medium text-text-primary mb-3">
           Available Shells
@@ -86,7 +86,7 @@ export default function ProfilesPanel() {
         </div>
       </div>
 
-      {/* Custom Profiles */}
+      {}
       <div>
         <div className="flex justify-between items-center mb-3">
           <h3 className="text-sm font-medium text-text-primary">
@@ -118,7 +118,7 @@ export default function ProfilesPanel() {
                   key={profile.id}
                   className="border border-border rounded-lg overflow-hidden"
                 >
-                  {/* Collapsible header */}
+                  {}
                   <div
                     className="flex justify-between items-center px-4 py-2.5 bg-bg-tertiary cursor-pointer"
                     onClick={() =>
@@ -167,10 +167,10 @@ export default function ProfilesPanel() {
                     </div>
                   </div>
 
-                  {/* Expanded body */}
+                  {}
                   {isExpanded && (
                     <div className="p-4 space-y-4 border-t border-border">
-                      {/* Name */}
+                      {}
                       <div className="flex justify-between items-center gap-4">
                         <label className="text-sm text-text-secondary">
                           Name
@@ -187,7 +187,7 @@ export default function ProfilesPanel() {
                         />
                       </div>
 
-                      {/* Shell Path */}
+                      {}
                       <div className="flex justify-between items-center gap-4">
                         <label className="text-sm text-text-secondary">
                           Shell
@@ -239,7 +239,7 @@ export default function ProfilesPanel() {
                         </div>
                       </div>
 
-                      {/* Working Directory */}
+                      {}
                       <div className="flex justify-between items-center gap-4">
                         <label className="text-sm text-text-secondary">
                           Working Directory
@@ -257,7 +257,7 @@ export default function ProfilesPanel() {
                         />
                       </div>
 
-                      {/* Arguments */}
+                      {}
                       <div>
                         <div className="flex justify-between items-center mb-2">
                           <label className="text-sm text-text-secondary">
@@ -302,7 +302,7 @@ export default function ProfilesPanel() {
                         </div>
                       </div>
 
-                      {/* Environment Variables */}
+                      {}
                       <div>
                         <div className="flex justify-between items-center mb-2">
                           <label className="text-sm text-text-secondary">
@@ -362,13 +362,13 @@ export default function ProfilesPanel() {
                         </div>
                       </div>
 
-                      {/* Appearance Overrides */}
+                      {}
                       <div className="pt-4 border-t border-border">
                         <h4 className="text-sm font-medium text-text-primary mb-3">
                           Appearance Overrides
                         </h4>
 
-                        {/* Theme Override */}
+                        {}
                         <div className="flex justify-between items-center gap-4 mb-3">
                           <label className="text-sm text-text-secondary">
                             Theme
@@ -391,7 +391,7 @@ export default function ProfilesPanel() {
                           </select>
                         </div>
 
-                        {/* Font Family Override */}
+                        {}
                         <div className="flex justify-between items-center gap-4 mb-3">
                           <label className="text-sm text-text-secondary">
                             Font Family
@@ -409,7 +409,7 @@ export default function ProfilesPanel() {
                           />
                         </div>
 
-                        {/* Font Size Override */}
+                        {}
                         <div className="flex justify-between items-center gap-4 mb-3">
                           <label className="text-sm text-text-secondary">
                             Font Size
@@ -429,7 +429,7 @@ export default function ProfilesPanel() {
                           />
                         </div>
 
-                        {/* Font Weight Override */}
+                        {}
                         <div className="flex justify-between items-center gap-4 mb-3">
                           <label className="text-sm text-text-secondary">
                             Font Weight
@@ -452,7 +452,7 @@ export default function ProfilesPanel() {
                           </select>
                         </div>
 
-                        {/* Cursor Style Override */}
+                        {}
                         <div className="flex justify-between items-center gap-4 mb-3">
                           <label className="text-sm text-text-secondary">
                             Cursor Style
@@ -473,7 +473,7 @@ export default function ProfilesPanel() {
                           </select>
                         </div>
 
-                        {/* Scrollback Override */}
+                        {}
                         <div className="flex justify-between items-center gap-4 mb-3">
                           <label className="text-sm text-text-secondary">
                             Scrollback Lines
@@ -494,7 +494,7 @@ export default function ProfilesPanel() {
                           />
                         </div>
 
-                        {/* Ligatures Override */}
+                        {}
                         <div className="flex justify-between items-center gap-4">
                           <label className="text-sm text-text-secondary">
                             Ligatures

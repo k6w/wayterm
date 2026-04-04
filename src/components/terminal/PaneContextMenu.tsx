@@ -77,7 +77,7 @@ export default function PaneContextMenu({
     };
   }, [onClose]);
 
-  // Clamp menu position to viewport
+  
   useEffect(() => {
     if (!menuRef.current) return;
     const rect = menuRef.current.getBoundingClientRect();

@@ -15,7 +15,7 @@ export default function UpdateNotification() {
 
   useEffect(() => {
     if (!checkForUpdates) return;
-    // Delay the check so it doesn't compete with startup
+    
     const timer = setTimeout(() => {
       check()
         .then((u) => {

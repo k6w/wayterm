@@ -12,6 +12,10 @@ import {
 } from "../lib/ipc";
 
 interface DatabaseStore extends DatabaseState {
+  activeConnection: DatabaseConnection | null;
+  isConnected: boolean;
+  isLoading: boolean;
+  error: string | null;
   connect: (connectionId: string) => Promise<void>;
   disconnect: () => Promise<void>;
   executeQuery: (query: string) => Promise<QueryResult>;
@@ -28,28 +32,37 @@ interface DatabaseStore extends DatabaseState {
 export const useDatabaseStore = create<DatabaseStore>((set, get) => ({
   connections: [],
   activeConnectionId: null,
+  activeConnection: null,
+  isConnected: false,
+  isLoading: false,
+  error: null,
   queryHistory: [],
   currentQuery: "",
 
   connect: async (connectionId: string) => {
     try {
+      set({ isLoading: true, error: null });
       await dbConnect(connectionId);
-      set({ activeConnectionId: connectionId });
+      const connection = get().connections.find(c => c.id === connectionId) || null;
+      set({ activeConnectionId: connectionId, activeConnection: connection, isConnected: true, isLoading: false });
     } catch (error) {
       console.error('Failed to connect to database:', error);
+      set({ error: error instanceof Error ? error.message : 'Connection failed', isLoading: false });
       throw error;
     }
   },
 
   disconnect: async () => {
     try {
+      set({ isLoading: true });
       const { activeConnectionId } = get();
       if (activeConnectionId) {
         await dbDisconnect(activeConnectionId);
-        set({ activeConnectionId: null });
+        set({ activeConnectionId: null, activeConnection: null, isConnected: false, isLoading: false });
       }
     } catch (error) {
       console.error('Failed to disconnect from database:', error);
+      set({ error: error instanceof Error ? error.message : 'Disconnect failed', isLoading: false });
       throw error;
     }
   },
@@ -155,6 +168,7 @@ export const useDatabaseStore = create<DatabaseStore>((set, get) => ({
       query,
       timestamp: Date.now(),
       executionTime: result.executionTime,
+      duration: result.executionTime,
       rowCount: result.rowCount,
       connectionId: activeConnectionId,
       success: !result.error,

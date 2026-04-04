@@ -3,7 +3,7 @@ import type { Terminal } from "@xterm/xterm";
 import { bufferSaveBatch, bufferCleanup } from "./ipc";
 import { getCachedTerminal } from "./terminal-registry";
 
-/** 2 MB cap per buffer to avoid bloating the database */
+
 const MAX_BUFFER_BYTES = 2 * 1024 * 1024;
 
 const addons = new Map<string, SerializeAddon>();
@@ -28,7 +28,7 @@ export async function saveAllBuffers(): Promise<void> {
   const entries: { paneId: string; bufferData: string }[] = [];
 
   for (const [paneId, addon] of addons) {
-    // Only serialize if the terminal is still alive
+    
     const cached = getCachedTerminal(paneId);
     if (!cached) continue;
 
@@ -38,7 +38,7 @@ export async function saveAllBuffers(): Promise<void> {
         entries.push({ paneId, bufferData: data });
       }
     } catch {
-      // terminal may be disposed
+      
     }
   }
 
@@ -48,7 +48,7 @@ export async function saveAllBuffers(): Promise<void> {
 }
 
 export function startBufferAutoSave() {
-  // Run cleanup of old buffers on startup
+  
   bufferCleanup().catch(() => {});
 
   if (autoSaveTimer) return;

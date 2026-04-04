@@ -132,7 +132,7 @@ pub fn get(pool: &DbPool, id: &str) -> Result<Option<PortForward>, String> {
     }
 }
 
-/// Check if a port forward with the same local port already exists for a connection
+
 pub fn exists_by_local_port(pool: &DbPool, connection_id: &str, local_port: i32) -> Result<bool, String> {
     let conn = pool.lock();
     let count: i32 = conn

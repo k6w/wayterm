@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Copy, Star, Tag, Trash2, X, Search, Clock } from "lucide-react";
+import { Copy, Star, Trash2, X, Search, Clock } from "lucide-react";
 import { useClipboardStore } from "../../stores/clipboard";
 import { useThemeStore } from "../../stores/theme";
 import { useSettingsStore } from "../../stores/settings";

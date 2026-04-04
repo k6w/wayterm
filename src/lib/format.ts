@@ -2,7 +2,7 @@ import { getHomeDir } from "./ipc";
 
 let cachedHome: string | null = null;
 
-/** Call once at app startup to cache the home directory. */
+
 export async function initHomePath(): Promise<void> {
   cachedHome = await getHomeDir();
 }
@@ -10,7 +10,7 @@ export async function initHomePath(): Promise<void> {
 export function shortenPath(fullPath: string, sshUsername?: string): string {
   if (!fullPath || fullPath === "~") return "~";
 
-  // SSH remote path: /home/<user> or /root
+  
   if (sshUsername) {
     const remoteHome = sshUsername === "root" ? "/root" : `/home/${sshUsername}`;
     if (fullPath === remoteHome || fullPath.startsWith(remoteHome + "/")) {
@@ -18,15 +18,15 @@ export function shortenPath(fullPath: string, sshUsername?: string): string {
     }
   }
 
-  // Local path
+  
   if (cachedHome) {
-    // Case-insensitive comparison for Windows
+    
     const normalizedPath = fullPath.replace(/\\/g, "/");
     const normalizedHome = cachedHome.replace(/\\/g, "/");
 
     if (normalizedPath.toLowerCase().startsWith(normalizedHome.toLowerCase())) {
       const rest = normalizedPath.slice(normalizedHome.length);
-      // Convert remaining forward slashes back to OS-style (backslash on Windows)
+      
       const separator = fullPath.includes("\\") ? "\\" : "/";
       const displayRest = rest.replace(/\//g, separator);
       return "~" + (displayRest || "");

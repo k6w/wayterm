@@ -246,10 +246,10 @@ pub struct ClientHandler;
 impl Handler for ClientHandler {
     type Error = russh::Error;
 
-    fn check_server_key(
+    async fn check_server_key(
         &mut self,
         _server_public_key: &PublicKey,
-    ) -> impl std::future::Future<Output = Result<bool, Self::Error>> + Send {
-        async move { Ok(true) }
+    ) -> Result<bool, Self::Error> {
+        Ok(true)
     }
 }

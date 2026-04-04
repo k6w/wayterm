@@ -8,12 +8,12 @@ import { useClipboardStore } from "../stores/clipboard";
 export interface CachedTerminal {
   terminal: Terminal;
   fitAddon: FitAddon;
-  /** The div xterm opened into — portable across containers */
+  
   element: HTMLDivElement;
   sessionId: string;
   unlistenOutput: UnlistenFn | null;
   unlistenExit: UnlistenFn | null;
-  /** Stored so we can dispose/reload when toggling vibrancy */
+  
   webglAddon: WebglAddon | null;
 }
 
@@ -31,7 +31,7 @@ export function removeCachedTerminal(paneId: string) {
   cache.delete(paneId);
 }
 
-// ── convenience helpers used by context menus / status bar ──
+
 
 export function getTerminal(paneId: string): Terminal | undefined {
   return cache.get(paneId)?.terminal;
@@ -65,7 +65,7 @@ export function selectAll(paneId: string) {
 
 export function clearBuffer(paneId: string) {
   cache.get(paneId)?.terminal.clear();
-  // Wipe persisted buffer so restore starts fresh
+  
   bufferSaveBatch([{ paneId, bufferData: "" }]).catch(() => {});
 }
 

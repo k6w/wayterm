@@ -10,7 +10,7 @@ import { GitPanel } from "../git/GitPanel";
 import { DatabasePanel } from "../database/DatabasePanel";
 import { ClipboardPanel } from "../ui/ClipboardPanel";
 import type { SshConnection } from "../../types/ssh";
-import { GitBranch, Database, Clipboard, FolderTree, Layers } from "lucide-react";
+import { GitBranch, Database, Clipboard, FolderTree } from "lucide-react";
 
 interface SidebarProps {
   onNewSsh?: () => void;

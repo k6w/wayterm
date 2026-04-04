@@ -51,7 +51,7 @@ export default function Tab({
   const theme = useThemeStore((s) => s.active);
   const hasSplits = countPaneNodes(tab.panes) > 1;
 
-  // Forward ref to parent for hit-testing
+  
   useEffect(() => {
     tabRef(containerRef.current);
     return () => tabRef(null);
@@ -129,9 +129,9 @@ export default function Tab({
     (e: React.MouseEvent) => {
       if (editing) return;
       if (e.button !== 0) return;
-      // Don't start reorder from close button
+      
       if ((e.target as HTMLElement).closest("[data-close-btn]")) return;
-      // Stop propagation so Titlebar doesn't start window dragging
+      
       e.stopPropagation();
       onReorderStart(index, e.clientX);
     },
@@ -152,7 +152,7 @@ export default function Tab({
       }}
       className="relative h-full"
     >
-      {/* Drop target indicator */}
+      {}
       {isDragTarget && (
         <div className="absolute inset-0 z-10 rounded bg-accent/20 border-2 border-accent/40 pointer-events-none" />
       )}

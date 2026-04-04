@@ -6,9 +6,9 @@ use russh::keys::PrivateKeyWithHashAlg;
 use russh_sftp::client::SftpSession;
 use tokio::sync::Mutex;
 
-/// Minimal SSH client handler that accepts all server host keys
-/// (matching the current `StrictHostKeyChecking=accept-new` behaviour
-/// used elsewhere in Nexterm).
+
+
+
 struct ClientHandler;
 
 impl client::Handler for ClientHandler {
@@ -18,23 +18,23 @@ impl client::Handler for ClientHandler {
         &mut self,
         _server_public_key: &russh::keys::ssh_key::PublicKey,
     ) -> Result<bool, Self::Error> {
-        // Accept all host keys -- mirrors existing app behaviour.
+        
         Ok(true)
     }
 }
 
-/// One active SFTP session (SSH connection + SFTP channel).
+
 pub struct SftpSessionEntry {
-    /// Keep the SSH handle alive so the connection stays open.
+    
     _handle: client::Handle<ClientHandler>,
-    /// The SFTP channel used for file operations.
+    
     pub sftp: SftpSession,
-    /// Human-readable label (connection name).
+    
     #[allow(dead_code)]
     pub connection_name: String,
 }
 
-/// Manages multiple SFTP sessions keyed by a UUID string.
+
 pub struct SftpSessionManager {
     sessions: Arc<Mutex<HashMap<String, SftpSessionEntry>>>,
 }
@@ -46,10 +46,11 @@ impl SftpSessionManager {
         }
     }
 
-    /// Open an SSH connection and start an SFTP channel.
-    ///
-    /// `auth_method` must be `"password"` or `"key"`.
-    /// For key auth, `key_pem` should contain the PEM-encoded private key.
+    
+    
+    
+    
+    #[allow(clippy::too_many_arguments)]
     pub async fn connect(
         &self,
         id: String,
@@ -61,19 +62,19 @@ impl SftpSessionManager {
         key_pem: Option<&str>,
         connection_name: String,
     ) -> Result<(), String> {
-        // 1. SSH config with sensible defaults
+        
         let config = client::Config {
             inactivity_timeout: Some(std::time::Duration::from_secs(300)),
             ..Default::default()
         };
 
-        // 2. TCP connect
+        
         let mut handle =
             client::connect(Arc::new(config), (host, port), ClientHandler)
                 .await
                 .map_err(|e| format!("SSH connect failed: {e}"))?;
 
-        // 3. Authenticate
+        
         let auth_ok = match auth_method {
             "password" => {
                 let pw = password.unwrap_or("");
@@ -102,7 +103,7 @@ impl SftpSessionManager {
             return Err("Authentication rejected by server".into());
         }
 
-        // 4. Open a session channel and request the SFTP subsystem
+        
         let channel = handle
             .channel_open_session()
             .await
@@ -113,12 +114,12 @@ impl SftpSessionManager {
             .await
             .map_err(|e| format!("Failed to request SFTP subsystem: {e}"))?;
 
-        // 5. Wrap the channel as an SFTP session
+        
         let sftp = SftpSession::new(channel.into_stream())
             .await
             .map_err(|e| format!("Failed to initialise SFTP session: {e}"))?;
 
-        // 6. Store
+        
         let entry = SftpSessionEntry {
             _handle: handle,
             sftp,
@@ -129,7 +130,7 @@ impl SftpSessionManager {
         Ok(())
     }
 
-    /// Close and remove an SFTP session.
+    
     pub async fn disconnect(&self, id: &str) -> Result<(), String> {
         let mut sessions = self.sessions.lock().await;
         if let Some(entry) = sessions.remove(id) {
@@ -138,8 +139,8 @@ impl SftpSessionManager {
         Ok(())
     }
 
-    /// Return a clone of the inner sessions map handle so that
-    /// commands can lock it and operate on a specific session.
+    
+    
     pub fn sessions(&self) -> Arc<Mutex<HashMap<String, SftpSessionEntry>>> {
         Arc::clone(&self.sessions)
     }

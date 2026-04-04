@@ -10,7 +10,7 @@ import { hexToRgb } from "../lib/color";
 import { initHomePath } from "../lib/format";
 import { getPreferredShell } from "../lib/shell-detect";
 
-/** Call the native set_vibrancy command with the current theme color. */
+
 function syncVibrancy(enabled: boolean, opacity: number) {
   const theme = useThemeStore.getState().active;
   const [r, g, b] = hexToRgb(theme.ui.bgPrimary);
@@ -25,7 +25,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
   const vibrancyEnabled = useSettingsStore((s) => s.settings.appearance.vibrancyEnabled);
   const windowOpacity = useSettingsStore((s) => s.settings.appearance.windowOpacity);
 
-  // Fire ALL loads + startup in one parallel batch — nothing blocks rendering
+  
   useEffect(() => {
     if (startupDone) return;
     startupDone = true;
@@ -39,14 +39,14 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       useSettingsStore.getState().load(),
       getLaunchCwd().catch(() => null),
     ]).then(([, , , , , launchCwd]) => {
-      // Apply saved theme
+      
       const themeId = useSettingsStore.getState().settings.appearance.themeId;
       useThemeStore.getState().setTheme(themeId);
       const { vibrancyEnabled: v, windowOpacity: o } =
         useSettingsStore.getState().settings.appearance;
       syncVibrancy(v, o);
 
-      // ── Startup: restore session or create new tab (runs immediately, no extra render) ──
+      
       const startupBehavior = useSettingsStore.getState().settings.general.startupBehavior;
 
       const defaultShellPath = useSettingsStore.getState().settings.general.defaultShell;
@@ -72,7 +72,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
         }
       }
 
-      // Fallback: open a new tab
+      
       if (useTerminalStore.getState().tabs.length === 0) {
         const shell = getPreferredShell(defaultShellPath);
         useTerminalStore.getState().addTab(shell.type, shell.path);
@@ -84,7 +84,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     applyThemeToDom(theme);
   }, [theme]);
 
-  // Re-apply native vibrancy when toggle, opacity, or theme changes
+  
   const settingsLoaded = useSettingsStore((s) => s.loaded);
   useEffect(() => {
     if (settingsLoaded) {

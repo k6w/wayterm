@@ -2,14 +2,11 @@ import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGitStore } from '../../stores/git';
 import { useTerminalStore } from '../../stores/terminal';
-import { GitBranch, GitCommit, GitFileStatus } from '../../types/git';
-import { GitBranch as BranchIcon, GitCommit as CommitIcon, GitPullRequest, RefreshCw, Upload, Download, Archive, X, Check, Plus, Trash2 } from 'lucide-react';
+import { GitBranch as BranchIcon, GitCommit as CommitIcon, RefreshCw, Upload, Download, Archive, X, Check, Plus, Trash2 } from 'lucide-react';
 
 export function GitPanel() {
   const { status, branches, commits, currentBranch, isLoading, error, fetchStatus, fetchBranches, fetchCommits, checkout, pull, push, commit, stage, unstage, stash, applyStash, dropStash } = useGitStore();
-  const { activeTabId, tabs } = useTerminalStore();
   const [commitMessage, setCommitMessage] = useState('');
-  const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [view, setView] = useState<'status' | 'branches' | 'commits' | 'stash'>('status');
 
   const activePaneId = useTerminalStore((s) => s.activePaneId);

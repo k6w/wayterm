@@ -7,7 +7,7 @@ interface PortForwardsPanelProps {
   connectionId: string;
 }
 
-// Custom toggle switch component
+
 function ToggleSwitch({
   isActive,
   onClick,

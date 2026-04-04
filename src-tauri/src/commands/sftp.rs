@@ -5,12 +5,12 @@ use tauri::{AppHandle, Emitter, State};
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use uuid::Uuid;
 
-/// Chunk size for streaming uploads / downloads (64 KB).
+
 const CHUNK_SIZE: usize = 64 * 1024;
 
-// ── Types ────────────────────────────────────────────────────────────
 
-/// A single entry returned by directory listing (remote or local).
+
+
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct SftpEntry {
@@ -23,7 +23,7 @@ pub struct SftpEntry {
     pub is_symlink: bool,
 }
 
-/// Progress update emitted during file transfers.
+
 #[derive(Serialize, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct TransferProgress {
@@ -34,17 +34,17 @@ pub struct TransferProgress {
     pub error: Option<String>,
 }
 
-// ── Commands ─────────────────────────────────────────────────────────
 
-/// Connect to a remote host via SSH and open an SFTP session.
-/// Returns the session id (UUID) on success.
+
+
+
 #[tauri::command]
 pub async fn sftp_connect(
     connection_id: String,
     pool: State<'_, DbPool>,
     sftp_manager: State<'_, SftpSessionManager>,
 ) -> Result<String, String> {
-    // Look up the connection profile from the database.
+    
     let profiles = db::connections::list(&pool)?;
     let profile = profiles
         .iter()
@@ -52,7 +52,7 @@ pub async fn sftp_connect(
         .ok_or_else(|| format!("Connection {connection_id} not found"))?
         .clone();
 
-    // If key auth, retrieve the private key PEM from the database.
+    
     let key_pem: Option<String> = if profile.auth_method == "key" {
         let key_id = profile
             .private_key_id
@@ -61,7 +61,7 @@ pub async fn sftp_connect(
         let raw = db::keys::get_private_key(&pool, key_id)?;
         let pem = String::from_utf8(raw)
             .map_err(|e| format!("Private key is not valid UTF-8: {e}"))?;
-        // Normalise line endings (same logic as ssh_get_key_temp_path).
+        
         let pem = pem.replace("\r\n", "\n").replace('\r', "\n");
         Some(pem)
     } else {
@@ -77,7 +77,7 @@ pub async fn sftp_connect(
             profile.port as u16,
             &profile.username,
             &profile.auth_method,
-            None, // password -- not stored in the DB currently
+            None, 
             key_pem.as_deref(),
             profile.name.clone(),
         )
@@ -86,7 +86,7 @@ pub async fn sftp_connect(
     Ok(session_id)
 }
 
-/// Disconnect an SFTP session.
+
 #[tauri::command]
 pub async fn sftp_disconnect(
     session_id: String,
@@ -95,8 +95,8 @@ pub async fn sftp_disconnect(
     sftp_manager.disconnect(&session_id).await
 }
 
-/// List the contents of a remote directory.
-/// Returns entries sorted: directories first, then alphabetically.
+
+
 #[tauri::command]
 pub async fn sftp_list_dir(
     session_id: String,
@@ -120,7 +120,7 @@ pub async fn sftp_list_dir(
     for dir_entry in entries {
         let name = dir_entry.file_name();
 
-        // Skip . and ..
+        
         if name == "." || name == ".." {
             continue;
         }
@@ -155,7 +155,7 @@ pub async fn sftp_list_dir(
         });
     }
 
-    // Sort: directories first, then alphabetical (case-insensitive).
+    
     result.sort_by(|a, b| {
         b.is_dir
             .cmp(&a.is_dir)
@@ -165,7 +165,7 @@ pub async fn sftp_list_dir(
     Ok(result)
 }
 
-/// Create a directory on the remote server.
+
 #[tauri::command]
 pub async fn sftp_mkdir(
     session_id: String,
@@ -185,7 +185,7 @@ pub async fn sftp_mkdir(
         .map_err(|e| format!("mkdir failed: {e}"))
 }
 
-/// Remove a file or directory on the remote server.
+
 #[tauri::command]
 pub async fn sftp_remove(
     session_id: String,
@@ -214,7 +214,7 @@ pub async fn sftp_remove(
     }
 }
 
-/// Rename / move a file or directory on the remote server.
+
 #[tauri::command]
 pub async fn sftp_rename(
     session_id: String,
@@ -235,8 +235,8 @@ pub async fn sftp_rename(
         .map_err(|e| format!("rename failed: {e}"))
 }
 
-/// Download a file from the remote server to the local filesystem.
-/// Emits `sftp:transfer:progress` events with chunked reads.
+
+
 #[tauri::command]
 pub async fn sftp_download(
     session_id: String,
@@ -248,7 +248,7 @@ pub async fn sftp_download(
 ) -> Result<(), String> {
     let sessions = sftp_manager.sessions();
 
-    // Read file in chunks, emitting progress after each.
+    
     let (total_bytes, data) = {
         let sessions = sessions.lock().await;
         let entry = sessions
@@ -262,7 +262,7 @@ pub async fn sftp_download(
             .map_err(|e| format!("stat failed: {e}"))?;
         let total = meta.len();
 
-        // Emit initial progress.
+        
         let _ = app.emit(
             "sftp:transfer:progress",
             TransferProgress {
@@ -274,7 +274,7 @@ pub async fn sftp_download(
             },
         );
 
-        // Open the remote file and read in chunks.
+        
         let mut file = entry
             .sftp
             .open(remote_path.as_str())
@@ -309,12 +309,12 @@ pub async fn sftp_download(
         (total, data)
     };
 
-    // Write to local file (lock released).
+    
     tokio::fs::write(&local_path, &data)
         .await
         .map_err(|e| format!("Failed to write local file: {e}"))?;
 
-    // Emit completion.
+    
     let _ = app.emit(
         "sftp:transfer:progress",
         TransferProgress {
@@ -329,8 +329,8 @@ pub async fn sftp_download(
     Ok(())
 }
 
-/// Upload a local file to the remote server.
-/// Emits `sftp:transfer:progress` events with chunked writes.
+
+
 #[tauri::command]
 pub async fn sftp_upload(
     session_id: String,
@@ -340,14 +340,14 @@ pub async fn sftp_upload(
     sftp_manager: State<'_, SftpSessionManager>,
     app: AppHandle,
 ) -> Result<(), String> {
-    // Read local file first (before locking sessions).
+    
     let data = tokio::fs::read(&local_path)
         .await
         .map_err(|e| format!("Failed to read local file: {e}"))?;
 
     let total_bytes = data.len() as u64;
 
-    // Emit initial progress.
+    
     let _ = app.emit(
         "sftp:transfer:progress",
         TransferProgress {
@@ -359,7 +359,7 @@ pub async fn sftp_upload(
         },
     );
 
-    // Create remote file and write in chunks.
+    
     {
         let sessions = sftp_manager.sessions();
         let sessions = sessions.lock().await;
@@ -397,7 +397,7 @@ pub async fn sftp_upload(
             .map_err(|e| format!("close failed: {e}"))?;
     }
 
-    // Emit completion.
+    
     let _ = app.emit(
         "sftp:transfer:progress",
         TransferProgress {
@@ -412,7 +412,7 @@ pub async fn sftp_upload(
     Ok(())
 }
 
-/// Set permissions (chmod) on a remote path.
+
 #[tauri::command]
 pub async fn sftp_chmod(
     session_id: String,
@@ -428,8 +428,10 @@ pub async fn sftp_chmod(
         .get(&session_id)
         .ok_or_else(|| format!("SFTP session {session_id} not found"))?;
 
-    let mut attrs = FileAttributes::default();
-    attrs.permissions = Some(mode);
+    let attrs = FileAttributes {
+        permissions: Some(mode),
+        ..Default::default()
+    };
 
     entry
         .sftp
@@ -438,8 +440,8 @@ pub async fn sftp_chmod(
         .map_err(|e| format!("chmod failed: {e}"))
 }
 
-/// List the contents of a local directory.
-/// Returns entries sorted: directories first, then alphabetically.
+
+
 #[tauri::command]
 pub async fn local_list_dir(path: String) -> Result<Vec<SftpEntry>, String> {
     let mut entries = Vec::new();
@@ -457,7 +459,7 @@ pub async fn local_list_dir(path: String) -> Result<Vec<SftpEntry>, String> {
         let meta = dir_entry.metadata().await.map_err(|e| e.to_string())?;
 
         let entry_path = dir_entry.path().to_string_lossy().to_string();
-        // On Windows, strip the \\?\ prefix that canonicalize adds.
+        
         let entry_path = entry_path
             .strip_prefix(r"\\?\")
             .unwrap_or(&entry_path)

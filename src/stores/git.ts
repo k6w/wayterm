@@ -16,17 +16,10 @@ import {
   gitStashPop
 } from "../lib/ipc";
 
-interface GitFileStatus {
-  message: string;
-}
-
 interface GitStatusExtended extends GitStatus {
   modified: string[];
   added: string[];
   deleted: string[];
-  untracked: string[];
-  staged: string[];
-  stashes: GitFileStatus[];
 }
 
 interface GitStore {
@@ -71,9 +64,6 @@ export const useGitStore = create<GitStore>((set, get) => ({
         modified: [],
         added: [],
         deleted: [],
-        untracked: [],
-        staged: [],
-        stashes: []
       };
       set({ status, currentBranch: rawStatus.branch, isLoading: false });
     } catch (error) {
@@ -204,7 +194,7 @@ export const useGitStore = create<GitStore>((set, get) => ({
     }
   },
 
-  applyStash: async (path: string, index: number) => {
+  applyStash: async (path: string, _index: number) => {
     set({ isLoading: true, error: null });
     try {
       await gitStashPop(path);
@@ -216,7 +206,7 @@ export const useGitStore = create<GitStore>((set, get) => ({
     }
   },
 
-  dropStash: async (path: string, index: number) => {
+  dropStash: async (_path: string, _index: number) => {
     set({ isLoading: true, error: null });
     try {
       set({ isLoading: false });

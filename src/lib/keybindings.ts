@@ -1,6 +1,5 @@
 import { useTerminalStore } from "../stores/terminal";
 import { useSettingsStore } from "../stores/settings";
-import { useClipboardStore } from "../stores/clipboard";
 import type { TerminalPane } from "../types/terminal";
 import { getDefaultShell } from "./shell-detect";
 import { isMac } from "./platform";
@@ -174,10 +173,7 @@ export function getDefaultKeybindings(): KeyAction[] {
   ];
 }
 
-/**
- * Get effective keybindings by merging default keybindings with user overrides
- * from settings. User overrides take precedence over defaults.
- */
+
 export function getEffectiveKeybindings(): KeyAction[] {
   const defaultBindings = getDefaultKeybindings();
   const userKeybindings = useSettingsStore.getState().settings.keybindings;
@@ -216,9 +212,9 @@ function matchesKeybinding(e: KeyboardEvent, keys: string): boolean {
 }
 
 export function setupKeybindings(): () => void {
-  // Use CAPTURE phase so our handler fires BEFORE xterm's keydown handler.
-  // This ensures app shortcuts (Ctrl+Tab, Ctrl+T, etc.) aren't swallowed
-  // by the terminal when it has focus.
+  
+  
+  
   const handler = (e: KeyboardEvent) => {
     const bindings = getEffectiveKeybindings();
     const overrides = useTerminalStore.getState();

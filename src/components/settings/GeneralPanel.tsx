@@ -125,7 +125,7 @@ export default function GeneralPanel() {
                   else await disableAutostart();
                   update("general", { launchOnStartup: next });
                 } catch {
-                  // autostart not available
+                  
                 }
               }}
               className={`relative w-10 h-5 rounded-full transition-colors shrink-0 ${

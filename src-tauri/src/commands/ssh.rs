@@ -191,7 +191,7 @@ fn compute_fingerprint(public_key: &str) -> String {
     out
 }
 
-// Port forwarding commands
+
 
 #[tauri::command]
 pub async fn ssh_list_port_forwards(
@@ -210,14 +210,14 @@ pub async fn ssh_save_port_forward(
     if f.id.is_empty() {
         f.id = Uuid::new_v4().to_string();
     }
-    // Check if exists by trying to update first
+    
     let existing = db::port_forwards::list(&pool, &f.connection_id)?
         .iter()
         .any(|p| p.id == f.id);
     if existing {
         db::port_forwards::update(&pool, &f)
     } else {
-        // Check for duplicate local port
+        
         if db::port_forwards::exists_by_local_port(&pool, &f.connection_id, f.local_port)? {
             return Err("A port forward with this local port already exists".to_string());
         }
@@ -241,12 +241,12 @@ pub async fn ssh_toggle_port_forward(
     pool: State<'_, DbPool>,
     port_forward_manager: State<'_, PortForwardManager>,
 ) -> Result<(), String> {
-    // Lookup port forward config from DB
+    
     let forward = port_forwards::get(&pool, &id)?
         .ok_or_else(|| "Port forward not found".to_string())?;
 
     if is_active {
-        // Try in-process russh manager first
+        
         let start_result = if let Some(ref sess_id) = session_id {
             port_forward_manager
                 .start_port_forward(
@@ -262,7 +262,7 @@ pub async fn ssh_toggle_port_forward(
         };
 
         if start_result.is_err() {
-            // Fallback to local ssh -L command using connection profile
+            
             let connection = crate::db::connections::get(&pool, &forward.connection_id)?
                 .ok_or_else(|| "Connection profile not found".to_string())?;
 

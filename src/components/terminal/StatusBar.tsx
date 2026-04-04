@@ -1,8 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import {
-  GitBranch,
   Folder,
-  Circle,
   Terminal,
   Columns2,
   Rows2,
@@ -18,8 +16,6 @@ import {
   Moon,
   ArrowRightLeft,
   Search,
-  Clipboard,
-  Database,
 } from "lucide-react";
 import { useTerminalStore, collectPaneIds } from "../../stores/terminal";
 import { useThemeStore } from "../../stores/theme";
@@ -31,7 +27,6 @@ import { getDefaultShell, getDefaultShells } from "../../lib/shell-detect";
 import { shortenPath } from "../../lib/format";
 import { splitActivePane } from "../../lib/keybindings";
 import { clearBuffer } from "../../lib/terminal-registry";
-import { gitGetBranch, gitIsDirty } from "../../lib/ipc";
 import QuickPortForwardDialog from "../ssh/QuickPortForwardDialog";
 import { GitStatusWidget } from "../git/GitStatusWidget";
 
@@ -63,7 +58,7 @@ export default function StatusBar() {
     window.dispatchEvent(event);
   };
 
-  // Look up SSH username for remote ~ shortening
+  
   const sshUsername = useSshStore((s) => {
     if (!pane?.sshConnectionId) return undefined;
     return s.connections.find((c) => c.id === pane.sshConnectionId)?.username;
@@ -73,7 +68,7 @@ export default function StatusBar() {
 
   const displayPath = shortenPath(pane.cwd || "~", sshUsername);
 
-  // Resolve the actual shell for this pane
+  
   const allShells = getDefaultShells();
   const paneShell = pane.shellPath
     ? allShells.find((s) => s.path === pane.shellPath) ?? { label: pane.shellType, path: pane.shellPath }
@@ -92,7 +87,7 @@ export default function StatusBar() {
       setCopiedFlash(true);
       setTimeout(() => setCopiedFlash(false), 1200);
     } catch {
-      // clipboard not available
+      
     }
   };
 
@@ -101,9 +96,9 @@ export default function StatusBar() {
       className={`shrink-0 flex items-center h-6 border-t border-border px-2 gap-0.5 text-[11px] text-text-muted select-none ${vibrancyEnabled ? "" : "bg-bg-secondary"}`}
       style={vibrancyEnabled ? { backgroundColor: hexToRgba(theme.ui.bgSecondary, vibrancyAlpha(windowOpacity)) } : undefined}
     >
-      {/* === LEFT SIDE === */}
+      {}
 
-      {/* Shell type */}
+      {}
       <button className={sectionBtn} title={`Shell: ${paneShell.path}`}>
         <Terminal size={12} className="shrink-0" />
         <span>{paneShell.label}</span>
@@ -111,7 +106,7 @@ export default function StatusBar() {
 
       <Separator />
 
-      {/* CWD — click to copy */}
+      {}
       <button
         className={sectionBtn}
         onClick={handleCopyPath}
@@ -123,10 +118,10 @@ export default function StatusBar() {
         </span>
       </button>
 
-      {/* Git branch */}
+      {}
       <GitStatusWidget />
 
-      {/* Pane indicator */}
+      {}
       {paneCount > 1 && (
         <>
           <Separator />
@@ -143,7 +138,7 @@ export default function StatusBar() {
         </>
       )}
 
-      {/* SSH */}
+      {}
       {pane.sshConnectionId && (
         <>
           <Separator />
@@ -161,12 +156,12 @@ export default function StatusBar() {
         </>
       )}
 
-      {/* === SPACER === */}
+      {}
       <div className="flex-1" />
 
-      {/* === RIGHT SIDE === */}
+      {}
 
-      {/* Search */}
+      {}
       <button
         className={btnClass}
         onClick={handleSearchClick}
@@ -175,9 +170,9 @@ export default function StatusBar() {
         <Search size={13} />
       </button>
 
-      {/* Clear buffer */}
+      {}
 
-      {/* Quick Port Forward Dialog */}
+      {}
       {pane.sshConnectionId && (
         <QuickPortForwardDialog
           isOpen={showQuickPortForward}
@@ -187,7 +182,7 @@ export default function StatusBar() {
         />
       )}
 
-      {/* Clear buffer */}
+      {}
       <button
         className={btnClass}
         onClick={() => clearBuffer(activePaneId)}
@@ -198,7 +193,7 @@ export default function StatusBar() {
 
       <Separator />
 
-      {/* Split buttons */}
+      {}
       <button
         className={btnClass}
         onClick={() => splitActivePane("horizontal")}
@@ -216,7 +211,7 @@ export default function StatusBar() {
 
       <Separator />
 
-      {/* Bell toggle */}
+      {}
       <button
         className={btnClass}
         onClick={() => setBellEnabled((b) => !b)}
@@ -225,10 +220,10 @@ export default function StatusBar() {
         {bellEnabled ? <Bell size={13} /> : <BellOff size={13} />}
       </button>
 
-      {/* Theme picker popup */}
+      {}
       <ThemePicker />
 
-      {/* Command palette */}
+      {}
       <button
         className={btnClass}
         onClick={toggleCommandPalette}
@@ -237,7 +232,7 @@ export default function StatusBar() {
         <Command size={13} />
       </button>
 
-      {/* Settings */}
+      {}
       <button className={btnClass} onClick={toggleSettings} title="Settings">
         <Settings size={13} />
       </button>
@@ -245,7 +240,7 @@ export default function StatusBar() {
   );
 }
 
-/* ── Theme picker popover ── */
+
 
 function ThemePicker() {
   const [open, setOpen] = useState(false);
@@ -264,7 +259,7 @@ function ThemePicker() {
 
   const themeList = Object.values(themes);
 
-  // Close on click outside
+  
   useEffect(() => {
     if (!open) return;
     const handleClick = (e: MouseEvent) => {
@@ -337,64 +332,6 @@ function ThemePicker() {
 
 function Separator() {
   return <div className="w-px h-3 bg-border mx-0.5" />;
-}
-
-interface GitBranchInfoProps {
-  cwd: string;
-}
-
-function GitBranchInfo({ cwd }: GitBranchInfoProps) {
-  const [branch, setBranch] = useState<string | null>(null);
-  const [dirty, setDirty] = useState(false);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    let cancelled = false;
-
-    async function fetchGitInfo() {
-      try {
-        const [branchResult, dirtyResult] = await Promise.all([
-          gitGetBranch(cwd),
-          gitIsDirty(cwd),
-        ]);
-        if (!cancelled) {
-          setBranch(branchResult);
-          setDirty(dirtyResult);
-        }
-      } catch {
-        // Git not available or not a repo
-        if (!cancelled) {
-          setBranch(null);
-          setDirty(false);
-        }
-      } finally {
-        if (!cancelled) {
-          setLoading(false);
-        }
-      }
-    }
-
-    fetchGitInfo();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [cwd]);
-
-  if (loading || !branch) return null;
-
-  return (
-    <>
-      <Separator />
-      <div className="flex items-center gap-1.5 px-1.5 h-5 rounded">
-        <GitBranch size={12} className="shrink-0" />
-        <span className="truncate">{branch}</span>
-        {dirty && (
-          <Circle size={6} className="shrink-0 fill-warning text-warning" />
-        )}
-      </div>
-    </>
-  );
 }
 
 function countPanes(node: { type: string; children?: [unknown, unknown] }): number {

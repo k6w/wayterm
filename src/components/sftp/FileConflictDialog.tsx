@@ -13,13 +13,13 @@ interface FileConflictDialogProps {
   onReplace: () => void;
   onRename: (newPath: string) => void;
   onSkip: () => void;
-  /** Remote entries to check for name collisions when generating "Keep Both" name */
+  
   remoteNames: Set<string>;
-  /** Remote directory the file is being uploaded to */
+  
   remoteDir: string;
 }
 
-/** Compute next available name: "foo (1).txt", "foo (2).txt", etc. */
+
 function nextAvailableName(
   fileName: string,
   existingNames: Set<string>

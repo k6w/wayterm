@@ -23,8 +23,8 @@ export function DatabasePanel() {
     loadConnections();
   }, [loadConnections]);
 
-  const handleConnect = async (connection: DatabaseConnection) => {
-    await connect(connection);
+  const handleConnect = async (conn: DatabaseConnection) => {
+    await connect(conn.id);
   };
 
   const handleDisconnect = async () => {

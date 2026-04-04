@@ -34,7 +34,7 @@ impl PtySession {
         }
         cmd.cwd(cwd);
         
-        // Check if TERM is already set in the environment
+        
         let mut has_term = false;
         for (key, value) in env {
             cmd.env(key, value);
@@ -43,7 +43,7 @@ impl PtySession {
             }
         }
         
-        // Set TERM to a sensible default if not provided
+        
         if !has_term {
             cmd.env("TERM", "xterm-256color");
         }

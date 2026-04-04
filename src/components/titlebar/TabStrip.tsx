@@ -47,7 +47,7 @@ export default function TabStrip() {
     [renameTab]
   );
 
-  // Keep refs in sync with state
+  
   useEffect(() => { dragIndexRef.current = dragIndex; }, [dragIndex]);
   useEffect(() => { dropIndexRef.current = dropIndex; }, [dropIndex]);
 
@@ -65,7 +65,7 @@ export default function TabStrip() {
         if (dx > 5) {
           if (!isDraggingRef.current) {
             isDraggingRef.current = true;
-            // Signal drag start globally
+            
             useTerminalStore.getState().setDraggingTab(draggedTabId ?? null);
           }
         }
@@ -74,7 +74,7 @@ export default function TabStrip() {
 
         setDragIndex(index);
 
-        // Check if cursor is over a tab
+        
         let overTab: number | null = null;
         tabRefs.current.forEach((el, i) => {
           const rect = el.getBoundingClientRect();
@@ -85,12 +85,12 @@ export default function TabStrip() {
         });
 
         if (overTab !== null) {
-          // Over a tab — show tab reorder indicator, clear pane drop
+          
           setDropIndex(overTab);
           dropIndexRef.current = overTab;
           useTerminalStore.getState().setDragOverPane(null, null);
         } else {
-          // Not over a tab — check if over a terminal pane
+          
           setDropIndex(null);
           dropIndexRef.current = null;
 
@@ -118,14 +118,14 @@ export default function TabStrip() {
           const s = useTerminalStore.getState();
 
           if (from !== null && to !== null && from !== to) {
-            // Dropping on a tab → reorder
+            
             s.reorderTabs(from, to);
           } else if (s.dragOverPaneId && s.dragOverZone && s.draggingTabId) {
-            // Dropping on a terminal pane → merge/split
+            
             s.mergeTabIntoPane(s.draggingTabId, s.dragOverPaneId, s.dragOverZone);
           }
 
-          // Clear all drag state
+          
           s.setDraggingTab(null);
           s.setDragOverPane(null, null);
         }
@@ -185,7 +185,7 @@ export default function TabStrip() {
   );
 }
 
-/* ── Shell icons ── */
+
 const SHELL_ICONS: Record<string, React.ReactNode> = {
   powershell: <SquareTerminal size={14} />,
   cmd: <MonitorDot size={14} />,

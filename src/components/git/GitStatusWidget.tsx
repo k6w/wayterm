@@ -1,14 +1,15 @@
 import { useEffect } from 'react';
 import { useGitStore } from '../../stores/git';
 import { useTerminalStore } from '../../stores/terminal';
-import { GitBranch, GitCommit } from 'lucide-react';
+import { GitBranch } from 'lucide-react';
 
 export function GitStatusWidget() {
   const { status, currentBranch, fetchStatus } = useGitStore();
-  const { activeTabId, tabs } = useTerminalStore();
 
-  const activeTab = tabs.find(t => t.id === activeTabId);
-  const cwd = activeTab?.cwd || '';
+  const activePaneId = useTerminalStore((s) => s.activePaneId);
+  const panes = useTerminalStore((s) => s.panes);
+  const activePane = activePaneId ? panes[activePaneId] : null;
+  const cwd = activePane?.cwd || '';
 
   useEffect(() => {
     if (cwd && cwd !== '~' && cwd.length > 0) {

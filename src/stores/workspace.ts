@@ -100,7 +100,7 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
       icon: ws.icon ?? null,
       layout,
       isDefault: ws.isDefault,
-      createdAt: ws.updatedAt, // preserve original timestamp
+      createdAt: ws.updatedAt, 
       updatedAt: now,
     });
 

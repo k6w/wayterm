@@ -15,7 +15,7 @@ interface QuickPortForwardDialogProps {
   sessionId?: string;
 }
 
-// Custom toggle switch component
+
 function ToggleSwitch({
   isActive,
   onClick,
@@ -151,7 +151,7 @@ export default function QuickPortForwardDialog({
             </div>
 
             <div className="p-4 space-y-4 max-h-[60vh] overflow-y-auto">
-              {/* Add new forward section */}
+              {}
               {isAdding ? (
                 <div className="p-3 border border-border rounded-lg bg-bg-secondary space-y-3">
                   <div className="text-xs text-text-muted font-medium">New Port Forward</div>
@@ -228,7 +228,7 @@ export default function QuickPortForwardDialog({
                 </div>
               )}
 
-              {/* Port forwards list */}
+              {}
               {portForwards.length === 0 && !isAdding ? (
                 <div className="py-6 text-center text-xs text-text-muted border border-dashed border-border rounded-lg">
                   <ArrowRightLeft size={20} className="mx-auto mb-2 opacity-50" />
