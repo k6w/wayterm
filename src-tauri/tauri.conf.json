@@ -24,7 +24,7 @@
       }
     ],
     "security": {
-      "csp": null
+      "csp": "default-src 'self'; script-src 'self' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: asset: https://asset.localhost; font-src 'self' data:; connect-src 'self' ipc: http://ipc.localhost https://github.com https://api.github.com; worker-src 'self' blob:"
     }
   },
   "bundle": {
@@ -39,7 +39,7 @@
       "icons/icon.ico"
     ],
     "shortDescription": "Modern terminal emulator with SSH management",
-    "longDescription": "Nexterm is a cross-platform terminal emulator featuring a Warp-style block UI, split panes, SSH connection management, 10 built-in themes, and glassmorphism design.",
+    "longDescription": "Nexterm is a cross-platform terminal emulator featuring split panes, SSH connection management, SFTP file transfers, port forwarding, Git integration, 18 built-in themes, and glassmorphism design.",
     "copyright": "Copyright 2026 Nexterm",
     "category": "DeveloperTool",
     "windows": {

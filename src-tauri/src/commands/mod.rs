@@ -1,6 +1,5 @@
 pub mod buffer;
 pub mod custom_themes;
-pub mod database;
 pub mod git;
 pub mod known_hosts;
 pub mod settings;

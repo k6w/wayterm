@@ -38,7 +38,8 @@ pub fn list(pool: &DbPool) -> Result<Vec<SshKey>, String> {
         .map_err(|e| e.to_string())
 }
 
-pub fn insert(pool: &DbPool, key: &SshKey, private_key_encrypted: &[u8]) -> Result<(), String> {
+pub fn insert(pool: &DbPool, key: &SshKey, private_key_pem: &[u8]) -> Result<(), String> {
+    let encrypted = crate::crypto::encrypt(private_key_pem)?;
     let conn = pool.lock();
     conn.execute(
         "INSERT INTO keys (id, name, algorithm, public_key, private_key_encrypted, fingerprint) \
@@ -48,7 +49,7 @@ pub fn insert(pool: &DbPool, key: &SshKey, private_key_encrypted: &[u8]) -> Resu
             key.name,
             key.algorithm,
             key.public_key,
-            private_key_encrypted,
+            encrypted,
             key.fingerprint,
         ],
     )
@@ -58,12 +59,18 @@ pub fn insert(pool: &DbPool, key: &SshKey, private_key_encrypted: &[u8]) -> Resu
 
 pub fn get_private_key(pool: &DbPool, id: &str) -> Result<Vec<u8>, String> {
     let conn = pool.lock();
-    conn.query_row(
+    let raw: Vec<u8> = conn.query_row(
         "SELECT private_key_encrypted FROM keys WHERE id = ?1",
         [id],
         |row| row.get(0),
     )
-    .map_err(|e| e.to_string())
+    .map_err(|e| e.to_string())?;
+
+    if crate::crypto::is_encrypted(&raw) {
+        crate::crypto::decrypt(&raw)
+    } else {
+        Ok(raw)
+    }
 }
 
 pub fn delete(pool: &DbPool, id: &str) -> Result<(), String> {

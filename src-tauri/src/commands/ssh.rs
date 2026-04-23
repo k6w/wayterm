@@ -150,6 +150,50 @@ pub async fn ssh_get_key_temp_path(
     Ok(path.to_string_lossy().to_string())
 }
 
+pub fn write_key_to_temp(pool: &DbPool, key_id: &str) -> Result<PathBuf, String> {
+    use std::io::Write;
+
+    let raw_bytes = db::keys::get_private_key(pool, key_id)?;
+    let raw_str = String::from_utf8(raw_bytes)
+        .map_err(|e| format!("Key is not valid UTF-8: {}", e))?;
+    let normalized = raw_str.replace("\r\n", "\n").replace('\r', "\n");
+    let pem = if normalized.ends_with('\n') { normalized } else { format!("{}\n", normalized) };
+
+    let temp_dir = std::env::temp_dir();
+    let path = temp_dir.join(format!("nexterm_key_{}", key_id));
+
+    let mut file = std::fs::File::create(&path).map_err(|e| e.to_string())?;
+    file.write_all(pem.as_bytes()).map_err(|e| e.to_string())?;
+    drop(file);
+
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600))
+            .map_err(|e| e.to_string())?;
+    }
+
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NO_WINDOW: u32 = 0x08000000;
+        let path_str = path.to_string_lossy();
+        let _ = std::process::Command::new("icacls")
+            .args([&*path_str, "/inheritance:r", "/grant:r", &format!("{}:F", whoami())])
+            .creation_flags(CREATE_NO_WINDOW)
+            .output();
+    }
+
+    Ok(path)
+}
+
+#[allow(dead_code)]
+pub fn cleanup_temp_key(key_id: &str) {
+    let temp_dir = std::env::temp_dir();
+    let path = temp_dir.join(format!("nexterm_key_{}", key_id));
+    let _ = std::fs::remove_file(path);
+}
+
 #[cfg(windows)]
 fn whoami() -> String {
     let domain = std::env::var("USERDOMAIN").unwrap_or_default();
@@ -162,24 +206,11 @@ fn whoami() -> String {
 }
 
 fn compute_fingerprint(public_key: &str) -> String {
-    use std::collections::hash_map::DefaultHasher;
+    use sha2::{Sha256, Digest};
     use std::fmt::Write;
-    use std::hash::{Hash, Hasher};
 
-    let mut hasher = DefaultHasher::new();
-    public_key.hash(&mut hasher);
-    let h1 = hasher.finish();
-
-    let mut hasher2 = DefaultHasher::new();
-    format!("{}{}", public_key, h1).hash(&mut hasher2);
-    let h2 = hasher2.finish();
-
-    let bytes: [u8; 16] = [
-        (h1 >> 56) as u8, (h1 >> 48) as u8, (h1 >> 40) as u8, (h1 >> 32) as u8,
-        (h1 >> 24) as u8, (h1 >> 16) as u8, (h1 >> 8) as u8, h1 as u8,
-        (h2 >> 56) as u8, (h2 >> 48) as u8, (h2 >> 40) as u8, (h2 >> 32) as u8,
-        (h2 >> 24) as u8, (h2 >> 16) as u8, (h2 >> 8) as u8, h2 as u8,
-    ];
+    let hash = Sha256::digest(public_key.as_bytes());
+    let bytes = &hash[..16];
 
     let mut out = String::with_capacity(47);
     for (i, b) in bytes.iter().enumerate() {
@@ -285,7 +316,7 @@ pub async fn ssh_toggle_port_forward(
                 ssh_args.push(connection.port.to_string());
             }
             ssh_args.push("-o".to_string());
-            ssh_args.push("StrictHostKeyChecking=accept-new".to_string());
+            ssh_args.push("StrictHostKeyChecking=yes".to_string());
 
             if let Some(key_path) = key_option.as_ref() {
                 ssh_args.push("-i".to_string());
@@ -304,23 +335,34 @@ pub async fn ssh_toggle_port_forward(
     db::port_forwards::toggle_active(&pool, &id, is_active)
 }
 
-fn write_key_to_temp(pool: &DbPool, key_id: &str) -> Result<PathBuf, String> {
-    let raw = crate::db::keys::get_private_key(pool, key_id)?;
-    let raw_str = String::from_utf8(raw).map_err(|e| format!("Key is not valid UTF-8: {e}"))?;
-    let normalized = raw_str.replace("\r\n", "\n").replace('\r', "\n");
-    let content = if normalized.ends_with('\n') {
-        normalized
-    } else {
-        format!("{}\n", normalized)
-    };
-    let path = std::env::temp_dir().join(format!("nexterm_key_{}", key_id));
-    std::fs::write(&path, content.as_bytes()).map_err(|e| e.to_string())?;
+#[cfg(test)]
+mod tests {
+    use super::*;
 
-    #[cfg(unix)]
-    {
-        use std::os::unix::fs::PermissionsExt;
-        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).map_err(|e| e.to_string())?;
+    #[test]
+    fn fingerprint_format_is_colon_separated_hex() {
+        let fp = compute_fingerprint("ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQ");
+        let parts: Vec<&str> = fp.split(':').collect();
+        assert_eq!(parts.len(), 16, "fingerprint should have 16 colon-separated segments");
+        for part in &parts {
+            assert_eq!(part.len(), 2, "each segment should be 2 hex chars");
+            assert!(part.chars().all(|c| c.is_ascii_hexdigit()), "each segment should be hex");
+        }
     }
 
-    Ok(path)
+    #[test]
+    fn fingerprint_is_deterministic() {
+        let key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAITest";
+        let fp1 = compute_fingerprint(key);
+        let fp2 = compute_fingerprint(key);
+        assert_eq!(fp1, fp2);
+    }
+
+    #[test]
+    fn different_keys_produce_different_fingerprints() {
+        let fp1 = compute_fingerprint("ssh-rsa key1");
+        let fp2 = compute_fingerprint("ssh-rsa key2");
+        assert_ne!(fp1, fp2);
+    }
 }
+

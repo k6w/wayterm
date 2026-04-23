@@ -241,15 +241,21 @@ async fn handle_local_connection(
     Ok(())
 }
 
-pub struct ClientHandler;
+pub struct ClientHandler {
+    pub host: String,
+    pub port: u16,
+}
 
 impl Handler for ClientHandler {
     type Error = russh::Error;
 
     async fn check_server_key(
         &mut self,
-        _server_public_key: &PublicKey,
+        server_public_key: &PublicKey,
     ) -> Result<bool, Self::Error> {
-        Ok(true)
+        match crate::commands::known_hosts::verify_host_key(&self.host, self.port, server_public_key) {
+            Ok(valid) => Ok(valid),
+            Err(_) => Ok(false),
+        }
     }
 }

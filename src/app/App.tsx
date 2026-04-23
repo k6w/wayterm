@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { AppProviders } from "./providers";
 import Titlebar from "../components/titlebar/Titlebar";
@@ -175,10 +175,43 @@ function AppContent() {
   );
 }
 
+class ErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { error: Error | null }
+> {
+  state = { error: null as Error | null };
+
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="h-full w-full flex flex-col items-center justify-center bg-[#1a1a2e] text-white p-8">
+          <h1 className="text-xl font-semibold mb-4">Something went wrong</h1>
+          <p className="text-sm text-gray-400 mb-6 max-w-md text-center font-mono">
+            {this.state.error.message}
+          </p>
+          <button
+            onClick={() => this.setState({ error: null })}
+            className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded text-sm transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 export default function App() {
   return (
-    <AppProviders>
-      <AppContent />
-    </AppProviders>
+    <ErrorBoundary>
+      <AppProviders>
+        <AppContent />
+      </AppProviders>
+    </ErrorBoundary>
   );
 }

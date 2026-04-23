@@ -7,10 +7,9 @@ import QuickActions from "./QuickActions";
 import ConnectionTree from "./ConnectionTree";
 import WorkspaceList from "./WorkspaceList";
 import { GitPanel } from "../git/GitPanel";
-import { DatabasePanel } from "../database/DatabasePanel";
 import { ClipboardPanel } from "../ui/ClipboardPanel";
 import type { SshConnection } from "../../types/ssh";
-import { GitBranch, Database, Clipboard, FolderTree } from "lucide-react";
+import { GitBranch, Clipboard, FolderTree } from "lucide-react";
 
 interface SidebarProps {
   onNewSsh?: () => void;
@@ -21,7 +20,7 @@ export default function Sidebar({ onNewSsh, onEditSsh }: SidebarProps) {
   const sidebarOpen = useTerminalStore((s) => s.sidebarOpen);
   const toggleSidebar = useTerminalStore((s) => s.toggleSidebar);
   const panelRef = useRef<HTMLDivElement>(null);
-  const [activeView, setActiveView] = useState<'connections' | 'git' | 'database' | 'clipboard'>('connections');
+  const [activeView, setActiveView] = useState<'connections' | 'git' | 'clipboard'>('connections');
 
   const handleClose = useCallback(() => {
     if (sidebarOpen) {
@@ -125,15 +124,6 @@ export default function Sidebar({ onNewSsh, onEditSsh }: SidebarProps) {
                   <span>Git</span>
                 </button>
                 <button
-                  onClick={() => setActiveView('database')}
-                  className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded text-xs transition-colors ${
-                    activeView === 'database' ? 'bg-white/[0.12] text-text-primary' : 'text-text-muted hover:bg-white/[0.08]'
-                  }`}
-                >
-                  <Database size={14} />
-                  <span>DB</span>
-                </button>
-                <button
                   onClick={() => setActiveView('clipboard')}
                   className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded text-xs transition-colors ${
                     activeView === 'clipboard' ? 'bg-white/[0.12] text-text-primary' : 'text-text-muted hover:bg-white/[0.08]'
@@ -163,7 +153,6 @@ export default function Sidebar({ onNewSsh, onEditSsh }: SidebarProps) {
                 </>
               )}
               {activeView === 'git' && <GitPanel />}
-              {activeView === 'database' && <DatabasePanel />}
               {activeView === 'clipboard' && <ClipboardPanel />}
             </div>
           </motion.div>

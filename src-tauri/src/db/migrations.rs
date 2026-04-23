@@ -56,5 +56,36 @@ pub fn run(pool: &DbPool) -> Result<(), String> {
             .map_err(|e| e.to_string())?;
     }
 
+    if current < 6 {
+        encrypt_existing_keys(&conn)?;
+        conn.execute("INSERT INTO schema_version (version) VALUES (6)", [])
+            .map_err(|e| e.to_string())?;
+    }
+
+    Ok(())
+}
+
+fn encrypt_existing_keys(conn: &rusqlite::Connection) -> Result<(), String> {
+    let mut stmt = conn
+        .prepare("SELECT id, private_key_encrypted FROM keys")
+        .map_err(|e| e.to_string())?;
+
+    let rows: Vec<(String, Vec<u8>)> = stmt
+        .query_map([], |row| Ok((row.get(0)?, row.get(1)?)))
+        .map_err(|e| e.to_string())?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())?;
+
+    for (id, raw) in rows {
+        if !crate::crypto::is_encrypted(&raw) {
+            let encrypted = crate::crypto::encrypt(&raw)?;
+            conn.execute(
+                "UPDATE keys SET private_key_encrypted = ?1 WHERE id = ?2",
+                rusqlite::params![encrypted, id],
+            )
+            .map_err(|e| e.to_string())?;
+        }
+    }
+
     Ok(())
 }

@@ -27,6 +27,9 @@ tauri-plugin-single-instance = "2"
 russh = { version = "0.54", default-features = false, features = ["flate2", "ring", "rsa"] }
 russh-sftp = "2.1"
 async-trait = "0.1"
+sha2 = "0.10"
+aes-gcm = "0.10"
+rand = "0.8"
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }
