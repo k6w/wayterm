@@ -31,8 +31,8 @@ export function GitStatusWidget() {
   const stagedCount = status.staged.length;
 
   return (
-    <div className="flex items-center gap-2 px-2 py-1 text-xs text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] rounded cursor-pointer">
-      <GitBranch className="w-3 h-3" />
+    <div className="flex items-center gap-1.5 px-1.5 h-5 text-[11px] text-text-muted rounded cursor-pointer hover:bg-bg-tertiary transition-colors">
+      <GitBranch size={12} className="shrink-0" />
       <span>{currentBranch || 'main'}</span>
       {totalChanges > 0 && (
         <>

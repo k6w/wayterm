@@ -430,8 +430,8 @@ export function GitPanel() {
             transition={{ duration: 0.2 }}
             className="p-3 space-y-2"
           >
-            {status.stashes.map((stash, index) => (
-              <motion.div 
+            {Array.from({ length: status.stashes }).map((_, index) => (
+              <motion.div
                 key={index}
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
@@ -440,8 +440,8 @@ export function GitPanel() {
                 className="p-2.5 bg-white/[0.03] rounded border border-white/[0.08] flex items-center justify-between"
               >
                 <div>
-                  <div className="text-xs font-medium text-text-primary">{stash.message}</div>
-                  <div className="text-[10px] text-text-muted">stash@{index}</div>
+                  <div className="text-xs font-medium text-text-primary">stash@{"{" + index + "}"}</div>
+                  <div className="text-[10px] text-text-muted">WIP on current branch</div>
                 </div>
                 <div className="flex gap-1">
                   <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => handleApplyStash(index)} className="p-1 hover:bg-white/[0.08] rounded transition-colors" title="Apply">
@@ -453,8 +453,8 @@ export function GitPanel() {
                 </div>
               </motion.div>
             ))}
-            {status.stashes.length === 0 && (
-              <motion.div 
+            {status.stashes === 0 && (
+              <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 className="text-center text-text-muted py-12 text-xs"

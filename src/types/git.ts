@@ -6,7 +6,7 @@ export interface GitStatus {
   unstaged: string[];
   untracked: string[];
   conflicted: number;
-  stashes: GitFileStatus[];
+  stashes: number;
 }
 
 export interface GitFileStatus {
