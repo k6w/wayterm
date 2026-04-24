@@ -261,16 +261,16 @@ export default function CommandPalette() {
 
   
   const grouped = useMemo(() => {
-    const groups: { category: string; items: { action: PaletteAction; globalIndex: number }[] }[] = [];
-    let currentCategory = "";
+    const map = new Map<string, { category: string; items: { action: PaletteAction; globalIndex: number }[] }>();
+    const order: string[] = [];
     filteredActions.forEach((action, i) => {
-      if (action.category !== currentCategory) {
-        currentCategory = action.category;
-        groups.push({ category: currentCategory, items: [] });
+      if (!map.has(action.category)) {
+        map.set(action.category, { category: action.category, items: [] });
+        order.push(action.category);
       }
-      groups[groups.length - 1].items.push({ action, globalIndex: i });
+      map.get(action.category)!.items.push({ action, globalIndex: i });
     });
-    return groups;
+    return order.map((cat) => map.get(cat)!);
   }, [filteredActions]);
 
   
