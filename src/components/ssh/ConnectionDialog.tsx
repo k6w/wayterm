@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Lock, KeyRound, Shield } from "lucide-react";
+import { X, Lock, KeyRound, Shield, ChevronDown, Plus, Trash2 } from "lucide-react";
 import { useSshStore } from "../../stores/ssh";
 import { useThemeStore } from "../../stores/theme";
 import { useSettingsStore } from "../../stores/settings";
@@ -50,6 +50,11 @@ function createDefaultFormState() {
     passphrase: "",
     colorTag: null as string | null,
     startupCommands: "",
+    // Advanced
+    jumpHostId: null as string | null,
+    themeOverride: null as string | null,
+    agentForwarding: false,
+    envVars: {} as Record<string, string>,
   };
 }
 
@@ -60,8 +65,13 @@ export default function ConnectionDialog({
   editConnection,
 }: ConnectionDialogProps) {
   const [form, setForm] = useState(createDefaultFormState());
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [newEnvKey, setNewEnvKey] = useState("");
+  const [newEnvVal, setNewEnvVal] = useState("");
   const storedKeys = useSshStore((s) => s.keys);
+  const allConnections = useSshStore((s) => s.connections);
   const theme = useThemeStore((s) => s.active);
+  const themes = useThemeStore((s) => s.themes);
   const vibrancy = useSettingsStore((s) => s.settings.appearance.vibrancyEnabled);
   const windowOpacity = useSettingsStore((s) => s.settings.appearance.windowOpacity);
 
@@ -84,10 +94,17 @@ export default function ConnectionDialog({
           passphrase: "",
           colorTag: editConnection.colorTag,
           startupCommands: editConnection.startupCommands ?? "",
+          jumpHostId: editConnection.jumpHostId ?? null,
+          themeOverride: editConnection.themeOverride ?? null,
+          agentForwarding: editConnection.agentForwarding ?? false,
+          envVars: editConnection.envVars ?? {},
         });
       } else {
         setForm(createDefaultFormState());
       }
+      setAdvancedOpen(false);
+      setNewEnvKey("");
+      setNewEnvVal("");
     }
   }, [isOpen, editConnection]);
 
@@ -119,11 +136,14 @@ export default function ConnectionDialog({
         username: form.username.trim(),
         authMethod: form.authMethod,
         privateKeyId: form.selectedKeyId || null,
-        jumpHostId: editConnection?.jumpHostId ?? null,
+        jumpHostId: form.jumpHostId,
         startupCommands: form.startupCommands.trim() || null,
         colorTag: form.colorTag,
-        folderPath: "/",
+        folderPath: editConnection?.folderPath ?? "/",
         sortOrder: editConnection?.sortOrder ?? 0,
+        themeOverride: form.themeOverride,
+        agentForwarding: form.agentForwarding,
+        envVars: form.envVars,
         createdAt: editConnection?.createdAt ?? now,
         updatedAt: now,
       };
@@ -137,6 +157,23 @@ export default function ConnectionDialog({
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
+  const addEnvVar = () => {
+    const k = newEnvKey.trim();
+    const v = newEnvVal.trim();
+    if (!k) return;
+    setForm((prev) => ({ ...prev, envVars: { ...prev.envVars, [k]: v } }));
+    setNewEnvKey("");
+    setNewEnvVal("");
+  };
+
+  const removeEnvVar = (key: string) => {
+    setForm((prev) => {
+      const next = { ...prev.envVars };
+      delete next[key];
+      return { ...prev, envVars: next };
+    });
+  };
+
   const inputClasses =
     "bg-bg-tertiary border border-border rounded-md px-3 py-2 text-sm text-text-primary focus:border-accent outline-none w-full transition-colors";
 
@@ -148,6 +185,20 @@ export default function ConnectionDialog({
       value: k.id,
       label: `${k.name} (${k.algorithm})`,
     })),
+  ];
+
+  // Jump host options: all connections except the one being edited
+  const jumpHostOptions = [
+    { value: "", label: "None" },
+    ...allConnections
+      .filter((c) => c.id !== editConnection?.id)
+      .map((c) => ({ value: c.id, label: `${c.name} (${c.host}:${c.port})` })),
+  ];
+
+  // Theme override options
+  const themeOptions = [
+    { value: "", label: "Default (inherit)" },
+    ...Object.values(themes).map((t) => ({ value: t.id, label: t.name })),
   ];
 
   return (
@@ -372,6 +423,128 @@ export default function ConnectionDialog({
                   placeholder="Commands to run after connection (optional)"
                   rows={3}
                 />
+              </div>
+
+              {/* Advanced section */}
+              <div className="border border-border rounded-lg overflow-hidden">
+                <button
+                  type="button"
+                  onClick={() => setAdvancedOpen((prev) => !prev)}
+                  className="flex items-center justify-between w-full px-4 py-2.5 text-sm text-text-secondary hover:text-text-primary hover:bg-bg-tertiary transition-colors"
+                >
+                  <span className="font-medium">Advanced</span>
+                  <ChevronDown
+                    size={14}
+                    className={`text-text-muted transition-transform duration-200 ${advancedOpen ? "rotate-180" : ""}`}
+                  />
+                </button>
+
+                <AnimatePresence initial={false}>
+                  {advancedOpen && (
+                    <motion.div
+                      initial={{ height: 0, opacity: 0 }}
+                      animate={{ height: "auto", opacity: 1 }}
+                      exit={{ height: 0, opacity: 0 }}
+                      transition={{ duration: 0.2 }}
+                      className="overflow-hidden"
+                    >
+                      <div className="px-4 pb-4 space-y-4 border-t border-border pt-3">
+                        {/* Jump Host */}
+                        <div>
+                          <label className={labelClasses}>Jump Host (ProxyJump)</label>
+                          <Select
+                            value={form.jumpHostId ?? ""}
+                            onChange={(v) => updateField("jumpHostId", v || null)}
+                            options={jumpHostOptions}
+                          />
+                          <p className="mt-1 text-xs text-text-muted">
+                            Connect through this host as a bastion/jump server
+                          </p>
+                        </div>
+
+                        {/* Terminal Theme Override */}
+                        <div>
+                          <label className={labelClasses}>Terminal Theme Override</label>
+                          <Select
+                            value={form.themeOverride ?? ""}
+                            onChange={(v) => updateField("themeOverride", v || null)}
+                            options={themeOptions}
+                          />
+                        </div>
+
+                        {/* Agent Forwarding */}
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <span className="text-sm text-text-secondary">Agent Forwarding</span>
+                            <p className="text-xs text-text-muted mt-0.5">Forward your SSH agent to the remote host</p>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => updateField("agentForwarding", !form.agentForwarding)}
+                            className={`relative w-10 h-5 rounded-full transition-colors shrink-0 ${
+                              form.agentForwarding ? "bg-accent" : "bg-bg-tertiary border border-border"
+                            }`}
+                          >
+                            <span
+                              className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
+                                form.agentForwarding ? "translate-x-5" : "translate-x-0"
+                              }`}
+                            />
+                          </button>
+                        </div>
+
+                        {/* Environment Variables */}
+                        <div>
+                          <label className={labelClasses}>Environment Variables</label>
+                          {Object.keys(form.envVars).length > 0 && (
+                            <div className="mb-2 space-y-1.5">
+                              {Object.entries(form.envVars).map(([k, v]) => (
+                                <div key={k} className="flex items-center gap-2">
+                                  <span className="flex-1 min-w-0 px-2 py-1.5 bg-bg-tertiary border border-border rounded-md text-xs font-mono text-text-primary truncate">
+                                    {k}={v}
+                                  </span>
+                                  <button
+                                    type="button"
+                                    onClick={() => removeEnvVar(k)}
+                                    className="shrink-0 p-1 text-text-muted hover:text-error transition-colors"
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                          <div className="flex gap-2">
+                            <input
+                              type="text"
+                              value={newEnvKey}
+                              onChange={(e) => setNewEnvKey(e.target.value)}
+                              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addEnvVar(); } }}
+                              className="flex-1 bg-bg-tertiary border border-border rounded-md px-2 py-1.5 text-xs text-text-primary focus:border-accent outline-none font-mono"
+                              placeholder="KEY"
+                            />
+                            <input
+                              type="text"
+                              value={newEnvVal}
+                              onChange={(e) => setNewEnvVal(e.target.value)}
+                              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addEnvVar(); } }}
+                              className="flex-1 bg-bg-tertiary border border-border rounded-md px-2 py-1.5 text-xs text-text-primary focus:border-accent outline-none font-mono"
+                              placeholder="value"
+                            />
+                            <button
+                              type="button"
+                              onClick={addEnvVar}
+                              disabled={!newEnvKey.trim()}
+                              className="shrink-0 p-1.5 rounded-md border border-border bg-bg-tertiary text-text-muted hover:text-accent hover:border-accent disabled:opacity-40 transition-colors"
+                            >
+                              <Plus size={13} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-2">

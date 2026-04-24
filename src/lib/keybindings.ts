@@ -145,6 +145,24 @@ export function getDefaultKeybindings(): KeyAction[] {
       handler: () => useTerminalStore.getState().focusPrevPane(),
     },
     {
+      id: "focus-next-pane-arrow",
+      label: "Focus Next Pane (Arrow)",
+      keys: `Alt+ArrowRight`,
+      handler: () => useTerminalStore.getState().focusNextPane(),
+    },
+    {
+      id: "focus-prev-pane-arrow",
+      label: "Focus Previous Pane (Arrow)",
+      keys: `Alt+ArrowLeft`,
+      handler: () => useTerminalStore.getState().focusPrevPane(),
+    },
+    {
+      id: "toggle-scratchpad",
+      label: "Toggle Scratchpad",
+      keys: "Alt+`",
+      handler: () => useTerminalStore.getState().toggleScratchpad(),
+    },
+    {
       id: "copy",
       label: "Copy",
       keys: `Control+Shift+c`,

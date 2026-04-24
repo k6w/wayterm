@@ -96,5 +96,27 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     return setupKeybindings();
   }, []);
 
+  // Window title sync
+  useEffect(() => {
+    const unsub = useTerminalStore.subscribe((state) => {
+      const tab = state.tabs.find((t) => t.id === state.activeTabId);
+      const title = tab ? `${tab.title} — NexTerm` : "NexTerm";
+      import("@tauri-apps/api/window").then(({ getCurrentWindow }) => {
+        getCurrentWindow().setTitle(title).catch(() => {});
+      });
+    });
+    return unsub;
+  }, []);
+
+  // Workspace auto-save safety net (60s interval)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const { tabs } = useTerminalStore.getState();
+      if (tabs.length === 0) return;
+      useWorkspaceStore.getState().autoSave().catch(() => {});
+    }, 60_000);
+    return () => clearInterval(interval);
+  }, []);
+
   return <>{children}</>;
 }

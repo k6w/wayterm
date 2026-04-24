@@ -16,6 +16,9 @@ pub struct ConnectionProfile {
     pub color_tag: Option<String>,
     pub folder_path: String,
     pub sort_order: i32,
+    pub theme_override: Option<String>,
+    pub agent_forwarding: bool,
+    pub env_vars: String,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -26,6 +29,7 @@ pub fn list(pool: &DbPool) -> Result<Vec<ConnectionProfile>, String> {
         .prepare(
             "SELECT id, name, host, port, username, auth_method, private_key_id, \
              jump_host_id, startup_commands, color_tag, folder_path, sort_order, \
+             theme_override, agent_forwarding, env_vars, \
              created_at, updated_at FROM connections ORDER BY folder_path, sort_order",
         )
         .map_err(|e| e.to_string())?;
@@ -45,8 +49,11 @@ pub fn list(pool: &DbPool) -> Result<Vec<ConnectionProfile>, String> {
                 color_tag: row.get(9)?,
                 folder_path: row.get(10)?,
                 sort_order: row.get(11)?,
-                created_at: row.get(12)?,
-                updated_at: row.get(13)?,
+                theme_override: row.get(12)?,
+                agent_forwarding: row.get(13)?,
+                env_vars: row.get::<_, Option<String>>(14)?.unwrap_or_else(|| "{}".to_string()),
+                created_at: row.get(15)?,
+                updated_at: row.get(16)?,
             })
         })
         .map_err(|e| e.to_string())?;
@@ -60,7 +67,8 @@ pub fn insert(pool: &DbPool, profile: &ConnectionProfile) -> Result<(), String> 
     conn.execute(
         "INSERT INTO connections (id, name, host, port, username, auth_method, \
          private_key_id, jump_host_id, startup_commands, color_tag, folder_path, \
-         sort_order) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12)",
+         sort_order, theme_override, agent_forwarding, env_vars) \
+         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15)",
         rusqlite::params![
             profile.id,
             profile.name,
@@ -74,6 +82,9 @@ pub fn insert(pool: &DbPool, profile: &ConnectionProfile) -> Result<(), String> 
             profile.color_tag,
             profile.folder_path,
             profile.sort_order,
+            profile.theme_override,
+            profile.agent_forwarding as i32,
+            profile.env_vars,
         ],
     )
     .map_err(|e| e.to_string())?;
@@ -86,6 +97,7 @@ pub fn update(pool: &DbPool, profile: &ConnectionProfile) -> Result<(), String> 
         "UPDATE connections SET name=?2, host=?3, port=?4, username=?5, \
          auth_method=?6, private_key_id=?7, jump_host_id=?8, startup_commands=?9, \
          color_tag=?10, folder_path=?11, sort_order=?12, \
+         theme_override=?13, agent_forwarding=?14, env_vars=?15, \
          updated_at=datetime('now') WHERE id=?1",
         rusqlite::params![
             profile.id,
@@ -100,6 +112,9 @@ pub fn update(pool: &DbPool, profile: &ConnectionProfile) -> Result<(), String> 
             profile.color_tag,
             profile.folder_path,
             profile.sort_order,
+            profile.theme_override,
+            profile.agent_forwarding as i32,
+            profile.env_vars,
         ],
     )
     .map_err(|e| e.to_string())?;
@@ -117,8 +132,10 @@ pub fn get(pool: &DbPool, id: &str) -> Result<Option<ConnectionProfile>, String>
     let conn = pool.lock();
     let mut stmt = conn
         .prepare(
-            "SELECT id, name, host, port, username, auth_method, private_key_id, jump_host_id, startup_commands, color_tag, folder_path, sort_order, created_at, updated_at
-             FROM connections WHERE id = ?1",
+            "SELECT id, name, host, port, username, auth_method, private_key_id, \
+             jump_host_id, startup_commands, color_tag, folder_path, sort_order, \
+             theme_override, agent_forwarding, env_vars, \
+             created_at, updated_at FROM connections WHERE id = ?1",
         )
         .map_err(|e| e.to_string())?;
 
@@ -137,8 +154,11 @@ pub fn get(pool: &DbPool, id: &str) -> Result<Option<ConnectionProfile>, String>
                 color_tag: row.get(9)?,
                 folder_path: row.get(10)?,
                 sort_order: row.get(11)?,
-                created_at: row.get(12)?,
-                updated_at: row.get(13)?,
+                theme_override: row.get(12)?,
+                agent_forwarding: row.get(13)?,
+                env_vars: row.get::<_, Option<String>>(14)?.unwrap_or_else(|| "{}".to_string()),
+                created_at: row.get(15)?,
+                updated_at: row.get(16)?,
             })
         })
         .map_err(|e| e.to_string())?;

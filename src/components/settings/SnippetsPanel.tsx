@@ -1,131 +1,352 @@
-import { useState } from "react";
-import { Plus, Trash2, Play } from "lucide-react";
+import { useRef, useState } from "react";
+import { Plus, Trash2, Play, Edit2, Download, Upload, Tag } from "lucide-react";
 import { useSettingsStore } from "../../stores/settings";
 import { useTerminalStore } from "../../stores/terminal";
-import { writeToTerminal } from "../../lib/terminal-registry";
+import { getCachedTerminal } from "../../lib/terminal-registry";
 import type { Snippet } from "../../types/settings";
+import { resolveSnippetVars, SNIPPET_VARIABLE_HINTS } from "../../lib/snippet-utils";
+import { useSshStore } from "../../stores/ssh";
+
+function saveSnippetsToFile(snippets: Snippet[]) {
+  const blob = new Blob([JSON.stringify(snippets, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = "nexterm-snippets.json";
+  a.click();
+  URL.revokeObjectURL(url);
+}
 
 export default function SnippetsPanel() {
-  const snippets = useSettingsStore((s) => s.settings.snippets || []);
-  const update = useSettingsStore((s) => s.update);
+  const { settings, update } = useSettingsStore();
+  const snippets: Snippet[] = settings.snippets || [];
   const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [command, setCommand] = useState("");
+  const [category, setCategory] = useState("");
+  const [isAdding, setIsAdding] = useState(false);
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
+    new Set(["__none__"])
+  );
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const save = () => {
-    if (!name.trim() || !command.trim()) return;
-    const snippet: Snippet = {
-      id: editingId || crypto.randomUUID(),
-      name: name.trim(),
-      command: command.trim(),
+  function getContext() {
+    const state = useTerminalStore.getState();
+    const paneId = state.activePaneId;
+    const pane = paneId ? state.panes[paneId] : undefined;
+    const conn = pane?.sshConnectionId
+      ? useSshStore.getState().connections.find((c) => c.id === pane.sshConnectionId)
+      : undefined;
+    return {
+      hostname: conn?.host ?? "localhost",
+      username: conn?.username ?? "",
+      cwd: pane?.cwd ?? "",
+      paneId: paneId ?? "",
     };
-    const updated = editingId
-      ? snippets.map((s) => (s.id === editingId ? snippet : s))
-      : [...snippets, snippet];
-    update("snippets" as keyof typeof useSettingsStore extends never ? never : "snippets", updated as never);
+  }
+
+  function runSnippet(snippet: Snippet) {
+    const paneId = useTerminalStore.getState().activePaneId;
+    if (!paneId) return;
+    const resolved = resolveSnippetVars(snippet.command, getContext());
+    const entry = getCachedTerminal(paneId);
+    if (!entry) return;
+    const lines = resolved.split("\n");
+    lines.forEach((line, i) => {
+      setTimeout(() => {
+        entry.terminal.paste(line + "\r");
+      }, i * 50);
+    });
+  }
+
+  function startEdit(s: Snippet) {
+    setEditingId(s.id);
+    setName(s.name);
+    setCommand(s.command);
+    setCategory(s.category ?? "");
+    setIsAdding(false);
+  }
+
+  function startAdd() {
+    setIsAdding(true);
     setEditingId(null);
     setName("");
     setCommand("");
-  };
+    setCategory("");
+  }
 
-  const remove = (id: string) => {
-    update("snippets" as never, snippets.filter((s) => s.id !== id) as never);
-  };
+  function cancelEdit() {
+    setEditingId(null);
+    setIsAdding(false);
+  }
 
-  const run = (snippet: Snippet) => {
-    const paneId = useTerminalStore.getState().activePaneId;
-    if (paneId) {
-      writeToTerminal(paneId, snippet.command + "\r");
-      useTerminalStore.getState().toggleSettings();
-    }
-  };
+  function saveEdit() {
+    if (!name.trim() || !command.trim()) return;
+    const updated = snippets.map((s) =>
+      s.id === editingId
+        ? {
+            ...s,
+            name: name.trim(),
+            command: command.trim(),
+            category: category.trim() || undefined,
+          }
+        : s
+    );
+    update("snippets" as never, updated as never);
+    setEditingId(null);
+  }
 
-  const startEdit = (snippet: Snippet) => {
-    setEditingId(snippet.id);
-    setName(snippet.name);
-    setCommand(snippet.command);
-  };
+  function saveNew() {
+    if (!name.trim() || !command.trim()) return;
+    const newSnippet: Snippet = {
+      id: crypto.randomUUID(),
+      name: name.trim(),
+      command: command.trim(),
+      category: category.trim() || undefined,
+    };
+    update("snippets" as never, [...snippets, newSnippet] as never);
+    setIsAdding(false);
+  }
+
+  function deleteSnippet(id: string) {
+    update(
+      "snippets" as never,
+      snippets.filter((s) => s.id !== id) as never
+    );
+  }
+
+  function handleExport() {
+    saveSnippetsToFile(snippets);
+  }
+
+  function handleImportClick() {
+    fileInputRef.current?.click();
+  }
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      try {
+        const parsed = JSON.parse(ev.target?.result as string);
+        if (!Array.isArray(parsed)) return;
+        const imported = parsed as Snippet[];
+        const existing = new Set(snippets.map((s) => s.id));
+        const merged = [
+          ...snippets,
+          ...imported
+            .filter((s) => !existing.has(s.id))
+            .map((s) => ({ ...s, id: s.id || crypto.randomUUID() })),
+        ];
+        update("snippets" as never, merged as never);
+      } catch {
+        // ignore malformed JSON
+      }
+    };
+    reader.readAsText(file);
+    // reset so the same file can be re-imported
+    e.target.value = "";
+  }
+
+  function toggleCategory(cat: string) {
+    setExpandedCategories((prev) => {
+      const next = new Set(prev);
+      if (next.has(cat)) next.delete(cat);
+      else next.add(cat);
+      return next;
+    });
+  }
+
+  // Group snippets by category
+  const grouped: Record<string, Snippet[]> = {};
+  for (const s of snippets) {
+    const cat = s.category || "__none__";
+    if (!grouped[cat]) grouped[cat] = [];
+    grouped[cat].push(s);
+  }
+  const categories = Object.keys(grouped).sort((a, b) => {
+    if (a === "__none__") return 1;
+    if (b === "__none__") return -1;
+    return a.localeCompare(b);
+  });
+
+  const editForm = (onSave: () => void, onCancel: () => void) => (
+    <div className="p-3 bg-bg-tertiary rounded-lg border border-border space-y-2">
+      <input
+        className="w-full px-2 py-1.5 text-sm bg-bg-secondary border border-border rounded text-text-primary placeholder-text-muted focus:outline-none focus:border-border-focus"
+        placeholder="Snippet name"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+        autoFocus
+      />
+      <input
+        className="w-full px-2 py-1.5 text-sm bg-bg-secondary border border-border rounded text-text-primary placeholder-text-muted focus:outline-none focus:border-border-focus"
+        placeholder="Category (optional)"
+        value={category}
+        onChange={(e) => setCategory(e.target.value)}
+      />
+      <textarea
+        className="w-full px-2 py-1.5 text-sm bg-bg-secondary border border-border rounded text-text-primary placeholder-text-muted font-mono focus:outline-none focus:border-border-focus resize-none"
+        placeholder="Command (use {{hostname}}, {{user}}, {{cwd}}, {{date}})"
+        value={command}
+        onChange={(e) => setCommand(e.target.value)}
+        rows={3}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && e.ctrlKey) {
+            e.preventDefault();
+            onSave();
+          }
+          if (e.key === "Escape") {
+            e.preventDefault();
+            onCancel();
+          }
+        }}
+      />
+      <div className="flex flex-wrap gap-1">
+        {SNIPPET_VARIABLE_HINTS.map((hint) => (
+          <button
+            key={hint.variable}
+            className="text-xs px-1.5 py-0.5 rounded bg-bg-secondary border border-border text-text-muted hover:text-text-secondary hover:border-border-focus transition-colors"
+            title={hint.description}
+            onClick={() => setCommand((c) => c + hint.variable)}
+            type="button"
+          >
+            {hint.variable}
+          </button>
+        ))}
+      </div>
+      <div className="flex gap-2 justify-end pt-1">
+        <button
+          onClick={onCancel}
+          className="px-3 py-1 text-sm text-text-secondary hover:text-text-primary transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          onClick={onSave}
+          disabled={!name.trim() || !command.trim()}
+          className="px-3 py-1 text-sm bg-accent text-white rounded hover:bg-accent-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          Save
+        </button>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-sm font-medium text-text-primary mb-3">Saved Commands</h3>
-        <p className="text-xs text-text-muted mb-4">
-          Snippets appear in the command palette for quick execution.
-        </p>
+    <div className="space-y-4">
+      {/* Hidden file input for import */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".json,application/json"
+        className="hidden"
+        onChange={handleFileChange}
+      />
 
-        <div className="space-y-2 mb-4">
-          {snippets.map((snippet) => (
-            <div
-              key={snippet.id}
-              className="flex items-center gap-2 px-3 py-2 bg-bg-tertiary rounded-lg group"
-            >
-              <div className="flex-1 min-w-0 cursor-pointer" onClick={() => startEdit(snippet)}>
-                <p className="text-sm text-text-primary truncate">{snippet.name}</p>
-                <p className="text-xs text-text-muted font-mono truncate">{snippet.command}</p>
-              </div>
-              <button
-                onClick={() => run(snippet)}
-                className="p-1 text-text-muted hover:text-accent opacity-0 group-hover:opacity-100 transition-opacity"
-                title="Run"
-              >
-                <Play size={14} />
-              </button>
-              <button
-                onClick={() => remove(snippet.id)}
-                className="p-1 text-text-muted hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
-                title="Delete"
-              >
-                <Trash2 size={14} />
-              </button>
-            </div>
-          ))}
-          {snippets.length === 0 && (
-            <p className="text-sm text-text-muted py-4 text-center">No snippets yet</p>
-          )}
+      <div className="flex items-center justify-between">
+        <p className="text-sm text-text-secondary">
+          Saved commands — run from the command palette or sidebar.
+        </p>
+        <div className="flex gap-1">
+          <button
+            onClick={handleImportClick}
+            className="flex items-center gap-1 px-2 py-1 text-xs text-text-secondary hover:text-text-primary border border-border rounded hover:border-border-focus transition-colors"
+            title="Import snippets from JSON"
+          >
+            <Upload size={12} />
+            Import
+          </button>
+          <button
+            onClick={handleExport}
+            className="flex items-center gap-1 px-2 py-1 text-xs text-text-secondary hover:text-text-primary border border-border rounded hover:border-border-focus transition-colors"
+            title="Export snippets to JSON"
+            disabled={snippets.length === 0}
+          >
+            <Download size={12} />
+            Export
+          </button>
+          <button
+            onClick={startAdd}
+            className="flex items-center gap-1 px-2 py-1 text-xs bg-accent text-white rounded hover:bg-accent-hover transition-colors"
+          >
+            <Plus size={12} />
+            New
+          </button>
         </div>
       </div>
 
-      <div>
-        <h3 className="text-sm font-medium text-text-primary mb-3">
-          {editingId ? "Edit Snippet" : "Add Snippet"}
-        </h3>
-        <div className="space-y-3">
-          <input
-            type="text"
-            placeholder="Name (e.g. Docker PS)"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full px-3 py-2 text-sm bg-bg-tertiary border border-border rounded-md text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent"
-          />
-          <input
-            type="text"
-            placeholder="Command (e.g. docker ps -a)"
-            value={command}
-            onChange={(e) => setCommand(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && save()}
-            className="w-full px-3 py-2 text-sm bg-bg-tertiary border border-border rounded-md text-text-primary placeholder:text-text-muted font-mono focus:outline-none focus:border-accent"
-          />
-          <div className="flex gap-2">
-            <button
-              onClick={save}
-              disabled={!name.trim() || !command.trim()}
-              className="px-3 py-1.5 text-sm rounded-md bg-accent text-white disabled:opacity-50 transition-colors"
-            >
-              <Plus size={14} className="inline mr-1" />
-              {editingId ? "Update" : "Add"}
-            </button>
-            {editingId && (
+      {isAdding && editForm(saveNew, cancelEdit)}
+
+      {categories.length === 0 && !isAdding && (
+        <p className="text-sm text-text-muted text-center py-6">
+          No snippets yet. Click &ldquo;New&rdquo; to create one.
+        </p>
+      )}
+
+      {categories.map((cat) => {
+        const isExpanded = expandedCategories.has(cat);
+        const label = cat === "__none__" ? "Uncategorized" : cat;
+        return (
+          <div key={cat} className="space-y-1">
+            {categories.length > 1 && (
               <button
-                onClick={() => { setEditingId(null); setName(""); setCommand(""); }}
-                className="px-3 py-1.5 text-sm rounded-md bg-bg-tertiary text-text-secondary border border-border"
+                onClick={() => toggleCategory(cat)}
+                className="flex items-center gap-1.5 text-xs text-text-muted hover:text-text-secondary w-full py-0.5 transition-colors"
               >
-                Cancel
+                <Tag size={11} />
+                <span className="font-medium uppercase tracking-wide">{label}</span>
+                <span className="ml-1 text-text-muted">({grouped[cat].length})</span>
+                <span className="ml-auto">{isExpanded ? "▾" : "▸"}</span>
               </button>
             )}
+            {(isExpanded || categories.length === 1) &&
+              grouped[cat].map((s) => (
+                <div key={s.id}>
+                  {editingId === s.id ? (
+                    editForm(saveEdit, cancelEdit)
+                  ) : (
+                    <div className="group flex items-start gap-2 p-2.5 rounded-lg bg-bg-secondary border border-border hover:border-border-focus transition-colors">
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium text-text-primary truncate">
+                          {s.name}
+                        </div>
+                        <div className="text-xs text-text-muted font-mono truncate mt-0.5">
+                          {s.command.slice(0, 80)}
+                          {s.command.length > 80 ? "…" : ""}
+                        </div>
+                      </div>
+                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
+                        <button
+                          onClick={() => runSnippet(s)}
+                          className="p-1 text-text-muted hover:text-success transition-colors"
+                          title="Run snippet"
+                        >
+                          <Play size={13} />
+                        </button>
+                        <button
+                          onClick={() => startEdit(s)}
+                          className="p-1 text-text-muted hover:text-text-primary transition-colors"
+                          title="Edit snippet"
+                        >
+                          <Edit2 size={13} />
+                        </button>
+                        <button
+                          onClick={() => deleteSnippet(s.id)}
+                          className="p-1 text-text-muted hover:text-error transition-colors"
+                          title="Delete snippet"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
           </div>
-        </div>
-      </div>
+        );
+      })}
     </div>
   );
 }

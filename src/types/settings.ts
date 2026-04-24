@@ -11,6 +11,8 @@ export interface GeneralSettings {
   confirmOnClose: boolean;
   closeToTray: boolean;
   launchOnStartup: boolean;
+  notifyOnLongCommands: boolean;
+  longCommandThresholdSeconds: number;
 }
 
 export interface AppearanceSettings {
@@ -73,6 +75,14 @@ export interface Snippet {
   id: string;
   name: string;
   command: string;
+  category?: string;
+}
+
+export interface SftpBookmark {
+  id: string;
+  name: string;
+  path: string;
+  sessionId?: string;
 }
 
 export interface AppSettings {
@@ -83,4 +93,5 @@ export interface AppSettings {
   profiles: ShellProfile[];
   keybindings: Record<string, string>;
   snippets: Snippet[];
+  sftpBookmarks: SftpBookmark[];
 }

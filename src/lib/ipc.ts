@@ -444,3 +444,26 @@ export function onSerialExit(
     callback();
   });
 }
+
+export async function sshImportConfig(): Promise<{
+  name: string;
+  host: string;
+  port: number;
+  username: string;
+  identityFile: string | null;
+  jumpHost: string | null;
+}[]> {
+  return invoke("ssh_import_config");
+}
+
+export async function terminalLogStart(sessionId: string, path: string): Promise<void> {
+  return invoke("terminal_log_start", { sessionId, path });
+}
+
+export async function terminalLogStop(sessionId: string): Promise<void> {
+  return invoke("terminal_log_stop", { sessionId });
+}
+
+export async function terminalLogWrite(sessionId: string, data: number[]): Promise<void> {
+  return invoke("terminal_log_write", { sessionId, data });
+}

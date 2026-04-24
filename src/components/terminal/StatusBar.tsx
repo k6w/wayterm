@@ -16,6 +16,7 @@ import {
   Moon,
   ArrowRightLeft,
   Search,
+  Radio,
 } from "lucide-react";
 import { useTerminalStore, collectPaneIds } from "../../stores/terminal";
 import { useThemeStore } from "../../stores/theme";
@@ -45,6 +46,11 @@ export default function StatusBar() {
   const focusNextPane = useTerminalStore((s) => s.focusNextPane);
   const toggleSettings = useTerminalStore((s) => s.toggleSettings);
   const toggleCommandPalette = useTerminalStore((s) => s.toggleCommandPalette);
+  const broadcastMode = useTerminalStore((s) => s.broadcastMode);
+  const toggleBroadcastMode = useTerminalStore((s) => s.toggleBroadcastMode);
+  const isLogging = useTerminalStore((s) =>
+    activePaneId ? s.loggingPanes.has(activePaneId) : false
+  );
   const vibrancyEnabled = useSettingsStore((s) => s.settings.appearance.vibrancyEnabled);
   const windowOpacity = useSettingsStore((s) => s.settings.appearance.windowOpacity);
   const theme = useThemeStore((s) => s.active);
@@ -58,11 +64,14 @@ export default function StatusBar() {
     window.dispatchEvent(event);
   };
 
-  
   const sshUsername = useSshStore((s) => {
     if (!pane?.sshConnectionId) return undefined;
     return s.connections.find((c) => c.id === pane.sshConnectionId)?.username;
   });
+
+  const activeTunnelCount = useSshStore((s) =>
+    s.portForwards.filter((f) => f.isActive).length
+  );
 
   if (!pane || !activePaneId) return null;
 
@@ -145,6 +154,14 @@ export default function StatusBar() {
           <span className={sectionBtn} title="SSH Connection">
             <span className="size-1.5 rounded-full bg-success shrink-0" />
             <span>SSH</span>
+            {activeTunnelCount > 0 && (
+              <span
+                className="ml-0.5 rounded-full px-1 text-[9px] font-medium leading-none py-0.5 bg-accent text-white"
+                title={`${activeTunnelCount} active tunnel${activeTunnelCount !== 1 ? "s" : ""}`}
+              >
+                {activeTunnelCount}
+              </span>
+            )}
           </span>
           <button
             className={btnClass}
@@ -160,6 +177,26 @@ export default function StatusBar() {
       <div className="flex-1" />
 
       {}
+
+      {}
+      {isLogging && (
+        <span
+          className="flex items-center gap-1 px-1.5 h-5 text-[11px] text-error"
+          title="Session logging active"
+        >
+          <span className="size-1.5 rounded-full bg-error animate-pulse shrink-0" />
+          REC
+        </span>
+      )}
+
+      {}
+      <button
+        className={`${btnClass} ${broadcastMode ? "text-accent bg-accent/15" : ""}`}
+        onClick={toggleBroadcastMode}
+        title={broadcastMode ? "Broadcast Input: ON (click to disable)" : "Broadcast Input: OFF"}
+      >
+        <Radio size={13} />
+      </button>
 
       {}
       <button

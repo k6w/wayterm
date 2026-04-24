@@ -200,6 +200,13 @@ export default function Tab({
           <Terminal className="size-3.5 shrink-0" />
         )}
 
+        {tab.colorTag && (
+          <span
+            className="size-2 rounded-full shrink-0"
+            style={{ backgroundColor: tab.colorTag }}
+          />
+        )}
+
         {editing ? (
           <input
             ref={inputRef}

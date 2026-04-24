@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { ExternalLink } from "lucide-react";
 import { Terminal } from "@xterm/xterm";
 import { WebglAddon } from "@xterm/addon-webgl";
@@ -7,7 +7,7 @@ import { WebLinksAddon } from "@xterm/addon-web-links";
 import { SearchAddon } from "@xterm/addon-search";
 import { useThemeStore } from "../../stores/theme";
 import { useSettingsStore } from "../../stores/settings";
-import { useTerminalStore } from "../../stores/terminal";
+import { useTerminalStore, collectPaneIds } from "../../stores/terminal";
 import DropZoneOverlay from "./DropZoneOverlay";
 import PaneContextMenu from "./PaneContextMenu";
 import { SearchBar } from "../search/SearchBar";
@@ -169,13 +169,30 @@ async function resolveSpawnConfig(
 
     sshArgs.push("-o", "StrictHostKeyChecking=accept-new");
 
-    
+    // Agent forwarding
+    if (conn.agentForwarding) {
+      sshArgs.push("-A");
+    }
+
     if (conn.authMethod === "key" && conn.privateKeyId) {
       try {
         const keyPath = await sshGetKeyTempPath(conn.privateKeyId);
         sshArgs.push("-i", keyPath);
       } catch {
-        
+        // ignore key path errors
+      }
+    }
+
+    // ProxyJump / jump host
+    if (conn.jumpHostId) {
+      const jumpConn = useSshStore
+        .getState()
+        .connections.find((c) => c.id === conn.jumpHostId);
+      if (jumpConn) {
+        const jumpStr = jumpConn.port !== 22
+          ? `${jumpConn.username}@${jumpConn.host}:${jumpConn.port}`
+          : `${jumpConn.username}@${jumpConn.host}`;
+        sshArgs.push("-J", jumpStr);
       }
     }
 
@@ -183,9 +200,14 @@ async function resolveSpawnConfig(
       sshArgs.push("-p", String(conn.port));
     }
 
+    // Env vars injected as SendEnv (requires server AcceptEnv) or via startup commands
+    const envVars = conn.envVars ?? {};
+    const envEntries = Object.entries(envVars).filter(([k]) => k.trim());
+    const env: [string, string][] = envEntries.map(([k, v]) => [k, v]);
+
     sshArgs.push(`${conn.username}@${conn.host}`);
 
-    return { shell: "ssh", args: sshArgs, env: [] };
+    return { shell: "ssh", args: sshArgs, env };
   }
 
   
@@ -210,10 +232,37 @@ export default function TerminalPane({
   const searchAddonRef = useRef<SearchAddon | null>(null);
 
   const theme = useThemeStore((s) => s.active);
+  const previewTheme = useThemeStore((s) => s.previewTheme);
   const settings = useSettingsStore((s) => s.settings);
   const updatePaneSession = useTerminalStore((s) => s.updatePaneSession);
   const [showSearch, setShowSearch] = useState(false);
   const [sessionExited, setSessionExited] = useState(false);
+
+  // Feature: Reconnect cooldown / backoff
+  const reconnectCountRef = useRef(0);
+  const [reconnectCooldown, setReconnectCooldown] = useState(0);
+
+  // Feature: Session logging
+  const [isLogging, setIsLogging] = useState(false);
+  const isLoggingRef = useRef(false);
+  const logBufferRef = useRef<Uint8Array[]>([]);
+
+  // Feature: Long command notification
+  const commandStartTimeRef = useRef<number | null>(null);
+
+  // Per-connection theme override: activate when pane is focused, restore on blur
+  useEffect(() => {
+    const pane = useTerminalStore.getState().panes[paneId];
+    const conn = pane?.sshConnectionId
+      ? useSshStore.getState().connections.find((c) => c.id === pane.sshConnectionId)
+      : undefined;
+    if (!conn?.themeOverride) return;
+    if (isActive) {
+      previewTheme(conn.themeOverride);
+    } else {
+      previewTheme(null);
+    }
+  }, [isActive, paneId, previewTheme]);
 
   
   useEffect(() => {
@@ -434,6 +483,11 @@ export default function TerminalPane({
         const unlistenOutput = await onTerminalOutput(
           sessionId,
           (data: number[]) => {
+            // Feature: Session logging — capture output
+            if (isLoggingRef.current) {
+              logBufferRef.current.push(new Uint8Array(data));
+            }
+
             if (sshPhase === "done") {
               term.write(new Uint8Array(data));
               return;
@@ -503,16 +557,38 @@ export default function TerminalPane({
             setSshOverlay(false);
           }
           term.write("\r\n\x1b[90m--- Process exited ---\x1b[0m\r\n");
+          // Feature: Reconnect cooldown — apply exponential backoff
+          reconnectCountRef.current += 1;
+          const cooldown = Math.min(Math.pow(2, reconnectCountRef.current - 1), 30);
+          if (cooldown > 0) setReconnectCooldown(cooldown);
           setSessionExited(true);
         });
 
         term.onData((data: string) => {
-          
-          
+          const bytes = Array.from(new TextEncoder().encode(data));
           const c = getCachedTerminal(paneId);
           if (c?.sessionId) {
-            const bytes = Array.from(new TextEncoder().encode(data));
             terminalWrite(c.sessionId, bytes);
+          }
+          // Track command start time on Enter
+          if (data === "\r" || data === "\n") {
+            commandStartTimeRef.current = Date.now();
+          }
+
+          // Feature: Broadcast input — fan-out to all other panes in the active tab
+          if (useTerminalStore.getState().broadcastMode) {
+            const state = useTerminalStore.getState();
+            const activeTab = state.tabs.find((t) => t.id === state.activeTabId);
+            if (activeTab) {
+              const activePaneIds = collectPaneIds(activeTab.panes);
+              for (const otherPaneId of activePaneIds) {
+                if (otherPaneId === paneId) continue;
+                const otherPane = state.panes[otherPaneId];
+                if (otherPane?.sessionId) {
+                  terminalWrite(otherPane.sessionId, bytes).catch(() => {});
+                }
+              }
+            }
           }
         });
 
@@ -524,6 +600,30 @@ export default function TerminalPane({
             title.startsWith("\\\\");
           if (isPath) {
             useTerminalStore.getState().updatePaneCwd(paneId, title);
+            // Long command notification: title change means shell returned to prompt
+            const startTime = commandStartTimeRef.current;
+            if (startTime !== null) {
+              const elapsed = (Date.now() - startTime) / 1000;
+              commandStartTimeRef.current = null;
+              const s = useSettingsStore.getState().settings;
+              if (s.general.notifyOnLongCommands && elapsed >= s.general.longCommandThresholdSeconds) {
+                if (Notification.permission === "granted") {
+                  new Notification("NexTerm — Command finished", {
+                    body: `Completed in ${Math.round(elapsed)}s`,
+                    silent: true,
+                  });
+                } else if (Notification.permission !== "denied") {
+                  Notification.requestPermission().then((perm) => {
+                    if (perm === "granted") {
+                      new Notification("NexTerm — Command finished", {
+                        body: `Completed in ${Math.round(elapsed)}s`,
+                        silent: true,
+                      });
+                    }
+                  });
+                }
+              }
+            }
           }
         });
 
@@ -700,6 +800,49 @@ export default function TerminalPane({
     };
   }, [isActive, showSearch]);
 
+  // ── Reconnect cooldown countdown ──
+  useEffect(() => {
+    if (reconnectCooldown <= 0) return;
+    const timer = setTimeout(() => {
+      setReconnectCooldown((c) => Math.max(0, c - 1));
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, [reconnectCooldown]);
+
+  // ── Session logging handlers ──
+  const handleStartLog = useCallback(() => {
+    logBufferRef.current = [];
+    isLoggingRef.current = true;
+    setIsLogging(true);
+    useTerminalStore.getState().startLogging(paneId);
+  }, [paneId]);
+
+  const handleStopLog = useCallback(() => {
+    isLoggingRef.current = false;
+    setIsLogging(false);
+    useTerminalStore.getState().stopLogging(paneId);
+
+    const chunks = logBufferRef.current;
+    logBufferRef.current = [];
+    if (chunks.length === 0) return;
+
+    const totalLen = chunks.reduce((sum, c) => sum + c.length, 0);
+    const merged = new Uint8Array(totalLen);
+    let offset = 0;
+    for (const chunk of chunks) {
+      merged.set(chunk, offset);
+      offset += chunk.length;
+    }
+    const blob = new Blob([merged], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, -5);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `nexterm-session-${ts}.log`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+  }, [paneId]);
+
   // ── UI state ──
   const draggingTabId = useTerminalStore((s) => s.draggingTabId);
   const dragOverPaneId = useTerminalStore((s) => s.dragOverPaneId);
@@ -825,7 +968,11 @@ export default function TerminalPane({
           className="absolute bottom-4 left-0 right-0 z-20 flex justify-center"
         >
           <button
+            disabled={reconnectCooldown > 0}
             onClick={() => {
+              if (reconnectCooldown > 0) return;
+              // Manual reconnect resets backoff counter
+              reconnectCountRef.current = 0;
               setSessionExited(false);
               const pane = useTerminalStore.getState().panes[paneId];
               if (pane) {
@@ -850,13 +997,13 @@ export default function TerminalPane({
                 }
               }
             }}
-            className="px-4 py-1.5 text-xs rounded-md transition-colors"
+            className="px-4 py-1.5 text-xs rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             style={{
               backgroundColor: theme.ui.accent,
               color: "#fff",
             }}
           >
-            Reconnect
+            {reconnectCooldown > 0 ? `Reconnect in ${reconnectCooldown}s` : "Reconnect"}
           </button>
         </div>
       )}
@@ -916,6 +1063,9 @@ export default function TerminalPane({
           x={ctxMenu.x}
           y={ctxMenu.y}
           onClose={() => setCtxMenu(null)}
+          isLogging={isLogging}
+          onStartLog={handleStartLog}
+          onStopLog={handleStopLog}
         />
       )}
     </div>

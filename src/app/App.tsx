@@ -8,6 +8,7 @@ import CommandPalette from "../components/command-palette/CommandPalette";
 import SettingsModal from "../components/settings/SettingsModal";
 import ConnectionDialog from "../components/ssh/ConnectionDialog";
 import SerialDialog from "../components/serial/SerialDialog";
+import Scratchpad from "../components/terminal/Scratchpad";
 import StatusBar from "../components/terminal/StatusBar";
 import UpdateNotification from "../components/ui/UpdateNotification";
 import { WelcomeScreen } from "../components/ui/WelcomeScreen";
@@ -201,6 +202,7 @@ function AppContent() {
         onClose={() => setSerialDialogOpen(false)}
         onConnect={handleSerialConnect}
       />
+      <Scratchpad />
     </div>
   );
 }

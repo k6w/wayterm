@@ -10,6 +10,8 @@ import {
   Eraser,
   RotateCcw,
   FolderOpen,
+  FileText,
+  StopCircle,
 } from "lucide-react";
 import { useTerminalStore } from "../../stores/terminal";
 import { useThemeStore } from "../../stores/theme";
@@ -32,6 +34,9 @@ interface PaneContextMenuProps {
   x: number;
   y: number;
   onClose: () => void;
+  isLogging?: boolean;
+  onStartLog?: () => void;
+  onStopLog?: () => void;
 }
 
 type MenuItem =
@@ -44,6 +49,9 @@ export default function PaneContextMenu({
   x,
   y,
   onClose,
+  isLogging = false,
+  onStartLog,
+  onStopLog,
 }: PaneContextMenuProps) {
   const menuRef = useRef<HTMLDivElement>(null);
   const themeObj = useThemeStore((s) => s.active);
@@ -181,6 +189,24 @@ export default function PaneContextMenu({
         navigator.clipboard.writeText(path);
       },
     },
+    { type: "separator" },
+    ...(isLogging
+      ? [
+          {
+            type: "item" as const,
+            label: "Stop Session Log",
+            icon: <StopCircle size={14} />,
+            action: () => { onStopLog?.(); },
+          },
+        ]
+      : [
+          {
+            type: "item" as const,
+            label: "Start Session Log",
+            icon: <FileText size={14} />,
+            action: () => { onStartLog?.(); },
+          },
+        ]),
   ];
 
   return (

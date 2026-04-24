@@ -25,16 +25,20 @@ import {
   Check,
   Sun,
   Moon,
+  Clock,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useTerminalStore } from "../../stores/terminal";
 import { useThemeStore } from "../../stores/theme";
 import { useSettingsStore } from "../../stores/settings";
+import { useSshStore } from "../../stores/ssh";
 import { hexToRgba } from "../../lib/color";
 import { vibrancyAlpha } from "../../lib/platform";
 import { getEffectiveKeybindings } from "../../lib/keybindings";
 import { getDefaultShells } from "../../lib/shell-detect";
-import { clearBuffer, resetTerminal, writeToTerminal } from "../../lib/terminal-registry";
+import { clearBuffer, resetTerminal, writeToTerminal, getCachedTerminal } from "../../lib/terminal-registry";
+import { historyRecent } from "../../lib/ipc";
+import { resolveSnippetVars } from "../../lib/snippet-utils";
 
 type SubView = null | "themes";
 
@@ -63,7 +67,10 @@ const KEYBINDING_ICONS: Record<string, LucideIcon> = {
   "detach-pane": ExternalLink,
   "focus-next-pane": Focus,
   "focus-prev-pane": Focus,
+  "focus-next-pane-arrow": Focus,
+  "focus-prev-pane-arrow": Focus,
   "zoom-pane": Focus,
+  "toggle-scratchpad": SquareTerminal,
 };
 
 const SHELL_ICONS: Record<string, LucideIcon> = {
@@ -102,6 +109,7 @@ export default function CommandPalette() {
   const [subView, setSubView] = useState<SubView>(null);
   const [subQuery, setSubQuery] = useState("");
   const [subSelectedIndex, setSubSelectedIndex] = useState(0);
+  const [historyActions, setHistoryActions] = useState<PaletteAction[]>([]);
   const inputRef = useRef<HTMLInputElement>(null);
   const subInputRef = useRef<HTMLInputElement>(null);
   const listRef = useRef<HTMLDivElement>(null);
@@ -181,6 +189,16 @@ export default function CommandPalette() {
     });
 
     actions.push({
+      id: "toggle-scratchpad",
+      label: "Toggle Scratchpad Terminal",
+      icon: SquareTerminal,
+      category: "Terminal",
+      handler: () => {
+        useTerminalStore.getState().toggleScratchpad();
+      },
+    });
+
+    actions.push({
       id: "new-serial-tab",
       label: "New Serial / COM Port Tab",
       icon: Terminal,
@@ -199,7 +217,24 @@ export default function CommandPalette() {
         category: "Snippets",
         handler: () => {
           const paneId = useTerminalStore.getState().activePaneId;
-          if (paneId) writeToTerminal(paneId, snippet.command + "\r");
+          if (!paneId) return;
+          const pane = useTerminalStore.getState().panes[paneId];
+          const conn = pane?.sshConnectionId
+            ? useSshStore.getState().connections.find((c) => c.id === pane.sshConnectionId)
+            : undefined;
+          const ctx = {
+            hostname: conn?.host ?? "localhost",
+            username: conn?.username ?? "",
+            cwd: pane?.cwd ?? "",
+            paneId,
+          };
+          const resolved = resolveSnippetVars(snippet.command, ctx);
+          const lines = resolved.split("\n");
+          const entry = getCachedTerminal(paneId);
+          if (!entry) return;
+          lines.forEach((line, i) => {
+            setTimeout(() => entry.terminal.paste(line + "\r"), i * 50);
+          });
         },
       });
     }
@@ -207,15 +242,20 @@ export default function CommandPalette() {
     return actions;
   }, []);
 
+  const combinedActions = useMemo(
+    () => [...allActions, ...historyActions],
+    [allActions, historyActions]
+  );
+
   const filteredActions = useMemo(() => {
-    if (!query.trim()) return allActions;
+    if (!query.trim()) return combinedActions;
     const lower = query.toLowerCase();
-    return allActions.filter(
+    return combinedActions.filter(
       (a) =>
         a.label.toLowerCase().includes(lower) ||
         a.category.toLowerCase().includes(lower)
     );
-  }, [query, allActions]);
+  }, [query, combinedActions]);
 
   const totalResults = filteredActions.length;
 
@@ -255,6 +295,28 @@ export default function CommandPalette() {
       setSubView(null);
       setSubQuery("");
       setSubSelectedIndex(0);
+      // Load history asynchronously
+      historyRecent(20)
+        .then((entries) => {
+          const actions: PaletteAction[] = entries
+            .filter((e) => e.command && e.command.trim())
+            .map((e) => ({
+              id: `history-${e.id}`,
+              label: e.command.trim(),
+              icon: Clock,
+              category: "History",
+              handler: () => {
+                const paneId = useTerminalStore.getState().activePaneId;
+                if (paneId) writeToTerminal(paneId, e.command.trim() + "\r");
+              },
+            }));
+          setHistoryActions(actions);
+        })
+        .catch(() => {
+          setHistoryActions([]);
+        });
+    } else {
+      setHistoryActions([]);
     }
   }, [isOpen]);
 
@@ -406,12 +468,16 @@ export default function CommandPalette() {
         }
         case "Escape": {
           e.preventDefault();
-          toggleCommandPalette();
+          if (query) {
+            setQuery("");
+          } else {
+            toggleCommandPalette();
+          }
           break;
         }
       }
     },
-    [subView, selectedIndex, totalResults, subSelectedIndex, filteredThemes, subQuery, scrollSelectedIntoView, executeAction, selectTheme, goBack, toggleCommandPalette, previewTheme]
+    [subView, selectedIndex, totalResults, subSelectedIndex, filteredThemes, subQuery, query, scrollSelectedIntoView, executeAction, selectTheme, goBack, toggleCommandPalette, previewTheme]
   );
 
   const handleBackdropClick = useCallback(

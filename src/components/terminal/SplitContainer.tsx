@@ -14,7 +14,7 @@ interface SplitContainerProps {
 export { SplitContainer };
 
 
-const GAP = 6;
+const GAP = 8;
 
 function findPaneNode(node: SplitNode, paneId: string): SplitNode | null {
   if (node.type === "pane" && node.paneId === paneId) return node;

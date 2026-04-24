@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Pencil,
   Copy,
@@ -10,6 +10,7 @@ import {
   ArrowLeft,
   ArrowRight,
   FolderOpen,
+  Palette,
 } from "lucide-react";
 import { useTerminalStore, collectPaneIds } from "../../stores/terminal";
 import { useThemeStore } from "../../stores/theme";
@@ -46,6 +47,7 @@ export default function TabContextMenu({
   const menuBg = vibrancy
     ? hexToRgba(themeObj.ui.bgSecondary, vibrancyAlpha(windowOpacity) * 0.85)
     : themeObj.ui.bgSecondary;
+  const [colorPickerOpen, setColorPickerOpen] = useState(false);
   const tabs = useTerminalStore((s) => s.tabs);
   const panes = useTerminalStore((s) => s.panes);
   const removeTab = useTerminalStore((s) => s.removeTab);
@@ -54,6 +56,9 @@ export default function TabContextMenu({
   const closeOtherTabs = useTerminalStore((s) => s.closeOtherTabs);
   const closeTabsToRight = useTerminalStore((s) => s.closeTabsToRight);
   const reorderTabs = useTerminalStore((s) => s.reorderTabs);
+  const setTabColor = useTerminalStore((s) => s.setTabColor);
+
+  const TAB_COLORS = ["#f38ba8", "#a6e3a1", "#f9e2af", "#89b4fa", "#cba6f7", "#94e2d5", "#fab387"] as const;
 
   const isMac = navigator.platform.toLowerCase().includes("mac");
   const mod = isMac ? "\u2318" : "Ctrl";
@@ -182,6 +187,8 @@ export default function TabContextMenu({
     },
   ];
 
+  const currentColor = tabs.find((t) => t.id === tabId)?.colorTag ?? null;
+
   return (
     <div
       ref={menuRef}
@@ -221,6 +228,51 @@ export default function TabContextMenu({
               )}
             </button>
           )
+        )}
+
+        {/* Set Color section */}
+        <div className="my-1 h-px bg-border mx-2" />
+        <button
+          className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-text-primary hover:bg-white/[0.06] transition-colors"
+          onClick={() => setColorPickerOpen((o) => !o)}
+        >
+          <span className="text-text-muted"><Palette size={14} /></span>
+          <span className="flex-1 text-left">Set Color</span>
+          {currentColor && (
+            <span className="size-2.5 rounded-full shrink-0" style={{ backgroundColor: currentColor }} />
+          )}
+        </button>
+        {colorPickerOpen && (
+          <div className="px-3 pb-2 pt-1 flex items-center gap-1.5 flex-wrap">
+            {TAB_COLORS.map((color) => (
+              <button
+                key={color}
+                className="size-4 rounded-full shrink-0 transition-transform hover:scale-125 focus:outline-none"
+                style={{
+                  backgroundColor: color,
+                  boxShadow: currentColor === color ? `0 0 0 2px ${color}55` : undefined,
+                  outline: currentColor === color ? `2px solid ${color}` : undefined,
+                  outlineOffset: "1px",
+                }}
+                title={color}
+                onClick={() => {
+                  setTabColor(tabId, color);
+                  onClose();
+                }}
+              />
+            ))}
+            <button
+              className="size-4 rounded-full shrink-0 border border-border transition-transform hover:scale-125 focus:outline-none flex items-center justify-center"
+              style={{ background: "transparent" }}
+              title="Remove color"
+              onClick={() => {
+                setTabColor(tabId, null);
+                onClose();
+              }}
+            >
+              <X size={8} className="text-text-muted" />
+            </button>
+          </div>
         )}
       </div>
     </div>

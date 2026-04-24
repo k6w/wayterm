@@ -13,9 +13,9 @@ export function ClipboardPanel() {
   const activePaneId = useTerminalStore((s) => s.activePaneId);
   const [searchQuery, setSearchQuery] = useState('');
 
-  const filteredEntries = entries.filter((e) =>
-    e.content.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredEntries = entries
+    .filter((e) => e.content.toLowerCase().includes(searchQuery.toLowerCase()))
+    .sort((a, b) => (b.favorite ? 1 : 0) - (a.favorite ? 1 : 0));
 
   const handlePaste = (content: string) => {
     if (activePaneId) {

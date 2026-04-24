@@ -5,6 +5,7 @@ const MIGRATION_002: &str = include_str!("../../migrations/002_terminal_buffers.
 const MIGRATION_003: &str = include_str!("../../migrations/003_custom_themes.sql");
 const MIGRATION_004: &str = include_str!("../../migrations/004_port_forwards.sql");
 const MIGRATION_005: &str = include_str!("../../migrations/005_database_connections.sql");
+const MIGRATION_007: &str = include_str!("../../migrations/007_connection_extras.sql");
 
 pub fn run(pool: &DbPool) -> Result<(), String> {
     let conn = pool.lock();
@@ -59,6 +60,13 @@ pub fn run(pool: &DbPool) -> Result<(), String> {
     if current < 6 {
         encrypt_existing_keys(&conn)?;
         conn.execute("INSERT INTO schema_version (version) VALUES (6)", [])
+            .map_err(|e| e.to_string())?;
+    }
+
+    if current < 7 {
+        conn.execute_batch(MIGRATION_007)
+            .map_err(|e| e.to_string())?;
+        conn.execute("INSERT INTO schema_version (version) VALUES (7)", [])
             .map_err(|e| e.to_string())?;
     }
 

@@ -1,13 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useGitStore } from '../../stores/git';
 import { useTerminalStore } from '../../stores/terminal';
-import { GitBranch as BranchIcon, GitCommit as CommitIcon, RefreshCw, Upload, Download, Archive, X, Check, Plus, Trash2 } from 'lucide-react';
+import { GitBranch as BranchIcon, GitCommit as CommitIcon, RefreshCw, Upload, Download, Archive, X, Check, Plus, Trash2, FileDiff } from 'lucide-react';
+import DiffViewer from './DiffViewer';
+import type { GitDiff } from '../../types/git';
 
 export function GitPanel() {
-  const { status, branches, commits, currentBranch, isLoading, error, fetchStatus, fetchBranches, fetchCommits, checkout, pull, push, commit, stage, unstage, stash, applyStash, dropStash } = useGitStore();
+  const { status, branches, commits, currentBranch, isLoading, error, fetchStatus, fetchBranches, fetchCommits, fetchDiff, checkout, pull, push, commit, stage, unstage, stash, applyStash, dropStash } = useGitStore();
   const [commitMessage, setCommitMessage] = useState('');
   const [view, setView] = useState<'status' | 'branches' | 'commits' | 'stash'>('status');
+  const [diffData, setDiffData] = useState<GitDiff[] | null>(null);
+  const [showDiff, setShowDiff] = useState(false);
 
   const activePaneId = useTerminalStore((s) => s.activePaneId);
   const panes = useTerminalStore((s) => s.panes);
@@ -96,6 +100,13 @@ export function GitPanel() {
     }
   };
 
+  const handleShowDiff = useCallback(async (file?: string) => {
+    if (!cwd) return;
+    const diffs = await fetchDiff(cwd, file);
+    setDiffData(diffs);
+    setShowDiff(true);
+  }, [cwd, fetchDiff]);
+
   const handleApplyStash = async (index: number) => {
     if (cwd) {
       await applyStash(cwd, index);
@@ -153,8 +164,31 @@ export function GitPanel() {
 
       <div className="flex-1 overflow-y-auto">
         <AnimatePresence mode="wait">
-        {view === 'status' && status && (
-          <motion.div 
+        {view === 'status' && showDiff && diffData && (
+          <motion.div
+            key="diff"
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.2 }}
+            className="flex flex-col h-full"
+          >
+            <div className="flex items-center gap-2 px-3 py-2 border-b border-white/[0.08]">
+              <button
+                onClick={() => setShowDiff(false)}
+                className="p-1 hover:bg-white/[0.08] rounded text-text-muted hover:text-text-primary transition-colors"
+                title="Back"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+              <span className="text-xs text-text-secondary">Diff</span>
+            </div>
+            <DiffViewer diffs={diffData} />
+          </motion.div>
+        )}
+
+        {view === 'status' && !showDiff && status && (
+          <motion.div
             key="status"
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -168,6 +202,9 @@ export function GitPanel() {
                 <span className="font-medium text-xs">{currentBranch || 'main'}</span>
               </div>
               <div className="flex gap-1">
+                <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={() => handleShowDiff()} className="p-1 hover:bg-white/[0.08] rounded transition-colors" title="View Diff">
+                  <FileDiff className="w-3.5 h-3.5" />
+                </motion.button>
                 <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }} onClick={handlePull} className="p-1 hover:bg-white/[0.08] rounded transition-colors" title="Pull">
                   <Download className="w-3.5 h-3.5" />
                 </motion.button>

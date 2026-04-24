@@ -10,6 +10,7 @@ export interface TerminalTab {
   panes: SplitNode;
   isActive: boolean;
   hasBell?: boolean;
+  colorTag?: string;
 }
 
 export interface TerminalPane {

@@ -6,11 +6,12 @@ import { isMac } from "../../lib/platform";
 import QuickActions from "./QuickActions";
 import ConnectionTree from "./ConnectionTree";
 import WorkspaceList from "./WorkspaceList";
+import TunnelsPanel from "./TunnelsPanel";
 import { GitPanel } from "../git/GitPanel";
 import { DatabasePanel } from "../database/DatabasePanel";
 import { ClipboardPanel } from "../ui/ClipboardPanel";
 import type { SshConnection } from "../../types/ssh";
-import { GitBranch, Database, Clipboard, FolderTree } from "lucide-react";
+import { GitBranch, Database, Clipboard, FolderTree, Route } from "lucide-react";
 
 interface SidebarProps {
   onNewSsh?: () => void;
@@ -21,7 +22,7 @@ export default function Sidebar({ onNewSsh, onEditSsh }: SidebarProps) {
   const sidebarOpen = useTerminalStore((s) => s.sidebarOpen);
   const toggleSidebar = useTerminalStore((s) => s.toggleSidebar);
   const panelRef = useRef<HTMLDivElement>(null);
-  const [activeView, setActiveView] = useState<'connections' | 'git' | 'database' | 'clipboard'>('connections');
+  const [activeView, setActiveView] = useState<'connections' | 'git' | 'database' | 'clipboard' | 'tunnels'>('connections');
 
   const handleClose = useCallback(() => {
     if (sidebarOpen) {
@@ -142,6 +143,15 @@ export default function Sidebar({ onNewSsh, onEditSsh }: SidebarProps) {
                   <Clipboard size={14} />
                   <span>Clip</span>
                 </button>
+                <button
+                  onClick={() => setActiveView('tunnels')}
+                  className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded text-xs transition-colors ${
+                    activeView === 'tunnels' ? 'bg-overlay/[0.12] text-text-primary' : 'text-text-muted hover:bg-overlay/[0.08]'
+                  }`}
+                >
+                  <Route size={14} />
+                  <span>Tunnels</span>
+                </button>
               </div>
             </div>
 
@@ -165,6 +175,7 @@ export default function Sidebar({ onNewSsh, onEditSsh }: SidebarProps) {
               {activeView === 'git' && <GitPanel />}
               {activeView === 'database' && <DatabasePanel />}
               {activeView === 'clipboard' && <ClipboardPanel />}
+              {activeView === 'tunnels' && <TunnelsPanel />}
             </div>
           </motion.div>
         </>

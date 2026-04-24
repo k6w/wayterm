@@ -17,6 +17,9 @@ export interface SshConnection {
   sortOrder: number;
   createdAt: string;
   updatedAt: string;
+  themeOverride?: string | null;
+  agentForwarding?: boolean;
+  envVars?: Record<string, string>;
 }
 
 export interface SshKey {

@@ -327,10 +327,16 @@ export default function SftpPane({
   }, [sessionId]);
 
   const handleNewFolderConfirm = useCallback(
-    (name: string) => {
+    async (name: string) => {
       if (!sessionId) return;
       const path = remoteCwd.replace(/\/+$/, "") + "/" + name;
-      remoteMkdir(sessionId, path);
+      const opId = `mkdir:${path}`;
+      setPendingOps((prev) => new Set([...prev, opId]));
+      try {
+        await remoteMkdir(sessionId, path);
+      } finally {
+        setPendingOps((prev) => { const next = new Set(prev); next.delete(opId); return next; });
+      }
       setNewFolderOpen(false);
     },
     [sessionId, remoteCwd, remoteMkdir]
@@ -343,10 +349,16 @@ export default function SftpPane({
     setDeleteInfo({ entries: selected });
   }, [sessionId, remoteEntries, remoteSelected]);
 
-  const handleDeleteConfirm = useCallback(() => {
+  const handleDeleteConfirm = useCallback(async () => {
     if (!sessionId || !deleteInfo) return;
-    for (const entry of deleteInfo.entries) {
-      remoteRemove(sessionId, entry.path, entry.isDir);
+    const opIds = deleteInfo.entries.map((e) => `delete:${e.path}`);
+    setPendingOps((prev) => new Set([...prev, ...opIds]));
+    try {
+      for (const entry of deleteInfo.entries) {
+        await remoteRemove(sessionId, entry.path, entry.isDir);
+      }
+    } finally {
+      setPendingOps((prev) => { const next = new Set(prev); opIds.forEach((id) => next.delete(id)); return next; });
     }
     setRemoteSelected(new Set());
     setDeleteInfo(null);
@@ -360,7 +372,7 @@ export default function SftpPane({
   }, [sessionId, remoteEntries, remoteSelected]);
 
   const handleRenameConfirm = useCallback(
-    (newName: string) => {
+    async (newName: string) => {
       if (!sessionId || !renameInfo) return;
       if (newName === renameInfo.entry.name) {
         setRenameInfo(null);
@@ -370,7 +382,13 @@ export default function SftpPane({
         0,
         renameInfo.entry.path.lastIndexOf("/")
       );
-      remoteRename(sessionId, renameInfo.entry.path, dir + "/" + newName);
+      const opId = `rename:${renameInfo.entry.path}`;
+      setPendingOps((prev) => new Set([...prev, opId]));
+      try {
+        await remoteRename(sessionId, renameInfo.entry.path, dir + "/" + newName);
+      } finally {
+        setPendingOps((prev) => { const next = new Set(prev); next.delete(opId); return next; });
+      }
       setRemoteSelected(new Set());
       setRenameInfo(null);
     },
@@ -574,6 +592,7 @@ export default function SftpPane({
   }, [sessionId, isActive]);
 
   const [hovered, setHovered] = useState(false);
+  const [pendingOps, setPendingOps] = useState<Set<string>>(new Set());
 
   const isSplit = paneCount > 1;
   const showFocus = isActive && paneCount > 1;
@@ -846,7 +865,13 @@ export default function SftpPane({
               path={remoteCwd}
               onNavigate={navigateRemote}
               label="Remote"
+              showBookmarks
             />
+            {pendingOps.size > 0 && (
+              <div className="shrink-0 px-1.5 py-0.5 flex items-center gap-1">
+                <div className="w-3 h-3 border border-accent border-t-transparent rounded-full animate-spin" />
+              </div>
+            )}
           </div>
 
           {/* Remote file list */}

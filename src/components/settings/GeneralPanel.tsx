@@ -144,6 +144,45 @@ export default function GeneralPanel() {
       </div>
 
       <div>
+        <h3 className="text-sm font-medium text-text-primary mb-3">Notifications</h3>
+        <div className="space-y-4">
+          <div className="flex justify-between items-center gap-4">
+            <div>
+              <label className="text-sm text-text-secondary">Notify on long commands</label>
+              <p className="text-xs text-text-muted mt-0.5">Show a notification when a command runs longer than the threshold</p>
+            </div>
+            <button
+              onClick={() => update("general", { notifyOnLongCommands: !settings.notifyOnLongCommands })}
+              className={`relative w-10 h-5 rounded-full transition-colors shrink-0 ${
+                settings.notifyOnLongCommands ? "bg-accent" : "bg-bg-tertiary"
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
+                  settings.notifyOnLongCommands ? "translate-x-5" : "translate-x-0"
+                }`}
+              />
+            </button>
+          </div>
+          <div className={`flex justify-between items-center gap-4 ${settings.notifyOnLongCommands ? "" : "opacity-40 pointer-events-none"}`}>
+            <label className="text-sm text-text-secondary">
+              Threshold ({settings.longCommandThresholdSeconds}s)
+            </label>
+            <input
+              type="range"
+              min={5}
+              max={120}
+              step={5}
+              value={settings.longCommandThresholdSeconds}
+              onChange={(e) => update("general", { longCommandThresholdSeconds: Number(e.target.value) })}
+              disabled={!settings.notifyOnLongCommands}
+              className="w-40 accent-accent"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div>
         <h3 className="text-sm font-medium text-text-primary mb-3">Data</h3>
         <div className="space-y-3">
           <div className="flex gap-2">

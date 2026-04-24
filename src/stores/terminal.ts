@@ -93,6 +93,24 @@ interface TerminalState {
   toggleSidebar: () => void;
   toggleCommandPalette: () => void;
   toggleSettings: () => void;
+
+  // Feature: Tab Color Labels
+  setTabColor: (tabId: string, color: string | null) => void;
+
+  // Feature: Broadcast Input
+  broadcastMode: boolean;
+  toggleBroadcastMode: () => void;
+
+  // Feature: Terminal Scratchpad
+  scratchpadOpen: boolean;
+  scratchpadPaneId: string | null;
+  toggleScratchpad: () => void;
+  setScratchpadPane: (paneId: string | null) => void;
+
+  // Feature: Session Logging
+  loggingPanes: Set<string>;
+  startLogging: (paneId: string) => void;
+  stopLogging: (paneId: string) => void;
 }
 
 export const useTerminalStore = create<TerminalState>((set, get) => ({
@@ -109,6 +127,10 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
   dropTarget: null,
   dragOverPaneId: null,
   dragOverZone: null,
+  broadcastMode: false,
+  scratchpadOpen: false,
+  scratchpadPaneId: null,
+  loggingPanes: new Set<string>(),
 
   addTab: (shellType: ShellType, shellPath?: string, sshConnectionId?: string, initialCwd?: string) => {
     const tabId = crypto.randomUUID();
@@ -595,6 +617,28 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
   toggleCommandPalette: () =>
     set((s) => ({ commandPaletteOpen: !s.commandPaletteOpen })),
   toggleSettings: () => set((s) => ({ settingsOpen: !s.settingsOpen })),
+
+  setTabColor: (tabId, color) => set((s) => ({
+    tabs: s.tabs.map((t) =>
+      t.id === tabId ? { ...t, colorTag: color ?? undefined } : t
+    ),
+  })),
+
+  toggleBroadcastMode: () => set((s) => ({ broadcastMode: !s.broadcastMode })),
+
+  toggleScratchpad: () => set((s) => ({ scratchpadOpen: !s.scratchpadOpen })),
+  setScratchpadPane: (paneId) => set({ scratchpadPaneId: paneId }),
+
+  startLogging: (paneId) => set((s) => {
+    const next = new Set(s.loggingPanes);
+    next.add(paneId);
+    return { loggingPanes: next };
+  }),
+  stopLogging: (paneId) => set((s) => {
+    const next = new Set(s.loggingPanes);
+    next.delete(paneId);
+    return { loggingPanes: next };
+  }),
 }));
 
 function collectPaneIds(node: SplitNode): string[] {

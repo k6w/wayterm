@@ -1,9 +1,18 @@
 import { useState, useCallback, useEffect } from "react";
-import { Server, Trash2, Fingerprint } from "lucide-react";
+import { Server, Trash2, Fingerprint, Download, Check } from "lucide-react";
 import { useSettingsStore } from "../../stores/settings";
 import { useSshStore } from "../../stores/ssh";
 import ConfirmDialog from "../ui/ConfirmDialog";
-import { sshKnownHostsList, sshKnownHostsRemove, sshKnownHostsClear, type KnownHost } from "../../lib/ipc";
+import { sshKnownHostsList, sshKnownHostsRemove, sshKnownHostsClear, sshImportConfig, type KnownHost } from "../../lib/ipc";
+
+interface ImportedHost {
+  name: string;
+  host: string;
+  port: number;
+  username: string;
+  identityFile: string | null;
+  jumpHost: string | null;
+}
 
 export default function SshPanel() {
   const settings = useSettingsStore((s) => s.settings.ssh);
@@ -14,6 +23,12 @@ export default function SshPanel() {
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [knownHosts, setKnownHosts] = useState<KnownHost[]>([]);
   const [clearAllConfirm, setClearAllConfirm] = useState(false);
+  const [importedHosts, setImportedHosts] = useState<ImportedHost[] | null>(null);
+  const [selectedHosts, setSelectedHosts] = useState<Set<number>>(new Set());
+  const [importLoading, setImportLoading] = useState(false);
+  const [importError, setImportError] = useState<string | null>(null);
+  const [importSuccess, setImportSuccess] = useState<number | null>(null);
+  const saveConnection = useSshStore((s) => s.saveConnection);
 
   const loadKnownHosts = useCallback(async () => {
     try {
@@ -44,6 +59,60 @@ export default function SshPanel() {
     setClearAllConfirm(false);
     await loadKnownHosts();
   }, [loadKnownHosts]);
+
+  const handleOpenImport = useCallback(async () => {
+    setImportError(null);
+    setImportSuccess(null);
+    setImportLoading(true);
+    try {
+      const hosts = await sshImportConfig();
+      setImportedHosts(hosts);
+      setSelectedHosts(new Set(hosts.map((_, i) => i)));
+    } catch (err) {
+      setImportError(err instanceof Error ? err.message : "Failed to read SSH config");
+    } finally {
+      setImportLoading(false);
+    }
+  }, []);
+
+  const handleImportSelected = useCallback(async () => {
+    if (!importedHosts) return;
+    const existing = useSshStore.getState().connections;
+    let count = 0;
+    for (const idx of selectedHosts) {
+      const h = importedHosts[idx];
+      if (!h) continue;
+      const alreadyExists = existing.some(
+        (c) => c.host === h.host && c.username === h.username && c.port === h.port
+      );
+      if (alreadyExists) continue;
+      const now = new Date().toISOString();
+      const conn: import("../../types/ssh").SshConnection = {
+        id: crypto.randomUUID(),
+        name: h.name,
+        host: h.host,
+        port: h.port,
+        username: h.username,
+        authMethod: h.identityFile ? "key" : "password",
+        privateKeyId: null,
+        sortOrder: 0,
+        startupCommands: null,
+        jumpHostId: null,
+        colorTag: null,
+        folderPath: "",
+        createdAt: now,
+        updatedAt: now,
+        themeOverride: null,
+        agentForwarding: false,
+        envVars: {},
+      };
+      await saveConnection(conn);
+      count++;
+    }
+    setImportedHosts(null);
+    setSelectedHosts(new Set());
+    setImportSuccess(count);
+  }, [importedHosts, selectedHosts, saveConnection]);
 
   return (
     <div className="space-y-6">
@@ -100,6 +169,83 @@ export default function SshPanel() {
             />
           </div>
         </div>
+      </div>
+
+      <div>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="text-sm font-medium text-text-primary">Import from SSH Config</h3>
+          <button
+            onClick={handleOpenImport}
+            disabled={importLoading}
+            className="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-md border border-border bg-bg-tertiary text-text-secondary hover:border-accent/50 hover:text-text-primary transition-colors disabled:opacity-50"
+          >
+            <Download size={12} />
+            {importLoading ? "Reading..." : "Import ~/.ssh/config"}
+          </button>
+        </div>
+        {importError && (
+          <div className="mb-2 px-3 py-2 rounded-md bg-error/10 border border-error/30 text-xs text-error">
+            {importError}
+          </div>
+        )}
+        {importSuccess !== null && (
+          <div className="mb-2 px-3 py-2 rounded-md bg-success/10 border border-success/30 text-xs text-success flex items-center gap-1.5">
+            <Check size={12} />
+            Imported {importSuccess} connection{importSuccess !== 1 ? "s" : ""}
+          </div>
+        )}
+        {importedHosts && (
+          <div className="space-y-2 mb-3">
+            <p className="text-xs text-text-muted mb-2">Select hosts to import:</p>
+            <div className="max-h-48 overflow-y-auto space-y-1.5">
+              {importedHosts.map((h, i) => (
+                <label
+                  key={i}
+                  className="flex items-center gap-3 px-3 py-2 border border-border rounded-lg bg-bg-tertiary cursor-pointer hover:border-accent/40 transition-colors"
+                >
+                  <input
+                    type="checkbox"
+                    checked={selectedHosts.has(i)}
+                    onChange={(e) => {
+                      setSelectedHosts((prev) => {
+                        const next = new Set(prev);
+                        if (e.target.checked) next.add(i);
+                        else next.delete(i);
+                        return next;
+                      });
+                    }}
+                    className="accent-accent"
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm text-text-primary truncate">{h.name}</div>
+                    <div className="text-xs text-text-muted">{h.username}@{h.host}:{h.port}</div>
+                  </div>
+                  {h.jumpHost && (
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent/15 text-accent">via {h.jumpHost}</span>
+                  )}
+                </label>
+              ))}
+            </div>
+            <div className="flex gap-2 pt-1">
+              <button
+                onClick={handleImportSelected}
+                disabled={selectedHosts.size === 0}
+                className="px-3 py-1.5 text-xs rounded-md bg-accent text-white hover:bg-accent/90 transition-colors disabled:opacity-50"
+              >
+                Import {selectedHosts.size} selected
+              </button>
+              <button
+                onClick={() => { setImportedHosts(null); setSelectedHosts(new Set()); }}
+                className="px-3 py-1.5 text-xs rounded-md border border-border text-text-secondary hover:text-text-primary transition-colors"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        )}
+        <p className="text-xs text-text-muted">
+          Reads Host entries from <code className="text-text-primary">~/.ssh/config</code> and creates saved connections.
+        </p>
       </div>
 
       <div>

@@ -46,7 +46,14 @@ export const useClipboardStore = create<ClipboardStore>((set, get) => ({
 
       const newEntries = [newEntry, ...state.entries];
       if (newEntries.length > state.maxEntries) {
-        newEntries.splice(state.maxEntries);
+        // Only evict non-pinned entries
+        let excess = newEntries.length - state.maxEntries;
+        for (let i = newEntries.length - 1; i >= 0 && excess > 0; i--) {
+          if (!newEntries[i].favorite) {
+            newEntries.splice(i, 1);
+            excess--;
+          }
+        }
       }
 
       return { entries: newEntries };

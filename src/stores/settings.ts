@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { AppSettings } from "../types/settings";
+import type { AppSettings, SftpBookmark } from "../types/settings";
 import { settingsGetAll, settingsSet } from "../lib/ipc";
 
 const defaultSettings: AppSettings = {
@@ -11,6 +11,8 @@ const defaultSettings: AppSettings = {
     confirmOnClose: true,
     closeToTray: false,
     launchOnStartup: false,
+    notifyOnLongCommands: false,
+    longCommandThresholdSeconds: 10,
   },
   appearance: {
     themeId: "nexterm-dark",
@@ -51,6 +53,7 @@ const defaultSettings: AppSettings = {
   profiles: [],
   keybindings: {},
   snippets: [],
+  sftpBookmarks: [],
 };
 
 interface SettingsState {
@@ -62,6 +65,7 @@ interface SettingsState {
     values: Partial<AppSettings[K]>
   ) => Promise<void>;
   updateKeybinding: (action: string, keys: string) => Promise<void>;
+  setSftpBookmarks: (bookmarks: SftpBookmark[]) => void;
 }
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
@@ -114,5 +118,11 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     };
     set({ settings: updated });
     await settingsSet(`keybindings.${action}`, keys);
+  },
+
+  setSftpBookmarks: (bookmarks: SftpBookmark[]) => {
+    set((state) => ({
+      settings: { ...state.settings, sftpBookmarks: bookmarks },
+    }));
   },
 }));

@@ -10,6 +10,7 @@ import {
   User,
   KeyRound,
   Code2,
+  History,
 } from "lucide-react";
 import { useTerminalStore } from "../../stores/terminal";
 import { useSettingsStore } from "../../stores/settings";
@@ -24,8 +25,9 @@ import SshPanel from "./SshPanel";
 import KeysPanel from "./KeysPanel";
 import ProfilesPanel from "./ProfilesPanel";
 import SnippetsPanel from "./SnippetsPanel";
+import AuditLogPanel from "./AuditLogPanel";
 
-type PanelId = "general" | "appearance" | "terminal" | "keybindings" | "ssh" | "keys" | "profiles" | "snippets";
+type PanelId = "general" | "appearance" | "terminal" | "keybindings" | "ssh" | "keys" | "profiles" | "snippets" | "history";
 
 interface NavItem {
   id: PanelId;
@@ -42,6 +44,7 @@ const navItems: NavItem[] = [
   { id: "keys", label: "Keys", icon: KeyRound },
   { id: "profiles", label: "Profiles", icon: User },
   { id: "snippets", label: "Snippets", icon: Code2 },
+  { id: "history", label: "History", icon: History },
 ];
 
 const panels: Record<PanelId, React.ComponentType> = {
@@ -53,6 +56,7 @@ const panels: Record<PanelId, React.ComponentType> = {
   keys: KeysPanel,
   profiles: ProfilesPanel,
   snippets: SnippetsPanel,
+  history: AuditLogPanel,
 };
 
 export default function SettingsModal() {
