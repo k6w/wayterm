@@ -11,20 +11,19 @@ import { GitPanel } from "../git/GitPanel";
 import { DatabasePanel } from "../database/DatabasePanel";
 import { ClipboardPanel } from "../ui/ClipboardPanel";
 import type { SshConnection } from "../../types/ssh";
-import { GitBranch, Database, Clipboard, FolderTree, Route } from "lucide-react";
+import { GitBranch, Database, Clipboard, Server, Route } from "lucide-react";
 
 type View = 'connections' | 'git' | 'database' | 'clipboard' | 'tunnels';
 
-const TABS: { id: View; icon: typeof FolderTree; label: string }[] = [
-  { id: 'connections', icon: FolderTree, label: 'SSH' },
-  { id: 'git',         icon: GitBranch,  label: 'Git' },
-  { id: 'database',   icon: Database,   label: 'DB' },
-  { id: 'clipboard',  icon: Clipboard,  label: 'Clips' },
-  { id: 'tunnels',    icon: Route,      label: 'Ports' },
+const NAV: { id: View; icon: typeof Server; label: string }[] = [
+  { id: 'connections', icon: Server,    label: 'Connections' },
+  { id: 'git',        icon: GitBranch, label: 'Git' },
+  { id: 'database',  icon: Database,  label: 'Database' },
+  { id: 'clipboard', icon: Clipboard, label: 'Clipboard' },
+  { id: 'tunnels',   icon: Route,     label: 'Port Forwards' },
 ];
 
-// On macOS with decorations:false the native traffic lights overlay the
-// top ~40 px of the window. Sidebar + backdrop start below that zone.
+// macOS: native traffic lights overlay the top 40 px of the window.
 const MAC_TOP = "40px";
 
 interface SidebarProps {
@@ -77,64 +76,62 @@ export default function Sidebar({ onNewSsh, onEditSsh }: SidebarProps) {
 
           <motion.div
             ref={panelRef}
-            className="fixed left-0 bottom-0 z-50 flex flex-col w-[280px] border-r border-white/[0.08]"
+            className="fixed left-0 bottom-0 z-50 flex flex-col w-[260px] border-r border-border"
             style={{
               top: panelTop,
               backdropFilter: "blur(var(--blur-sidebar))",
               WebkitBackdropFilter: "blur(var(--blur-sidebar))",
               backgroundColor: `rgba(10, 10, 15, var(--opacity-sidebar))`,
             }}
-            initial={{ x: -280 }}
+            initial={{ x: -260 }}
             animate={{ x: 0 }}
-            exit={{ x: -280 }}
+            exit={{ x: -260 }}
             transition={{ type: "spring", stiffness: 400, damping: 32, mass: 0.8 }}
           >
-            {/* Tab nav */}
-            <div className="flex items-stretch border-b border-white/[0.08] shrink-0 relative">
-              {TABS.map(({ id, icon: Icon, label }) => {
+            {/* Header */}
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
+              <span className="text-sm font-semibold text-text-primary tracking-tight">
+                NexTerm
+              </span>
+              <button
+                onClick={handleClose}
+                className="flex items-center justify-center w-6 h-6 rounded-md text-text-muted hover:bg-bg-tertiary hover:text-text-primary transition-colors"
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            {/* Nav — same pattern as Settings modal */}
+            <nav className="p-3 space-y-0.5 border-b border-border shrink-0">
+              {NAV.map(({ id, icon: Icon, label }) => {
                 const active = activeView === id;
                 return (
                   <button
                     key={id}
                     onClick={() => setActiveView(id)}
-                    className={`relative flex-1 flex flex-col items-center justify-center py-2 gap-[3px] transition-colors ${
+                    className={`flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm transition-colors text-left ${
                       active
-                        ? "text-accent"
-                        : "text-text-muted hover:text-text-secondary hover:bg-white/[0.03]"
+                        ? "bg-accent/15 text-accent"
+                        : "text-text-secondary hover:text-text-primary hover:bg-bg-tertiary"
                     }`}
                   >
-                    <Icon size={13} strokeWidth={active ? 2.2 : 1.8} />
-                    <span className={`text-[10px] font-medium leading-none ${active ? "" : "opacity-80"}`}>
-                      {label}
-                    </span>
-                    {active && (
-                      <span className="absolute bottom-0 left-1 right-1 h-[2px] rounded-full bg-accent" />
-                    )}
+                    <Icon size={15} strokeWidth={active ? 2.2 : 1.8} />
+                    <span className={active ? "font-medium" : ""}>{label}</span>
                   </button>
                 );
               })}
-
-              {/* Close button separated by a border */}
-              <div className="w-px bg-white/[0.06] my-1.5 shrink-0" />
-              <button
-                onClick={handleClose}
-                className="px-3 text-text-muted hover:text-text-secondary hover:bg-white/[0.03] transition-colors shrink-0"
-                title="Close sidebar"
-              >
-                <X size={13} />
-              </button>
-            </div>
+            </nav>
 
             {/* Content */}
             <div className="flex flex-1 flex-col overflow-y-auto min-h-0">
               {activeView === 'connections' && (
                 <>
                   <QuickActions onNewSsh={onNewSsh} />
-                  <div className="mx-3 border-t border-white/[0.08]" />
+                  <div className="mx-3 border-t border-border" />
                   <div className="flex-1 py-1">
                     <ConnectionTree onAddConnection={onNewSsh} onEditConnection={onEditSsh} />
                   </div>
-                  <div className="mx-3 border-t border-white/[0.08]" />
+                  <div className="mx-3 border-t border-border" />
                   <div className="py-1">
                     <WorkspaceList />
                   </div>
