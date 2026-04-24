@@ -177,11 +177,14 @@ function AppContent() {
           <WelcomeScreen onDismiss={() => {
             localStorage.setItem("nexterm-welcomed", "1");
             setShowWelcome(false);
+            const shellPath = useSettingsStore.getState().settings.general.defaultShell;
+            const shell = getPreferredShell(shellPath);
+            addTab(shell.type, shell.path);
           }} />
         )}
         {tabs.length === 0 && !showWelcome && (
           <div className="h-full flex items-center justify-center text-text-muted">
-            <p className="text-sm">No active session</p>
+            <p className="text-sm">No active session. Press {isMac ? "Cmd" : "Ctrl"}+T to open a new tab.</p>
           </div>
         )}
       </div>
