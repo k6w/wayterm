@@ -52,7 +52,7 @@ function ConnectionItem({ conn, indent, onConnect, onSftp, onEdit, onDelete, onD
       )}
       <Server size={14} className="shrink-0 text-text-muted" />
       <div className="flex min-w-0 flex-1 flex-col items-start">
-        <span className="truncate text-xs text-text-secondary">{conn.name}</span>
+        <span className="truncate text-xs text-text-primary">{conn.name}</span>
         <span className="truncate text-[10px] text-text-muted">{conn.username}@{conn.host}:{conn.port}</span>
       </div>
       <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">

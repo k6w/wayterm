@@ -4,6 +4,7 @@ import { AppProviders } from "./providers";
 import Titlebar from "../components/titlebar/Titlebar";
 import SplitContainer from "../components/terminal/SplitContainer";
 import Sidebar from "../components/sidebar/Sidebar";
+import ActivityBar from "../components/sidebar/ActivityBar";
 import CommandPalette from "../components/command-palette/CommandPalette";
 import SettingsModal from "../components/settings/SettingsModal";
 import ConnectionDialog from "../components/ssh/ConnectionDialog";
@@ -145,53 +146,52 @@ function AppContent() {
     return () => window.removeEventListener("nexterm:open-serial", handler);
   }, []);
 
-  const isVerticalTabs = tabPosition === 'left' || tabPosition === 'right';
-
   return (
     <div
-      className={`h-full w-full flex text-text-primary overflow-hidden ${
+      className={`h-full w-full flex flex-col text-text-primary overflow-hidden ${
         isMac ? "" : "rounded-lg border border-border"
-      } ${vibrancyEnabled ? "" : "bg-bg-primary"} ${
-        isVerticalTabs ? 'flex-row' : 'flex-col'
-      }`}
+      } ${vibrancyEnabled ? "" : "bg-bg-primary"}`}
       style={
         vibrancyEnabled
           ? { backgroundColor: hexToRgba(theme.ui.bgPrimary, vibrancyAlpha(windowOpacity)) }
           : undefined
       }
     >
-      {tabPosition === 'left' && <Titlebar />}
       {tabPosition === 'top' && <Titlebar />}
       <UpdateNotification />
-      <div className="flex-1 min-h-0 min-w-0 relative">
-        {tabs.map((tab) => (
-          <div
-            key={tab.id}
-            className="absolute inset-0 p-[3px]"
-            style={{ display: tab.id === activeTabId ? "block" : "none" }}
-          >
-            <SplitContainer node={tab.panes} />
-          </div>
-        ))}
-        {tabs.length === 0 && showWelcome && (
-          <WelcomeScreen onDismiss={() => {
-            localStorage.setItem("nexterm-welcomed", "1");
-            setShowWelcome(false);
-            const shellPath = useSettingsStore.getState().settings.general.defaultShell;
-            const shell = getPreferredShell(shellPath);
-            addTab(shell.type, shell.path);
-          }} />
-        )}
-        {tabs.length === 0 && !showWelcome && (
-          <div className="h-full flex items-center justify-center text-text-muted">
-            <p className="text-sm">No active session. Press {isMac ? "Cmd" : "Ctrl"}+T to open a new tab.</p>
-          </div>
-        )}
+      <div className="flex-1 min-h-0 flex flex-row overflow-hidden">
+        {tabPosition === 'left' && <Titlebar />}
+        <ActivityBar />
+        <div className="flex-1 min-h-0 min-w-0 relative overflow-hidden">
+          <Sidebar onNewSsh={handleNewSsh} onEditSsh={handleEditSsh} />
+          {tabs.map((tab) => (
+            <div
+              key={tab.id}
+              className="absolute inset-0 p-[3px]"
+              style={{ display: tab.id === activeTabId ? "block" : "none" }}
+            >
+              <SplitContainer node={tab.panes} />
+            </div>
+          ))}
+          {tabs.length === 0 && showWelcome && (
+            <WelcomeScreen onDismiss={() => {
+              localStorage.setItem("nexterm-welcomed", "1");
+              setShowWelcome(false);
+              const shellPath = useSettingsStore.getState().settings.general.defaultShell;
+              const shell = getPreferredShell(shellPath);
+              addTab(shell.type, shell.path);
+            }} />
+          )}
+          {tabs.length === 0 && !showWelcome && (
+            <div className="h-full flex items-center justify-center text-text-muted">
+              <p className="text-sm">No active session. Press {isMac ? "Cmd" : "Ctrl"}+T to open a new tab.</p>
+            </div>
+          )}
+        </div>
+        {tabPosition === 'right' && <Titlebar />}
       </div>
       {tabPosition === 'bottom' && <Titlebar />}
-      {tabPosition === 'right' && <Titlebar />}
       <StatusBar />
-      <Sidebar onNewSsh={handleNewSsh} onEditSsh={handleEditSsh} />
       <CommandPalette />
       <SettingsModal />
       <ConnectionDialog

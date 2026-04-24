@@ -31,6 +31,8 @@ interface TerminalState {
   activePaneId: string | null;
   paneFocusHistory: string[];
   sidebarOpen: boolean;
+  activeSidebarSection: 'connections' | 'git' | 'database' | 'clipboard' | 'tunnels' | null;
+  setSidebarSection: (section: 'connections' | 'git' | 'database' | 'clipboard' | 'tunnels' | null) => void;
   commandPaletteOpen: boolean;
   settingsOpen: boolean;
   zoomedPaneId: string | null;
@@ -121,6 +123,7 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
   paneFocusHistory: [],
   zoomedPaneId: null,
   sidebarOpen: false,
+  activeSidebarSection: null,
   commandPaletteOpen: false,
   settingsOpen: false,
   draggingTabId: null,
@@ -613,7 +616,11 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
   toggleZoom: () => set((s) => ({
     zoomedPaneId: s.zoomedPaneId === s.activePaneId ? null : s.activePaneId,
   })),
-  toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
+  toggleSidebar: () => set((s) => {
+    const next = s.activeSidebarSection !== null ? null : 'connections';
+    return { activeSidebarSection: next, sidebarOpen: next !== null };
+  }),
+  setSidebarSection: (section) => set({ activeSidebarSection: section, sidebarOpen: section !== null }),
   toggleCommandPalette: () =>
     set((s) => ({ commandPaletteOpen: !s.commandPaletteOpen })),
   toggleSettings: () => set((s) => ({ settingsOpen: !s.settingsOpen })),

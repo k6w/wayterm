@@ -98,6 +98,50 @@ pub async fn path_exists(path: String) -> Result<bool, String> {
     Ok(std::path::Path::new(&path).exists())
 }
 
+#[tauri::command]
+pub async fn find_executable(name: String) -> Option<String> {
+    let path_var = std::env::var("PATH").ok()?;
+
+    #[cfg(target_os = "windows")]
+    {
+        let path_ext = std::env::var("PATHEXT")
+            .unwrap_or_else(|_| ".EXE;.CMD;.BAT;.COM".to_string());
+        let exts: Vec<String> = path_ext
+            .split(';')
+            .map(|s| s.to_ascii_lowercase())
+            .collect();
+
+        for dir in std::env::split_paths(&path_var) {
+            // Try name as-is first (handles case where name already has extension)
+            let as_is = dir.join(&name);
+            if as_is.exists() {
+                return Some(as_is.to_string_lossy().into_owned());
+            }
+            for ext in &exts {
+                let candidate = dir.join(format!("{}{}", name, ext));
+                if candidate.exists() {
+                    return Some(candidate.to_string_lossy().into_owned());
+                }
+            }
+        }
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        for dir in std::env::split_paths(&path_var) {
+            let candidate = dir.join(&name);
+            if let Ok(meta) = candidate.metadata() {
+                if meta.is_file() && meta.permissions().mode() & 0o111 != 0 {
+                    return Some(candidate.to_string_lossy().into_owned());
+                }
+            }
+        }
+    }
+
+    None
+}
+
 static SESSION_LOGS: Mutex<Option<HashMap<String, std::fs::File>>> = Mutex::new(None);
 
 fn get_session_logs() -> std::sync::MutexGuard<'static, Option<HashMap<String, std::fs::File>>> {

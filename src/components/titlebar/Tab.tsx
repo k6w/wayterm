@@ -3,10 +3,6 @@ import { Terminal, X, Columns2, Rows2, HardDrive, Cpu } from "lucide-react";
 import { motion } from "framer-motion";
 import type { TerminalTab } from "../../types/terminal";
 import { useTerminalStore, countPaneNodes } from "../../stores/terminal";
-import { useSettingsStore } from "../../stores/settings";
-import { useThemeStore } from "../../stores/theme";
-import { hexToRgba } from "../../lib/color";
-import { vibrancyAlpha } from "../../lib/platform";
 import TerminalTree from "./TerminalTree";
 import TabContextMenu from "./TabContextMenu";
 
@@ -46,9 +42,6 @@ export default function Tab({
   const containerRef = useRef<HTMLDivElement>(null);
 
   const panes = useTerminalStore((s) => s.panes);
-  const vibrancyEnabled = useSettingsStore((s) => s.settings.appearance.vibrancyEnabled);
-  const windowOpacity = useSettingsStore((s) => s.settings.appearance.windowOpacity);
-  const theme = useThemeStore((s) => s.active);
   const hasSplits = countPaneNodes(tab.panes) > 1;
 
   
@@ -159,30 +152,21 @@ export default function Tab({
 
       <motion.div
         layout="position"
-        initial={{ opacity: 0, x: isVertical ? 0 : -20, y: isVertical ? -20 : 0 }}
+        initial={{ opacity: 0, x: isVertical ? 0 : -10, y: isVertical ? -10 : 0 }}
         animate={{ opacity: 1, x: 0, y: 0 }}
-        exit={{ opacity: 0, x: isVertical ? 0 : -20, y: isVertical ? -20 : 0 }}
-        transition={{ duration: 0.15, ease: "easeOut" }}
+        exit={{ opacity: 0, x: isVertical ? 0 : -10, y: isVertical ? -10 : 0 }}
+        transition={{ duration: 0.14, ease: "easeOut" }}
         className={`
-          relative flex items-center gap-2 text-xs transition-colors select-none cursor-default
+          relative flex items-center gap-2 text-xs transition-all select-none cursor-default
           px-3 shrink-0
-          ${
-            isVertical 
-              ? 'w-full min-h-[44px] py-2.5 justify-start' 
-              : 'h-full min-w-[120px] max-w-[200px]'
+          ${isVertical ? 'w-full min-h-[40px] py-2 justify-start' : 'h-full max-w-[180px]'}
+          ${tab.isActive
+            ? "text-text-primary"
+            : "text-text-primary/55 hover:text-text-primary/85 hover:bg-white/[0.04]"
           }
-          ${
-            tab.isActive
-              ? vibrancyEnabled ? "text-text-primary" : "bg-bg-primary text-text-primary"
-              : "bg-transparent text-text-secondary hover:bg-bg-tertiary"
-          }
-          ${isDragSource ? "opacity-50" : ""}
+          ${isDragSource ? "opacity-40" : ""}
         `}
-        style={
-          tab.isActive && vibrancyEnabled
-            ? { backgroundColor: hexToRgba(theme.ui.bgPrimary, vibrancyAlpha(windowOpacity)) }
-            : undefined
-        }
+        style={tab.isActive ? { backgroundColor: "rgba(255,255,255,0.07)" } : undefined}
         onClick={() => onClick(tab.id)}
         onDoubleClick={handleDoubleClick}
       >

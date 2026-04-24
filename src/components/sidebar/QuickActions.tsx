@@ -1,4 +1,4 @@
-import { Terminal, Monitor, Settings } from "lucide-react";
+import { Terminal, Monitor } from "lucide-react";
 import { useTerminalStore } from "../../stores/terminal";
 import { useSettingsStore } from "../../stores/settings";
 import { getPreferredShell } from "../../lib/shell-detect";
@@ -15,7 +15,6 @@ interface QuickAction {
 
 export default function QuickActions({ onNewSsh }: QuickActionsProps) {
   const addTab = useTerminalStore((s) => s.addTab);
-  const toggleSettings = useTerminalStore((s) => s.toggleSettings);
   const toggleSidebar = useTerminalStore((s) => s.toggleSidebar);
   const defaultShellPath = useSettingsStore((s) => s.settings.general.defaultShell);
 
@@ -37,19 +36,11 @@ export default function QuickActions({ onNewSsh }: QuickActionsProps) {
         onNewSsh?.();
       },
     },
-    {
-      icon: <Settings size={16} />,
-      label: "Settings",
-      onClick: () => {
-        toggleSidebar();
-        toggleSettings();
-      },
-    },
   ];
 
   return (
     <div className="px-3 py-3">
-      <div className="grid grid-cols-3 gap-2">
+      <div className="grid grid-cols-2 gap-2">
         {actions.map((action) => (
           <button
             key={action.label}

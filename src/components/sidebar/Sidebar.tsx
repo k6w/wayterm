@@ -1,8 +1,10 @@
-import { useEffect, useRef, useCallback, useState } from "react";
+import { useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X } from "lucide-react";
 import { useTerminalStore } from "../../stores/terminal";
-import { isMac } from "../../lib/platform";
+import { useSettingsStore } from "../../stores/settings";
+import { useThemeStore } from "../../stores/theme";
+import { hexToRgba } from "../../lib/color";
+import { vibrancyAlpha } from "../../lib/platform";
 import QuickActions from "./QuickActions";
 import ConnectionTree from "./ConnectionTree";
 import WorkspaceList from "./WorkspaceList";
@@ -11,20 +13,9 @@ import { GitPanel } from "../git/GitPanel";
 import { DatabasePanel } from "../database/DatabasePanel";
 import { ClipboardPanel } from "../ui/ClipboardPanel";
 import type { SshConnection } from "../../types/ssh";
-import { GitBranch, Database, Clipboard, Server, Route } from "lucide-react";
 
-type View = 'connections' | 'git' | 'database' | 'clipboard' | 'tunnels';
-
-const NAV: { id: View; icon: typeof Server; label: string }[] = [
-  { id: 'connections', icon: Server,    label: 'Connections' },
-  { id: 'git',        icon: GitBranch, label: 'Git' },
-  { id: 'database',  icon: Database,  label: 'Database' },
-  { id: 'clipboard', icon: Clipboard, label: 'Clipboard' },
-  { id: 'tunnels',   icon: Route,     label: 'Port Forwards' },
-];
-
-// macOS: native traffic lights overlay the top 40 px of the window.
-const MAC_TOP = "40px";
+const PANEL_WIDTH = 320;
+const EASE: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94];
 
 interface SidebarProps {
   onNewSsh?: () => void;
@@ -32,116 +23,73 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ onNewSsh, onEditSsh }: SidebarProps) {
-  const sidebarOpen = useTerminalStore((s) => s.sidebarOpen);
-  const toggleSidebar = useTerminalStore((s) => s.toggleSidebar);
-  const panelRef = useRef<HTMLDivElement>(null);
-  const [activeView, setActiveView] = useState<View>('connections');
+  const activeSidebarSection = useTerminalStore((s) => s.activeSidebarSection);
+  const setSidebarSection = useTerminalStore((s) => s.setSidebarSection);
+  const vibrancyEnabled = useSettingsStore((s) => s.settings.appearance.vibrancyEnabled);
+  const windowOpacity = useSettingsStore((s) => s.settings.appearance.windowOpacity);
+  const theme = useThemeStore((s) => s.active);
 
-  const handleClose = useCallback(() => {
-    if (sidebarOpen) toggleSidebar();
-  }, [sidebarOpen, toggleSidebar]);
+  const handleClose = useCallback(() => setSidebarSection(null), [setSidebarSection]);
 
   useEffect(() => {
-    if (!sidebarOpen) return;
+    if (!activeSidebarSection) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") { e.preventDefault(); handleClose(); }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [sidebarOpen, handleClose]);
+  }, [activeSidebarSection, handleClose]);
 
-  useEffect(() => {
-    if (!sidebarOpen) return;
-    const onDown = (e: MouseEvent) => {
-      if (panelRef.current && !panelRef.current.contains(e.target as Node)) handleClose();
-    };
-    const t = setTimeout(() => window.addEventListener("mousedown", onDown), 0);
-    return () => { clearTimeout(t); window.removeEventListener("mousedown", onDown); };
-  }, [sidebarOpen, handleClose]);
-
-  const panelTop = isMac ? MAC_TOP : "0px";
+  // Match the app chrome (bgSecondary) but slightly more opaque than the
+  // titlebar so text inside the panel is clearly readable.
+  const baseAlpha = vibrancyEnabled
+    ? Math.min(vibrancyAlpha(windowOpacity) + 0.2, 0.88)
+    : 0.96;
+  const panelBg = hexToRgba(theme.ui.bgSecondary, baseAlpha);
 
   return (
-    <AnimatePresence>
-      {sidebarOpen && (
+    <AnimatePresence initial={false}>
+      {activeSidebarSection && (
         <>
           <motion.div
-            className="fixed inset-x-0 bottom-0 z-40 bg-black/40"
-            style={{ top: panelTop }}
+            className="absolute inset-0 z-30"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.15 }}
+            onClick={handleClose}
           />
 
           <motion.div
-            ref={panelRef}
-            className="fixed left-0 bottom-0 z-50 flex flex-col w-[260px] border-r border-border"
+            className="absolute left-0 top-0 bottom-0 z-40 flex flex-col border-r border-border"
             style={{
-              top: panelTop,
-              backdropFilter: "blur(var(--blur-sidebar))",
-              WebkitBackdropFilter: "blur(var(--blur-sidebar))",
-              backgroundColor: `rgba(10, 10, 15, var(--opacity-sidebar))`,
+              width: PANEL_WIDTH,
+              backdropFilter: "blur(20px)",
+              WebkitBackdropFilter: "blur(20px)",
+              backgroundColor: panelBg,
             }}
-            initial={{ x: -260 }}
+            initial={{ x: -PANEL_WIDTH }}
             animate={{ x: 0 }}
-            exit={{ x: -260 }}
-            transition={{ type: "spring", stiffness: 400, damping: 32, mass: 0.8 }}
+            exit={{ x: -PANEL_WIDTH }}
+            transition={{ type: "tween", duration: 0.2, ease: EASE }}
           >
-            {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
-              <span className="text-sm font-semibold text-text-primary tracking-tight">
-                NexTerm
-              </span>
-              <button
-                onClick={handleClose}
-                className="flex items-center justify-center w-6 h-6 rounded-md text-text-muted hover:bg-bg-tertiary hover:text-text-primary transition-colors"
-              >
-                <X size={14} />
-              </button>
-            </div>
-
-            {/* Nav — same pattern as Settings modal */}
-            <nav className="p-3 space-y-0.5 border-b border-border shrink-0">
-              {NAV.map(({ id, icon: Icon, label }) => {
-                const active = activeView === id;
-                return (
-                  <button
-                    key={id}
-                    onClick={() => setActiveView(id)}
-                    className={`flex items-center gap-3 w-full px-3 py-2 rounded-lg text-sm transition-colors text-left ${
-                      active
-                        ? "bg-accent/15 text-accent"
-                        : "text-text-secondary hover:text-text-primary hover:bg-bg-tertiary"
-                    }`}
-                  >
-                    <Icon size={15} strokeWidth={active ? 2.2 : 1.8} />
-                    <span className={active ? "font-medium" : ""}>{label}</span>
-                  </button>
-                );
-              })}
-            </nav>
-
-            {/* Content */}
-            <div className="flex flex-1 flex-col overflow-y-auto min-h-0">
-              {activeView === 'connections' && (
-                <>
-                  <QuickActions onNewSsh={onNewSsh} />
-                  <div className="mx-3 border-t border-border" />
-                  <div className="flex-1 py-1">
-                    <ConnectionTree onAddConnection={onNewSsh} onEditConnection={onEditSsh} />
-                  </div>
-                  <div className="mx-3 border-t border-border" />
-                  <div className="py-1">
-                    <WorkspaceList />
-                  </div>
-                </>
-              )}
-              {activeView === 'git' && <GitPanel />}
-              {activeView === 'database' && <DatabasePanel />}
-              {activeView === 'clipboard' && <ClipboardPanel />}
-              {activeView === 'tunnels' && <TunnelsPanel />}
-            </div>
+            {activeSidebarSection === 'connections' && (
+              <>
+                <QuickActions onNewSsh={onNewSsh} />
+                <div className="mx-3 border-t border-border shrink-0" />
+                <div className="flex-1 py-1 min-h-0 overflow-y-auto">
+                  <ConnectionTree onAddConnection={onNewSsh} onEditConnection={onEditSsh} />
+                </div>
+                <div className="mx-3 border-t border-border shrink-0" />
+                <div className="py-1 shrink-0">
+                  <WorkspaceList />
+                </div>
+              </>
+            )}
+            {activeSidebarSection === 'git' && <GitPanel />}
+            {activeSidebarSection === 'database' && <DatabasePanel />}
+            {activeSidebarSection === 'clipboard' && <ClipboardPanel />}
+            {activeSidebarSection === 'tunnels' && <TunnelsPanel />}
           </motion.div>
         </>
       )}

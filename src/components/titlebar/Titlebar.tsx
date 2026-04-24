@@ -1,7 +1,5 @@
 import { useCallback } from "react";
-import { Menu } from "lucide-react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { useTerminalStore } from "../../stores/terminal";
 import { useSettingsStore } from "../../stores/settings";
 import { useThemeStore } from "../../stores/theme";
 import { hexToRgba } from "../../lib/color";
@@ -10,7 +8,6 @@ import TabStrip from "./TabStrip";
 import WindowControls from "./WindowControls";
 
 export default function Titlebar() {
-  const toggleSidebar = useTerminalStore((s) => s.toggleSidebar);
   const vibrancyEnabled = useSettingsStore((s) => s.settings.appearance.vibrancyEnabled);
   const windowOpacity = useSettingsStore((s) => s.settings.appearance.windowOpacity);
   const tabPosition = useSettingsStore((s) => s.settings.appearance.tabPosition);
@@ -46,15 +43,6 @@ export default function Titlebar() {
         isVertical ? 'flex-col w-full' : 'h-[37px] w-full'
       }`}>
         {isMac && !isVertical && <div className="w-[80px] shrink-0" />}
-        
-        <button
-          className={`flex items-center justify-center text-text-secondary transition-colors hover:bg-bg-tertiary hover:text-text-primary ${
-            isVertical ? 'w-full h-10' : 'h-full w-10'
-          }`}
-          onClick={toggleSidebar}
-        >
-          <Menu size={18} />
-        </button>
 
         <TabStrip />
         
