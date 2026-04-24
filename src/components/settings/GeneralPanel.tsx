@@ -1,4 +1,5 @@
 import { useSettingsStore } from "../../stores/settings";
+import { useSshStore } from "../../stores/ssh";
 import { getDefaultShells } from "../../lib/shell-detect";
 import { enable as enableAutostart, disable as disableAutostart } from "@tauri-apps/plugin-autostart";
 import Select from "../ui/Select";
@@ -139,6 +140,63 @@ export default function GeneralPanel() {
               />
             </button>
           </div>
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-sm font-medium text-text-primary mb-3">Data</h3>
+        <div className="space-y-3">
+          <div className="flex gap-2">
+            <button
+              onClick={() => {
+                const data = {
+                  version: 1,
+                  settings: useSettingsStore.getState().settings,
+                  connections: useSshStore.getState().connections,
+                };
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = `nexterm-settings-${new Date().toISOString().slice(0, 10)}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+              }}
+              className="px-3 py-1.5 text-sm rounded-md bg-bg-tertiary text-text-secondary border border-border hover:border-accent transition-colors"
+            >
+              Export Settings
+            </button>
+            <button
+              onClick={() => {
+                const input = document.createElement("input");
+                input.type = "file";
+                input.accept = ".json";
+                input.onchange = async (e) => {
+                  const file = (e.target as HTMLInputElement).files?.[0];
+                  if (!file) return;
+                  try {
+                    const text = await file.text();
+                    const data = JSON.parse(text);
+                    if (data.version && data.settings) {
+                      const store = useSettingsStore.getState();
+                      for (const [section, values] of Object.entries(data.settings) as [keyof import("../../types/settings").AppSettings, unknown][]) {
+                        if (typeof values === "object" && values && !Array.isArray(values)) {
+                          await store.update(section, values as never);
+                        }
+                      }
+                    }
+                  } catch {
+                    // Invalid file
+                  }
+                };
+                input.click();
+              }}
+              className="px-3 py-1.5 text-sm rounded-md bg-bg-tertiary text-text-secondary border border-border hover:border-accent transition-colors"
+            >
+              Import Settings
+            </button>
+          </div>
+          <p className="text-xs text-text-muted">Export or import your settings and connection profiles</p>
         </div>
       </div>
     </div>

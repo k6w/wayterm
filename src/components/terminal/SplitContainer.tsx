@@ -15,6 +15,17 @@ export { SplitContainer };
 
 const GAP = 6;
 
+function findPaneNode(node: SplitNode, paneId: string): SplitNode | null {
+  if (node.type === "pane" && node.paneId === paneId) return node;
+  if (node.type === "split" && node.children) {
+    for (const child of node.children) {
+      const found = findPaneNode(child, paneId);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
 export default function SplitContainer({
   node,
   depth = 0,
@@ -22,6 +33,7 @@ export default function SplitContainer({
 }: SplitContainerProps) {
   const activePaneId = useTerminalStore((s) => s.activePaneId);
   const activeTabId = useTerminalStore((s) => s.activeTabId);
+  const zoomedPaneId = useTerminalStore((s) => s.zoomedPaneId);
   const tabs = useTerminalStore((s) => s.tabs);
 
   const paneCount =
@@ -30,6 +42,18 @@ export default function SplitContainer({
       const tab = tabs.find((t) => t.id === activeTabId);
       return tab ? countPaneNodes(tab.panes) : 1;
     })();
+
+  // If a pane is zoomed, render only that pane at full size
+  if (zoomedPaneId && depth === 0) {
+    const zoomedNode = findPaneNode(node, zoomedPaneId);
+    if (zoomedNode && zoomedNode.paneId) {
+      const pane = useTerminalStore.getState().panes[zoomedNode.paneId];
+      if (pane?.shellType === "sftp") {
+        return <SftpPane paneId={zoomedNode.paneId} isActive={true} paneCount={1} />;
+      }
+      return <TerminalPane paneId={zoomedNode.paneId} isActive={true} paneCount={1} />;
+    }
+  }
 
   if (node.type === "pane" && node.paneId) {
     const pane = useTerminalStore.getState().panes[node.paneId];

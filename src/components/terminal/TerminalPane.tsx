@@ -213,6 +213,7 @@ export default function TerminalPane({
   const settings = useSettingsStore((s) => s.settings);
   const updatePaneSession = useTerminalStore((s) => s.updatePaneSession);
   const [showSearch, setShowSearch] = useState(false);
+  const [sessionExited, setSessionExited] = useState(false);
 
   
   useEffect(() => {
@@ -502,6 +503,7 @@ export default function TerminalPane({
             setSshOverlay(false);
           }
           term.write("\r\n\x1b[90m--- Process exited ---\x1b[0m\r\n");
+          setSessionExited(true);
         });
 
         term.onData((data: string) => {
@@ -522,6 +524,20 @@ export default function TerminalPane({
             title.startsWith("\\\\");
           if (isPath) {
             useTerminalStore.getState().updatePaneCwd(paneId, title);
+          }
+        });
+
+        term.onBell(() => {
+          const state = useTerminalStore.getState();
+          const tab = state.tabs.find((t) => {
+            const findPane = (n: import("../../types/terminal").SplitNode): boolean => {
+              if (n.type === "pane") return n.paneId === paneId;
+              return n.children?.some(findPane) ?? false;
+            };
+            return findPane(t.panes);
+          });
+          if (tab && tab.id !== state.activeTabId) {
+            state.setBellAlert(tab.id, true);
           }
         });
 
@@ -801,6 +817,47 @@ export default function TerminalPane({
               </span>
             )}
           </div>
+        </div>
+      )}
+
+      {sessionExited && (
+        <div
+          className="absolute bottom-4 left-0 right-0 z-20 flex justify-center"
+        >
+          <button
+            onClick={() => {
+              setSessionExited(false);
+              const pane = useTerminalStore.getState().panes[paneId];
+              if (pane) {
+                const shell = pane.shellType || "bash";
+                const { addTab, removeTab } = useTerminalStore.getState();
+                const tab = useTerminalStore.getState().tabs.find(t => {
+                  const find = (n: import("../../types/terminal").SplitNode): boolean => {
+                    if (n.type === "pane") return n.paneId === paneId;
+                    return n.children?.some(find) ?? false;
+                  };
+                  return find(t.panes);
+                });
+                if (tab && pane.sshConnectionId) {
+                  addTab("ssh", undefined, pane.sshConnectionId);
+                  const newTabs = useTerminalStore.getState().tabs;
+                  const newTab = newTabs[newTabs.length - 1];
+                  if (newTab) useTerminalStore.getState().renameTab(newTab.id, tab.title);
+                  removeTab(tab.id);
+                } else if (tab) {
+                  addTab(shell as import("../../types/terminal").ShellType, pane.shellPath);
+                  removeTab(tab.id);
+                }
+              }
+            }}
+            className="px-4 py-1.5 text-xs rounded-md transition-colors"
+            style={{
+              backgroundColor: theme.ui.accent,
+              color: "#fff",
+            }}
+          >
+            Reconnect
+          </button>
         </div>
       )}
 

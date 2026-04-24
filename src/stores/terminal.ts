@@ -32,6 +32,7 @@ interface TerminalState {
   sidebarOpen: boolean;
   commandPaletteOpen: boolean;
   settingsOpen: boolean;
+  zoomedPaneId: string | null;
   draggingTabId: string | null;
   dropTarget: { paneId: string; zone: DropZone } | null;
   dragOverPaneId: string | null;
@@ -86,6 +87,8 @@ interface TerminalState {
     output: string
   ) => void;
 
+  setBellAlert: (tabId: string, hasBell: boolean) => void;
+  toggleZoom: () => void;
   toggleSidebar: () => void;
   toggleCommandPalette: () => void;
   toggleSettings: () => void;
@@ -97,6 +100,7 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
   activeTabId: null,
   activePaneId: null,
   paneFocusHistory: [],
+  zoomedPaneId: null,
   sidebarOpen: false,
   commandPaletteOpen: false,
   settingsOpen: false,
@@ -187,7 +191,7 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
       const fromHistory = [...state.paneFocusHistory].reverse().find((id) => tabPaneIds.has(id));
       const targetPane = fromHistory ?? getFirstPaneId(tab.panes);
       return {
-        tabs: state.tabs.map((t) => ({ ...t, isActive: t.id === tabId })),
+        tabs: state.tabs.map((t) => ({ ...t, isActive: t.id === tabId, hasBell: t.id === tabId ? false : t.hasBell })),
         activeTabId: tabId,
         activePaneId: targetPane,
       };
@@ -580,6 +584,12 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
     return countPaneNodes(tab.panes);
   },
 
+  setBellAlert: (tabId, hasBell) => set((s) => ({
+    tabs: s.tabs.map((t) => t.id === tabId ? { ...t, hasBell } : t),
+  })),
+  toggleZoom: () => set((s) => ({
+    zoomedPaneId: s.zoomedPaneId === s.activePaneId ? null : s.activePaneId,
+  })),
   toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
   toggleCommandPalette: () =>
     set((s) => ({ commandPaletteOpen: !s.commandPaletteOpen })),

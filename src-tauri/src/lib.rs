@@ -94,6 +94,7 @@ pub fn run() {
             app.manage(pty::manager::PtyManager::new());
             app.manage(sftp::session::SftpSessionManager::new());
             app.manage(port_forward::PortForwardManager::new());
+            app.manage(commands::database::DatabaseManager::new());
             window::setup(app.get_webview_window("main").as_ref());
 
             // ── System tray ──
@@ -173,8 +174,17 @@ pub fn run() {
             commands::git::git_unstage,
             commands::git::git_stash,
             commands::git::git_stash_pop,
+            commands::database::db_list_connections,
+            commands::database::db_save_connection,
+            commands::database::db_delete_connection,
+            commands::database::db_connect,
+            commands::database::db_disconnect,
+            commands::database::db_execute_query,
+            commands::database::db_get_tables,
+            commands::database::db_get_table_schema,
             commands::known_hosts::ssh_known_hosts_list,
             commands::known_hosts::ssh_known_hosts_remove,
+            commands::known_hosts::ssh_known_hosts_add,
             commands::known_hosts::ssh_known_hosts_clear,
             commands::sftp::sftp_connect,
             commands::sftp::sftp_disconnect,

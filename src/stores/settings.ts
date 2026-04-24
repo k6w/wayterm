@@ -50,6 +50,7 @@ const defaultSettings: AppSettings = {
   },
   profiles: [],
   keybindings: {},
+  snippets: [],
 };
 
 interface SettingsState {

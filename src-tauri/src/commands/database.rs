@@ -52,13 +52,11 @@ pub struct QueryResult {
     pub error: Option<String>,
 }
 
-#[allow(dead_code)]
 pub struct DatabaseManager {
     connections: Arc<Mutex<HashMap<String, rusqlite::Connection>>>,
 }
 
 impl DatabaseManager {
-    #[allow(dead_code)]
     pub fn new() -> Self {
         Self {
             connections: Arc::new(Mutex::new(HashMap::new())),
@@ -101,7 +99,6 @@ pub async fn db_save_connection(
     pool: State<'_, DbPool>,
 ) -> Result<(), String> {
     let conn = pool.lock();
-    
     conn.execute(
         "INSERT OR REPLACE INTO database_connections (id, name, type, host, port, database, username, ssl, connection_string, color, updated_at)
          VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7, ?8, ?9, ?10, datetime('now'))",
@@ -132,51 +129,174 @@ pub async fn db_delete_connection(id: String, pool: State<'_, DbPool>) -> Result
 }
 
 #[tauri::command]
-pub async fn db_connect(_connection_id: String) -> Result<(), String> {
+pub async fn db_connect(
+    connection_id: String,
+    pool: State<'_, DbPool>,
+    db_manager: State<'_, DatabaseManager>,
+) -> Result<(), String> {
+    let db_conn = {
+        let conn = pool.lock();
+        conn.query_row(
+            "SELECT connection_string, database FROM database_connections WHERE id = ?1",
+            [&connection_id],
+            |row| {
+                let cs: Option<String> = row.get(0)?;
+                let db: String = row.get(1)?;
+                Ok((cs, db))
+            },
+        )
+        .map_err(|e| e.to_string())?
+    };
+
+    let path = db_conn.0.unwrap_or(db_conn.1);
+    let sqlite_conn = rusqlite::Connection::open(&path)
+        .map_err(|e| format!("Failed to open database '{}': {}", path, e))?;
+
+    let mut conns = db_manager.connections.lock();
+    conns.insert(connection_id, sqlite_conn);
     Ok(())
 }
 
 #[tauri::command]
-pub async fn db_disconnect(_connection_id: String) -> Result<(), String> {
+pub async fn db_disconnect(
+    connection_id: String,
+    db_manager: State<'_, DatabaseManager>,
+) -> Result<(), String> {
+    let mut conns = db_manager.connections.lock();
+    conns.remove(&connection_id);
     Ok(())
 }
 
 #[tauri::command]
 pub async fn db_execute_query(
-    _connection_id: String,
+    connection_id: String,
     query: String,
+    db_manager: State<'_, DatabaseManager>,
 ) -> Result<QueryResult, String> {
     if query.trim().is_empty() {
         return Err("Query cannot be empty".to_string());
     }
 
+    let conns = db_manager.connections.lock();
+    let conn = conns.get(&connection_id)
+        .ok_or_else(|| "Not connected. Please connect first.".to_string())?;
+
+    let start = std::time::Instant::now();
+
+    let mut stmt = conn.prepare(&query).map_err(|e| e.to_string())?;
+    let col_count = stmt.column_count();
+    let columns: Vec<String> = (0..col_count)
+        .map(|i| stmt.column_name(i).unwrap_or("?").to_string())
+        .collect();
+
+    let mut rows: Vec<HashMap<String, serde_json::Value>> = Vec::new();
+    let mut sql_rows = stmt.query([]).map_err(|e| e.to_string())?;
+
+    while let Some(row) = sql_rows.next().map_err(|e| e.to_string())? {
+        let mut map = HashMap::new();
+        for (i, col) in columns.iter().enumerate() {
+            let val: serde_json::Value = match row.get_ref(i) {
+                Ok(rusqlite::types::ValueRef::Null) => serde_json::Value::Null,
+                Ok(rusqlite::types::ValueRef::Integer(v)) => serde_json::json!(v),
+                Ok(rusqlite::types::ValueRef::Real(f)) => serde_json::json!(f),
+                Ok(rusqlite::types::ValueRef::Text(t)) => {
+                    serde_json::Value::String(String::from_utf8_lossy(t).to_string())
+                }
+                Ok(rusqlite::types::ValueRef::Blob(b)) => {
+                    serde_json::Value::String(format!("<blob {} bytes>", b.len()))
+                }
+                Err(_) => serde_json::Value::Null,
+            };
+            map.insert(col.clone(), val);
+        }
+        rows.push(map);
+    }
+
+    let elapsed = start.elapsed().as_millis() as i64;
+    let row_count = rows.len() as i64;
+
     Ok(QueryResult {
-        columns: vec!["result".to_string()],
-        rows: vec![{
-            let mut map = HashMap::new();
-            map.insert("result".to_string(), serde_json::Value::String("Query execution not yet implemented".to_string()));
-            map
-        }],
-        row_count: 1,
-        execution_time: 0,
+        columns,
+        rows,
+        row_count,
+        execution_time: elapsed,
         error: None,
     })
 }
 
 #[tauri::command]
-pub async fn db_get_tables(_connection_id: String) -> Result<Vec<DatabaseTable>, String> {
-    Ok(vec![])
+pub async fn db_get_tables(
+    connection_id: String,
+    db_manager: State<'_, DatabaseManager>,
+) -> Result<Vec<DatabaseTable>, String> {
+    let conns = db_manager.connections.lock();
+    let conn = conns.get(&connection_id)
+        .ok_or_else(|| "Not connected".to_string())?;
+
+    let mut stmt = conn
+        .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%' ORDER BY name")
+        .map_err(|e| e.to_string())?;
+
+    let tables: Vec<String> = stmt
+        .query_map([], |row| row.get(0))
+        .map_err(|e| e.to_string())?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())?;
+
+    let mut result = Vec::new();
+    for table_name in tables {
+        let row_count: i64 = conn
+            .query_row(&format!("SELECT COUNT(*) FROM \"{}\"", table_name), [], |r| r.get(0))
+            .unwrap_or(0);
+
+        result.push(DatabaseTable {
+            name: table_name,
+            schema: None,
+            row_count,
+            columns: vec![],
+        });
+    }
+
+    Ok(result)
 }
 
 #[tauri::command]
 pub async fn db_get_table_schema(
-    _connection_id: String,
+    connection_id: String,
     table: String,
+    db_manager: State<'_, DatabaseManager>,
 ) -> Result<DatabaseTable, String> {
+    let conns = db_manager.connections.lock();
+    let conn = conns.get(&connection_id)
+        .ok_or_else(|| "Not connected".to_string())?;
+
+    let mut stmt = conn
+        .prepare(&format!("PRAGMA table_info(\"{}\")", table))
+        .map_err(|e| e.to_string())?;
+
+    let columns: Vec<DatabaseColumn> = stmt
+        .query_map([], |row| {
+            Ok(DatabaseColumn {
+                name: row.get(1)?,
+                col_type: row.get::<_, String>(2).unwrap_or_default(),
+                nullable: !row.get::<_, bool>(3).unwrap_or(false),
+                primary_key: row.get::<_, bool>(5).unwrap_or(false),
+                foreign_key: None,
+                default_value: row.get(4).ok(),
+            })
+        })
+        .map_err(|e| e.to_string())?
+        .collect::<Result<Vec<_>, _>>()
+        .map_err(|e| e.to_string())?;
+
+    let row_count: i64 = conn
+        .query_row(&format!("SELECT COUNT(*) FROM \"{}\"", table), [], |r| r.get(0))
+        .unwrap_or(0);
+
     Ok(DatabaseTable {
         name: table,
         schema: None,
-        row_count: 0,
-        columns: vec![],
+        row_count,
+        columns,
     })
 }

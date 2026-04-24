@@ -69,6 +69,12 @@ export interface ShellProfile {
   ligaturesOverride: boolean | null;
 }
 
+export interface Snippet {
+  id: string;
+  name: string;
+  command: string;
+}
+
 export interface AppSettings {
   general: GeneralSettings;
   appearance: AppearanceSettings;
@@ -76,4 +82,5 @@ export interface AppSettings {
   ssh: SshSettings;
   profiles: ShellProfile[];
   keybindings: Record<string, string>;
+  snippets: Snippet[];
 }

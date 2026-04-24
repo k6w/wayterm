@@ -233,4 +233,6 @@ export function applyThemeToDom(theme: ThemeDefinition) {
   root.style.setProperty("--opacity-blocks", `${theme.opacity.blocks}`);
   root.style.setProperty("--opacity-input-bar", `${theme.opacity.inputBar}`);
   root.setAttribute("data-theme", theme.variant);
+  const isLight = theme.variant === "light";
+  root.style.setProperty("--overlay", isLight ? "0 0 0" : "255 255 255");
 }

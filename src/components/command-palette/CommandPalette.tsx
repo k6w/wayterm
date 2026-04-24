@@ -34,7 +34,7 @@ import { hexToRgba } from "../../lib/color";
 import { vibrancyAlpha } from "../../lib/platform";
 import { getEffectiveKeybindings } from "../../lib/keybindings";
 import { getDefaultShells } from "../../lib/shell-detect";
-import { clearBuffer, resetTerminal } from "../../lib/terminal-registry";
+import { clearBuffer, resetTerminal, writeToTerminal } from "../../lib/terminal-registry";
 
 type SubView = null | "themes";
 
@@ -63,6 +63,7 @@ const KEYBINDING_ICONS: Record<string, LucideIcon> = {
   "detach-pane": ExternalLink,
   "focus-next-pane": Focus,
   "focus-prev-pane": Focus,
+  "zoom-pane": Focus,
 };
 
 const SHELL_ICONS: Record<string, LucideIcon> = {
@@ -178,6 +179,20 @@ export default function CommandPalette() {
       subView: "themes",
       handler: () => {},
     });
+
+    const snippets = useSettingsStore.getState().settings.snippets || [];
+    for (const snippet of snippets) {
+      actions.push({
+        id: `snippet-${snippet.id}`,
+        label: snippet.name,
+        icon: SquareTerminal,
+        category: "Snippets",
+        handler: () => {
+          const paneId = useTerminalStore.getState().activePaneId;
+          if (paneId) writeToTerminal(paneId, snippet.command + "\r");
+        },
+      });
+    }
 
     return actions;
   }, []);

@@ -211,7 +211,12 @@ export default function Tab({
             className="min-w-0 flex-1 truncate border-none bg-transparent text-xs text-text-primary outline-none"
           />
         ) : (
-          <span className="truncate">{tab.title}</span>
+          <span className="truncate flex items-center gap-1.5">
+            {tab.title}
+            {tab.hasBell && !tab.isActive && (
+              <span className="size-1.5 rounded-full bg-accent shrink-0 animate-pulse" />
+            )}
+          </span>
         )}
 
         {(hovered || tab.isActive) && !editing && (

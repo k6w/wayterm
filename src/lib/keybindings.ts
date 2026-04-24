@@ -109,6 +109,12 @@ export function getDefaultKeybindings(): KeyAction[] {
       },
     },
     {
+      id: "zoom-pane",
+      label: "Toggle Zoom Pane",
+      keys: `${mod}+Shift+Enter`,
+      handler: () => useTerminalStore.getState().toggleZoom(),
+    },
+    {
       id: "close-pane",
       label: "Close Pane",
       keys: `${mod}+Shift+w`,

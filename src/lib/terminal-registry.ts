@@ -77,3 +77,10 @@ export function resetTerminal(paneId: string) {
 export function hasSelection(paneId: string): boolean {
   return !!cache.get(paneId)?.terminal.hasSelection();
 }
+
+export function writeToTerminal(paneId: string, text: string) {
+  const entry = cache.get(paneId);
+  if (entry?.terminal) {
+    entry.terminal.paste(text);
+  }
+}

@@ -128,6 +128,10 @@ export async function sshKnownHostsRemove(hostname: string): Promise<void> {
   return invoke("ssh_known_hosts_remove", { hostname });
 }
 
+export async function sshKnownHostsAdd(host: string, port: number, keyType: string, keyData: string): Promise<void> {
+  return invoke("ssh_known_hosts_add", { host, port, keyType, keyData });
+}
+
 export async function sshKnownHostsClear(): Promise<void> {
   return invoke("ssh_known_hosts_clear");
 }

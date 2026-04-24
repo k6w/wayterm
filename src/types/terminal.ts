@@ -9,6 +9,7 @@ export interface TerminalTab {
   shellType: ShellType;
   panes: SplitNode;
   isActive: boolean;
+  hasBell?: boolean;
 }
 
 export interface TerminalPane {

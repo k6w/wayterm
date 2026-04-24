@@ -145,6 +145,28 @@ pub async fn ssh_known_hosts_remove(hostname: String) -> Result<(), String> {
 }
 
 #[tauri::command]
+pub async fn ssh_known_hosts_add(host: String, port: u16, key_type: String, key_data: String) -> Result<(), String> {
+    let path = known_hosts_path()?;
+    let dir = path.parent().ok_or("Cannot determine .ssh directory")?;
+    std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
+
+    let entry = if port == 22 {
+        format!("{} {} {}\n", host, key_type, key_data)
+    } else {
+        format!("[{}]:{} {} {}\n", host, port, key_type, key_data)
+    };
+
+    use std::io::Write;
+    let mut file = std::fs::OpenOptions::new()
+        .create(true)
+        .append(true)
+        .open(&path)
+        .map_err(|e| e.to_string())?;
+    file.write_all(entry.as_bytes()).map_err(|e| e.to_string())?;
+    Ok(())
+}
+
+#[tauri::command]
 pub async fn ssh_known_hosts_clear() -> Result<(), String> {
     let path = known_hosts_path()?;
     if path.exists() {

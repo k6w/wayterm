@@ -9,6 +9,7 @@ import SettingsModal from "../components/settings/SettingsModal";
 import ConnectionDialog from "../components/ssh/ConnectionDialog";
 import StatusBar from "../components/terminal/StatusBar";
 import UpdateNotification from "../components/ui/UpdateNotification";
+import { WelcomeScreen } from "../components/ui/WelcomeScreen";
 import { useTerminalStore } from "../stores/terminal";
 import { useSettingsStore } from "../stores/settings";
 import { useThemeStore } from "../stores/theme";
@@ -37,6 +38,7 @@ function AppContent() {
   const theme = useThemeStore((s) => s.active);
   const [sshDialogOpen, setSshDialogOpen] = useState(false);
   const [editingConnection, setEditingConnection] = useState<SshConnection | null>(null);
+  const [showWelcome, setShowWelcome] = useState(() => !localStorage.getItem("nexterm-welcomed"));
 
   
   useEffect(() => {
@@ -153,7 +155,13 @@ function AppContent() {
             <SplitContainer node={tab.panes} />
           </div>
         ))}
-        {tabs.length === 0 && (
+        {tabs.length === 0 && showWelcome && (
+          <WelcomeScreen onDismiss={() => {
+            localStorage.setItem("nexterm-welcomed", "1");
+            setShowWelcome(false);
+          }} />
+        )}
+        {tabs.length === 0 && !showWelcome && (
           <div className="h-full flex items-center justify-center text-text-muted">
             <p className="text-sm">No active session</p>
           </div>
