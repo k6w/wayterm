@@ -255,7 +255,7 @@ impl Handler for ClientHandler {
     ) -> Result<bool, Self::Error> {
         match crate::commands::known_hosts::verify_host_key(&self.host, self.port, server_public_key) {
             Ok(valid) => Ok(valid),
-            Err(_) => Ok(false),
+            Err(e) => Err(russh::Error::from(std::io::Error::new(std::io::ErrorKind::PermissionDenied, e))),
         }
     }
 }

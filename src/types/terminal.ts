@@ -1,4 +1,4 @@
-export type ShellType = "powershell" | "cmd" | "gitbash" | "wsl" | "bash" | "zsh" | "fish" | "sh" | "ssh" | "sftp";
+export type ShellType = "powershell" | "cmd" | "gitbash" | "wsl" | "bash" | "zsh" | "fish" | "sh" | "ssh" | "sftp" | "serial";
 
 export type SplitDirection = "horizontal" | "vertical";
 
@@ -22,6 +22,16 @@ export interface TerminalPane {
   shellPath?: string;
   sshConnectionId?: string;
   sftpConnectionId?: string;
+  serialConfig?: SerialConfig;
+}
+
+export interface SerialConfig {
+  portName: string;
+  baudRate: number;
+  dataBits: number;
+  stopBits: number;
+  parity: string;
+  flowControl: string;
 }
 
 export interface Block {

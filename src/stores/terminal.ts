@@ -21,6 +21,7 @@ const SHELL_LABELS: Record<ShellType, string> = {
   sh: "Shell",
   ssh: "SSH",
   sftp: "SFTP",
+  serial: "Serial",
 };
 
 interface TerminalState {

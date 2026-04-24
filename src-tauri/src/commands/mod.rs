@@ -3,6 +3,7 @@ pub mod custom_themes;
 pub mod database;
 pub mod git;
 pub mod known_hosts;
+pub mod serial;
 pub mod settings;
 pub mod sftp;
 pub mod ssh;

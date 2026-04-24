@@ -3,6 +3,7 @@ import type { SplitNode } from "../../types/terminal";
 import { useTerminalStore, countPaneNodes } from "../../stores/terminal";
 import TerminalPane from "./TerminalPane";
 import SftpPane from "../sftp/SftpPane";
+import SerialPane from "./SerialPane";
 
 interface SplitContainerProps {
   node: SplitNode;
@@ -51,6 +52,9 @@ export default function SplitContainer({
       if (pane?.shellType === "sftp") {
         return <SftpPane paneId={zoomedNode.paneId} isActive={true} paneCount={1} />;
       }
+      if (pane?.shellType === "serial") {
+        return <SerialPane paneId={zoomedNode.paneId} isActive={true} paneCount={1} />;
+      }
       return <TerminalPane paneId={zoomedNode.paneId} isActive={true} paneCount={1} />;
     }
   }
@@ -60,6 +64,15 @@ export default function SplitContainer({
     if (pane?.shellType === "sftp") {
       return (
         <SftpPane
+          paneId={node.paneId}
+          isActive={activePaneId === node.paneId}
+          paneCount={paneCount}
+        />
+      );
+    }
+    if (pane?.shellType === "serial") {
+      return (
+        <SerialPane
           paneId={node.paneId}
           isActive={activePaneId === node.paneId}
           paneCount={paneCount}

@@ -30,6 +30,7 @@ async-trait = "0.1"
 sha2 = "0.10"
 aes-gcm = "0.10"
 rand = "0.8"
+serialport = "4"
 
 [build-dependencies]
 tauri-build = { version = "2", features = [] }

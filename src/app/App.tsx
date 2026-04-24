@@ -7,6 +7,7 @@ import Sidebar from "../components/sidebar/Sidebar";
 import CommandPalette from "../components/command-palette/CommandPalette";
 import SettingsModal from "../components/settings/SettingsModal";
 import ConnectionDialog from "../components/ssh/ConnectionDialog";
+import SerialDialog from "../components/serial/SerialDialog";
 import StatusBar from "../components/terminal/StatusBar";
 import UpdateNotification from "../components/ui/UpdateNotification";
 import { WelcomeScreen } from "../components/ui/WelcomeScreen";
@@ -25,7 +26,8 @@ import {
   stopBufferAutoSave,
   saveAllBuffers,
 } from "../lib/buffer-persistence";
-import type { SshConnection } from "../types/ssh";
+import type { SshConnection, } from "../types/ssh";
+import type { SerialConfig } from "../types/terminal";
 
 function AppContent() {
   const tabs = useTerminalStore((s) => s.tabs);
@@ -38,6 +40,7 @@ function AppContent() {
   const theme = useThemeStore((s) => s.active);
   const [sshDialogOpen, setSshDialogOpen] = useState(false);
   const [editingConnection, setEditingConnection] = useState<SshConnection | null>(null);
+  const [serialDialogOpen, setSerialDialogOpen] = useState(false);
   const [showWelcome, setShowWelcome] = useState(() => !localStorage.getItem("nexterm-welcomed"));
 
   
@@ -127,6 +130,20 @@ function AppContent() {
     setEditingConnection(null);
   }, []);
 
+  const handleSerialConnect = useCallback((config: SerialConfig) => {
+    const paneId = addTab("serial");
+    useTerminalStore.setState((s) => ({
+      panes: { ...s.panes, [paneId]: { ...s.panes[paneId], serialConfig: config } },
+    }));
+  }, [addTab]);
+
+  // Allow command palette and other components to trigger the serial dialog
+  useEffect(() => {
+    const handler = () => setSerialDialogOpen(true);
+    window.addEventListener("nexterm:open-serial", handler);
+    return () => window.removeEventListener("nexterm:open-serial", handler);
+  }, []);
+
   const isVerticalTabs = tabPosition === 'left' || tabPosition === 'right';
 
   return (
@@ -178,6 +195,11 @@ function AppContent() {
         onClose={handleSshClose}
         onSave={handleSshSave}
         editConnection={editingConnection}
+      />
+      <SerialDialog
+        open={serialDialogOpen}
+        onClose={() => setSerialDialogOpen(false)}
+        onConnect={handleSerialConnect}
       />
     </div>
   );

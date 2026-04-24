@@ -18,6 +18,8 @@ import { useSftpStore } from "../../stores/sftp";
 import { useThemeStore } from "../../stores/theme";
 import { useSettingsStore } from "../../stores/settings";
 import { hexToRgba } from "../../lib/color";
+import { sshGetPendingHostKey, sshKnownHostsAdd, sshClearPendingHostKey, type PendingHostKey } from "../../lib/ipc";
+import TofuDialog from "../ui/TofuDialog";
 import { vibrancyAlpha } from "../../lib/platform";
 import PathBreadcrumb from "./PathBreadcrumb";
 import FileList from "./FileList";
@@ -72,6 +74,7 @@ export default function SftpPane({
   const [connectionName, setConnectionName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [desktopDragOver, setDesktopDragOver] = useState(false);
+  const [tofuPending, setTofuPending] = useState<PendingHostKey | null>(null);
 
   // Selection state
   const [localSelected, setLocalSelected] = useState<Set<string>>(new Set());
@@ -176,10 +179,23 @@ export default function SftpPane({
         updatePaneSession(paneId, sid);
         setConnecting(false);
       } catch (err) {
-        if (!cancelled) {
-          setError(err instanceof Error ? err.message : String(err));
-          setConnecting(false);
+        if (cancelled) return;
+        const msg = err instanceof Error ? err.message : String(err);
+        if (msg.includes("TOFU_REQUIRED") && conn) {
+          // Unknown host — fetch the pending key and show trust dialog
+          try {
+            const key = await sshGetPendingHostKey(conn.host, conn.port ?? 22);
+            if (key) {
+              setTofuPending(key);
+              setConnecting(false);
+              return;
+            }
+          } catch {
+            // fall through to generic error
+          }
         }
+        setError(msg);
+        setConnecting(false);
       }
     })();
 
@@ -571,8 +587,38 @@ export default function SftpPane({
     ? hexToRgba(theme.ui.bgSecondary, vibrancyAlpha(windowOpacity))
     : theme.ui.bgSecondary;
 
+  const sftpConnId = pane?.sftpConnectionId ?? "";
+  const sftpConn = useSshStore.getState().connections.find((c) => c.id === sftpConnId);
+
+  const handleTofuTrust = useCallback(async () => {
+    if (!tofuPending || !sftpConn) return;
+    try {
+      await sshKnownHostsAdd(tofuPending.host, tofuPending.port, tofuPending.keyType, tofuPending.keyData);
+      await sshClearPendingHostKey(tofuPending.host, tofuPending.port);
+      setTofuPending(null);
+      setConnecting(true);
+      setError(null);
+      const sid = await useSftpStore.getState().connect(sftpConnId, sftpConn.name ?? "SFTP");
+      sessionIdRef.current = sid;
+      setSessionId(sid);
+      updatePaneSession(paneId, sid);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setConnecting(false);
+    }
+  }, [tofuPending, sftpConn, sftpConnId, paneId, updatePaneSession]);
+
+  const handleTofuCancel = useCallback(async () => {
+    if (tofuPending) {
+      await sshClearPendingHostKey(tofuPending.host, tofuPending.port).catch(() => {});
+    }
+    setTofuPending(null);
+    setError("Connection cancelled — host not trusted.");
+  }, [tofuPending]);
+
   // -- Connecting / error state --
-  if (connecting || error) {
+  if (connecting || error || tofuPending) {
     return (
       <div
         className={`relative flex h-full w-full flex-col items-center justify-center ${isSplit ? "rounded-lg" : ""}`}
@@ -590,6 +636,11 @@ export default function SftpPane({
           <div className="flex flex-col items-center gap-2 px-4 text-center">
             <span className="text-xs text-red-400">Connection failed</span>
             <span className="text-[11px] text-text-muted">{error}</span>
+          </div>
+        ) : tofuPending ? (
+          <div className="flex flex-col items-center gap-2 px-4 text-center">
+            <span className="text-xs text-yellow-400">Unknown host</span>
+            <span className="text-[11px] text-text-muted">Verify the server fingerprint</span>
           </div>
         ) : (
           <>
@@ -616,6 +667,12 @@ export default function SftpPane({
             </div>
           </>
         )}
+        <TofuDialog
+          open={!!tofuPending}
+          pendingKey={tofuPending}
+          onTrust={handleTofuTrust}
+          onCancel={handleTofuCancel}
+        />
       </div>
     );
   }

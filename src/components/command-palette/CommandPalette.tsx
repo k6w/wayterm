@@ -180,6 +180,16 @@ export default function CommandPalette() {
       handler: () => {},
     });
 
+    actions.push({
+      id: "new-serial-tab",
+      label: "New Serial / COM Port Tab",
+      icon: Terminal,
+      category: "New Tab",
+      handler: () => {
+        window.dispatchEvent(new Event("nexterm:open-serial"));
+      },
+    });
+
     const snippets = useSettingsStore.getState().settings.snippets || [];
     for (const snippet of snippets) {
       actions.push({

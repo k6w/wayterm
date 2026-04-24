@@ -95,6 +95,7 @@ pub fn run() {
             app.manage(sftp::session::SftpSessionManager::new());
             app.manage(port_forward::PortForwardManager::new());
             app.manage(commands::database::DatabaseManager::new());
+            app.manage(commands::serial::SerialManager::new());
             window::setup(app.get_webview_window("main").as_ref());
 
             // ── System tray ──
@@ -186,6 +187,12 @@ pub fn run() {
             commands::known_hosts::ssh_known_hosts_remove,
             commands::known_hosts::ssh_known_hosts_add,
             commands::known_hosts::ssh_known_hosts_clear,
+            commands::known_hosts::ssh_get_pending_host_key,
+            commands::known_hosts::ssh_clear_pending_host_key,
+            commands::serial::serial_list_ports,
+            commands::serial::serial_open,
+            commands::serial::serial_write,
+            commands::serial::serial_close,
             commands::sftp::sftp_connect,
             commands::sftp::sftp_disconnect,
             commands::sftp::sftp_list_dir,

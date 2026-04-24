@@ -136,6 +136,22 @@ export async function sshKnownHostsClear(): Promise<void> {
   return invoke("ssh_known_hosts_clear");
 }
 
+export interface PendingHostKey {
+  host: string;
+  port: number;
+  keyType: string;
+  keyData: string;
+  fingerprint: string;
+}
+
+export async function sshGetPendingHostKey(host: string, port: number): Promise<PendingHostKey | null> {
+  return invoke("ssh_get_pending_host_key", { host, port });
+}
+
+export async function sshClearPendingHostKey(host: string, port: number): Promise<void> {
+  return invoke("ssh_clear_pending_host_key", { host, port });
+}
+
 export async function workspaceList(): Promise<unknown[]> {
   return invoke("workspace_list");
 }
@@ -379,4 +395,52 @@ export async function dbSaveConnection(connection: import("../types/database").D
 
 export async function dbDeleteConnection(id: string): Promise<void> {
   return invoke("db_delete_connection", { id });
+}
+
+export interface SerialPortInfo {
+  portName: string;
+  description: string | null;
+}
+
+export interface SerialOpenRequest {
+  portName: string;
+  baudRate: number;
+  dataBits: number;
+  stopBits: number;
+  parity: string;
+  flowControl: string;
+}
+
+export async function serialListPorts(): Promise<SerialPortInfo[]> {
+  return invoke("serial_list_ports");
+}
+
+export async function serialOpen(request: SerialOpenRequest): Promise<string> {
+  return invoke("serial_open", { request });
+}
+
+export async function serialWrite(sessionId: string, data: number[]): Promise<void> {
+  return invoke("serial_write", { sessionId, data });
+}
+
+export async function serialClose(sessionId: string): Promise<void> {
+  return invoke("serial_close", { sessionId });
+}
+
+export function onSerialOutput(
+  sessionId: string,
+  callback: (data: number[]) => void
+): Promise<import("@tauri-apps/api/event").UnlistenFn> {
+  return listen<number[]>(`serial:output:${sessionId}`, (event) => {
+    callback(event.payload);
+  });
+}
+
+export function onSerialExit(
+  sessionId: string,
+  callback: () => void
+): Promise<import("@tauri-apps/api/event").UnlistenFn> {
+  return listen(`serial:exit:${sessionId}`, () => {
+    callback();
+  });
 }
