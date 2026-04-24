@@ -17,15 +17,15 @@ type View = 'connections' | 'git' | 'database' | 'clipboard' | 'tunnels';
 
 const TABS: { id: View; icon: typeof FolderTree; label: string }[] = [
   { id: 'connections', icon: FolderTree, label: 'SSH' },
-  { id: 'git', icon: GitBranch, label: 'Git' },
-  { id: 'database', icon: Database, label: 'DB' },
-  { id: 'clipboard', icon: Clipboard, label: 'Clipboard' },
-  { id: 'tunnels', icon: Route, label: 'Tunnels' },
+  { id: 'git',         icon: GitBranch,  label: 'Git' },
+  { id: 'database',   icon: Database,   label: 'DB' },
+  { id: 'clipboard',  icon: Clipboard,  label: 'Clips' },
+  { id: 'tunnels',    icon: Route,      label: 'Ports' },
 ];
 
-// Titlebar height: 3px drag region + 37px bar = 40px
-// On macOS with decorations:false the traffic lights live in this zone.
-const MAC_OFFSET = "40px";
+// On macOS with decorations:false the native traffic lights overlay the
+// top ~40 px of the window. Sidebar + backdrop start below that zone.
+const MAC_TOP = "40px";
 
 interface SidebarProps {
   onNewSsh?: () => void;
@@ -60,20 +60,19 @@ export default function Sidebar({ onNewSsh, onEditSsh }: SidebarProps) {
     return () => { clearTimeout(t); window.removeEventListener("mousedown", onDown); };
   }, [sidebarOpen, handleClose]);
 
-  const panelTop = isMac ? MAC_OFFSET : "0px";
+  const panelTop = isMac ? MAC_TOP : "0px";
 
   return (
     <AnimatePresence>
       {sidebarOpen && (
         <>
-          {/* Backdrop — on macOS only covers below the titlebar */}
           <motion.div
-            className="fixed inset-x-0 bottom-0 z-40 bg-black/30"
+            className="fixed inset-x-0 bottom-0 z-40 bg-black/40"
             style={{ top: panelTop }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            transition={{ duration: 0.18 }}
+            transition={{ duration: 0.15 }}
           />
 
           <motion.div
@@ -90,26 +89,37 @@ export default function Sidebar({ onNewSsh, onEditSsh }: SidebarProps) {
             exit={{ x: -280 }}
             transition={{ type: "spring", stiffness: 400, damping: 32, mass: 0.8 }}
           >
-            {/* Nav strip: icon tabs + close button */}
-            <div className="flex items-center gap-0.5 px-2 py-1.5 border-b border-white/[0.08] shrink-0">
-              {TABS.map(({ id, icon: Icon, label }) => (
-                <button
-                  key={id}
-                  title={label}
-                  onClick={() => setActiveView(id)}
-                  className={`flex items-center justify-center w-8 h-7 rounded transition-colors ${
-                    activeView === id
-                      ? 'bg-accent/15 text-accent'
-                      : 'text-text-muted hover:bg-overlay/[0.08] hover:text-text-secondary'
-                  }`}
-                >
-                  <Icon size={14} />
-                </button>
-              ))}
-              <div className="flex-1" />
+            {/* Tab nav */}
+            <div className="flex items-stretch border-b border-white/[0.08] shrink-0 relative">
+              {TABS.map(({ id, icon: Icon, label }) => {
+                const active = activeView === id;
+                return (
+                  <button
+                    key={id}
+                    onClick={() => setActiveView(id)}
+                    className={`relative flex-1 flex flex-col items-center justify-center py-2 gap-[3px] transition-colors ${
+                      active
+                        ? "text-accent"
+                        : "text-text-muted hover:text-text-secondary hover:bg-white/[0.03]"
+                    }`}
+                  >
+                    <Icon size={13} strokeWidth={active ? 2.2 : 1.8} />
+                    <span className={`text-[10px] font-medium leading-none ${active ? "" : "opacity-80"}`}>
+                      {label}
+                    </span>
+                    {active && (
+                      <span className="absolute bottom-0 left-1 right-1 h-[2px] rounded-full bg-accent" />
+                    )}
+                  </button>
+                );
+              })}
+
+              {/* Close button separated by a border */}
+              <div className="w-px bg-white/[0.06] my-1.5 shrink-0" />
               <button
                 onClick={handleClose}
-                className="flex items-center justify-center w-6 h-6 rounded text-text-muted hover:bg-overlay/[0.08] hover:text-text-secondary transition-colors"
+                className="px-3 text-text-muted hover:text-text-secondary hover:bg-white/[0.03] transition-colors shrink-0"
+                title="Close sidebar"
               >
                 <X size={13} />
               </button>
