@@ -10,18 +10,6 @@ use std::os::windows::process::CommandExt;
 #[cfg(target_os = "windows")]
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 
-#[cfg(not(target_os = "windows"))]
-trait CommandExt {
-    fn creation_flags(&mut self, _flags: u32) -> &mut Self;
-}
-
-#[cfg(not(target_os = "windows"))]
-impl CommandExt for Command {
-    fn creation_flags(&mut self, _flags: u32) -> &mut Self {
-        self
-    }
-}
-
 fn configure_silent_command(cmd: &mut Command) -> &mut Command {
     cmd.stdin(std::process::Stdio::null())
         .stdout(std::process::Stdio::piped())
