@@ -159,7 +159,7 @@ impl PortForwardManager {
     #[allow(dead_code)]
     pub fn stop_all(&self) {
         let forwards = self.active_forwards.lock();
-        for (_id, forward) in forwards.iter() {
+        for forward in forwards.values() {
             let _ = forward.stop_sender.try_send(());
         }
         let mut tunnels = self.local_tunnels.lock();
