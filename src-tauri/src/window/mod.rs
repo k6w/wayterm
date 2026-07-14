@@ -10,6 +10,48 @@ pub fn setup(window: Option<&WebviewWindow>) {
     let _ = window;
 }
 
+// Distance from the window's top edge to the top of the native traffic-light
+// buttons. Chosen so the buttons sit vertically centered on the tab strip's
+// text (the tab row is ~40px tall). Tune this if they look high/low.
+#[cfg(target_os = "macos")]
+const TRAFFIC_LIGHT_TOP_INSET: f64 = 15.0;
+
+/// Move the native traffic lights down so they line up vertically with the
+/// custom tab strip instead of hugging the very top of the window. Uses an
+/// absolute target (superview height − inset) so it is safe to re-apply on
+/// resize without the buttons drifting.
+#[cfg(target_os = "macos")]
+#[allow(deprecated)]
+unsafe fn position_traffic_lights(ns_win: cocoa::base::id) {
+    use cocoa::appkit::{NSWindow, NSWindowButton};
+    use cocoa::base::{id, nil};
+    use cocoa::foundation::{NSPoint, NSRect};
+    use objc::{msg_send, sel, sel_impl};
+
+    let buttons = [
+        NSWindowButton::NSWindowCloseButton,
+        NSWindowButton::NSWindowMiniaturizeButton,
+        NSWindowButton::NSWindowZoomButton,
+    ];
+    for kind in buttons {
+        let button: id = ns_win.standardWindowButton_(kind);
+        if button == nil {
+            continue;
+        }
+        let superview: id = msg_send![button, superview];
+        if superview == nil {
+            continue;
+        }
+        let sv_frame: NSRect = msg_send![superview, frame];
+        let btn_frame: NSRect = msg_send![button, frame];
+        // Cocoa's origin is bottom-left, so convert the desired top inset into a
+        // y measured from the bottom of the title-bar view.
+        let target_y = sv_frame.size.height - TRAFFIC_LIGHT_TOP_INSET - btn_frame.size.height;
+        let origin = NSPoint::new(btn_frame.origin.x, target_y);
+        let _: () = msg_send![button, setFrameOrigin: origin];
+    }
+}
+
 #[cfg(target_os = "macos")]
 #[allow(deprecated)]
 fn macos_setup(window: &WebviewWindow) {
@@ -22,7 +64,43 @@ fn macos_setup(window: &WebviewWindow) {
         ns_win.setOpaque_(NO);
         ns_win.setBackgroundColor_(NSColor::clearColor(nil));
         ns_win.setTitlebarAppearsTransparent_(YES);
+        position_traffic_lights(ns_win);
     }
+
+    // AppKit resets the button positions on resize/fullscreen, so re-apply.
+    let win = window.clone();
+    window.on_window_event(move |event| {
+        if matches!(
+            event,
+            tauri::WindowEvent::Resized(_) | tauri::WindowEvent::Focused(_)
+        ) {
+            // Resolve the NSWindow pointer on the main thread (it is !Send, so
+            // it must not cross the thread boundary itself).
+            let w = win.clone();
+            let _ = win.run_on_main_thread(move || {
+                if let Ok(ns) = w.ns_window() {
+                    unsafe { position_traffic_lights(ns as cocoa::base::id) };
+                }
+            });
+        }
+    });
+
+    // AppKit's first layout pass lands after setup() returns, overwriting the
+    // initial placement — and no resize event fires at launch to trigger the
+    // handler above. Re-apply a few times as the window settles so the buttons
+    // are correct on startup without needing a manual resize.
+    let win_init = window.clone();
+    std::thread::spawn(move || {
+        for delay in [60u64, 150, 350, 700] {
+            std::thread::sleep(std::time::Duration::from_millis(delay));
+            let w = win_init.clone();
+            let _ = win_init.run_on_main_thread(move || {
+                if let Ok(ns) = w.ns_window() {
+                    unsafe { position_traffic_lights(ns as cocoa::base::id) };
+                }
+            });
+        }
+    });
 
     let _ = window.with_webview(|webview| {
         #[allow(deprecated)]
