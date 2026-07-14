@@ -1,6 +1,9 @@
 import { useEffect, useState, useCallback } from "react";
-import { Search, Download, RefreshCw } from "lucide-react";
+import { Search, Download, RefreshCw, History } from "lucide-react";
 import { historyRecent } from "../../lib/ipc";
+import { Button, IconButton } from "../ui/Button";
+import { EmptyState } from "../ui/EmptyState";
+import { SettingsSection, TextField } from "./ui";
 
 interface HistoryEntry {
   id: number;
@@ -59,90 +62,119 @@ export default function AuditLogPanel() {
   };
 
   return (
-    <div className="space-y-4">
-      <div>
-        <h3 className="text-sm font-medium text-text-primary mb-1">Command History</h3>
-        <p className="text-xs text-text-muted">
-          Recent commands executed in terminal sessions.
-        </p>
-      </div>
-
-      {/* Toolbar */}
-      <div className="flex items-center gap-2">
-        <div className="relative flex-1">
-          <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted pointer-events-none" />
-          <input
-            type="text"
+    <div className="space-y-8">
+      <SettingsSection
+        title="Command history"
+        card={false}
+        action={
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              className="border border-border"
+              onClick={handleExportCsv}
+              disabled={filtered.length === 0}
+              title="Export CSV"
+            >
+              <Download size={12} />
+              Export
+            </Button>
+            <IconButton
+              title="Refresh"
+              onClick={load}
+              disabled={loading}
+              className="border border-border"
+            >
+              <RefreshCw size={13} className={loading ? "animate-spin" : ""} />
+            </IconButton>
+          </div>
+        }
+      >
+        <div className="relative">
+          <Search
+            size={13}
+            className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"
+          />
+          <TextField
             value={filter}
-            onChange={(e) => setFilter(e.target.value)}
-            placeholder="Filter commands..."
-            className="w-full pl-8 pr-3 py-1.5 text-xs bg-bg-tertiary border border-border rounded-md text-text-primary placeholder:text-text-muted focus:border-accent outline-none"
+            onChange={setFilter}
+            placeholder="Filter commands…"
+            className="w-full pl-9"
           />
         </div>
-        <button
-          onClick={handleExportCsv}
-          disabled={filtered.length === 0}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs rounded-md border border-border bg-bg-tertiary text-text-secondary hover:border-accent/50 hover:text-text-primary disabled:opacity-40 transition-colors"
-          title="Export CSV"
-        >
-          <Download size={12} />
-          Export
-        </button>
-        <button
-          onClick={load}
-          disabled={loading}
-          className="flex items-center justify-center w-7 h-7 rounded-md border border-border bg-bg-tertiary text-text-muted hover:text-text-secondary disabled:opacity-40 transition-colors"
-          title="Refresh"
-        >
-          <RefreshCw size={12} className={loading ? "animate-spin" : ""} />
-        </button>
-      </div>
 
-      {error && (
-        <div className="px-3 py-2 rounded-md bg-error/10 border border-error/30 text-xs text-error">
-          {error}
-        </div>
-      )}
-
-      {/* Table */}
-      <div className="border border-border rounded-lg overflow-hidden">
-        <div className="overflow-auto max-h-[340px]">
-          <table className="w-full text-xs border-collapse">
-            <thead>
-              <tr className="sticky top-0 bg-bg-secondary border-b border-border">
-                <th className="px-3 py-2 text-left text-text-muted font-medium w-12">#</th>
-                <th className="px-3 py-2 text-left text-text-muted font-medium">Command</th>
-                <th className="px-3 py-2 text-left text-text-muted font-medium w-44">Directory</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={3} className="px-3 py-8 text-center text-text-muted">
-                    {loading ? "Loading..." : "No history entries"}
-                  </td>
-                </tr>
-              ) : (
-                filtered.map((entry) => (
-                  <tr key={entry.id} className="border-b border-border/50 hover:bg-bg-tertiary/50 transition-colors">
-                    <td className="px-3 py-1.5 text-text-muted font-mono tabular-nums">{entry.id}</td>
-                    <td className="px-3 py-1.5 text-text-primary font-mono break-all">{entry.command}</td>
-                    <td className="px-3 py-1.5 text-text-muted font-mono truncate max-w-[180px]" title={entry.cwd ?? ""}>
-                      {entry.cwd ?? "—"}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-        {filtered.length > 0 && (
-          <div className="px-3 py-1.5 border-t border-border bg-bg-secondary text-[10px] text-text-muted">
-            {filtered.length} entr{filtered.length !== 1 ? "ies" : "y"}
-            {filter && ` (filtered from ${entries.length})`}
+        {error && (
+          <div className="rounded-md border border-error/30 bg-error/10 px-3 py-2 text-xs text-error">
+            {error}
           </div>
         )}
-      </div>
+
+        <div className="overflow-hidden rounded-lg border border-border">
+          {filtered.length === 0 ? (
+            <EmptyState
+              icon={History}
+              title={
+                loading
+                  ? "Loading history…"
+                  : filter
+                    ? "No matching commands"
+                    : "No history entries"
+              }
+              hint={
+                loading
+                  ? undefined
+                  : filter
+                    ? "Try a different search term."
+                    : "Commands you run in the terminal will appear here."
+              }
+            />
+          ) : (
+            <>
+              <div className="max-h-[340px] overflow-auto">
+                <table className="w-full border-collapse text-xs">
+                  <thead>
+                    <tr className="sticky top-0 border-b border-border bg-bg-secondary">
+                      <th className="w-12 px-3 py-2 text-left font-medium text-text-muted">
+                        #
+                      </th>
+                      <th className="px-3 py-2 text-left font-medium text-text-muted">
+                        Command
+                      </th>
+                      <th className="w-44 px-3 py-2 text-left font-medium text-text-muted">
+                        Directory
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((entry) => (
+                      <tr
+                        key={entry.id}
+                        className="border-b border-border/50 transition-colors hover:bg-bg-tertiary/50"
+                      >
+                        <td className="px-3 py-1.5 font-mono tabular-nums text-text-muted">
+                          {entry.id}
+                        </td>
+                        <td className="break-all px-3 py-1.5 font-mono text-text-primary">
+                          {entry.command}
+                        </td>
+                        <td
+                          className="max-w-[180px] truncate px-3 py-1.5 font-mono text-text-muted"
+                          title={entry.cwd ?? ""}
+                        >
+                          {entry.cwd ?? "-"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="border-t border-border bg-bg-secondary px-3 py-1.5 text-[10px] text-text-muted">
+                {filtered.length} entr{filtered.length !== 1 ? "ies" : "y"}
+                {filter && ` (filtered from ${entries.length})`}
+              </div>
+            </>
+          )}
+        </div>
+      </SettingsSection>
     </div>
   );
 }

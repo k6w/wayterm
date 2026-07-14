@@ -6,7 +6,7 @@ import SplitContainer from "../components/terminal/SplitContainer";
 import Sidebar from "../components/sidebar/Sidebar";
 import ActivityBar from "../components/sidebar/ActivityBar";
 import CommandPalette from "../components/command-palette/CommandPalette";
-import SettingsModal from "../components/settings/SettingsModal";
+import SettingsView from "../components/settings/SettingsView";
 import ConnectionDialog from "../components/ssh/ConnectionDialog";
 import SerialDialog from "../components/serial/SerialDialog";
 import Scratchpad from "../components/terminal/Scratchpad";
@@ -21,11 +21,12 @@ import { useSettingsStore } from "../stores/settings";
 import { useThemeStore } from "../stores/theme";
 import { useSshStore } from "../stores/ssh";
 import { useSftpStore } from "../stores/sftp";
-import { onSftpTransferProgress } from "../lib/ipc";
+import { onSftpTransferProgress, setTrafficLightScale } from "../lib/ipc";
 import { useWorkspaceStore } from "../stores/workspace";
 import { getPreferredShell } from "../lib/shell-detect";
 import { hexToRgba } from "../lib/color";
 import { isMac, vibrancyAlpha, MAC_TRAFFIC_LIGHT_TOP } from "../lib/platform";
+import { applyAppearanceToDom } from "../lib/appearance";
 import {
   startBufferAutoSave,
   stopBufferAutoSave,
@@ -40,7 +41,7 @@ function AppContent() {
   const addTab = useTerminalStore((s) => s.addTab);
   const vibrancyEnabled = useSettingsStore((s) => s.settings.appearance.vibrancyEnabled);
   const windowOpacity = useSettingsStore((s) => s.settings.appearance.windowOpacity);
-  const uiScale = useSettingsStore((s) => s.settings.appearance.uiScale);
+  const appearance = useSettingsStore((s) => s.settings.appearance);
   const tabPosition = useSettingsStore((s) => s.settings.appearance.tabPosition);
   const theme = useThemeStore((s) => s.active);
   const [sshDialogOpen, setSshDialogOpen] = useState(false);
@@ -48,10 +49,13 @@ function AppContent() {
   const [serialDialogOpen, setSerialDialogOpen] = useState(false);
   const [showWelcome, setShowWelcome] = useState(() => !localStorage.getItem("nexterm-welcomed"));
 
-  
+  // Apply the non-theme appearance settings (UI font, accent override, blur,
+  // density, zoom) whenever they or the active theme change, and keep the macOS
+  // traffic lights aligned with the zoomed tab strip.
   useEffect(() => {
-    document.documentElement.style.fontSize = `${16 * uiScale}px`;
-  }, [uiScale]);
+    applyAppearanceToDom(appearance, theme.ui.accent, theme.ui.accentHover);
+    if (isMac) setTrafficLightScale(appearance.uiScale);
+  }, [appearance, theme]);
 
   
   useEffect(() => {
@@ -198,13 +202,13 @@ function AppContent() {
               hint={`Press ${isMac ? "⌘" : "Ctrl"}+T to open a new tab.`}
             />
           )}
+          <SettingsView />
         </div>
         {tabPosition === 'right' && <Titlebar />}
       </div>
       {tabPosition === 'bottom' && <Titlebar />}
       <StatusBar />
       <CommandPalette />
-      <SettingsModal />
       <ConnectionDialog
         isOpen={sshDialogOpen}
         onClose={handleSshClose}

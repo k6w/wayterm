@@ -3,15 +3,23 @@ import { Plus, Trash2, Terminal, ChevronDown, ChevronUp, Copy, X } from "lucide-
 import { useSettingsStore } from "../../stores/settings";
 import { useThemeStore } from "../../stores/theme";
 import { getDefaultShells } from "../../lib/shell-detect";
+import Select from "../ui/Select";
+import { Button, IconButton } from "../ui/Button";
+import { EmptyState } from "../ui/EmptyState";
+import ConfirmDialog from "../ui/ConfirmDialog";
+import { SettingsSection, SettingRow, TextField, NumberField } from "./ui";
 import type { ShellProfile, CursorStyle } from "../../types/settings";
 
 const detectedShells = getDefaultShells();
+const FONT_WEIGHTS = [100, 200, 300, 400, 500, 600, 700, 800, 900];
 
 export default function ProfilesPanel() {
   const profiles = useSettingsStore((s) => s.settings.profiles);
   const update = useSettingsStore((s) => s.update);
   const themes = useThemeStore((s) => s.themes);
   const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [customPathIds, setCustomPathIds] = useState<Set<string>>(new Set());
 
   const addProfile = () => {
     const newProfile: ShellProfile = {
@@ -59,459 +67,430 @@ export default function ProfilesPanel() {
   const isDetectedPath = (shellPath: string) =>
     detectedShells.some((s) => s.path === shellPath);
 
+  const setCustomMode = (id: string, on: boolean) =>
+    setCustomPathIds((prev) => {
+      const next = new Set(prev);
+      if (on) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+
+  const isCustomPath = (profile: ShellProfile) =>
+    customPathIds.has(profile.id) ||
+    (profile.shellPath !== "" && !isDetectedPath(profile.shellPath));
+
+  const shellOptions = [
+    ...detectedShells.map((s) => ({ value: s.path, label: s.label })),
+    { value: "__custom__", label: "Custom path…" },
+  ];
+
+  const themeOptions = [
+    { value: "", label: "Default" },
+    ...Object.values(themes).map((t) => ({ value: t.id, label: t.name })),
+  ];
+
+  const profileToDelete = profiles.find((p) => p.id === deleteId) ?? null;
+
   return (
     <div className="space-y-8">
-      {}
-      <div>
-        <h3 className="text-sm font-medium text-text-primary mb-3">
-          Available Shells
-        </h3>
-        <div className="grid grid-cols-2 gap-3">
-          {detectedShells.map((shell) => (
-            <div
-              key={shell.path}
-              className="flex items-center gap-3 px-4 py-3 bg-bg-tertiary border border-border rounded-lg"
-            >
-              <Terminal size={18} className="text-accent shrink-0" />
-              <div className="min-w-0">
-                <div className="text-sm font-medium text-text-primary">
-                  {shell.label}
-                </div>
-                <div className="text-xs text-text-muted font-mono truncate">
-                  {shell.path}
+      <SettingsSection
+        title="Available Shells"
+        card={false}
+      >
+        {detectedShells.length === 0 ? (
+          <EmptyState
+            icon={Terminal}
+            title="No shells detected"
+            hint="Nexterm couldn't find any shells on this system."
+          />
+        ) : (
+          <div className="grid grid-cols-2 gap-3">
+            {detectedShells.map((shell) => (
+              <div
+                key={shell.path}
+                className="flex items-center gap-3 rounded-lg border border-border bg-bg-tertiary px-4 py-3"
+              >
+                <Terminal size={18} className="shrink-0 text-accent" />
+                <div className="min-w-0">
+                  <div className="text-sm font-medium text-text-primary">
+                    {shell.label}
+                  </div>
+                  <div className="truncate font-mono text-xs text-text-muted">
+                    {shell.path}
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
-      </div>
+            ))}
+          </div>
+        )}
+      </SettingsSection>
 
-      {}
-      <div>
-        <div className="flex justify-between items-center mb-3">
-          <h3 className="text-sm font-medium text-text-primary">
-            Custom Profiles
-          </h3>
-          <button
-            onClick={addProfile}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-accent hover:bg-accent-hover text-white rounded-md transition-colors"
-          >
+      <SettingsSection
+        title="Custom Profiles"
+        description="Reusable shell launch configurations"
+        card={false}
+        action={
+          <Button variant="primary" size="sm" onClick={addProfile}>
             <Plus size={14} />
             Add Profile
-          </button>
-        </div>
-
+          </Button>
+        }
+      >
         {profiles.length === 0 ? (
-          <div className="py-8 text-center text-sm text-text-muted border border-border border-dashed rounded-lg">
-            No custom profiles yet. Add a profile to get started.
-          </div>
+          <EmptyState
+            icon={Terminal}
+            title="No custom profiles yet"
+            hint="Add a profile to save a shell, working directory, and appearance overrides."
+            action={{ label: "Add Profile", onClick: addProfile }}
+          />
         ) : (
           <div className="space-y-3">
             {profiles.map((profile) => {
               const isExpanded = expandedId === profile.id;
-              const isCustomPath =
-                profile.shellPath !== "" &&
-                !isDetectedPath(profile.shellPath);
+              const customPath = isCustomPath(profile);
 
               return (
                 <div
                   key={profile.id}
-                  className="border border-border rounded-lg overflow-hidden"
+                  className="overflow-hidden rounded-lg border border-border"
                 >
-                  {}
                   <div
-                    className="flex justify-between items-center px-4 py-2.5 bg-bg-tertiary cursor-pointer"
+                    className="flex cursor-pointer items-center justify-between gap-2 bg-bg-tertiary px-4 py-2.5"
                     onClick={() =>
                       setExpandedId(isExpanded ? null : profile.id)
                     }
                   >
-                    <div className="flex items-center gap-2 min-w-0">
+                    <div className="flex min-w-0 items-center gap-2">
                       {isExpanded ? (
-                        <ChevronUp size={14} className="text-text-muted shrink-0" />
+                        <ChevronUp size={14} className="shrink-0 text-text-muted" />
                       ) : (
-                        <ChevronDown size={14} className="text-text-muted shrink-0" />
+                        <ChevronDown size={14} className="shrink-0 text-text-muted" />
                       )}
                       <div className="min-w-0">
                         <div className="text-sm text-text-primary">
                           {profile.name}
                         </div>
-                        <div className="text-xs text-text-muted truncate">
+                        <div className="truncate text-xs text-text-muted">
                           {profile.shellPath || "No shell path"}
                           {profile.workingDirectory
-                            ? ` — ${profile.workingDirectory}`
+                            ? ` · ${profile.workingDirectory}`
                             : ""}
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-1">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          duplicateProfile(profile);
-                        }}
-                        className="p-1 text-text-muted hover:text-text-primary transition-colors shrink-0"
+                    <div
+                      className="flex shrink-0 items-center gap-1"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      <IconButton
                         title="Duplicate"
+                        onClick={() => duplicateProfile(profile)}
                       >
                         <Copy size={14} />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removeProfile(profile.id);
-                        }}
-                        className="p-1 text-text-muted hover:text-error transition-colors shrink-0"
+                      </IconButton>
+                      <IconButton
                         title="Delete"
+                        onClick={() => setDeleteId(profile.id)}
                       >
                         <Trash2 size={14} />
-                      </button>
+                      </IconButton>
                     </div>
                   </div>
 
-                  {}
                   {isExpanded && (
-                    <div className="p-4 space-y-4 border-t border-border">
-                      {}
-                      <div className="flex justify-between items-center gap-4">
-                        <label className="text-sm text-text-secondary">
-                          Name
-                        </label>
-                        <input
-                          type="text"
-                          value={profile.name}
-                          onChange={(e) =>
-                            updateProfile(profile.id, {
-                              name: e.target.value,
-                            })
-                          }
-                          className="bg-bg-primary border border-border rounded-md px-3 py-1.5 text-sm text-text-primary focus:border-accent outline-none w-56"
-                        />
-                      </div>
+                    <div className="space-y-5 border-t border-border p-4">
+                      <div className="divide-y divide-border overflow-hidden rounded-lg border border-border">
+                        <SettingRow label="Name" htmlFor={`name-${profile.id}`}>
+                          <TextField
+                            id={`name-${profile.id}`}
+                            value={profile.name}
+                            onChange={(v) => updateProfile(profile.id, { name: v })}
+                            className="w-56"
+                          />
+                        </SettingRow>
 
-                      {}
-                      <div className="flex justify-between items-center gap-4">
-                        <label className="text-sm text-text-secondary">
-                          Shell
-                        </label>
-                        <div className="flex items-center gap-2">
-                          <select
-                            value={
-                              isDetectedPath(profile.shellPath)
-                                ? profile.shellPath
-                                : profile.shellPath === ""
-                                  ? ""
-                                  : "__custom__"
-                            }
-                            onChange={(e) => {
-                              const val = e.target.value;
-                              if (val === "__custom__") {
-                                updateProfile(profile.id, {
-                                  shellPath: "",
-                                });
-                              } else {
-                                updateProfile(profile.id, {
-                                  shellPath: val,
-                                });
+                        <SettingRow label="Shell">
+                          <div className="flex w-52 flex-col gap-2">
+                            <Select
+                              value={
+                                customPath ? "__custom__" : profile.shellPath
                               }
-                            }}
-                            className="bg-bg-primary border border-border rounded-md px-3 py-1.5 text-sm text-text-primary focus:border-accent outline-none"
-                          >
-                            <option value="">Select shell...</option>
-                            {detectedShells.map((s) => (
-                              <option key={s.path} value={s.path}>
-                                {s.label}
-                              </option>
-                            ))}
-                            <option value="__custom__">Custom...</option>
-                          </select>
-                          {isCustomPath && (
-                            <input
-                              type="text"
-                              value={profile.shellPath}
-                              onChange={(e) =>
-                                updateProfile(profile.id, {
-                                  shellPath: e.target.value,
-                                })
-                              }
-                              placeholder="/path/to/shell"
-                              className="bg-bg-primary border border-border rounded-md px-3 py-1.5 text-sm text-text-primary focus:border-accent outline-none w-40"
+                              placeholder="Select shell…"
+                              onChange={(v) => {
+                                if (v === "__custom__") {
+                                  setCustomMode(profile.id, true);
+                                } else {
+                                  setCustomMode(profile.id, false);
+                                  updateProfile(profile.id, { shellPath: v });
+                                }
+                              }}
+                              options={shellOptions}
+                              className="w-full"
                             />
-                          )}
-                        </div>
+                            {customPath && (
+                              <TextField
+                                value={profile.shellPath}
+                                onChange={(v) =>
+                                  updateProfile(profile.id, { shellPath: v })
+                                }
+                                placeholder="/path/to/shell"
+                                mono
+                                className="w-full"
+                              />
+                            )}
+                          </div>
+                        </SettingRow>
+
+                        <SettingRow label="Working Directory">
+                          <TextField
+                            value={profile.workingDirectory}
+                            onChange={(v) =>
+                              updateProfile(profile.id, { workingDirectory: v })
+                            }
+                            placeholder="~"
+                            className="w-56"
+                          />
+                        </SettingRow>
                       </div>
 
-                      {}
-                      <div className="flex justify-between items-center gap-4">
-                        <label className="text-sm text-text-secondary">
-                          Working Directory
-                        </label>
-                        <input
-                          type="text"
-                          value={profile.workingDirectory}
-                          onChange={(e) =>
-                            updateProfile(profile.id, {
-                              workingDirectory: e.target.value,
-                            })
-                          }
-                          placeholder="~"
-                          className="bg-bg-primary border border-border rounded-md px-3 py-1.5 text-sm text-text-primary focus:border-accent outline-none w-56"
-                        />
-                      </div>
-
-                      {}
-                      <div>
-                        <div className="flex justify-between items-center mb-2">
-                          <label className="text-sm text-text-secondary">
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-text-primary">
                             Arguments
-                          </label>
-                          <button
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() =>
                               updateProfile(profile.id, {
                                 args: [...profile.args, ""],
                               })
                             }
-                            className="text-xs text-accent hover:text-accent-hover"
                           >
-                            + Add Argument
-                          </button>
+                            <Plus size={12} />
+                            Add Argument
+                          </Button>
                         </div>
-                        <div className="space-y-2">
-                          {profile.args.map((arg, i) => (
-                            <div key={i} className="flex items-center gap-2">
-                              <input
-                                type="text"
-                                value={arg}
-                                onChange={(e) => {
-                                  const newArgs = [...profile.args];
-                                  newArgs[i] = e.target.value;
-                                  updateProfile(profile.id, { args: newArgs });
-                                }}
-                                placeholder="--flag=value"
-                                className="flex-1 bg-bg-primary border border-border rounded-md px-3 py-1.5 text-sm text-text-primary focus:border-accent outline-none"
-                              />
-                              <button
-                                onClick={() => {
-                                  const newArgs = profile.args.filter((_, idx) => idx !== i);
-                                  updateProfile(profile.id, { args: newArgs });
-                                }}
-                                className="p-1 text-text-muted hover:text-error"
-                              >
-                                <X size={14} />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
+                        {profile.args.length > 0 && (
+                          <div className="space-y-2">
+                            {profile.args.map((arg, i) => (
+                              <div key={i} className="flex items-center gap-2">
+                                <TextField
+                                  value={arg}
+                                  onChange={(v) => {
+                                    const newArgs = [...profile.args];
+                                    newArgs[i] = v;
+                                    updateProfile(profile.id, { args: newArgs });
+                                  }}
+                                  placeholder="--flag=value"
+                                  mono
+                                  className="flex-1"
+                                />
+                                <IconButton
+                                  title="Remove argument"
+                                  onClick={() =>
+                                    updateProfile(profile.id, {
+                                      args: profile.args.filter(
+                                        (_, idx) => idx !== i
+                                      ),
+                                    })
+                                  }
+                                >
+                                  <X size={14} />
+                                </IconButton>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
 
-                      {}
-                      <div>
-                        <div className="flex justify-between items-center mb-2">
-                          <label className="text-sm text-text-secondary">
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-text-primary">
                             Environment Variables
-                          </label>
-                          <button
+                          </span>
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => {
                               const key = `VAR_${Object.keys(profile.env).length + 1}`;
                               updateProfile(profile.id, {
                                 env: { ...profile.env, [key]: "" },
                               });
                             }}
-                            className="text-xs text-accent hover:text-accent-hover"
                           >
-                            + Add Variable
-                          </button>
+                            <Plus size={12} />
+                            Add Variable
+                          </Button>
                         </div>
-                        <div className="space-y-2">
-                          {Object.entries(profile.env).map(([key, value]) => (
-                            <div key={key} className="flex items-center gap-2">
-                              <input
-                                type="text"
-                                value={key}
-                                onChange={(e) => {
-                                  const newEnv = { ...profile.env };
-                                  delete newEnv[key];
-                                  newEnv[e.target.value] = value;
-                                  updateProfile(profile.id, { env: newEnv });
-                                }}
-                                placeholder="KEY"
-                                className="w-32 bg-bg-primary border border-border rounded-md px-3 py-1.5 text-sm text-text-primary focus:border-accent outline-none font-mono"
-                              />
-                              <span className="text-text-muted">=</span>
-                              <input
-                                type="text"
-                                value={value}
-                                onChange={(e) => {
-                                  updateProfile(profile.id, {
-                                    env: { ...profile.env, [key]: e.target.value },
-                                  });
-                                }}
-                                placeholder="value"
-                                className="flex-1 bg-bg-primary border border-border rounded-md px-3 py-1.5 text-sm text-text-primary focus:border-accent outline-none font-mono"
-                              />
-                              <button
-                                onClick={() => {
-                                  const newEnv = { ...profile.env };
-                                  delete newEnv[key];
-                                  updateProfile(profile.id, { env: newEnv });
-                                }}
-                                className="p-1 text-text-muted hover:text-error"
-                              >
-                                <X size={14} />
-                              </button>
-                            </div>
-                          ))}
-                        </div>
+                        {Object.keys(profile.env).length > 0 && (
+                          <div className="space-y-2">
+                            {Object.entries(profile.env).map(([key, value]) => (
+                              <div key={key} className="flex items-center gap-2">
+                                <TextField
+                                  value={key}
+                                  onChange={(v) => {
+                                    const newEnv = { ...profile.env };
+                                    delete newEnv[key];
+                                    newEnv[v] = value;
+                                    updateProfile(profile.id, { env: newEnv });
+                                  }}
+                                  placeholder="KEY"
+                                  mono
+                                  className="w-32"
+                                />
+                                <span className="text-text-muted">=</span>
+                                <TextField
+                                  value={value}
+                                  onChange={(v) =>
+                                    updateProfile(profile.id, {
+                                      env: { ...profile.env, [key]: v },
+                                    })
+                                  }
+                                  placeholder="value"
+                                  mono
+                                  className="flex-1"
+                                />
+                                <IconButton
+                                  title="Remove variable"
+                                  onClick={() => {
+                                    const newEnv = { ...profile.env };
+                                    delete newEnv[key];
+                                    updateProfile(profile.id, { env: newEnv });
+                                  }}
+                                >
+                                  <X size={14} />
+                                </IconButton>
+                              </div>
+                            ))}
+                          </div>
+                        )}
                       </div>
 
-                      {}
-                      <div className="pt-4 border-t border-border">
-                        <h4 className="text-sm font-medium text-text-primary mb-3">
+                      <div className="space-y-3">
+                        <h4 className="text-sm font-semibold text-text-primary">
                           Appearance Overrides
                         </h4>
+                        <div className="divide-y divide-border overflow-hidden rounded-lg border border-border">
+                          <SettingRow label="Theme">
+                            <Select
+                              value={profile.themeOverride || ""}
+                              onChange={(v) =>
+                                updateProfile(profile.id, {
+                                  themeOverride: v || null,
+                                })
+                              }
+                              options={themeOptions}
+                              className="w-52"
+                            />
+                          </SettingRow>
 
-                        {}
-                        <div className="flex justify-between items-center gap-4 mb-3">
-                          <label className="text-sm text-text-secondary">
-                            Theme
-                          </label>
-                          <select
-                            value={profile.themeOverride || ""}
-                            onChange={(e) =>
-                              updateProfile(profile.id, {
-                                themeOverride: e.target.value || null,
-                              })
-                            }
-                            className="bg-bg-primary border border-border rounded-md px-3 py-1.5 text-sm text-text-primary focus:border-accent outline-none w-56"
-                          >
-                            <option value="">Default</option>
-                            {Object.values(themes).map((t) => (
-                              <option key={t.id} value={t.id}>
-                                {t.name}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
+                          <SettingRow label="Font Family">
+                            <TextField
+                              value={profile.fontFamilyOverride || ""}
+                              onChange={(v) =>
+                                updateProfile(profile.id, {
+                                  fontFamilyOverride: v || null,
+                                })
+                              }
+                              placeholder="Default"
+                              className="w-56"
+                            />
+                          </SettingRow>
 
-                        {}
-                        <div className="flex justify-between items-center gap-4 mb-3">
-                          <label className="text-sm text-text-secondary">
-                            Font Family
-                          </label>
-                          <input
-                            type="text"
-                            value={profile.fontFamilyOverride || ""}
-                            onChange={(e) =>
-                              updateProfile(profile.id, {
-                                fontFamilyOverride: e.target.value || null,
-                              })
-                            }
-                            placeholder="Default"
-                            className="bg-bg-primary border border-border rounded-md px-3 py-1.5 text-sm text-text-primary focus:border-accent outline-none w-56"
-                          />
-                        </div>
+                          <SettingRow label="Font Size">
+                            <NumberField
+                              value={(profile.fontSizeOverride ?? "") as number}
+                              min={8}
+                              max={24}
+                              onChange={(v) =>
+                                updateProfile(profile.id, {
+                                  fontSizeOverride: v || null,
+                                })
+                              }
+                              className="w-24"
+                            />
+                          </SettingRow>
 
-                        {}
-                        <div className="flex justify-between items-center gap-4 mb-3">
-                          <label className="text-sm text-text-secondary">
-                            Font Size
-                          </label>
-                          <input
-                            type="number"
-                            min={8}
-                            max={24}
-                            value={profile.fontSizeOverride || ""}
-                            onChange={(e) =>
-                              updateProfile(profile.id, {
-                                fontSizeOverride: e.target.value ? Number(e.target.value) : null,
-                              })
-                            }
-                            placeholder="Default"
-                            className="bg-bg-primary border border-border rounded-md px-3 py-1.5 text-sm text-text-primary focus:border-accent outline-none w-56"
-                          />
-                        </div>
+                          <SettingRow label="Font Weight">
+                            <Select
+                              value={
+                                profile.fontWeightOverride
+                                  ? String(profile.fontWeightOverride)
+                                  : ""
+                              }
+                              onChange={(v) =>
+                                updateProfile(profile.id, {
+                                  fontWeightOverride: v ? Number(v) : null,
+                                })
+                              }
+                              options={[
+                                { value: "", label: "Default" },
+                                ...FONT_WEIGHTS.map((w) => ({
+                                  value: String(w),
+                                  label: String(w),
+                                })),
+                              ]}
+                              className="w-52"
+                            />
+                          </SettingRow>
 
-                        {}
-                        <div className="flex justify-between items-center gap-4 mb-3">
-                          <label className="text-sm text-text-secondary">
-                            Font Weight
-                          </label>
-                          <select
-                            value={profile.fontWeightOverride || ""}
-                            onChange={(e) =>
-                              updateProfile(profile.id, {
-                                fontWeightOverride: e.target.value ? Number(e.target.value) : null,
-                              })
-                            }
-                            className="bg-bg-primary border border-border rounded-md px-3 py-1.5 text-sm text-text-primary focus:border-accent outline-none w-56"
-                          >
-                            <option value="">Default</option>
-                            {[100, 200, 300, 400, 500, 600, 700, 800, 900].map((w) => (
-                              <option key={w} value={w}>
-                                {w}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
+                          <SettingRow label="Cursor Style">
+                            <Select
+                              value={profile.cursorStyleOverride || ""}
+                              onChange={(v) =>
+                                updateProfile(profile.id, {
+                                  cursorStyleOverride: (v || null) as
+                                    | CursorStyle
+                                    | null,
+                                })
+                              }
+                              options={[
+                                { value: "", label: "Default" },
+                                { value: "block", label: "Block" },
+                                { value: "underline", label: "Underline" },
+                                { value: "bar", label: "Bar" },
+                              ]}
+                              className="w-52"
+                            />
+                          </SettingRow>
 
-                        {}
-                        <div className="flex justify-between items-center gap-4 mb-3">
-                          <label className="text-sm text-text-secondary">
-                            Cursor Style
-                          </label>
-                          <select
-                            value={profile.cursorStyleOverride || ""}
-                            onChange={(e) =>
-                              updateProfile(profile.id, {
-                                cursorStyleOverride: (e.target.value || null) as CursorStyle | null,
-                              })
-                            }
-                            className="bg-bg-primary border border-border rounded-md px-3 py-1.5 text-sm text-text-primary focus:border-accent outline-none w-56"
-                          >
-                            <option value="">Default</option>
-                            <option value="block">Block</option>
-                            <option value="underline">Underline</option>
-                            <option value="bar">Bar</option>
-                          </select>
-                        </div>
+                          <SettingRow label="Scrollback Lines">
+                            <NumberField
+                              value={(profile.scrollbackOverride ?? "") as number}
+                              min={0}
+                              max={100000}
+                              step={1000}
+                              onChange={(v) =>
+                                updateProfile(profile.id, {
+                                  scrollbackOverride: v || null,
+                                })
+                              }
+                              className="w-32"
+                            />
+                          </SettingRow>
 
-                        {}
-                        <div className="flex justify-between items-center gap-4 mb-3">
-                          <label className="text-sm text-text-secondary">
-                            Scrollback Lines
-                          </label>
-                          <input
-                            type="number"
-                            min={0}
-                            max={100000}
-                            step={1000}
-                            value={profile.scrollbackOverride || ""}
-                            onChange={(e) =>
-                              updateProfile(profile.id, {
-                                scrollbackOverride: e.target.value ? Number(e.target.value) : null,
-                              })
-                            }
-                            placeholder="Default"
-                            className="bg-bg-primary border border-border rounded-md px-3 py-1.5 text-sm text-text-primary focus:border-accent outline-none w-56"
-                          />
-                        </div>
-
-                        {}
-                        <div className="flex justify-between items-center gap-4">
-                          <label className="text-sm text-text-secondary">
-                            Ligatures
-                          </label>
-                          <select
-                            value={profile.ligaturesOverride === null ? "" : String(profile.ligaturesOverride)}
-                            onChange={(e) =>
-                              updateProfile(profile.id, {
-                                ligaturesOverride: e.target.value === "" ? null : e.target.value === "true",
-                              })
-                            }
-                            className="bg-bg-primary border border-border rounded-md px-3 py-1.5 text-sm text-text-primary focus:border-accent outline-none w-56"
-                          >
-                            <option value="">Default</option>
-                            <option value="true">Enabled</option>
-                            <option value="false">Disabled</option>
-                          </select>
+                          <SettingRow label="Ligatures">
+                            <Select
+                              value={
+                                profile.ligaturesOverride === null
+                                  ? ""
+                                  : String(profile.ligaturesOverride)
+                              }
+                              onChange={(v) =>
+                                updateProfile(profile.id, {
+                                  ligaturesOverride:
+                                    v === "" ? null : v === "true",
+                                })
+                              }
+                              options={[
+                                { value: "", label: "Default" },
+                                { value: "true", label: "Enabled" },
+                                { value: "false", label: "Disabled" },
+                              ]}
+                              className="w-52"
+                            />
+                          </SettingRow>
                         </div>
                       </div>
                     </div>
@@ -521,7 +500,20 @@ export default function ProfilesPanel() {
             })}
           </div>
         )}
-      </div>
+      </SettingsSection>
+
+      <ConfirmDialog
+        open={deleteId !== null}
+        title="Delete profile"
+        message={`Delete "${profileToDelete?.name ?? "this profile"}"? This can't be undone.`}
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={() => {
+          if (deleteId) removeProfile(deleteId);
+          setDeleteId(null);
+        }}
+        onCancel={() => setDeleteId(null)}
+      />
     </div>
   );
 }

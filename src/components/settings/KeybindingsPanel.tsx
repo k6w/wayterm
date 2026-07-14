@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback } from "react";
 import { Pencil } from "lucide-react";
 import { getDefaultKeybindings } from "../../lib/keybindings";
 import { useSettingsStore } from "../../stores/settings";
+import { IconButton } from "../ui/Button";
+import { SettingsSection } from "./ui";
 
 export default function KeybindingsPanel() {
   const keybindings = useSettingsStore((s) => s.settings.keybindings);
@@ -74,55 +76,59 @@ export default function KeybindingsPanel() {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-sm font-medium text-text-primary mb-3">Keyboard Shortcuts</h3>
-        <div className="border border-border rounded-lg overflow-hidden">
+    <div className="space-y-8">
+      <SettingsSection
+        title="Keyboard shortcuts"
+        description="Click the pencil to record; Escape cancels"
+        card={false}
+      >
+        <div className="overflow-hidden rounded-lg border border-border">
           <table className="w-full">
             <thead>
-              <tr className="bg-bg-tertiary">
-                <th className="text-left text-xs font-medium text-text-secondary px-4 py-2">
+              <tr className="bg-overlay/[0.03]">
+                <th className="px-4 py-2 text-left text-xs font-medium text-text-secondary">
                   Action
                 </th>
-                <th className="text-left text-xs font-medium text-text-secondary px-4 py-2">
+                <th className="px-4 py-2 text-left text-xs font-medium text-text-secondary">
                   Shortcut
                 </th>
-                <th className="text-right text-xs font-medium text-text-secondary px-4 py-2 w-16">
+                <th className="w-16 px-4 py-2 text-right text-xs font-medium text-text-secondary">
                   Edit
                 </th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-border">
               {defaults.map((binding) => (
-                <tr key={binding.id} className="border-t border-border">
+                <tr key={binding.id}>
                   <td className="px-4 py-2.5 text-sm text-text-primary">{binding.label}</td>
                   <td className="px-4 py-2.5">
                     {recordingAction === binding.id ? (
-                      <span className="inline-block px-3 py-1 text-sm text-accent border border-accent rounded-md animate-pulse">
+                      <span className="inline-block animate-pulse rounded-md border border-accent px-3 py-1 text-sm text-accent">
                         Press keys...
                       </span>
                     ) : (
-                      <kbd className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-mono text-text-secondary bg-bg-tertiary border border-border rounded">
+                      <kbd className="inline-flex items-center gap-1 rounded border border-border bg-overlay/[0.03] px-2 py-0.5 font-mono text-xs text-text-secondary">
                         {formatKeys(getDisplayKeys(binding.id, binding.keys))}
                       </kbd>
                     )}
                   </td>
                   <td className="px-4 py-2.5 text-right">
-                    <button
+                    <IconButton
+                      title="Edit"
+                      active={recordingAction === binding.id}
                       onClick={() =>
                         setRecordingAction(recordingAction === binding.id ? null : binding.id)
                       }
-                      className="p-1 text-text-muted hover:text-text-primary transition-colors"
                     >
                       <Pencil size={14} />
-                    </button>
+                    </IconButton>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      </div>
+      </SettingsSection>
     </div>
   );
 }

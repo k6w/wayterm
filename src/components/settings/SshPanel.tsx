@@ -3,6 +3,9 @@ import { Server, Trash2, Fingerprint, Download, Check } from "lucide-react";
 import { useSettingsStore } from "../../stores/settings";
 import { useSshStore } from "../../stores/ssh";
 import ConfirmDialog from "../ui/ConfirmDialog";
+import { Button, IconButton } from "../ui/Button";
+import { EmptyState } from "../ui/EmptyState";
+import { SettingsSection, SettingRow, NumberField, TextField } from "./ui";
 import { sshKnownHostsList, sshKnownHostsRemove, sshKnownHostsClear, sshImportConfig, type KnownHost } from "../../lib/ipc";
 
 interface ImportedHost {
@@ -115,93 +118,99 @@ export default function SshPanel() {
   }, [importedHosts, selectedHosts, saveConnection]);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-sm font-medium text-text-primary mb-3">Connection Defaults</h3>
-        <div className="space-y-4">
-          <div className="flex justify-between items-center gap-4">
-            <label className="text-sm text-text-secondary">Default Port</label>
-            <input
-              type="number"
-              min={1}
-              max={65535}
-              value={settings.defaultPort}
-              onChange={(e) => update("ssh", { defaultPort: Number(e.target.value) })}
-              className="bg-bg-tertiary border border-border rounded-md px-3 py-1.5 text-sm text-text-primary focus:border-accent outline-none w-28"
-            />
-          </div>
-          <div className="flex justify-between items-center gap-4">
-            <label className="text-sm text-text-secondary">Default Username</label>
-            <input
-              type="text"
-              value={settings.defaultUsername}
-              onChange={(e) => update("ssh", { defaultUsername: e.target.value })}
-              placeholder="root"
-              className="bg-bg-tertiary border border-border rounded-md px-3 py-1.5 text-sm text-text-primary focus:border-accent outline-none w-44"
-            />
-          </div>
-        </div>
-      </div>
+    <div className="space-y-8">
+      <SettingsSection title="Connection Defaults">
+        <SettingRow
+          label="Default port"
+          htmlFor="ssh-default-port"
+        >
+          <NumberField
+            id="ssh-default-port"
+            value={settings.defaultPort}
+            min={1}
+            max={65535}
+            onChange={(v) => update("ssh", { defaultPort: v })}
+          />
+        </SettingRow>
+        <SettingRow
+          label="Default username"
+          htmlFor="ssh-default-username"
+        >
+          <TextField
+            id="ssh-default-username"
+            value={settings.defaultUsername}
+            onChange={(v) => update("ssh", { defaultUsername: v })}
+            placeholder="root"
+            className="w-44"
+          />
+        </SettingRow>
+      </SettingsSection>
 
-      <div>
-        <h3 className="text-sm font-medium text-text-primary mb-3">Timeouts</h3>
-        <div className="space-y-4">
-          <div className="flex justify-between items-center gap-4">
-            <label className="text-sm text-text-secondary">Keepalive Interval (seconds)</label>
-            <input
-              type="number"
-              min={0}
-              max={300}
-              value={settings.keepaliveInterval}
-              onChange={(e) => update("ssh", { keepaliveInterval: Number(e.target.value) })}
-              className="bg-bg-tertiary border border-border rounded-md px-3 py-1.5 text-sm text-text-primary focus:border-accent outline-none w-28"
-            />
-          </div>
-          <div className="flex justify-between items-center gap-4">
-            <label className="text-sm text-text-secondary">Connection Timeout (seconds)</label>
-            <input
-              type="number"
-              min={1}
-              max={120}
-              value={settings.connectionTimeout}
-              onChange={(e) => update("ssh", { connectionTimeout: Number(e.target.value) })}
-              className="bg-bg-tertiary border border-border rounded-md px-3 py-1.5 text-sm text-text-primary focus:border-accent outline-none w-28"
-            />
-          </div>
-        </div>
-      </div>
+      <SettingsSection title="Timeouts">
+        <SettingRow
+          label="Keepalive interval"
+          description="0 to disable"
+          htmlFor="ssh-keepalive"
+        >
+          <NumberField
+            id="ssh-keepalive"
+            value={settings.keepaliveInterval}
+            min={0}
+            max={300}
+            unit="s"
+            onChange={(v) => update("ssh", { keepaliveInterval: v })}
+          />
+        </SettingRow>
+        <SettingRow
+          label="Connection timeout"
+          htmlFor="ssh-timeout"
+        >
+          <NumberField
+            id="ssh-timeout"
+            value={settings.connectionTimeout}
+            min={1}
+            max={120}
+            unit="s"
+            onChange={(v) => update("ssh", { connectionTimeout: v })}
+          />
+        </SettingRow>
+      </SettingsSection>
 
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-medium text-text-primary">Import from SSH Config</h3>
-          <button
+      <SettingsSection
+        title="Import from SSH Config"
+        description="Reads Host entries from ~/.ssh/config"
+        card={false}
+        action={
+          <Button
+            variant="ghost"
+            className="border border-border"
             onClick={handleOpenImport}
             disabled={importLoading}
-            className="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-md border border-border bg-bg-tertiary text-text-secondary hover:border-accent/50 hover:text-text-primary transition-colors disabled:opacity-50"
           >
-            <Download size={12} />
-            {importLoading ? "Reading..." : "Import ~/.ssh/config"}
-          </button>
-        </div>
+            <Download size={13} />
+            {importLoading ? "Reading…" : "Import ~/.ssh/config"}
+          </Button>
+        }
+      >
         {importError && (
-          <div className="mb-2 px-3 py-2 rounded-md bg-error/10 border border-error/30 text-xs text-error">
+          <div className="rounded-md border border-error/30 bg-error/10 px-3 py-2 text-xs text-error">
             {importError}
           </div>
         )}
         {importSuccess !== null && (
-          <div className="mb-2 px-3 py-2 rounded-md bg-success/10 border border-success/30 text-xs text-success flex items-center gap-1.5">
+          <div className="flex items-center gap-1.5 rounded-md border border-success/30 bg-success/10 px-3 py-2 text-xs text-success">
             <Check size={12} />
             Imported {importSuccess} connection{importSuccess !== 1 ? "s" : ""}
           </div>
         )}
         {importedHosts && (
-          <div className="space-y-2 mb-3">
-            <p className="text-xs text-text-muted mb-2">Select hosts to import:</p>
-            <div className="max-h-48 overflow-y-auto space-y-1.5">
+          <div className="space-y-2">
+            <p className="text-xs text-text-muted">Select hosts to import:</p>
+            <div className="max-h-48 space-y-1.5 overflow-y-auto">
               {importedHosts.map((h, i) => (
                 <label
                   key={i}
-                  className="flex items-center gap-3 px-3 py-2 border border-border rounded-lg bg-bg-tertiary cursor-pointer hover:border-accent/40 transition-colors"
+                  className="flex cursor-pointer items-center gap-3 rounded-lg border border-border bg-overlay/[0.03] px-3 py-2 transition-colors hover:border-accent/40"
                 >
                   <input
                     type="checkbox"
@@ -216,118 +225,114 @@ export default function SshPanel() {
                     }}
                     className="accent-accent"
                   />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm text-text-primary truncate">{h.name}</div>
-                    <div className="text-xs text-text-muted">{h.username}@{h.host}:{h.port}</div>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm text-text-primary">{h.name}</div>
+                    <div className="text-xs text-text-muted">
+                      {h.username}@{h.host}:{h.port}
+                    </div>
                   </div>
                   {h.jumpHost && (
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-accent/15 text-accent">via {h.jumpHost}</span>
+                    <span className="rounded bg-accent/15 px-1.5 py-0.5 text-[10px] text-accent">
+                      via {h.jumpHost}
+                    </span>
                   )}
                 </label>
               ))}
             </div>
             <div className="flex gap-2 pt-1">
-              <button
+              <Button
+                variant="primary"
                 onClick={handleImportSelected}
                 disabled={selectedHosts.size === 0}
-                className="px-3 py-1.5 text-xs rounded-md bg-accent text-white hover:bg-accent/90 transition-colors disabled:opacity-50"
               >
                 Import {selectedHosts.size} selected
-              </button>
-              <button
-                onClick={() => { setImportedHosts(null); setSelectedHosts(new Set()); }}
-                className="px-3 py-1.5 text-xs rounded-md border border-border text-text-secondary hover:text-text-primary transition-colors"
+              </Button>
+              <Button
+                variant="ghost"
+                className="border border-border"
+                onClick={() => {
+                  setImportedHosts(null);
+                  setSelectedHosts(new Set());
+                }}
               >
                 Cancel
-              </button>
+              </Button>
             </div>
           </div>
         )}
-        <p className="text-xs text-text-muted">
-          Reads Host entries from <code className="text-text-primary">~/.ssh/config</code> and creates saved connections.
-        </p>
-      </div>
+      </SettingsSection>
 
-      <div>
-        <h3 className="text-sm font-medium text-text-primary mb-3">
-          Saved Connections ({connections.length})
-        </h3>
+      <SettingsSection title={`Saved Connections (${connections.length})`} card={false}>
         {connections.length === 0 ? (
-          <div className="py-6 text-center text-sm text-text-muted border border-border border-dashed rounded-lg">
-            No saved connections. Use the sidebar to add connections.
-          </div>
+          <EmptyState
+            icon={Server}
+            title="No saved connections"
+            hint="Use the sidebar to add connections."
+          />
         ) : (
-          <div className="space-y-2">
+          <div className="divide-y divide-border overflow-hidden rounded-lg border border-border">
             {connections.map((conn) => (
-              <div
-                key={conn.id}
-                className="flex items-center gap-3 px-4 py-2.5 border border-border rounded-lg bg-bg-tertiary"
-              >
+              <div key={conn.id} className="flex items-center gap-3 px-4 py-2.5">
                 <Server size={14} className="shrink-0 text-text-muted" />
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm text-text-primary truncate">{conn.name}</div>
-                  <div className="text-xs text-text-muted truncate">
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm text-text-primary">{conn.name}</div>
+                  <div className="truncate text-xs text-text-muted">
                     {conn.username}@{conn.host}:{conn.port} ({conn.authMethod})
                   </div>
                 </div>
-                <button
+                <IconButton
+                  title="Delete connection"
                   onClick={() => setDeleteTarget({ id: conn.id, name: conn.name })}
-                  className="p-1 text-text-muted hover:text-error transition-colors shrink-0"
                 >
                   <Trash2 size={14} />
-                </button>
+                </IconButton>
               </div>
             ))}
           </div>
         )}
-      </div>
+      </SettingsSection>
 
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-medium text-text-primary">
-            Known Hosts ({knownHosts.length})
-          </h3>
-          {knownHosts.length > 0 && (
-            <button
-              onClick={() => setClearAllConfirm(true)}
-              className="text-xs text-error hover:text-error/80 transition-colors"
-            >
+      <SettingsSection
+        title={`Known Hosts (${knownHosts.length})`}
+        card={false}
+        action={
+          knownHosts.length > 0 ? (
+            <Button variant="danger" onClick={() => setClearAllConfirm(true)}>
               Clear All
-            </button>
-          )}
-        </div>
+            </Button>
+          ) : undefined
+        }
+      >
         {knownHosts.length === 0 ? (
-          <div className="py-6 text-center text-sm text-text-muted border border-border border-dashed rounded-lg">
-            No known hosts found.
-          </div>
+          <EmptyState icon={Fingerprint} title="No known hosts found" />
         ) : (
-          <div className="space-y-2">
+          <div className="divide-y divide-border overflow-hidden rounded-lg border border-border">
             {knownHosts.map((host) => (
               <div
                 key={`${host.hostname}-${host.lineNumber}`}
-                className="flex items-center gap-3 px-4 py-2.5 border border-border rounded-lg bg-bg-tertiary"
+                className="flex items-center gap-3 px-4 py-2.5"
               >
                 <Fingerprint size={14} className="shrink-0 text-text-muted" />
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm text-text-primary truncate">{host.hostname}</div>
-                  <div className="text-xs text-text-muted truncate flex items-center gap-2">
-                    <span className="inline-block px-1.5 py-0.5 rounded bg-bg-secondary text-text-muted text-[10px] font-medium">
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm text-text-primary">{host.hostname}</div>
+                  <div className="flex items-center gap-2 truncate text-xs text-text-muted">
+                    <span className="inline-block rounded bg-overlay/[0.08] px-1.5 py-0.5 text-[10px] font-medium text-text-muted">
                       {host.keyType}
                     </span>
                     <span className="truncate">{host.fingerprintPreview}</span>
                   </div>
                 </div>
-                <button
+                <IconButton
+                  title="Remove host"
                   onClick={() => handleRemoveHost(host.hostname)}
-                  className="p-1 text-text-muted hover:text-error transition-colors shrink-0"
                 >
                   <Trash2 size={14} />
-                </button>
+                </IconButton>
               </div>
             ))}
           </div>
         )}
-      </div>
+      </SettingsSection>
 
       <ConfirmDialog
         open={!!deleteTarget}

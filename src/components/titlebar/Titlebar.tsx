@@ -16,6 +16,7 @@ export default function Titlebar() {
   const vibrancyEnabled = useSettingsStore((s) => s.settings.appearance.vibrancyEnabled);
   const windowOpacity = useSettingsStore((s) => s.settings.appearance.windowOpacity);
   const tabPosition = useSettingsStore((s) => s.settings.appearance.tabPosition);
+  const uiScale = useSettingsStore((s) => s.settings.appearance.uiScale);
   const theme = useThemeStore((s) => s.active);
 
   const handleDoubleClick = useCallback((e: React.MouseEvent) => {
@@ -50,7 +51,9 @@ export default function Titlebar() {
       <div data-tauri-drag-region className={`flex items-center ${
         isVertical ? 'flex-col w-full' : 'h-[37px] w-full'
       }`}>
-        {isMac && !isVertical && <div className="shrink-0" style={{ width: MAC_TRAFFIC_LIGHT_INSET }} />}
+        {/* Divide by the zoom so the reserved gap stays a constant native width
+            that matches the (unscaled) native traffic lights. */}
+        {isMac && tabPosition === 'top' && <div className="shrink-0" style={{ width: MAC_TRAFFIC_LIGHT_INSET / uiScale }} />}
 
         <TabStrip />
         

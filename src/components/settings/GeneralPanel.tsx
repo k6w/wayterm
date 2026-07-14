@@ -1,243 +1,197 @@
 import { useSettingsStore } from "../../stores/settings";
 import { useSshStore } from "../../stores/ssh";
+import { useWorkspaceStore } from "../../stores/workspace";
 import { getDefaultShells } from "../../lib/shell-detect";
-import { enable as enableAutostart, disable as disableAutostart } from "@tauri-apps/plugin-autostart";
+import {
+  enable as enableAutostart,
+  disable as disableAutostart,
+} from "@tauri-apps/plugin-autostart";
 import Select from "../ui/Select";
-import type { StartupBehavior } from "../../types/settings";
+import { Button } from "../ui/Button";
+import { SettingsSection, SettingRow, Toggle, SegmentedControl, SliderField } from "./ui";
+import type { StartupBehavior, AppSettings } from "../../types/settings";
 
 export default function GeneralPanel() {
   const settings = useSettingsStore((s) => s.settings.general);
   const update = useSettingsStore((s) => s.update);
+  const workspaces = useWorkspaceStore((s) => s.workspaces).filter(
+    (w) => w.id !== "__session__"
+  );
   const shells = getDefaultShells();
-
-  const startupOptions: { value: StartupBehavior; label: string }[] = [
-    { value: "new-tab", label: "Open new tab" },
-    { value: "restore", label: "Restore previous session" },
-    { value: "workspace", label: "Open workspace" },
-  ];
 
   const shellOptions = [
     { value: "", label: "System Default" },
     ...shells.map((shell) => ({ value: shell.path, label: shell.label })),
   ];
 
+  const startupOptions: { value: StartupBehavior; label: string }[] = [
+    { value: "new-tab", label: "New tab" },
+    { value: "restore", label: "Restore" },
+    { value: "workspace", label: "Workspace" },
+  ];
+
+  const handleAutostart = async (next: boolean) => {
+    try {
+      if (next) await enableAutostart();
+      else await disableAutostart();
+      update("general", { launchOnStartup: next });
+    } catch {
+      /* autostart unavailable, leave the toggle unchanged */
+    }
+  };
+
+  const exportSettings = () => {
+    const data = {
+      version: 1,
+      settings: useSettingsStore.getState().settings,
+      connections: useSshStore.getState().connections,
+    };
+    const blob = new Blob([JSON.stringify(data, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `nexterm-settings-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const importSettings = () => {
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = ".json";
+    input.onchange = async (e) => {
+      const file = (e.target as HTMLInputElement).files?.[0];
+      if (!file) return;
+      try {
+        const data = JSON.parse(await file.text());
+        if (data.version && data.settings) {
+          const store = useSettingsStore.getState();
+          for (const [section, values] of Object.entries(data.settings) as [
+            keyof AppSettings,
+            unknown,
+          ][]) {
+            if (typeof values === "object" && values && !Array.isArray(values)) {
+              await store.update(section, values as never);
+            }
+          }
+        }
+      } catch {
+        /* invalid file */
+      }
+    };
+    input.click();
+  };
+
   return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-sm font-medium text-text-primary mb-3">Shell</h3>
-        <div className="space-y-4">
-          <div className="flex justify-between items-center gap-4">
-            <label className="text-sm text-text-secondary">Default Shell</label>
+    <div className="space-y-8">
+      <SettingsSection title="Shell">
+        <SettingRow
+          label="Default shell"
+          description="For new local terminals"
+        >
+          <Select
+            value={settings.defaultShell}
+            onChange={(v) => update("general", { defaultShell: v })}
+            options={shellOptions}
+            className="w-52"
+          />
+        </SettingRow>
+      </SettingsSection>
+
+      <SettingsSection title="Startup">
+        <SettingRow label="On launch">
+          <SegmentedControl
+            value={settings.startupBehavior}
+            onChange={(v) => update("general", { startupBehavior: v })}
+            options={startupOptions}
+          />
+        </SettingRow>
+        {settings.startupBehavior === "workspace" && (
+          <SettingRow
+            label="Workspace"
+            description="Restored on launch"
+          >
             <Select
-              value={settings.defaultShell}
-              onChange={(v) => update("general", { defaultShell: v })}
-              options={shellOptions}
-              className="w-48"
+              value={settings.startupWorkspaceId ?? ""}
+              onChange={(v) =>
+                update("general", { startupWorkspaceId: v || null })
+              }
+              options={
+                workspaces.length
+                  ? workspaces.map((w) => ({ value: w.id, label: w.name }))
+                  : [{ value: "", label: "No saved workspaces" }]
+              }
+              className="w-52"
             />
-          </div>
-        </div>
-      </div>
+          </SettingRow>
+        )}
+      </SettingsSection>
 
-      <div>
-        <h3 className="text-sm font-medium text-text-primary mb-3">Startup</h3>
-        <div className="space-y-4">
-          <div className="flex justify-between items-center gap-4">
-            <label className="text-sm text-text-secondary">Startup Behavior</label>
-            <div className="flex gap-2">
-              {startupOptions.map((opt) => (
-                <button
-                  key={opt.value}
-                  onClick={() => update("general", { startupBehavior: opt.value })}
-                  className={`px-3 py-1.5 text-sm rounded-md border transition-colors ${
-                    settings.startupBehavior === opt.value
-                      ? "bg-accent text-white border-accent"
-                      : "bg-bg-tertiary text-text-secondary border-border hover:border-accent"
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
+      <SettingsSection title="Behavior">
+        <SettingRow label="Check for updates">
+          <Toggle
+            checked={settings.checkForUpdates}
+            onChange={(v) => update("general", { checkForUpdates: v })}
+          />
+        </SettingRow>
+        <SettingRow label="Confirm on close" description="Ask before quitting with open sessions">
+          <Toggle
+            checked={settings.confirmOnClose}
+            onChange={(v) => update("general", { confirmOnClose: v })}
+          />
+        </SettingRow>
+        <SettingRow
+          label="Close to tray"
+          description="Minimize to tray instead of quitting"
+        >
+          <Toggle
+            checked={settings.closeToTray}
+            onChange={(v) => update("general", { closeToTray: v })}
+          />
+        </SettingRow>
+        <SettingRow label="Launch on startup">
+          <Toggle checked={settings.launchOnStartup} onChange={handleAutostart} />
+        </SettingRow>
+      </SettingsSection>
 
-      <div>
-        <h3 className="text-sm font-medium text-text-primary mb-3">Behavior</h3>
-        <div className="space-y-4">
-          <div className="flex justify-between items-center gap-4">
-            <label className="text-sm text-text-secondary">Check for updates</label>
-            <button
-              onClick={() => update("general", { checkForUpdates: !settings.checkForUpdates })}
-              className={`relative w-10 h-5 rounded-full transition-colors ${
-                settings.checkForUpdates ? "bg-accent" : "bg-bg-tertiary"
-              }`}
-            >
-              <span
-                className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
-                  settings.checkForUpdates ? "translate-x-5" : "translate-x-0"
-                }`}
-              />
-            </button>
-          </div>
-          <div className="flex justify-between items-center gap-4">
-            <label className="text-sm text-text-secondary">Confirm on close</label>
-            <button
-              onClick={() => update("general", { confirmOnClose: !settings.confirmOnClose })}
-              className={`relative w-10 h-5 rounded-full transition-colors ${
-                settings.confirmOnClose ? "bg-accent" : "bg-bg-tertiary"
-              }`}
-            >
-              <span
-                className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
-                  settings.confirmOnClose ? "translate-x-5" : "translate-x-0"
-                }`}
-              />
-            </button>
-          </div>
-          <div className="flex justify-between items-center gap-4">
-            <div>
-              <label className="text-sm text-text-secondary">Close to tray</label>
-              <p className="text-xs text-text-muted mt-0.5">Minimize to system tray instead of quitting</p>
-            </div>
-            <button
-              onClick={() => update("general", { closeToTray: !settings.closeToTray })}
-              className={`relative w-10 h-5 rounded-full transition-colors shrink-0 ${
-                settings.closeToTray ? "bg-accent" : "bg-bg-tertiary"
-              }`}
-            >
-              <span
-                className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
-                  settings.closeToTray ? "translate-x-5" : "translate-x-0"
-                }`}
-              />
-            </button>
-          </div>
-          <div className="flex justify-between items-center gap-4">
-            <div>
-              <label className="text-sm text-text-secondary">Launch on startup</label>
-              <p className="text-xs text-text-muted mt-0.5">Start Nexterm when you log in</p>
-            </div>
-            <button
-              onClick={async () => {
-                const next = !settings.launchOnStartup;
-                try {
-                  if (next) await enableAutostart();
-                  else await disableAutostart();
-                  update("general", { launchOnStartup: next });
-                } catch {
-                  
-                }
-              }}
-              className={`relative w-10 h-5 rounded-full transition-colors shrink-0 ${
-                settings.launchOnStartup ? "bg-accent" : "bg-bg-tertiary"
-              }`}
-            >
-              <span
-                className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
-                  settings.launchOnStartup ? "translate-x-5" : "translate-x-0"
-                }`}
-              />
-            </button>
-          </div>
-        </div>
-      </div>
+      <SettingsSection title="Notifications">
+        <SettingRow label="Notify on long commands">
+          <Toggle
+            checked={settings.notifyOnLongCommands}
+            onChange={(v) => update("general", { notifyOnLongCommands: v })}
+          />
+        </SettingRow>
+        <SettingRow label="Threshold" description="Minimum command duration">
+          <SliderField
+            value={settings.longCommandThresholdSeconds}
+            min={5}
+            max={120}
+            step={5}
+            disabled={!settings.notifyOnLongCommands}
+            format={(v) => `${v}s`}
+            onChange={(v) =>
+              update("general", { longCommandThresholdSeconds: v })
+            }
+          />
+        </SettingRow>
+      </SettingsSection>
 
-      <div>
-        <h3 className="text-sm font-medium text-text-primary mb-3">Notifications</h3>
-        <div className="space-y-4">
-          <div className="flex justify-between items-center gap-4">
-            <div>
-              <label className="text-sm text-text-secondary">Notify on long commands</label>
-              <p className="text-xs text-text-muted mt-0.5">Show a notification when a command runs longer than the threshold</p>
-            </div>
-            <button
-              onClick={() => update("general", { notifyOnLongCommands: !settings.notifyOnLongCommands })}
-              className={`relative w-10 h-5 rounded-full transition-colors shrink-0 ${
-                settings.notifyOnLongCommands ? "bg-accent" : "bg-bg-tertiary"
-              }`}
-            >
-              <span
-                className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
-                  settings.notifyOnLongCommands ? "translate-x-5" : "translate-x-0"
-                }`}
-              />
-            </button>
-          </div>
-          <div className={`flex justify-between items-center gap-4 ${settings.notifyOnLongCommands ? "" : "opacity-40 pointer-events-none"}`}>
-            <label className="text-sm text-text-secondary">
-              Threshold ({settings.longCommandThresholdSeconds}s)
-            </label>
-            <input
-              type="range"
-              min={5}
-              max={120}
-              step={5}
-              value={settings.longCommandThresholdSeconds}
-              onChange={(e) => update("general", { longCommandThresholdSeconds: Number(e.target.value) })}
-              disabled={!settings.notifyOnLongCommands}
-              className="w-40 accent-accent"
-            />
-          </div>
+      <SettingsSection
+        title="Data"
+        description="Back up or restore settings and connections"
+        card={false}
+      >
+        <div className="flex gap-2">
+          <Button variant="ghost" className="border border-border" onClick={exportSettings}>
+            Export settings…
+          </Button>
+          <Button variant="ghost" className="border border-border" onClick={importSettings}>
+            Import settings…
+          </Button>
         </div>
-      </div>
-
-      <div>
-        <h3 className="text-sm font-medium text-text-primary mb-3">Data</h3>
-        <div className="space-y-3">
-          <div className="flex gap-2">
-            <button
-              onClick={() => {
-                const data = {
-                  version: 1,
-                  settings: useSettingsStore.getState().settings,
-                  connections: useSshStore.getState().connections,
-                };
-                const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement("a");
-                a.href = url;
-                a.download = `nexterm-settings-${new Date().toISOString().slice(0, 10)}.json`;
-                a.click();
-                URL.revokeObjectURL(url);
-              }}
-              className="px-3 py-1.5 text-sm rounded-md bg-bg-tertiary text-text-secondary border border-border hover:border-accent transition-colors"
-            >
-              Export Settings
-            </button>
-            <button
-              onClick={() => {
-                const input = document.createElement("input");
-                input.type = "file";
-                input.accept = ".json";
-                input.onchange = async (e) => {
-                  const file = (e.target as HTMLInputElement).files?.[0];
-                  if (!file) return;
-                  try {
-                    const text = await file.text();
-                    const data = JSON.parse(text);
-                    if (data.version && data.settings) {
-                      const store = useSettingsStore.getState();
-                      for (const [section, values] of Object.entries(data.settings) as [keyof import("../../types/settings").AppSettings, unknown][]) {
-                        if (typeof values === "object" && values && !Array.isArray(values)) {
-                          await store.update(section, values as never);
-                        }
-                      }
-                    }
-                  } catch {
-                    // Invalid file
-                  }
-                };
-                input.click();
-              }}
-              className="px-3 py-1.5 text-sm rounded-md bg-bg-tertiary text-text-secondary border border-border hover:border-accent transition-colors"
-            >
-              Import Settings
-            </button>
-          </div>
-          <p className="text-xs text-text-muted">Export or import your settings and connection profiles</p>
-        </div>
-      </div>
+      </SettingsSection>
     </div>
   );
 }

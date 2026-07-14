@@ -1,7 +1,10 @@
 import { useState, useCallback, useEffect } from "react";
-import { KeyRound, Plus, Trash2, Upload, Copy, Check, FileKey, Pencil } from "lucide-react";
+import { KeyRound, Trash2, Upload, Copy, Check, FileKey, Pencil } from "lucide-react";
 import { useSshStore } from "../../stores/ssh";
 import ConfirmDialog from "../ui/ConfirmDialog";
+import { Button, IconButton } from "../ui/Button";
+import { EmptyState } from "../ui/EmptyState";
+import { SettingsSection, SettingRow, SegmentedControl, TextField, TextArea } from "./ui";
 import type { SshKey } from "../../types/ssh";
 
 type ImportMode = "paste" | null;
@@ -66,148 +69,122 @@ export default function KeysPanel() {
   }, [deleteTarget, removeKey]);
 
   return (
-    <div className="space-y-6">
-      <div>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="text-sm font-medium text-text-primary">
-            SSH Keys ({keys.length})
-          </h3>
-          {!importMode && (
-            <button
-              onClick={() => setImportMode("paste")}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-bg-tertiary border border-border rounded-md text-text-secondary hover:text-text-primary hover:border-accent transition-colors"
-            >
+    <div className="space-y-8">
+      <SettingsSection
+        title="SSH Keys"
+        description={`${keys.length} ${keys.length === 1 ? "key" : "keys"} stored`}
+        card={false}
+        action={
+          !importMode && (
+            <Button variant="ghost" className="border border-border" onClick={() => setImportMode("paste")}>
               <Upload size={12} />
               Import Key
-            </button>
-          )}
-        </div>
-
+            </Button>
+          )
+        }
+      >
         {importMode === "paste" && (
-          <div className="space-y-3 p-4 border border-border rounded-lg bg-bg-tertiary mb-4">
-            <div>
-              <label className="text-sm text-text-secondary mb-1.5 block">
-                Key Name
-              </label>
-              <input
-                type="text"
+          <div className="divide-y divide-border overflow-hidden rounded-lg border border-border">
+            <SettingRow label="Key Name" htmlFor="key-name" stacked>
+              <TextField
+                id="key-name"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="bg-bg-primary border border-border rounded-md px-3 py-2 text-sm text-text-primary focus:border-accent outline-none w-full transition-colors"
+                onChange={setName}
                 placeholder="My SSH Key"
+                className="w-full"
               />
-            </div>
+            </SettingRow>
 
-            <div>
-              <label className="text-sm text-text-secondary mb-1.5 block">
-                Algorithm
-              </label>
-              <div className="flex gap-2">
-                {(["ed25519", "rsa"] as const).map((alg) => (
-                  <button
-                    key={alg}
-                    type="button"
-                    onClick={() => setAlgorithm(alg)}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-md border text-sm transition-colors flex-1 justify-center ${
-                      algorithm === alg
-                        ? "border-accent bg-accent/15 text-accent"
-                        : "border-border bg-bg-primary text-text-secondary hover:text-text-primary hover:border-border-focus"
-                    }`}
-                  >
-                    {alg === "ed25519" ? "Ed25519" : "RSA"}
-                  </button>
-                ))}
-              </div>
-            </div>
+            <SettingRow label="Algorithm" stacked>
+              <SegmentedControl
+                value={algorithm}
+                onChange={setAlgorithm}
+                options={[
+                  { value: "ed25519", label: "Ed25519" },
+                  { value: "rsa", label: "RSA" },
+                ]}
+              />
+            </SettingRow>
 
-            <div>
-              <label className="text-sm text-text-secondary mb-1.5 block">
-                Public Key <span className="text-text-muted">(optional)</span>
-              </label>
-              <textarea
+            <SettingRow label="Public Key" description="Optional" htmlFor="public-key" stacked>
+              <TextArea
+                id="public-key"
                 value={publicKey}
-                onChange={(e) => setPublicKey(e.target.value)}
-                className="bg-bg-primary border border-border rounded-md px-3 py-2 text-sm text-text-primary focus:border-accent outline-none w-full transition-colors resize-none font-mono text-xs"
+                onChange={setPublicKey}
                 placeholder="ssh-ed25519 AAAA..."
                 rows={3}
+                mono
               />
-            </div>
+            </SettingRow>
 
-            <div>
-              <label className="text-sm text-text-secondary mb-1.5 block">
-                Private Key (PEM)
-              </label>
-              <textarea
+            <SettingRow
+              label="Private Key (PEM)"
+              description="Stored encrypted locally"
+              htmlFor="private-key"
+              stacked
+            >
+              <TextArea
+                id="private-key"
                 value={privateKey}
-                onChange={(e) => setPrivateKey(e.target.value)}
-                className="bg-bg-primary border border-border rounded-md px-3 py-2 text-sm text-text-primary focus:border-accent outline-none w-full transition-colors resize-none font-mono text-xs"
+                onChange={setPrivateKey}
                 placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"
                 rows={4}
+                mono
               />
-              <p className="mt-1 text-xs text-text-muted">
-                Private key is stored encrypted in the local database
-              </p>
-            </div>
+            </SettingRow>
 
-            <div className="flex items-center justify-end gap-2 pt-1">
-              <button
-                onClick={resetForm}
-                className="px-3 py-1.5 text-sm text-text-secondary hover:text-text-primary transition-colors"
-              >
+            <div className="flex items-center justify-end gap-2 px-4 py-3">
+              <Button variant="ghost" onClick={resetForm}>
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
+                variant="primary"
                 onClick={handleImport}
                 disabled={importing || !name.trim() || !privateKey.trim()}
-                className="px-4 py-1.5 text-sm bg-accent hover:bg-accent-hover text-white rounded-md transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {importing ? "Importing..." : "Import"}
-              </button>
+              </Button>
             </div>
           </div>
         )}
 
         {keys.length === 0 && !importMode ? (
-          <div className="py-8 text-center border border-border border-dashed rounded-lg">
-            <FileKey size={24} className="mx-auto mb-2 text-text-muted" />
-            <p className="text-sm text-text-muted mb-3">No SSH keys stored</p>
-            <button
-              onClick={() => setImportMode("paste")}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs bg-overlay/[0.08] rounded-md text-text-secondary hover:text-text-primary hover:bg-overlay/[0.14] transition-colors"
-            >
-              <Plus size={12} />
-              Import your first key
-            </button>
-          </div>
+          <EmptyState
+            icon={FileKey}
+            title="No SSH keys"
+            hint="Import an existing key to authenticate your SSH connections."
+            action={{
+              label: "Import your first key",
+              onClick: () => setImportMode("paste"),
+            }}
+          />
         ) : (
           <div className="space-y-2">
             {keys.map((key) => (
               <div
                 key={key.id}
-                className="border border-border rounded-lg bg-bg-tertiary"
+                className="overflow-hidden rounded-lg border border-border bg-overlay/[0.02]"
               >
                 <div className="flex items-center gap-3 px-4 py-3">
                   <KeyRound size={14} className="shrink-0 text-text-muted" />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm text-text-primary truncate">
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-sm text-text-primary">
                       {key.name}
                     </div>
-                    <div className="text-xs text-text-muted truncate font-mono">
+                    <div className="truncate font-mono text-xs text-text-muted">
                       {key.algorithm} &middot; {key.fingerprint.slice(0, 23)}...
                     </div>
                   </div>
-                  <button
-                    onClick={() => handleCopy(key)}
-                    className="p-1.5 text-text-muted hover:text-text-primary transition-colors shrink-0"
-                    title="Copy public key"
-                  >
+                  <IconButton title="Copy public key" onClick={() => handleCopy(key)}>
                     {copiedId === key.id ? (
                       <Check size={14} className="text-success" />
                     ) : (
                       <Copy size={14} />
                     )}
-                  </button>
-                  <button
+                  </IconButton>
+                  <IconButton
+                    title="Edit key"
+                    active={editingKey?.id === key.id}
                     onClick={() =>
                       setEditingKey(
                         editingKey?.id === key.id
@@ -215,55 +192,43 @@ export default function KeysPanel() {
                           : { id: key.id, name: key.name, publicKey: key.publicKey }
                       )
                     }
-                    className="p-1.5 text-text-muted hover:text-text-primary transition-colors shrink-0"
-                    title="Edit key"
                   >
                     <Pencil size={14} />
-                  </button>
-                  <button
-                    onClick={() => setDeleteTarget({ id: key.id, name: key.name })}
-                    className="p-1.5 text-text-muted hover:text-error transition-colors shrink-0"
+                  </IconButton>
+                  <IconButton
                     title="Delete key"
+                    className="hover:!text-error"
+                    onClick={() => setDeleteTarget({ id: key.id, name: key.name })}
                   >
                     <Trash2 size={14} />
-                  </button>
+                  </IconButton>
                 </div>
                 {editingKey?.id === key.id && (
-                  <div className="space-y-3 px-4 pb-4 pt-1 border-t border-border">
-                    <div>
-                      <label className="text-sm text-text-secondary mb-1.5 block">
-                        Key Name
-                      </label>
-                      <input
-                        type="text"
+                  <div className="divide-y divide-border border-t border-border">
+                    <SettingRow label="Key Name" htmlFor={`edit-name-${key.id}`} stacked>
+                      <TextField
+                        id={`edit-name-${key.id}`}
                         value={editingKey.name}
-                        onChange={(e) =>
-                          setEditingKey({ ...editingKey, name: e.target.value })
-                        }
-                        className="bg-bg-primary border border-border rounded-md px-3 py-2 text-sm text-text-primary focus:border-accent outline-none w-full transition-colors"
+                        onChange={(v) => setEditingKey({ ...editingKey, name: v })}
+                        className="w-full"
                       />
-                    </div>
-                    <div>
-                      <label className="text-sm text-text-secondary mb-1.5 block">
-                        Public Key
-                      </label>
-                      <textarea
+                    </SettingRow>
+                    <SettingRow label="Public Key" htmlFor={`edit-pub-${key.id}`} stacked>
+                      <TextArea
+                        id={`edit-pub-${key.id}`}
                         value={editingKey.publicKey}
-                        onChange={(e) =>
-                          setEditingKey({ ...editingKey, publicKey: e.target.value })
-                        }
-                        className="bg-bg-primary border border-border rounded-md px-3 py-2 text-sm text-text-primary focus:border-accent outline-none w-full transition-colors resize-none font-mono text-xs"
+                        onChange={(v) => setEditingKey({ ...editingKey, publicKey: v })}
                         rows={3}
+                        mono
                       />
-                    </div>
-                    <div className="flex items-center justify-end gap-2">
-                      <button
-                        onClick={() => setEditingKey(null)}
-                        className="px-3 py-1.5 text-sm text-text-secondary hover:text-text-primary transition-colors"
-                      >
+                    </SettingRow>
+                    <div className="flex items-center justify-end gap-2 px-4 py-3">
+                      <Button variant="ghost" onClick={() => setEditingKey(null)}>
                         Cancel
-                      </button>
-                      <button
+                      </Button>
+                      <Button
+                        variant="primary"
+                        disabled={!editingKey.name.trim()}
                         onClick={async () => {
                           await updateKey(
                             editingKey.id,
@@ -272,11 +237,9 @@ export default function KeysPanel() {
                           );
                           setEditingKey(null);
                         }}
-                        disabled={!editingKey.name.trim()}
-                        className="px-4 py-1.5 text-sm bg-accent hover:bg-accent-hover text-white rounded-md transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         Save
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 )}
@@ -284,7 +247,7 @@ export default function KeysPanel() {
             ))}
           </div>
         )}
-      </div>
+      </SettingsSection>
 
       <ConfirmDialog
         open={!!deleteTarget}

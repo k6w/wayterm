@@ -1,11 +1,26 @@
-import { useRef, useState } from "react";
-import { Plus, Trash2, Play, Edit2, Download, Upload, Tag } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import {
+  Plus,
+  Trash2,
+  Play,
+  Edit2,
+  Download,
+  Upload,
+  Tag,
+  ChevronDown,
+  ChevronRight,
+  ScrollText,
+} from "lucide-react";
 import { useSettingsStore } from "../../stores/settings";
 import { useTerminalStore } from "../../stores/terminal";
 import { getCachedTerminal } from "../../lib/terminal-registry";
 import type { Snippet } from "../../types/settings";
 import { resolveSnippetVars, SNIPPET_VARIABLE_HINTS } from "../../lib/snippet-utils";
 import { useSshStore } from "../../stores/ssh";
+import { SettingsSection, TextField, TextArea } from "./ui";
+import { Button, IconButton } from "../ui/Button";
+import { EmptyState } from "../ui/EmptyState";
+import ConfirmDialog from "../ui/ConfirmDialog";
 
 function saveSnippetsToFile(snippets: Snippet[]) {
   const blob = new Blob([JSON.stringify(snippets, null, 2)], { type: "application/json" });
@@ -25,10 +40,19 @@ export default function SnippetsPanel() {
   const [command, setCommand] = useState("");
   const [category, setCategory] = useState("");
   const [isAdding, setIsAdding] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
     new Set(["__none__"])
   );
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Focus the name field whenever the add/edit form opens.
+  useEffect(() => {
+    if (isAdding || editingId) {
+      const el = document.getElementById("snippet-name-field") as HTMLInputElement | null;
+      el?.focus();
+    }
+  }, [isAdding, editingId]);
 
   function getContext() {
     const state = useTerminalStore.getState();
@@ -171,27 +195,32 @@ export default function SnippetsPanel() {
     return a.localeCompare(b);
   });
 
+  const deletingSnippet = deletingId
+    ? snippets.find((s) => s.id === deletingId)
+    : undefined;
+
   const editForm = (onSave: () => void, onCancel: () => void) => (
-    <div className="p-3 bg-bg-tertiary rounded-lg border border-border space-y-2">
-      <input
-        className="w-full px-2 py-1.5 text-sm bg-bg-secondary border border-border rounded text-text-primary placeholder-text-muted focus:outline-none focus:border-border-focus"
-        placeholder="Snippet name"
+    <div className="space-y-2 rounded-lg border border-border bg-bg-tertiary p-3">
+      <TextField
+        id="snippet-name-field"
         value={name}
-        onChange={(e) => setName(e.target.value)}
-        autoFocus
+        onChange={setName}
+        placeholder="Snippet name"
+        className="w-full"
       />
-      <input
-        className="w-full px-2 py-1.5 text-sm bg-bg-secondary border border-border rounded text-text-primary placeholder-text-muted focus:outline-none focus:border-border-focus"
-        placeholder="Category (optional)"
+      <TextField
         value={category}
-        onChange={(e) => setCategory(e.target.value)}
+        onChange={setCategory}
+        placeholder="Category (optional)"
+        className="w-full"
       />
-      <textarea
-        className="w-full px-2 py-1.5 text-sm bg-bg-secondary border border-border rounded text-text-primary placeholder-text-muted font-mono focus:outline-none focus:border-border-focus resize-none"
-        placeholder="Command (use {{hostname}}, {{user}}, {{cwd}}, {{date}})"
+      <TextArea
         value={command}
-        onChange={(e) => setCommand(e.target.value)}
+        onChange={setCommand}
+        placeholder="Command (use {{hostname}}, {{user}}, {{cwd}}, {{date}})"
         rows={3}
+        mono
+        className="w-full"
         onKeyDown={(e) => {
           if (e.key === "Enter" && e.ctrlKey) {
             e.preventDefault();
@@ -207,35 +236,147 @@ export default function SnippetsPanel() {
         {SNIPPET_VARIABLE_HINTS.map((hint) => (
           <button
             key={hint.variable}
-            className="text-xs px-1.5 py-0.5 rounded bg-bg-secondary border border-border text-text-muted hover:text-text-secondary hover:border-border-focus transition-colors"
+            type="button"
             title={hint.description}
             onClick={() => setCommand((c) => c + hint.variable)}
-            type="button"
+            className="rounded border border-border bg-bg-secondary px-1.5 py-0.5 font-mono text-xs text-text-muted transition-colors hover:border-border-focus hover:text-text-secondary"
           >
             {hint.variable}
           </button>
         ))}
       </div>
-      <div className="flex gap-2 justify-end pt-1">
-        <button
-          onClick={onCancel}
-          className="px-3 py-1 text-sm text-text-secondary hover:text-text-primary transition-colors"
-        >
+      <div className="flex justify-end gap-2 pt-1">
+        <Button variant="ghost" size="sm" onClick={onCancel}>
           Cancel
-        </button>
-        <button
+        </Button>
+        <Button
+          variant="primary"
+          size="sm"
           onClick={onSave}
           disabled={!name.trim() || !command.trim()}
-          className="px-3 py-1 text-sm bg-accent text-white rounded hover:bg-accent-hover transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
           Save
-        </button>
+        </Button>
       </div>
     </div>
   );
 
+  const toolbar = (
+    <div className="flex gap-1">
+      <Button
+        variant="ghost"
+        size="sm"
+        className="border border-border"
+        title="Import snippets from JSON"
+        onClick={handleImportClick}
+      >
+        <Upload size={12} />
+        Import
+      </Button>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="border border-border"
+        title="Export snippets to JSON"
+        disabled={snippets.length === 0}
+        onClick={handleExport}
+      >
+        <Download size={12} />
+        Export
+      </Button>
+      <Button variant="primary" size="sm" onClick={startAdd}>
+        <Plus size={12} />
+        New
+      </Button>
+    </div>
+  );
+
   return (
-    <div className="space-y-4">
+    <div className="space-y-8">
+      <SettingsSection
+        title="Snippets"
+        description="Run from the command palette or sidebar"
+        action={toolbar}
+        card={false}
+      >
+        {isAdding && editForm(saveNew, cancelEdit)}
+
+        {categories.length === 0 && !isAdding ? (
+          <EmptyState
+            icon={ScrollText}
+            title="No snippets yet"
+            hint="Save commands you run often, then launch them from the palette or sidebar."
+            action={{ label: "New snippet", onClick: startAdd }}
+          />
+        ) : (
+          categories.map((cat) => {
+            const isExpanded = expandedCategories.has(cat);
+            const label = cat === "__none__" ? "Uncategorized" : cat;
+            return (
+              <div key={cat} className="space-y-1">
+                {categories.length > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => toggleCategory(cat)}
+                    className="flex w-full items-center gap-1.5 py-0.5 text-xs text-text-muted transition-colors hover:text-text-secondary"
+                  >
+                    <Tag size={11} />
+                    <span className="font-medium uppercase tracking-wide">{label}</span>
+                    <span className="ml-1 text-text-muted">({grouped[cat].length})</span>
+                    <span className="ml-auto">
+                      {isExpanded ? (
+                        <ChevronDown size={13} />
+                      ) : (
+                        <ChevronRight size={13} />
+                      )}
+                    </span>
+                  </button>
+                )}
+                {(isExpanded || categories.length === 1) &&
+                  grouped[cat].map((s) => (
+                    <div key={s.id}>
+                      {editingId === s.id ? (
+                        editForm(saveEdit, cancelEdit)
+                      ) : (
+                        <div className="group flex items-start gap-2 rounded-lg border border-border bg-bg-secondary p-2.5 transition-colors hover:border-border-focus">
+                          <div className="min-w-0 flex-1">
+                            <div className="truncate text-sm font-medium text-text-primary">
+                              {s.name}
+                            </div>
+                            <div className="mt-0.5 truncate font-mono text-xs text-text-muted">
+                              {s.command.slice(0, 80)}
+                              {s.command.length > 80 ? "…" : ""}
+                            </div>
+                          </div>
+                          <div className="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+                            <IconButton
+                              title="Run snippet"
+                              onClick={() => runSnippet(s)}
+                              className="hover:text-success"
+                            >
+                              <Play size={13} />
+                            </IconButton>
+                            <IconButton title="Edit snippet" onClick={() => startEdit(s)}>
+                              <Edit2 size={13} />
+                            </IconButton>
+                            <IconButton
+                              title="Delete snippet"
+                              onClick={() => setDeletingId(s.id)}
+                              className="hover:text-error"
+                            >
+                              <Trash2 size={13} />
+                            </IconButton>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+              </div>
+            );
+          })
+        )}
+      </SettingsSection>
+
       {/* Hidden file input for import */}
       <input
         ref={fileInputRef}
@@ -245,108 +386,22 @@ export default function SnippetsPanel() {
         onChange={handleFileChange}
       />
 
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-text-secondary">
-          Saved commands — run from the command palette or sidebar.
-        </p>
-        <div className="flex gap-1">
-          <button
-            onClick={handleImportClick}
-            className="flex items-center gap-1 px-2 py-1 text-xs text-text-secondary hover:text-text-primary border border-border rounded hover:border-border-focus transition-colors"
-            title="Import snippets from JSON"
-          >
-            <Upload size={12} />
-            Import
-          </button>
-          <button
-            onClick={handleExport}
-            className="flex items-center gap-1 px-2 py-1 text-xs text-text-secondary hover:text-text-primary border border-border rounded hover:border-border-focus transition-colors"
-            title="Export snippets to JSON"
-            disabled={snippets.length === 0}
-          >
-            <Download size={12} />
-            Export
-          </button>
-          <button
-            onClick={startAdd}
-            className="flex items-center gap-1 px-2 py-1 text-xs bg-accent text-white rounded hover:bg-accent-hover transition-colors"
-          >
-            <Plus size={12} />
-            New
-          </button>
-        </div>
-      </div>
-
-      {isAdding && editForm(saveNew, cancelEdit)}
-
-      {categories.length === 0 && !isAdding && (
-        <p className="text-sm text-text-muted text-center py-6">
-          No snippets yet. Click &ldquo;New&rdquo; to create one.
-        </p>
-      )}
-
-      {categories.map((cat) => {
-        const isExpanded = expandedCategories.has(cat);
-        const label = cat === "__none__" ? "Uncategorized" : cat;
-        return (
-          <div key={cat} className="space-y-1">
-            {categories.length > 1 && (
-              <button
-                onClick={() => toggleCategory(cat)}
-                className="flex items-center gap-1.5 text-xs text-text-muted hover:text-text-secondary w-full py-0.5 transition-colors"
-              >
-                <Tag size={11} />
-                <span className="font-medium uppercase tracking-wide">{label}</span>
-                <span className="ml-1 text-text-muted">({grouped[cat].length})</span>
-                <span className="ml-auto">{isExpanded ? "▾" : "▸"}</span>
-              </button>
-            )}
-            {(isExpanded || categories.length === 1) &&
-              grouped[cat].map((s) => (
-                <div key={s.id}>
-                  {editingId === s.id ? (
-                    editForm(saveEdit, cancelEdit)
-                  ) : (
-                    <div className="group flex items-start gap-2 p-2.5 rounded-lg bg-bg-secondary border border-border hover:border-border-focus transition-colors">
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium text-text-primary truncate">
-                          {s.name}
-                        </div>
-                        <div className="text-xs text-text-muted font-mono truncate mt-0.5">
-                          {s.command.slice(0, 80)}
-                          {s.command.length > 80 ? "…" : ""}
-                        </div>
-                      </div>
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity shrink-0">
-                        <button
-                          onClick={() => runSnippet(s)}
-                          className="p-1 text-text-muted hover:text-success transition-colors"
-                          title="Run snippet"
-                        >
-                          <Play size={13} />
-                        </button>
-                        <button
-                          onClick={() => startEdit(s)}
-                          className="p-1 text-text-muted hover:text-text-primary transition-colors"
-                          title="Edit snippet"
-                        >
-                          <Edit2 size={13} />
-                        </button>
-                        <button
-                          onClick={() => deleteSnippet(s.id)}
-                          className="p-1 text-text-muted hover:text-error transition-colors"
-                          title="Delete snippet"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              ))}
-          </div>
-        );
-      })}
+      <ConfirmDialog
+        open={deletingId !== null}
+        title="Delete snippet"
+        message={
+          deletingSnippet
+            ? `Delete "${deletingSnippet.name}"? This can't be undone.`
+            : "Delete this snippet? This can't be undone."
+        }
+        confirmLabel="Delete"
+        variant="danger"
+        onConfirm={() => {
+          if (deletingId) deleteSnippet(deletingId);
+          setDeletingId(null);
+        }}
+        onCancel={() => setDeletingId(null)}
+      />
     </div>
   );
 }

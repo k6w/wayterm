@@ -210,6 +210,7 @@ pub fn run() {
             commands::sftp::sftp_chmod,
             commands::sftp::local_list_dir,
             window::set_vibrancy,
+            window::set_traffic_light_scale,
             get_launch_cwd,
             get_home_dir,
         ])
