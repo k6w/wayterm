@@ -1,80 +1,69 @@
-# Nexterm
+# nexterm
 
-A modern, cross-platform terminal emulator built with Tauri, React, and Rust. Features split panes, SSH/SFTP management, Git integration, and a glassmorphism UI with 18 built-in themes.
+a terminal that does a bit more than terminals usually do. split panes, ssh and sftp, a real git panel, a database client, and a settings screen that actually looks designed. built with tauri, react and rust so it stays fast and small.
 
-## Features
+## what's in it
 
-- **Terminal Emulator** — GPU-accelerated rendering via xterm.js WebGL, split panes (horizontal/vertical), drag-and-drop tab management
-- **SSH Connections** — Password and key-based authentication, connection profiles, host key verification via `~/.ssh/known_hosts`
-- **SFTP File Browser** — Browse, upload, download, rename, and delete remote files with a transfer queue and conflict resolution
-- **Port Forwarding** — Local port forwards through SSH tunnels
-- **Git Integration** — Branch management, commit, push, pull, stash, and diff viewer from the sidebar
-- **18 Built-in Themes** — Nexterm Dark/Light, Monokai Pro, Dracula, Nord, Solarized, One Dark, Catppuccin Mocha, Tokyo Night, Gruvbox, Rose Pine, Everforest, Kanagawa, GitHub Dark, Vibrant Dark/Light — plus custom theme editor
-- **Command Palette** — Quick access to all actions (`Ctrl+Shift+P`)
-- **Workspaces** — Save and restore terminal layouts
-- **Clipboard Manager** — Clipboard history with search
-- **Buffer Persistence** — Restore terminal content across sessions
-- **System Tray** — Minimize to tray, single-instance enforcement
-- **Auto Updates** — Automatic updates from GitHub Releases
-- **Platform Native** — Window vibrancy (macOS/Windows), context menu integration (Windows), keyboard shortcuts
+- **terminal** gpu-accelerated rendering (xterm.js webgl), split panes, drag-to-reorder tabs
+- **ssh** password or key auth, saved connections, jump hosts, known_hosts verification
+- **sftp** a dual-pane file browser with a transfer queue and conflict handling
+- **port forwarding** local, remote and dynamic tunnels over ssh
+- **git** stage, commit, push, pull, branches, stash and a diff viewer right in the sidebar. no repo yet? there's a button for that
+- **database** postgres, mysql, sqlite and mongodb with a query editor and history
+- **themes** 18 built in (nexterm dark/light, dracula, nord, monokai pro, solarized, one dark, catppuccin mocha, tokyo night, gruvbox, rose pine, everforest, kanagawa, github dark, vibrant dark/light), plus a custom theme editor and iterm/windows terminal import
+- **command palette** everything is a keystroke away (ctrl+shift+p)
+- **snippets** save commands with variables and run them from anywhere
+- **workspaces** save a layout, get it back later
+- clipboard history, buffer persistence across restarts, system tray, auto updates
+- **native touches** window vibrancy, proper traffic-light handling on macos, per-platform shortcuts
 
-## Installation
+## install
 
-Download the latest release for your platform from the [Releases](https://github.com/k6w/nexterm-terminal-app/releases) page:
+grab the latest build for your os from the [releases](https://github.com/k6w/nexterm-terminal-app/releases) page:
 
-- **Windows** — `.msi` (recommended) or `.exe` installer
-- **macOS** — `.dmg` (Apple Silicon and Intel)
-- **Linux** — `.deb` or `.AppImage`
+- windows: `.msi` (or the `.exe` installer)
+- macos: `.dmg` (apple silicon and intel)
+- linux: `.deb` or `.appimage`
 
-## Build from Source
+## build it yourself
 
-### Prerequisites
-
-- [Node.js](https://nodejs.org/) 22+
-- [Rust](https://rustup.rs/) stable
-- Platform-specific dependencies (see below)
-
-### Linux Dependencies
+you'll need [node](https://nodejs.org/) 22+ and [rust](https://rustup.rs/) (stable). on linux, grab the system deps first:
 
 ```bash
-sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
+sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libudev-dev pkg-config
 ```
 
-### Build
+then:
 
 ```bash
 npm ci
-npm run tauri build
+npm run tauri dev      # run it locally
+npm run tauri build    # or build the installers
 ```
 
-### Development
+## shortcuts
 
-```bash
-npm ci
-npm run tauri dev
-```
+| what | windows/linux | macos |
+|------|---------------|-------|
+| new tab | ctrl+t | cmd+t |
+| close tab | ctrl+w | cmd+w |
+| next tab | ctrl+tab | cmd+tab |
+| previous tab | ctrl+shift+tab | cmd+shift+tab |
+| split horizontal | ctrl+shift+h | cmd+shift+h |
+| split vertical | ctrl+shift+v | cmd+shift+v |
+| toggle sidebar | ctrl+b | cmd+b |
+| command palette | ctrl+shift+p | cmd+shift+p |
+| settings | ctrl+, | cmd+, |
+| search | ctrl+f | cmd+f |
 
-## Keyboard Shortcuts
+all of these are editable in settings.
 
-| Action | Windows/Linux | macOS |
-|--------|--------------|-------|
-| New Tab | `Ctrl+T` | `Cmd+T` |
-| Close Tab | `Ctrl+W` | `Cmd+W` |
-| Next Tab | `Ctrl+Tab` | `Cmd+Tab` |
-| Previous Tab | `Ctrl+Shift+Tab` | `Cmd+Shift+Tab` |
-| Split Horizontal | `Ctrl+Shift+H` | `Cmd+Shift+H` |
-| Split Vertical | `Ctrl+Shift+V` | `Cmd+Shift+V` |
-| Toggle Sidebar | `Ctrl+B` | `Cmd+B` |
-| Command Palette | `Ctrl+Shift+P` | `Cmd+Shift+P` |
-| Settings | `Ctrl+,` | `Cmd+,` |
-| Search | `Ctrl+F` | `Cmd+F` |
+## under the hood
 
-## Tech Stack
+- front end: react 19, typescript, tailwind v4, xterm.js, zustand, framer motion
+- back end: tauri v2, rust, rusqlite, russh, portable-pty
+- build: vite 7, github actions
 
-- **Frontend:** React 19, TypeScript, Tailwind CSS v4, xterm.js (WebGL), Zustand, Framer Motion
-- **Backend:** Tauri v2, Rust, rusqlite, russh, portable-pty
-- **Build:** Vite 7, GitHub Actions CI/CD
+## license
 
-## License
-
-Copyright 2026 Nexterm
+copyright 2026 nexterm
