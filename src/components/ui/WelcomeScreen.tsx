@@ -78,13 +78,19 @@ export function WelcomeScreen({ onDismiss }: WelcomeScreenProps) {
   };
 
   return (
-    <div className="h-full w-full flex flex-col items-center justify-center">
+    <div className="relative h-full w-full flex flex-col items-center justify-center">
+      <button
+        onClick={onDismiss}
+        className="absolute top-4 right-4 px-3 py-1.5 text-xs text-text-muted hover:text-text-primary transition-colors"
+      >
+        Skip
+      </button>
       <div className="flex gap-1.5 mb-8">
         {[0, 1, 2, 3].map((i) => (
           <div
             key={i}
             className={`h-1 rounded-full transition-all duration-300 ${
-              i === step ? "w-6 bg-accent" : i < step ? "w-1.5 bg-accent/40" : "w-1.5 bg-white/10"
+              i === step ? "w-6 bg-accent" : i < step ? "w-1.5 bg-accent/40" : "w-1.5 bg-overlay/10"
             }`}
           />
         ))}
@@ -124,7 +130,7 @@ export function WelcomeScreen({ onDismiss }: WelcomeScreenProps) {
                 ].map(({ icon: Icon, title, desc }) => (
                   <div
                     key={title}
-                    className="px-3 py-3 rounded-xl bg-white/[0.03] border border-white/[0.07]"
+                    className="px-3 py-3 rounded-xl bg-overlay/[0.03] border border-border"
                   >
                     <Icon size={16} className="text-accent mb-2" />
                     <p className="text-xs font-medium text-text-primary mb-0.5">{title}</p>
@@ -235,7 +241,7 @@ export function WelcomeScreen({ onDismiss }: WelcomeScreenProps) {
                     className={`rounded-lg border overflow-hidden text-left transition-all ${
                       selectedThemeId === t.id
                         ? "border-accent ring-1 ring-accent"
-                        : "border-white/[0.1] hover:border-white/[0.2]"
+                        : "border-border hover:border-border"
                     }`}
                   >
                     <ThemeCard theme={t} selected={selectedThemeId === t.id} />
@@ -289,9 +295,9 @@ export function WelcomeScreen({ onDismiss }: WelcomeScreenProps) {
                 {SHORTCUTS.map((s) => (
                   <div
                     key={s.keys}
-                    className="flex items-center gap-3 px-3 py-2 rounded-lg bg-white/[0.03] border border-white/[0.06]"
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg bg-overlay/[0.03] border border-border"
                   >
-                    <kbd className="px-1.5 py-0.5 bg-white/[0.08] rounded text-[10px] text-text-muted font-mono shrink-0 whitespace-nowrap">
+                    <kbd className="px-1.5 py-0.5 bg-overlay/[0.08] rounded text-[10px] text-text-muted font-mono shrink-0 whitespace-nowrap">
                       {s.keys}
                     </kbd>
                     <span className="text-xs text-text-secondary">{s.action}</span>

@@ -147,7 +147,7 @@ export default function Tab({
     >
       {}
       {isDragTarget && (
-        <div className="absolute inset-0 z-10 rounded bg-accent/20 border-2 border-accent/40 pointer-events-none" />
+        <div className="absolute inset-0 z-10 rounded-lg bg-accent/20 border-2 border-accent/40 pointer-events-none" />
       )}
 
       <motion.div
@@ -157,16 +157,15 @@ export default function Tab({
         exit={{ opacity: 0, x: isVertical ? 0 : -10, y: isVertical ? -10 : 0 }}
         transition={{ duration: 0.14, ease: "easeOut" }}
         className={`
-          relative flex items-center gap-2 text-xs transition-all select-none cursor-default
-          px-3 shrink-0
-          ${isVertical ? 'w-full min-h-[40px] py-2 justify-start' : 'h-full max-w-[180px]'}
+          relative flex items-center gap-2 text-xs transition-colors select-none cursor-default
+          px-3 shrink-0 rounded-lg
+          ${isVertical ? 'w-full min-h-[40px] py-2 justify-start' : 'h-[31px] my-[3px] mx-0.5 max-w-[180px]'}
           ${tab.isActive
-            ? "text-text-primary"
-            : "text-text-primary/55 hover:text-text-primary/85 hover:bg-white/[0.04]"
+            ? "text-text-primary bg-overlay/[0.08]"
+            : "text-text-primary/55 hover:text-text-primary/85 hover:bg-overlay/[0.04]"
           }
           ${isDragSource ? "opacity-40" : ""}
         `}
-        style={tab.isActive ? { backgroundColor: "rgba(255,255,255,0.07)" } : undefined}
         onClick={() => onClick(tab.id)}
         onDoubleClick={handleDoubleClick}
       >
@@ -215,7 +214,7 @@ export default function Tab({
         {(hovered || tab.isActive) && !editing && (
           <span
             data-close-btn
-            className="ml-auto flex size-4 shrink-0 items-center justify-center rounded-sm hover:bg-white/10"
+            className="ml-auto flex size-4 shrink-0 items-center justify-center rounded-sm hover:bg-overlay/10"
             onClick={(e) => {
               e.stopPropagation();
               onClose(tab.id);
@@ -229,10 +228,10 @@ export default function Tab({
         {tab.isActive && (
           <motion.span
             layoutId="active-tab-indicator"
-            className={`absolute bg-accent ${
-              isVertical 
-                ? 'left-0 top-0 w-[3px] h-full' 
-                : 'bottom-0 left-0 h-[2px] w-full'
+            className={`absolute bg-accent rounded-full ${
+              isVertical
+                ? 'left-0 top-1.5 bottom-1.5 w-[3px]'
+                : 'bottom-[1px] left-3 right-3 h-[2px]'
             }`}
             transition={{ type: "spring", stiffness: 500, damping: 35 }}
           />

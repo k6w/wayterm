@@ -49,7 +49,7 @@ export default function DropZoneOverlay({ activeZone }: DropZoneOverlayProps) {
             className={`absolute flex flex-col items-center justify-center gap-1.5 transition-all duration-150 ${position} ${
               isActive
                 ? "bg-accent/20 border-2 border-dashed border-accent/60"
-                : "bg-white/[0.02] border-2 border-dashed border-transparent"
+                : "bg-overlay/[0.02] border-2 border-dashed border-transparent"
             }`}
           >
             <Icon

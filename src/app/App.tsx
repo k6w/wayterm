@@ -12,7 +12,10 @@ import SerialDialog from "../components/serial/SerialDialog";
 import Scratchpad from "../components/terminal/Scratchpad";
 import StatusBar from "../components/terminal/StatusBar";
 import UpdateNotification from "../components/ui/UpdateNotification";
+import { ToastContainer } from "../components/ui/ToastContainer";
+import { EmptyState } from "../components/ui/EmptyState";
 import { WelcomeScreen } from "../components/ui/WelcomeScreen";
+import { Terminal as TerminalIcon } from "lucide-react";
 import { useTerminalStore } from "../stores/terminal";
 import { useSettingsStore } from "../stores/settings";
 import { useThemeStore } from "../stores/theme";
@@ -22,7 +25,7 @@ import { onSftpTransferProgress } from "../lib/ipc";
 import { useWorkspaceStore } from "../stores/workspace";
 import { getPreferredShell } from "../lib/shell-detect";
 import { hexToRgba } from "../lib/color";
-import { isMac, vibrancyAlpha } from "../lib/platform";
+import { isMac, vibrancyAlpha, MAC_TRAFFIC_LIGHT_TOP } from "../lib/platform";
 import {
   startBufferAutoSave,
   stopBufferAutoSave,
@@ -157,6 +160,11 @@ function AppContent() {
           : undefined
       }
     >
+      {/* When the title bar isn't along the top, reserve a full-width draggable
+          strip so no chrome sits under the native macOS traffic lights. */}
+      {isMac && tabPosition !== 'top' && (
+        <div data-tauri-drag-region className="w-full shrink-0" style={{ height: MAC_TRAFFIC_LIGHT_TOP }} />
+      )}
       {tabPosition === 'top' && <Titlebar />}
       <UpdateNotification />
       <div className="flex-1 min-h-0 flex flex-row overflow-hidden">
@@ -183,9 +191,12 @@ function AppContent() {
             }} />
           )}
           {tabs.length === 0 && !showWelcome && (
-            <div className="h-full flex items-center justify-center text-text-muted">
-              <p className="text-sm">No active session. Press {isMac ? "Cmd" : "Ctrl"}+T to open a new tab.</p>
-            </div>
+            <EmptyState
+              fill
+              icon={TerminalIcon}
+              title="No active session"
+              hint={`Press ${isMac ? "⌘" : "Ctrl"}+T to open a new tab.`}
+            />
           )}
         </div>
         {tabPosition === 'right' && <Titlebar />}
@@ -206,6 +217,7 @@ function AppContent() {
         onConnect={handleSerialConnect}
       />
       <Scratchpad />
+      <ToastContainer />
     </div>
   );
 }

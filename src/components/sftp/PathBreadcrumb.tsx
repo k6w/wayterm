@@ -86,7 +86,7 @@ export default function PathBreadcrumb({
   return (
     <div className="flex items-center gap-0.5 overflow-x-auto text-xs min-w-0 px-2 py-1 flex-1">
       {label && (
-        <span className="shrink-0 rounded bg-white/[0.06] px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-text-muted mr-1.5">
+        <span className="shrink-0 rounded bg-overlay/[0.06] px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-text-muted mr-1.5">
           {label}
         </span>
       )}
@@ -151,7 +151,7 @@ export default function PathBreadcrumb({
             <div className="absolute right-0 top-full mt-1 z-50 min-w-[200px] rounded-lg border border-border bg-bg-secondary shadow-xl overflow-hidden">
               <div className="py-1 max-h-[200px] overflow-y-auto">
                 {sftpBookmarks.map((bm) => (
-                  <div key={bm.id} className="group flex items-center gap-2 px-2 py-1.5 hover:bg-white/[0.06]">
+                  <div key={bm.id} className="group flex items-center gap-2 px-2 py-1.5 hover:bg-overlay/[0.06]">
                     <button
                       className="flex-1 text-left text-xs text-text-secondary hover:text-text-primary truncate"
                       onClick={() => { onNavigate(bm.path); setDropdownOpen(false); }}

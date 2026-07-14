@@ -155,7 +155,6 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         ...pane,
         id: newId,
         sessionId: "",
-        blocks: [],
       };
     }
 
@@ -240,7 +239,6 @@ export const useWorkspaceStore = create<WorkspaceState>((set, get) => ({
         ...pane,
         id: newId,
         sessionId: "",
-        blocks: [],
       };
     }
 

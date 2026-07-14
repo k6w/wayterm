@@ -173,7 +173,7 @@ export default function KeysPanel() {
             <p className="text-sm text-text-muted mb-3">No SSH keys stored</p>
             <button
               onClick={() => setImportMode("paste")}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs bg-white/[0.08] rounded-md text-text-secondary hover:text-text-primary hover:bg-white/[0.14] transition-colors"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs bg-overlay/[0.08] rounded-md text-text-secondary hover:text-text-primary hover:bg-overlay/[0.14] transition-colors"
             >
               <Plus size={12} />
               Import your first key
@@ -202,7 +202,7 @@ export default function KeysPanel() {
                     title="Copy public key"
                   >
                     {copiedId === key.id ? (
-                      <Check size={14} className="text-green-400" />
+                      <Check size={14} className="text-success" />
                     ) : (
                       <Copy size={14} />
                     )}

@@ -3,7 +3,6 @@ import type {
   TerminalTab,
   TerminalPane,
   SplitNode,
-  Block,
   ShellType,
 } from "../types/terminal";
 import { getDefaultShell } from "../lib/shell-detect";
@@ -78,18 +77,6 @@ interface TerminalState {
 
   getPaneCount: (tabId?: string | null) => number;
 
-  addBlock: (paneId: string, block: Block) => void;
-  updateBlock: (
-    paneId: string,
-    blockId: string,
-    updates: Partial<Block>
-  ) => void;
-  appendBlockOutput: (
-    paneId: string,
-    blockId: string,
-    output: string
-  ) => void;
-
   setBellAlert: (tabId: string, hasBell: boolean) => void;
   toggleZoom: () => void;
   toggleSidebar: () => void;
@@ -141,7 +128,6 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
     const pane: TerminalPane = {
       id: paneId,
       sessionId: "",
-      blocks: [],
       isActive: true,
       cwd: initialCwd || "",
       shellType,
@@ -305,55 +291,6 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
     });
   },
 
-  addBlock: (paneId: string, block: Block) => {
-    set((state) => {
-      const pane = state.panes[paneId];
-      if (!pane) return state;
-      return {
-        panes: {
-          ...state.panes,
-          [paneId]: { ...pane, blocks: [...pane.blocks, block] },
-        },
-      };
-    });
-  },
-
-  updateBlock: (paneId, blockId, updates) => {
-    set((state) => {
-      const pane = state.panes[paneId];
-      if (!pane) return state;
-      return {
-        panes: {
-          ...state.panes,
-          [paneId]: {
-            ...pane,
-            blocks: pane.blocks.map((b) =>
-              b.id === blockId ? { ...b, ...updates } : b
-            ),
-          },
-        },
-      };
-    });
-  },
-
-  appendBlockOutput: (paneId, blockId, output) => {
-    set((state) => {
-      const pane = state.panes[paneId];
-      if (!pane) return state;
-      return {
-        panes: {
-          ...state.panes,
-          [paneId]: {
-            ...pane,
-            blocks: pane.blocks.map((b) =>
-              b.id === blockId ? { ...b, output: b.output + output } : b
-            ),
-          },
-        },
-      };
-    });
-  },
-
   mergeTabIntoPane: (sourceTabId, targetPaneId, zone) => {
     if (!zone) return;
     set((state) => {
@@ -506,7 +443,6 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
           const newPane: TerminalPane = {
             id: newPaneId,
             sessionId: "",
-            blocks: [],
             isActive: false,
             cwd: "",
             shellType: tab.shellType,
@@ -520,12 +456,6 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
         const newPane: TerminalPane = {
           id: newPaneId,
           sessionId: "",
-          blocks: originalPane.blocks.map(block => ({
-            ...block,
-            id: crypto.randomUUID(),
-            startedAt: new Date().toISOString(),
-            finishedAt: block.finishedAt ? new Date().toISOString() : null,
-          })),
           isActive: false,
           cwd: originalPane.cwd,
           shellType: originalPane.shellType,

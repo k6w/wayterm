@@ -101,12 +101,12 @@ function FileDiff({ diff, splitMode }: FileDiffProps) {
   const lines = parseDiff(diff.changes);
 
   return (
-    <div className="mb-4 border border-white/[0.08] rounded-lg overflow-hidden">
+    <div className="mb-4 border border-border rounded-lg overflow-hidden">
       {/* File header */}
       <button
         type="button"
         onClick={() => setCollapsed((p) => !p)}
-        className="w-full flex items-center justify-between px-3 py-2 bg-white/[0.04] hover:bg-white/[0.06] transition-colors text-left"
+        className="w-full flex items-center justify-between px-3 py-2 bg-overlay/[0.04] hover:bg-overlay/[0.06] transition-colors text-left"
       >
         <span className="text-xs font-mono text-text-primary truncate">{diff.file}</span>
         <div className="flex items-center gap-2 shrink-0 ml-2">
@@ -138,10 +138,10 @@ function UnifiedView({ lines }: { lines: DiffLine[] }) {
       <tbody>
         {lines.map((line, i) => (
           <tr key={i} className={lineClass(line.type)}>
-            <td className="w-10 text-right px-1.5 py-0 text-text-muted select-none border-r border-white/[0.06] align-top text-[10px]">
+            <td className="w-10 text-right px-1.5 py-0 text-text-muted select-none border-r border-border align-top text-[10px]">
               {line.type !== 'hunk' ? (line.oldLineNo ?? '') : ''}
             </td>
-            <td className="w-10 text-right px-1.5 py-0 text-text-muted select-none border-r border-white/[0.06] align-top text-[10px]">
+            <td className="w-10 text-right px-1.5 py-0 text-text-muted select-none border-r border-border align-top text-[10px]">
               {line.type !== 'hunk' ? (line.newLineNo ?? '') : ''}
             </td>
             <td className="w-4 px-1 py-0 text-center select-none align-top">
@@ -180,7 +180,7 @@ function SplitView({ lines }: { lines: DiffLine[] }) {
           return (
             <tr key={i}>
               {/* Left side */}
-              <td className="w-9 text-right px-1 py-0 text-text-muted select-none border-r border-white/[0.04] text-[10px] align-top" style={{ minWidth: '2rem' }}>
+              <td className="w-9 text-right px-1 py-0 text-text-muted select-none border-r border-border text-[10px] align-top" style={{ minWidth: '2rem' }}>
                 {left?.oldLineNo ?? ''}
               </td>
               <td
@@ -190,7 +190,7 @@ function SplitView({ lines }: { lines: DiffLine[] }) {
                 {left ? `${linePrefix(left.type)}${left.content}` : ''}
               </td>
               {/* Right side */}
-              <td className="w-9 text-right px-1 py-0 text-text-muted select-none border-r border-white/[0.04] text-[10px] align-top" style={{ minWidth: '2rem' }}>
+              <td className="w-9 text-right px-1 py-0 text-text-muted select-none border-r border-border text-[10px] align-top" style={{ minWidth: '2rem' }}>
                 {right?.newLineNo ?? ''}
               </td>
               <td className={`px-2 py-0 whitespace-pre align-top w-1/2 ${right ? lineClass(right.type) : ''}`}>
@@ -218,7 +218,7 @@ export default function DiffViewer({ diffs }: DiffViewerProps) {
   return (
     <div className="flex flex-col h-full">
       {/* Toolbar */}
-      <div className="flex items-center justify-between px-3 py-1.5 border-b border-white/[0.08]">
+      <div className="flex items-center justify-between px-3 py-1.5 border-b border-border">
         <span className="text-[11px] text-text-muted">{diffs.length} file{diffs.length !== 1 ? 's' : ''} changed</span>
         <div className="flex items-center gap-1">
           <button

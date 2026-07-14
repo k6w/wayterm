@@ -85,7 +85,7 @@ export function SearchBar({ searchAddon, onClose }: SearchBarProps) {
       animate={{ y: 0, opacity: 1 }}
       exit={{ y: -50, opacity: 0 }}
       transition={{ type: 'spring', stiffness: 300, damping: 30 }}
-      className="flex items-center gap-2 px-3 py-2 bg-overlay/[0.05] border-b border-white/[0.08] rounded-t-lg"
+      className="flex items-center gap-2 px-3 py-2 bg-overlay/[0.05] border-b border-border rounded-t-lg"
     >
       <Search className="w-3.5 h-3.5 text-text-muted shrink-0" />
       
@@ -99,7 +99,7 @@ export function SearchBar({ searchAddon, onClose }: SearchBarProps) {
         onChange={(e) => handleSearch(e.target.value)}
         onKeyDown={handleKeyDown}
         placeholder="Find in terminal..."
-        className="flex-1 px-2 py-1 bg-overlay/[0.05] border border-white/[0.08] rounded text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent"
+        className="flex-1 px-2 py-1 bg-overlay/[0.05] border border-border rounded text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:ring-1 focus:ring-accent"
       />
 
       <motion.div 
@@ -143,7 +143,7 @@ export function SearchBar({ searchAddon, onClose }: SearchBarProps) {
         initial={{ opacity: 0, x: -10 }}
         animate={{ opacity: 1, x: 0 }}
         transition={{ delay: 0.2 }}
-        className="flex items-center gap-1 border-l border-white/[0.08] pl-2"
+        className="flex items-center gap-1 border-l border-border pl-2"
       >
         <motion.button
           whileHover={{ scale: 1.1, y: -2 }}

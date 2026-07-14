@@ -72,8 +72,8 @@ export default function TofuDialog({ open, pendingKey, onTrust, onCancel }: Tofu
             onClick={(e) => e.stopPropagation()}
           >
             <div className="px-5 pt-5 pb-4 flex gap-3.5">
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-yellow-500/15">
-                <ShieldAlert size={18} className="text-yellow-400" />
+              <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-warning/15">
+                <ShieldAlert size={18} className="text-warning" />
               </div>
               <div className="flex-1 min-w-0">
                 <h3 className="text-sm font-medium text-text-primary">Unknown Host</h3>

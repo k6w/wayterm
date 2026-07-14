@@ -3,7 +3,9 @@ export interface GitStatus {
   ahead: number;
   behind: number;
   staged: string[];
-  unstaged: string[];
+  modified: string[];
+  added: string[];
+  deleted: string[];
   untracked: string[];
   conflicted: number;
   stashes: number;

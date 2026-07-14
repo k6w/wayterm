@@ -2,6 +2,7 @@ import { useState, useCallback, useMemo } from "react";
 import { Layout, Save, Trash2, RotateCcw, RefreshCw } from "lucide-react";
 import { useWorkspaceStore } from "../../stores/workspace";
 import ConfirmDialog from "../ui/ConfirmDialog";
+import { EmptyState } from "../ui/EmptyState";
 
 export default function WorkspaceList() {
   const allWorkspaces = useWorkspaceStore((s) => s.workspaces);
@@ -63,12 +64,12 @@ export default function WorkspaceList() {
             onChange={(e) => setNameInput(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && handleSave()}
             placeholder="Workspace name..."
-            className="min-w-0 flex-1 rounded-md bg-white/[0.06] px-2 py-1 text-xs text-text-primary outline-none placeholder:text-text-muted focus:bg-white/[0.1]"
+            className="min-w-0 flex-1 rounded-md bg-overlay/[0.06] px-2 py-1 text-xs text-text-primary outline-none placeholder:text-text-muted focus:bg-overlay/[0.1]"
           />
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex items-center gap-1 rounded-md bg-white/[0.08] px-2 py-1 text-xs text-text-secondary transition-colors hover:bg-white/[0.14] hover:text-text-primary disabled:opacity-50"
+            className="flex items-center gap-1 rounded-md bg-overlay/[0.08] px-2 py-1 text-xs text-text-secondary transition-colors hover:bg-overlay/[0.14] hover:text-text-primary disabled:opacity-50"
           >
             <Save size={12} />
             <span>Save</span>
@@ -77,16 +78,13 @@ export default function WorkspaceList() {
       </div>
 
       {workspaces.length === 0 ? (
-        <div className="flex flex-col items-center gap-2 px-3 py-4">
-          <Layout size={16} className="text-text-muted/50" />
-          <span className="text-[11px] text-text-muted">No saved workspaces</span>
-        </div>
+        <EmptyState icon={Layout} title="No saved workspaces" />
       ) : (
         <div className="flex flex-col px-1">
           {workspaces.map((ws) => (
             <div
               key={ws.id}
-              className="group flex items-center gap-2.5 rounded-md px-2 py-2 transition-colors hover:bg-white/[0.06]"
+              className="group flex items-center gap-2.5 rounded-md px-2 py-2 transition-colors hover:bg-overlay/[0.06]"
             >
               <Layout size={14} className="shrink-0 text-text-muted" />
               <div className="flex min-w-0 flex-1 flex-col items-start">
@@ -100,21 +98,21 @@ export default function WorkspaceList() {
               <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
                 <button
                   onClick={() => restore(ws.id)}
-                  className="flex size-5 items-center justify-center rounded text-text-muted transition-colors hover:bg-white/[0.1] hover:text-text-primary"
+                  className="flex size-5 items-center justify-center rounded text-text-muted transition-colors hover:bg-overlay/[0.1] hover:text-text-primary"
                   title="Restore workspace"
                 >
                   <RotateCcw size={11} />
                 </button>
                 <button
                   onClick={() => update(ws.id)}
-                  className="flex size-5 items-center justify-center rounded text-text-muted transition-colors hover:bg-white/[0.1] hover:text-accent"
+                  className="flex size-5 items-center justify-center rounded text-text-muted transition-colors hover:bg-overlay/[0.1] hover:text-accent"
                   title="Update workspace with current session"
                 >
                   <RefreshCw size={11} />
                 </button>
                 <button
                   onClick={() => setDeleteTarget({ id: ws.id, name: ws.name })}
-                  className="flex size-5 items-center justify-center rounded text-text-muted transition-colors hover:bg-white/[0.1] hover:text-error"
+                  className="flex size-5 items-center justify-center rounded text-text-muted transition-colors hover:bg-overlay/[0.1] hover:text-error"
                   title="Delete workspace"
                 >
                   <Trash2 size={11} />

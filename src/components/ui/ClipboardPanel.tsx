@@ -30,7 +30,7 @@ export function ClipboardPanel() {
 
   return (
     <div className="flex flex-col h-full text-text-primary">
-      <div className="flex items-center justify-between p-3 border-b border-white/[0.08]">
+      <div className="flex items-center justify-between p-3 border-b border-border">
         <div className="flex items-center gap-2 flex-1">
           <Search className="w-3.5 h-3.5 text-text-muted shrink-0" />
           <input
@@ -92,7 +92,7 @@ export function ClipboardPanel() {
                 transition={{ delay: i * 0.03 }}
                 whileHover={{ scale: 1.02, x: 4 }}
                 whileTap={{ scale: 0.98 }}
-                className="group p-2.5 bg-white/[0.03] rounded border border-white/[0.08] hover:bg-white/[0.06] transition-colors cursor-pointer mb-2"
+                className="group p-2.5 bg-overlay/[0.03] rounded border border-border hover:bg-overlay/[0.06] transition-colors cursor-pointer mb-2"
                 onClick={() => handlePaste(entry.content)}
               >
                 <pre className="text-[10px] text-text-primary font-mono whitespace-pre-wrap break-words mb-2">
@@ -115,8 +115,8 @@ export function ClipboardPanel() {
                       }}
                       className={`p-1 rounded transition-colors ${
                         entry.favorite
-                          ? 'text-yellow-500 hover:text-yellow-600'
-                          : 'text-text-muted hover:bg-white/[0.08]'
+                          ? 'text-warning hover:text-warning'
+                          : 'text-text-muted hover:bg-overlay/[0.08]'
                       }`}
                       title="Favorite"
                     >
@@ -129,7 +129,7 @@ export function ClipboardPanel() {
                         e.stopPropagation();
                         handleCopy(entry.content);
                       }}
-                      className="p-1 rounded text-text-muted hover:bg-white/[0.08] transition-colors"
+                      className="p-1 rounded text-text-muted hover:bg-overlay/[0.08] transition-colors"
                       title="Copy"
                     >
                       <Copy className="w-3 h-3" />
@@ -162,7 +162,7 @@ export function ClipboardPanel() {
           initial={{ y: 20, opacity: 0 }}
           animate={{ y: 0, opacity: 1 }}
           exit={{ y: 20, opacity: 0 }}
-          className="px-3 py-2 border-t border-white/[0.08] text-[10px] text-text-muted"
+          className="px-3 py-2 border-t border-border text-[10px] text-text-muted"
         >
           {filteredEntries.length} {filteredEntries.length === 1 ? 'item' : 'items'}
         </motion.div>

@@ -10,6 +10,44 @@ use std::os::windows::process::CommandExt;
 #[cfg(target_os = "windows")]
 const CREATE_NO_WINDOW: u32 = 0x08000000;
 
+/// Categorize one `git status --porcelain` entry line (e.g. " M src/foo.rs")
+/// into the appropriate bucket. Header lines (starting with `##`) are handled
+/// by the caller. Porcelain v1 format is "XY <path>" where X is the index
+/// (staged) status and Y is the worktree status.
+fn categorize_status_line(
+    line: &str,
+    staged: &mut Vec<String>,
+    modified: &mut Vec<String>,
+    added: &mut Vec<String>,
+    deleted: &mut Vec<String>,
+    untracked: &mut Vec<String>,
+    conflicted: &mut i32,
+) {
+    if line.len() < 4 {
+        return;
+    }
+    let bytes = line.as_bytes();
+    let x = bytes[0] as char;
+    let y = bytes[1] as char;
+    let path = line[3..].to_string();
+
+    match (x, y) {
+        ('?', '?') => untracked.push(path),
+        ('U', _) | (_, 'U') | ('A', 'A') | ('D', 'D') => *conflicted += 1,
+        _ => {
+            if x != ' ' && x != '?' {
+                staged.push(path.clone());
+            }
+            match y {
+                'D' => deleted.push(path),
+                'A' => added.push(path),
+                'M' | 'T' | 'R' | 'C' => modified.push(path),
+                _ => {}
+            }
+        }
+    }
+}
+
 fn configure_silent_command(cmd: &mut Command) -> &mut Command {
     cmd.stdin(std::process::Stdio::null())
         .stdout(std::process::Stdio::piped())
@@ -78,9 +116,12 @@ pub struct GitStatus {
     pub branch: String,
     pub ahead: i32,
     pub behind: i32,
-    pub staged: i32,
-    pub unstaged: i32,
-    pub untracked: i32,
+    // File lists (real paths, not counts) so the panel can render and stage them.
+    pub staged: Vec<String>,
+    pub modified: Vec<String>,
+    pub added: Vec<String>,
+    pub deleted: Vec<String>,
+    pub untracked: Vec<String>,
     pub conflicted: i32,
     pub stashes: i32,
 }
@@ -176,9 +217,11 @@ pub async fn git_get_status(path: String, connection_id: Option<String>, pool: S
         .map_err(|e| format!("Failed to get status: {}", e))?;
 
     let status_str = String::from_utf8_lossy(&status_output.stdout);
-    let mut staged = 0;
-    let mut unstaged = 0;
-    let mut untracked = 0;
+    let mut staged: Vec<String> = Vec::new();
+    let mut modified: Vec<String> = Vec::new();
+    let mut added: Vec<String> = Vec::new();
+    let mut deleted: Vec<String> = Vec::new();
+    let mut untracked: Vec<String> = Vec::new();
     let mut conflicted = 0;
     let mut ahead = 0;
     let mut behind = 0;
@@ -200,22 +243,15 @@ pub async fn git_get_status(path: String, connection_id: Option<String>, pool: S
             continue;
         }
 
-        let chars: Vec<char> = line.chars().collect();
-        if chars.len() < 2 {
-            continue;
-        }
-
-        match (chars[0], chars[1]) {
-            ('?', '?') => untracked += 1,
-            ('U', _) | (_, 'U') | ('A', 'A') | ('D', 'D') => conflicted += 1,
-            (x, ' ') if x != ' ' && x != '?' => staged += 1,
-            (' ', y) if y != ' ' && y != '?' => unstaged += 1,
-            (x, y) if x != ' ' && y != ' ' && x != '?' && y != '?' => {
-                staged += 1;
-                unstaged += 1;
-            }
-            _ => {}
-        }
+        categorize_status_line(
+            line,
+            &mut staged,
+            &mut modified,
+            &mut added,
+            &mut deleted,
+            &mut untracked,
+            &mut conflicted,
+        );
     }
 
     let stash_output = configure_silent_command(Command::new("git")
@@ -231,7 +267,9 @@ pub async fn git_get_status(path: String, connection_id: Option<String>, pool: S
         ahead,
         behind,
         staged,
-        unstaged,
+        modified,
+        added,
+        deleted,
         untracked,
         conflicted,
         stashes,
@@ -244,6 +282,10 @@ pub async fn git_get_branches(path: String, connection_id: Option<String>, pool:
         return git_get_branches_ssh(&pool, &conn_id, &path).await;
     }
 
+    if !Path::new(&path).join(".git").exists() {
+        return Err("Not a git repository".to_string());
+    }
+
     let output = configure_silent_command(Command::new("git")
         .args(["branch", "-vv", "--all"])
         .current_dir(&path))
@@ -251,7 +293,7 @@ pub async fn git_get_branches(path: String, connection_id: Option<String>, pool:
         .map_err(|e| format!("Failed to get branches: {}", e))?;
 
     if !output.status.success() {
-        return Err("Failed to get branches".to_string());
+        return Err(format!("Failed to get branches: {}", String::from_utf8_lossy(&output.stderr).trim()));
     }
 
     let mut branches = Vec::new();
@@ -293,6 +335,10 @@ pub async fn git_get_commits(path: String, limit: i32, connection_id: Option<Str
         return git_get_commits_ssh(&pool, &conn_id, &path, limit).await;
     }
 
+    if !Path::new(&path).join(".git").exists() {
+        return Err("Not a git repository".to_string());
+    }
+
     let output = configure_silent_command(Command::new("git")
         .args([
             "log",
@@ -305,7 +351,17 @@ pub async fn git_get_commits(path: String, limit: i32, connection_id: Option<Str
         .map_err(|e| format!("Failed to get commits: {}", e))?;
 
     if !output.status.success() {
-        return Err("Failed to get commits".to_string());
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        let stderr = stderr.trim();
+        // A brand-new repo with no commits yet exits non-zero but isn't an error
+        // worth surfacing — treat it as an empty history.
+        if stderr.contains("does not have any commits yet")
+            || stderr.contains("bad default revision")
+            || stderr.contains("unknown revision")
+        {
+            return Ok(Vec::new());
+        }
+        return Err(format!("Failed to get commits: {}", stderr));
     }
 
     let mut commits = Vec::new();
@@ -419,6 +475,22 @@ pub async fn git_get_diff(path: String, file: Option<String>) -> Result<Vec<GitD
     }
 
     Ok(diffs)
+}
+
+#[tauri::command]
+pub async fn git_init(path: String) -> Result<(), String> {
+    let output = configure_silent_command(Command::new("git")
+        .args(["init"])
+        .current_dir(&path))
+        .output()
+        .map_err(|e| format!("Failed to run git init: {}", e))?;
+
+    if !output.status.success() {
+        let error = String::from_utf8_lossy(&output.stderr);
+        return Err(format!("git init failed: {}", error.trim()));
+    }
+
+    Ok(())
 }
 
 #[tauri::command]
@@ -569,28 +641,30 @@ pub async fn git_stash_pop(path: String) -> Result<(), String> {
 
 async fn git_get_status_ssh(pool: &DbPool, connection_id: &str, path: &str) -> Result<GitStatus, String> {
     let output = execute_ssh_git_command(pool, connection_id, "git status --porcelain --branch && echo '---' && git stash list", path).await?;
-    
-    let mut staged = 0;
-    let mut unstaged = 0;
-    let mut untracked = 0;
+
+    let mut staged: Vec<String> = Vec::new();
+    let mut modified: Vec<String> = Vec::new();
+    let mut added: Vec<String> = Vec::new();
+    let mut deleted: Vec<String> = Vec::new();
+    let mut untracked: Vec<String> = Vec::new();
     let mut conflicted = 0;
     let mut ahead = 0;
     let mut behind = 0;
     let mut branch = String::from("main");
     let mut stashes = 0;
     let mut in_stash_section = false;
-    
+
     for line in output.lines() {
         if line == "---" {
             in_stash_section = true;
             continue;
         }
-        
+
         if in_stash_section {
             stashes += 1;
             continue;
         }
-        
+
         if line.starts_with("##") {
             let parts: Vec<&str> = line.split_whitespace().collect();
             if parts.len() > 1 {
@@ -610,31 +684,26 @@ async fn git_get_status_ssh(pool: &DbPool, connection_id: &str, path: &str) -> R
             }
             continue;
         }
-        
-        let chars: Vec<char> = line.chars().collect();
-        if chars.len() < 2 {
-            continue;
-        }
-        
-        match (chars[0], chars[1]) {
-            ('?', '?') => untracked += 1,
-            ('U', _) | (_, 'U') | ('A', 'A') | ('D', 'D') => conflicted += 1,
-            (x, ' ') if x != ' ' && x != '?' => staged += 1,
-            (' ', y) if y != ' ' && y != '?' => unstaged += 1,
-            (x, y) if x != ' ' && y != ' ' && x != '?' && y != '?' => {
-                staged += 1;
-                unstaged += 1;
-            }
-            _ => {}
-        }
+
+        categorize_status_line(
+            line,
+            &mut staged,
+            &mut modified,
+            &mut added,
+            &mut deleted,
+            &mut untracked,
+            &mut conflicted,
+        );
     }
-    
+
     Ok(GitStatus {
         branch,
         ahead,
         behind,
         staged,
-        unstaged,
+        modified,
+        added,
+        deleted,
         untracked,
         conflicted,
         stashes,

@@ -172,6 +172,7 @@ pub fn run() {
             commands::git::git_get_commits,
             commands::git::git_get_remotes,
             commands::git::git_get_diff,
+            commands::git::git_init,
             commands::git::git_checkout,
             commands::git::git_pull,
             commands::git::git_push,

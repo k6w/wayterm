@@ -3,9 +3,14 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useSettingsStore } from "../../stores/settings";
 import { useThemeStore } from "../../stores/theme";
 import { hexToRgba } from "../../lib/color";
-import { isMac, vibrancyAlpha } from "../../lib/platform";
+import { isMac, vibrancyAlpha, MAC_TRAFFIC_LIGHT_INSET } from "../../lib/platform";
 import TabStrip from "./TabStrip";
 import WindowControls from "./WindowControls";
+
+// Chrome width reference: ActivityBar rail = 44px (w-11), Sidebar panel = 320px
+// (PANEL_WIDTH), this vertical title bar = 200px — three independent constants,
+// intentionally unrelated.
+const VERTICAL_TITLEBAR_WIDTH = 200;
 
 export default function Titlebar() {
   const vibrancyEnabled = useSettingsStore((s) => s.settings.appearance.vibrancyEnabled);
@@ -29,11 +34,14 @@ export default function Titlebar() {
     <div
       data-tauri-drag-region
       className={`flex shrink-0 border-border ${vibrancyEnabled ? "" : "bg-bg-secondary"} ${
-        isVertical 
-          ? `flex-col w-[200px] h-full ${borderClass}` 
+        isVertical
+          ? `flex-col h-full ${borderClass}`
           : `flex-col w-full ${borderClass}`
       }`}
-      style={vibrancyEnabled ? { backgroundColor: hexToRgba(theme.ui.bgSecondary, vibrancyAlpha(windowOpacity)) } : undefined}
+      style={{
+        ...(vibrancyEnabled ? { backgroundColor: hexToRgba(theme.ui.bgSecondary, vibrancyAlpha(windowOpacity)) } : {}),
+        ...(isVertical ? { width: VERTICAL_TITLEBAR_WIDTH } : {}),
+      }}
       onDoubleClick={handleDoubleClick}
     >
       {!isVertical && <div data-tauri-drag-region className="h-[3px] w-full shrink-0" />}
@@ -42,7 +50,7 @@ export default function Titlebar() {
       <div data-tauri-drag-region className={`flex items-center ${
         isVertical ? 'flex-col w-full' : 'h-[37px] w-full'
       }`}>
-        {isMac && !isVertical && <div className="w-[80px] shrink-0" />}
+        {isMac && !isVertical && <div className="shrink-0" style={{ width: MAC_TRAFFIC_LIGHT_INSET }} />}
 
         <TabStrip />
         

@@ -231,7 +231,7 @@ export default function PaneContextMenu({
               className={`flex w-full items-center gap-2 px-3 py-1.5 text-xs transition-colors ${
                 item.disabled
                   ? "text-text-muted/40 cursor-default"
-                  : "text-text-primary hover:bg-white/[0.06]"
+                  : "text-text-primary hover:bg-overlay/[0.06]"
               }`}
               disabled={item.disabled}
               onClick={() => {

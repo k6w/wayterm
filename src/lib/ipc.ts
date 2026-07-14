@@ -333,6 +333,10 @@ export async function gitGetDiff(path: string, file?: string): Promise<import(".
   return invoke("git_get_diff", { path, file });
 }
 
+export async function gitInit(path: string): Promise<void> {
+  return invoke("git_init", { path });
+}
+
 export async function gitCheckout(path: string, branch: string): Promise<void> {
   return invoke("git_checkout", { path, branch });
 }

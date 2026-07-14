@@ -14,15 +14,15 @@ interface TransferQueueProps {
 const STATUS_COLORS: Record<Transfer["status"], string> = {
   queued: "text-text-muted",
   in_progress: "text-accent",
-  completed: "text-green-400",
-  error: "text-red-400",
+  completed: "text-success",
+  error: "text-error",
 };
 
 const STATUS_BAR_COLORS: Record<Transfer["status"], string> = {
   queued: "bg-text-muted/30",
   in_progress: "bg-accent",
-  completed: "bg-green-400",
-  error: "bg-red-400",
+  completed: "bg-success",
+  error: "bg-error",
 };
 
 export default function TransferQueue({
@@ -52,7 +52,7 @@ export default function TransferQueue({
       {}
       <button
         onClick={() => setCollapsed(!collapsed)}
-        className="flex w-full items-center gap-2 px-3 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-white/[0.04] transition-colors"
+        className="flex w-full items-center gap-2 px-3 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-overlay/[0.04] transition-colors"
       >
         {collapsed ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
         <span>
@@ -104,7 +104,7 @@ export default function TransferQueue({
                 </span>
 
                 {}
-                <div className="w-20 h-1.5 rounded-full bg-white/[0.06] shrink-0 overflow-hidden">
+                <div className="w-20 h-1.5 rounded-full bg-overlay/[0.06] shrink-0 overflow-hidden">
                   <div
                     className={`h-full rounded-full transition-all ${STATUS_BAR_COLORS[transfer.status]}`}
                     style={{

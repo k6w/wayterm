@@ -99,7 +99,7 @@ export function ClipboardManager({ isOpen, onClose }: ClipboardManagerProps) {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
-            className="w-full max-w-[640px] overflow-hidden rounded-xl border border-white/[0.12] shadow-2xl"
+            className="w-full max-w-[640px] overflow-hidden rounded-xl border border-border shadow-2xl"
             style={{
               backgroundColor: paletteBg,
               backdropFilter: "blur(24px) saturate(1.4)",
@@ -107,7 +107,7 @@ export function ClipboardManager({ isOpen, onClose }: ClipboardManagerProps) {
             }}
             onKeyDown={handleKeyDown}
           >
-            <div className="flex items-center justify-between px-4 py-3 border-b border-white/[0.08]">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
               <div className="flex items-center gap-3 flex-1">
                 <Search className="h-4 w-4 shrink-0 text-text-muted" />
                 <input
@@ -129,7 +129,7 @@ export function ClipboardManager({ isOpen, onClose }: ClipboardManagerProps) {
                 </button>
                 <button
                   onClick={onClose}
-                  className="p-1.5 rounded text-text-muted hover:text-text-primary hover:bg-white/[0.08] transition-colors"
+                  className="p-1.5 rounded text-text-muted hover:text-text-primary hover:bg-overlay/[0.08] transition-colors"
                 >
                   <X className="h-4 w-4" />
                 </button>
@@ -152,7 +152,7 @@ export function ClipboardManager({ isOpen, onClose }: ClipboardManagerProps) {
                     <div
                       key={entry.id}
                       className={`group relative rounded-lg p-3 mb-2 transition-colors cursor-pointer ${
-                        isSelected ? "bg-accent/20" : "hover:bg-white/[0.08]"
+                        isSelected ? "bg-accent/20" : "hover:bg-overlay/[0.08]"
                       }`}
                       onClick={() => handlePaste(entry.content)}
                       onMouseEnter={() => setSelectedIndex(index)}
@@ -182,8 +182,8 @@ export function ClipboardManager({ isOpen, onClose }: ClipboardManagerProps) {
                             }}
                             className={`p-1.5 rounded transition-colors ${
                               entry.favorite
-                                ? "text-yellow-500 hover:text-yellow-600"
-                                : "text-text-muted hover:text-text-primary hover:bg-white/[0.08]"
+                                ? "text-warning hover:text-warning"
+                                : "text-text-muted hover:text-text-primary hover:bg-overlay/[0.08]"
                             }`}
                             title="Toggle favorite"
                           >
@@ -194,7 +194,7 @@ export function ClipboardManager({ isOpen, onClose }: ClipboardManagerProps) {
                               e.stopPropagation();
                               handleCopy(entry.content);
                             }}
-                            className="p-1.5 rounded text-text-muted hover:text-text-primary hover:bg-white/[0.08] transition-colors"
+                            className="p-1.5 rounded text-text-muted hover:text-text-primary hover:bg-overlay/[0.08] transition-colors"
                             title="Copy to clipboard"
                           >
                             <Copy className="h-3.5 w-3.5" />
@@ -217,7 +217,7 @@ export function ClipboardManager({ isOpen, onClose }: ClipboardManagerProps) {
               )}
             </div>
 
-            <div className="px-4 py-2 border-t border-white/[0.08] text-xs text-text-muted">
+            <div className="px-4 py-2 border-t border-border text-xs text-text-muted">
               <div className="flex items-center justify-between">
                 <span>{filteredEntries.length} items</span>
                 <span>Press Enter to paste • Esc to close</span>

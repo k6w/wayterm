@@ -10,6 +10,7 @@ import {
   dbSaveConnection,
   dbDeleteConnection
 } from "../lib/ipc";
+import { toast } from "./toast";
 
 interface DatabaseStore extends DatabaseState {
   activeConnection: DatabaseConnection | null;
@@ -47,8 +48,9 @@ export const useDatabaseStore = create<DatabaseStore>((set, get) => ({
       set({ activeConnectionId: connectionId, activeConnection: connection, isConnected: true, isLoading: false });
     } catch (error) {
       console.error('Failed to connect to database:', error);
-      set({ error: error instanceof Error ? error.message : 'Connection failed', isLoading: false });
-      throw error;
+      const message = error instanceof Error ? error.message : 'Connection failed';
+      set({ error: message, isLoading: false });
+      toast.error(message);
     }
   },
 
@@ -62,8 +64,9 @@ export const useDatabaseStore = create<DatabaseStore>((set, get) => ({
       }
     } catch (error) {
       console.error('Failed to disconnect from database:', error);
-      set({ error: error instanceof Error ? error.message : 'Disconnect failed', isLoading: false });
-      throw error;
+      const message = error instanceof Error ? error.message : 'Disconnect failed';
+      set({ error: message, isLoading: false });
+      toast.error(message);
     }
   },
 

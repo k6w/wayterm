@@ -255,7 +255,7 @@ function NewTabButton({ onAdd, isVertical }: { onAdd: (type: ShellType, path?: s
 
       {open && (
         <div
-          className={`absolute z-[200] min-w-[170px] rounded-lg border border-border py-1 shadow-xl ${
+          className={`absolute z-[var(--z-dropdown)] min-w-[170px] rounded-lg border border-border py-1 shadow-xl ${
             isVertical ? 'left-full top-0 ml-2' : 'top-full left-0 mt-1'
           }`}
           style={{
@@ -282,7 +282,7 @@ function NewTabButton({ onAdd, isVertical }: { onAdd: (type: ShellType, path?: s
               </span>
               <span>{shell.label}</span>
               {shell.type === defaultShell.type && i === 0 && (
-                <span className="ml-auto text-[10px] text-text-muted/60">default</span>
+                <span className="ml-auto text-2xs text-text-muted/60">default</span>
               )}
             </button>
           ))}

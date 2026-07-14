@@ -16,7 +16,6 @@ export interface TerminalTab {
 export interface TerminalPane {
   id: string;
   sessionId: string;
-  blocks: Block[];
   isActive: boolean;
   cwd: string;
   shellType: ShellType;
@@ -33,17 +32,6 @@ export interface SerialConfig {
   stopBits: number;
   parity: string;
   flowControl: string;
-}
-
-export interface Block {
-  id: string;
-  command: string;
-  output: string;
-  exitCode: number | null;
-  startedAt: string;
-  finishedAt: string | null;
-  isRunning: boolean;
-  cwd: string;
 }
 
 export interface SplitNode {

@@ -283,7 +283,7 @@ export default function Scratchpad() {
         <GripHorizontal size={14} className="text-text-muted shrink-0" />
         <span className="flex-1 text-xs text-text-secondary font-medium">Scratchpad</span>
         <button
-          className="flex items-center justify-center size-5 rounded hover:bg-white/10 transition-colors text-text-muted hover:text-text-primary"
+          className="flex items-center justify-center size-5 rounded hover:bg-overlay/10 transition-colors text-text-muted hover:text-text-primary"
           onClick={toggleScratchpad}
           onMouseDown={(e) => e.stopPropagation()}
         >

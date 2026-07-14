@@ -129,7 +129,7 @@ export default function FileConflictDialog({
               </button>
               <button
                 onClick={handleKeepBoth}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-text-secondary hover:text-text-primary rounded-md border border-border hover:bg-white/[0.04] transition-colors"
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-text-secondary hover:text-text-primary rounded-md border border-border hover:bg-overlay/[0.04] transition-colors"
               >
                 <Copy size={12} />
                 Keep Both

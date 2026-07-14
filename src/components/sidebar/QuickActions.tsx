@@ -45,7 +45,7 @@ export default function QuickActions({ onNewSsh }: QuickActionsProps) {
           <button
             key={action.label}
             onClick={action.onClick}
-            className="flex flex-col items-center gap-1.5 rounded-lg bg-white/[0.08] px-2 py-2.5 text-text-secondary transition-colors hover:bg-white/[0.14] hover:text-text-primary"
+            className="flex flex-col items-center gap-1.5 rounded-lg bg-overlay/[0.08] px-2 py-2.5 text-text-secondary transition-colors hover:bg-overlay/[0.14] hover:text-text-primary"
           >
             {action.icon}
             <span className="text-[11px] leading-none">{action.label}</span>

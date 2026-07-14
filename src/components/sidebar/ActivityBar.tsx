@@ -25,6 +25,8 @@ export default function ActivityBar() {
 
   return (
     <div
+      // w-11 (44px) icon rail. Sidebar overlay panel is 320px; vertical title
+      // bar is 200px — independent chrome constants.
       className={`flex flex-col shrink-0 w-11 border-r border-border ${vibrancyEnabled ? "" : "bg-bg-secondary"}`}
       style={vibrancyEnabled ? { backgroundColor: hexToRgba(theme.ui.bgSecondary, vibrancyAlpha(windowOpacity)) } : undefined}
     >
@@ -40,7 +42,7 @@ export default function ActivityBar() {
               className={`relative flex items-center justify-center w-9 h-9 rounded-lg transition-colors ${
                 active
                   ? "bg-accent/10 text-accent"
-                  : "text-text-muted hover:bg-white/[0.06] hover:text-text-primary"
+                  : "text-text-muted hover:bg-overlay/[0.06] hover:text-text-primary"
               }`}
             >
               {active && (
@@ -57,7 +59,7 @@ export default function ActivityBar() {
           title="Settings"
           aria-label="Settings"
           onClick={toggleSettings}
-          className="flex items-center justify-center w-9 h-9 rounded-lg text-text-muted hover:bg-white/[0.06] hover:text-text-primary transition-colors"
+          className="flex items-center justify-center w-9 h-9 rounded-lg text-text-muted hover:bg-overlay/[0.06] hover:text-text-primary transition-colors"
         >
           <Settings size={17} strokeWidth={1.7} />
         </button>

@@ -5,7 +5,7 @@ import type { DatabaseConnection, QueryResult } from '../../types/database';
 import { Database, Plus, Play, Trash2, X, Check, RefreshCw, Clock, FileJson, FileText } from 'lucide-react';
 
 export function DatabasePanel() {
-  const { connections, activeConnection, queryHistory, isConnected, isLoading, error, connect, disconnect, executeQuery, loadConnections, saveConnection, deleteConnection } = useDatabaseStore();
+  const { connections, activeConnection, queryHistory, isConnected, isLoading, connect, disconnect, executeQuery, loadConnections, saveConnection, deleteConnection } = useDatabaseStore();
   const [showConnectionForm, setShowConnectionForm] = useState(false);
   const [query, setQuery] = useState('');
   const [queryResult, setQueryResult] = useState<QueryResult | null>(null);
@@ -153,7 +153,7 @@ export function DatabasePanel() {
 
   return (
     <div className="flex flex-col h-full text-text-primary">
-      <div className="flex items-center justify-between p-3 border-b border-white/[0.08]">
+      <div className="flex items-center justify-between p-3 border-b border-border">
         <div className="flex items-center gap-2">
           <Database className="w-4 h-4" />
           <span className="font-medium text-sm">Database Client</span>
@@ -162,24 +162,11 @@ export function DatabasePanel() {
           whileHover={{ scale: 1.1, rotate: 90 }}
           whileTap={{ scale: 0.9 }}
           onClick={() => setShowConnectionForm(!showConnectionForm)}
-          className="p-1 hover:bg-white/[0.08] rounded transition-colors"
+          className="p-1 hover:bg-overlay/[0.08] rounded transition-colors"
         >
           {showConnectionForm ? <X className="w-4 h-4" /> : <Plus className="w-4 h-4" />}
         </motion.button>
       </div>
-
-      <AnimatePresence>
-        {error && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="p-3 bg-error/20 text-error text-xs border-b border-white/[0.08] overflow-hidden"
-          >
-            {error}
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       <AnimatePresence>
         {showConnectionForm && (
@@ -188,7 +175,7 @@ export function DatabasePanel() {
             animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.2 }}
-            className="p-3 border-b border-white/[0.08] space-y-2 overflow-hidden"
+            className="p-3 border-b border-border space-y-2 overflow-hidden"
           >
             <motion.input
               initial={{ x: -20, opacity: 0 }}
@@ -198,7 +185,7 @@ export function DatabasePanel() {
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               placeholder="Connection Name"
-              className="w-full px-2 py-1.5 bg-white/[0.05] border border-white/[0.08] rounded text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent"
+              className="w-full px-2 py-1.5 bg-overlay/[0.05] border border-border rounded text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent"
             />
 
             <motion.select
@@ -207,7 +194,7 @@ export function DatabasePanel() {
               transition={{ delay: 0.1 }}
               value={formData.type}
               onChange={(e) => setFormData({ ...formData, type: e.target.value as DatabaseConnection['type'] })}
-              className="w-full px-2 py-1.5 bg-white/[0.05] border border-white/[0.08] rounded text-xs text-text-primary focus:outline-none focus:border-accent"
+              className="w-full px-2 py-1.5 bg-overlay/[0.05] border border-border rounded text-xs text-text-primary focus:outline-none focus:border-accent"
             >
               <option value="postgresql" className="bg-bg-primary text-text-primary">PostgreSQL</option>
               <option value="mysql" className="bg-bg-primary text-text-primary">MySQL</option>
@@ -226,14 +213,14 @@ export function DatabasePanel() {
                 value={formData.host}
                 onChange={(e) => setFormData({ ...formData, host: e.target.value })}
                 placeholder="Host"
-                className="px-2 py-1.5 bg-white/[0.05] border border-white/[0.08] rounded text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent"
+                className="px-2 py-1.5 bg-overlay/[0.05] border border-border rounded text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent"
               />
               <input
                 type="number"
                 value={formData.port}
                 onChange={(e) => setFormData({ ...formData, port: parseInt(e.target.value) })}
                 placeholder="Port"
-                className="px-2 py-1.5 bg-white/[0.05] border border-white/[0.08] rounded text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent"
+                className="px-2 py-1.5 bg-overlay/[0.05] border border-border rounded text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent"
               />
             </motion.div>
 
@@ -245,7 +232,7 @@ export function DatabasePanel() {
               value={formData.database}
               onChange={(e) => setFormData({ ...formData, database: e.target.value })}
               placeholder="Database"
-              className="w-full px-2 py-1.5 bg-white/[0.05] border border-white/[0.08] rounded text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent"
+              className="w-full px-2 py-1.5 bg-overlay/[0.05] border border-border rounded text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent"
             />
 
             <motion.input
@@ -256,7 +243,7 @@ export function DatabasePanel() {
               value={formData.username}
               onChange={(e) => setFormData({ ...formData, username: e.target.value })}
               placeholder="Username"
-              className="w-full px-2 py-1.5 bg-white/[0.05] border border-white/[0.08] rounded text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent"
+              className="w-full px-2 py-1.5 bg-overlay/[0.05] border border-border rounded text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent"
             />
 
             <motion.input
@@ -267,7 +254,7 @@ export function DatabasePanel() {
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               placeholder="Password"
-              className="w-full px-2 py-1.5 bg-white/[0.05] border border-white/[0.08] rounded text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent"
+              className="w-full px-2 py-1.5 bg-overlay/[0.05] border border-border rounded text-xs text-text-primary placeholder:text-text-muted focus:outline-none focus:border-accent"
             />
 
             <motion.label
@@ -319,7 +306,7 @@ export function DatabasePanel() {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ delay: i * 0.05 }}
                   whileHover={{ scale: 1.02, x: 4 }}
-                  className="p-2.5 bg-white/[0.03] rounded border border-white/[0.08] flex items-center justify-between hover:bg-white/[0.06] transition-colors"
+                  className="p-2.5 bg-overlay/[0.03] rounded border border-border flex items-center justify-between hover:bg-overlay/[0.06] transition-colors"
                 >
                   <div className="flex-1 cursor-pointer" onClick={() => handleConnect(conn)}>
                     <div className="text-xs font-medium text-text-primary">{conn.name}</div>
@@ -358,7 +345,7 @@ export function DatabasePanel() {
               <motion.div
                 initial={{ y: -20, opacity: 0 }}
                 animate={{ y: 0, opacity: 1 }}
-                className="p-3 bg-white/[0.03] border-b border-white/[0.08] flex items-center justify-between"
+                className="p-3 bg-overlay/[0.03] border-b border-border flex items-center justify-between"
               >
                 <div>
                   <div className="text-xs font-medium text-text-primary">{activeConnection?.name}</div>
@@ -388,7 +375,7 @@ export function DatabasePanel() {
                     onChange={(e) => { setQuery(e.target.value); historyIndexRef.current = -1; }}
                     onKeyDown={handleTextareaKeyDown}
                     placeholder="Enter SQL query... (↑/↓ for history)"
-                    className="w-full p-2 bg-white/[0.05] border border-white/[0.08] rounded text-xs font-mono text-text-primary placeholder:text-text-muted resize-none focus:outline-none focus:border-accent"
+                    className="w-full p-2 bg-overlay/[0.05] border border-border rounded text-xs font-mono text-text-primary placeholder:text-text-muted resize-none focus:outline-none focus:border-accent"
                     rows={6}
                   />
                   {/* History dropdown button */}
@@ -397,7 +384,7 @@ export function DatabasePanel() {
                       <button
                         type="button"
                         onClick={() => setHistoryDropdownOpen((p) => !p)}
-                        className="flex items-center justify-center w-5 h-5 rounded text-text-muted hover:text-text-secondary hover:bg-white/[0.08] transition-colors"
+                        className="flex items-center justify-center w-5 h-5 rounded text-text-muted hover:text-text-secondary hover:bg-overlay/[0.08] transition-colors"
                         title="Query history"
                       >
                         <Clock className="w-3 h-3" />
@@ -409,7 +396,7 @@ export function DatabasePanel() {
                               <button
                                 key={item.id}
                                 type="button"
-                                className="w-full text-left px-3 py-2 hover:bg-white/[0.06] transition-colors"
+                                className="w-full text-left px-3 py-2 hover:bg-overlay/[0.06] transition-colors"
                                 onClick={() => handleRestoreQuery(item.query)}
                               >
                                 <div className="text-[10px] font-mono text-text-secondary truncate">{item.query}</div>
@@ -444,15 +431,15 @@ export function DatabasePanel() {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="flex flex-col border-t border-white/[0.08] overflow-hidden"
+                    className="flex flex-col border-t border-border overflow-hidden"
                     style={{ maxHeight: '220px' }}
                   >
-                    <div className="flex items-center justify-between px-3 py-1.5 border-b border-white/[0.06] shrink-0">
+                    <div className="flex items-center justify-between px-3 py-1.5 border-b border-border shrink-0">
                       <span className="text-[10px] text-text-muted">{queryResult.rowCount} rows</span>
                       <div className="flex items-center gap-1">
                         <button
                           onClick={exportCsv}
-                          className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] text-text-muted hover:text-text-secondary hover:bg-white/[0.06] transition-colors"
+                          className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] text-text-muted hover:text-text-secondary hover:bg-overlay/[0.06] transition-colors"
                           title="Export CSV"
                         >
                           <FileText className="w-3 h-3" />
@@ -460,7 +447,7 @@ export function DatabasePanel() {
                         </button>
                         <button
                           onClick={exportJson}
-                          className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] text-text-muted hover:text-text-secondary hover:bg-white/[0.06] transition-colors"
+                          className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] text-text-muted hover:text-text-secondary hover:bg-overlay/[0.06] transition-colors"
                           title="Export JSON"
                         >
                           <FileJson className="w-3 h-3" />
@@ -473,7 +460,7 @@ export function DatabasePanel() {
                         <thead>
                           <tr className="sticky top-0 bg-bg-secondary">
                             {queryResult.columns.map((col) => (
-                              <th key={col} className="px-2 py-1 text-left text-text-muted border-b border-white/[0.06] whitespace-nowrap">
+                              <th key={col} className="px-2 py-1 text-left text-text-muted border-b border-border whitespace-nowrap">
                                 {col}
                               </th>
                             ))}
@@ -481,9 +468,9 @@ export function DatabasePanel() {
                         </thead>
                         <tbody>
                           {queryResult.rows.map((row, i) => (
-                            <tr key={i} className="hover:bg-white/[0.03]">
+                            <tr key={i} className="hover:bg-overlay/[0.03]">
                               {queryResult.columns.map((col) => (
-                                <td key={col} className="px-2 py-0.5 text-text-secondary border-b border-white/[0.03] whitespace-nowrap max-w-[120px] truncate">
+                                <td key={col} className="px-2 py-0.5 text-text-secondary border-b border-border whitespace-nowrap max-w-[120px] truncate">
                                   {String((row as Record<string, unknown>)[col] ?? '')}
                                 </td>
                               ))}
@@ -501,7 +488,7 @@ export function DatabasePanel() {
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    className="flex-1 overflow-y-auto p-3 space-y-2 border-t border-white/[0.08]"
+                    className="flex-1 overflow-y-auto p-3 space-y-2 border-t border-border"
                   >
                     <div className="text-xs font-medium text-text-muted">Query History</div>
                     {queryHistory.slice().map((item, i) => (
@@ -511,7 +498,7 @@ export function DatabasePanel() {
                         animate={{ opacity: 1, x: 0 }}
                         transition={{ delay: i * 0.03 }}
                         whileHover={{ scale: 1.01 }}
-                        className="p-2 bg-white/[0.03] rounded border border-white/[0.08] space-y-1 cursor-pointer hover:bg-white/[0.06] transition-colors"
+                        className="p-2 bg-overlay/[0.03] rounded border border-border space-y-1 cursor-pointer hover:bg-overlay/[0.06] transition-colors"
                         onClick={() => handleRestoreQuery(item.query)}
                       >
                         <div className="text-[10px] font-mono text-text-secondary">{item.query}</div>

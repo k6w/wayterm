@@ -211,7 +211,7 @@ export default function TabContextMenu({
               className={`flex w-full items-center gap-2 px-3 py-1.5 text-xs transition-colors ${
                 item.disabled
                   ? "text-text-muted/40 cursor-default"
-                  : "text-text-primary hover:bg-white/[0.06]"
+                  : "text-text-primary hover:bg-overlay/[0.06]"
               }`}
               disabled={item.disabled}
               onClick={() => {
@@ -233,7 +233,7 @@ export default function TabContextMenu({
         {/* Set Color section */}
         <div className="my-1 h-px bg-border mx-2" />
         <button
-          className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-text-primary hover:bg-white/[0.06] transition-colors"
+          className="flex w-full items-center gap-2 px-3 py-1.5 text-xs text-text-primary hover:bg-overlay/[0.06] transition-colors"
           onClick={() => setColorPickerOpen((o) => !o)}
         >
           <span className="text-text-muted"><Palette size={14} /></span>

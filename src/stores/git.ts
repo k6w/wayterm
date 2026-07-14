@@ -1,11 +1,13 @@
 import { create } from "zustand";
 import type { GitStatus, GitBranch, GitCommit, GitRemote, GitDiff } from "../types/git";
+import { toast } from "./toast";
 import {
   gitGetStatus,
   gitGetBranches,
   gitGetCommits,
   gitGetRemotes,
   gitGetDiff,
+  gitInit,
   gitCheckout,
   gitPull,
   gitPush,
@@ -16,25 +18,20 @@ import {
   gitStashPop
 } from "../lib/ipc";
 
-interface GitStatusExtended extends GitStatus {
-  modified: string[];
-  added: string[];
-  deleted: string[];
-}
-
 interface GitStore {
-  status: GitStatusExtended | null;
+  status: GitStatus | null;
   branches: GitBranch[];
   commits: GitCommit[];
   remotes: GitRemote[];
   currentBranch: string | null;
   isLoading: boolean;
   error: string | null;
-  fetchStatus: (path: string, connectionId?: string) => Promise<void>;
+  fetchStatus: (path: string, connectionId?: string) => Promise<boolean>;
   fetchBranches: (path: string, connectionId?: string) => Promise<void>;
   fetchCommits: (path: string, limit?: number, connectionId?: string) => Promise<void>;
   fetchRemotes: (path: string) => Promise<void>;
   fetchDiff: (path: string, file?: string) => Promise<GitDiff[]>;
+  initRepo: (path: string, connectionId?: string) => Promise<void>;
   checkout: (path: string, branch: string) => Promise<void>;
   pull: (path: string) => Promise<void>;
   push: (path: string) => Promise<void>;
@@ -58,16 +55,12 @@ export const useGitStore = create<GitStore>((set, get) => ({
   fetchStatus: async (path: string, connectionId?: string) => {
     set({ isLoading: true, error: null });
     try {
-      const rawStatus = await gitGetStatus(path, connectionId);
-      const status: GitStatusExtended = {
-        ...rawStatus,
-        modified: [],
-        added: [],
-        deleted: [],
-      };
-      set({ status, currentBranch: rawStatus.branch, isLoading: false });
+      const status = await gitGetStatus(path, connectionId);
+      set({ status, currentBranch: status.branch, isLoading: false });
+      return true;
     } catch (error) {
-      set({ error: String(error), isLoading: false });
+      set({ status: null, error: String(error), isLoading: false });
+      return false;
     }
   },
 
@@ -110,6 +103,21 @@ export const useGitStore = create<GitStore>((set, get) => ({
     }
   },
 
+  initRepo: async (path: string, connectionId?: string) => {
+    set({ isLoading: true, error: null });
+    try {
+      await gitInit(path);
+      const ok = await get().fetchStatus(path, connectionId);
+      if (ok) {
+        await get().fetchBranches(path, connectionId);
+        await get().fetchCommits(path, 50, connectionId);
+      }
+      set({ isLoading: false });
+    } catch (error) {
+      set({ error: String(error), isLoading: false });
+    }
+  },
+
   checkout: async (path: string, branch: string) => {
     set({ isLoading: true, error: null });
     try {
@@ -117,8 +125,8 @@ export const useGitStore = create<GitStore>((set, get) => ({
       await get().fetchStatus(path);
       set({ isLoading: false });
     } catch (error) {
-      set({ error: String(error), isLoading: false });
-      throw error;
+      set({ isLoading: false });
+      toast.error(String(error));
     }
   },
 
@@ -129,8 +137,8 @@ export const useGitStore = create<GitStore>((set, get) => ({
       await get().fetchStatus(path);
       set({ isLoading: false });
     } catch (error) {
-      set({ error: String(error), isLoading: false });
-      throw error;
+      set({ isLoading: false });
+      toast.error(String(error));
     }
   },
 
@@ -141,8 +149,8 @@ export const useGitStore = create<GitStore>((set, get) => ({
       await get().fetchStatus(path);
       set({ isLoading: false });
     } catch (error) {
-      set({ error: String(error), isLoading: false });
-      throw error;
+      set({ isLoading: false });
+      toast.error(String(error));
     }
   },
 
@@ -153,8 +161,8 @@ export const useGitStore = create<GitStore>((set, get) => ({
       await get().fetchStatus(path);
       set({ isLoading: false });
     } catch (error) {
-      set({ error: String(error), isLoading: false });
-      throw error;
+      set({ isLoading: false });
+      toast.error(String(error));
     }
   },
 
@@ -165,8 +173,8 @@ export const useGitStore = create<GitStore>((set, get) => ({
       await get().fetchStatus(path);
       set({ isLoading: false });
     } catch (error) {
-      set({ error: String(error), isLoading: false });
-      throw error;
+      set({ isLoading: false });
+      toast.error(String(error));
     }
   },
 
@@ -177,8 +185,8 @@ export const useGitStore = create<GitStore>((set, get) => ({
       await get().fetchStatus(path);
       set({ isLoading: false });
     } catch (error) {
-      set({ error: String(error), isLoading: false });
-      throw error;
+      set({ isLoading: false });
+      toast.error(String(error));
     }
   },
 
@@ -189,8 +197,8 @@ export const useGitStore = create<GitStore>((set, get) => ({
       await get().fetchStatus(path);
       set({ isLoading: false });
     } catch (error) {
-      set({ error: String(error), isLoading: false });
-      throw error;
+      set({ isLoading: false });
+      toast.error(String(error));
     }
   },
 
@@ -201,8 +209,8 @@ export const useGitStore = create<GitStore>((set, get) => ({
       await get().fetchStatus(path);
       set({ isLoading: false });
     } catch (error) {
-      set({ error: String(error), isLoading: false });
-      throw error;
+      set({ isLoading: false });
+      toast.error(String(error));
     }
   },
 
@@ -211,8 +219,8 @@ export const useGitStore = create<GitStore>((set, get) => ({
     try {
       set({ isLoading: false });
     } catch (error) {
-      set({ error: String(error), isLoading: false });
-      throw error;
+      set({ isLoading: false });
+      toast.error(String(error));
     }
   }
 }));

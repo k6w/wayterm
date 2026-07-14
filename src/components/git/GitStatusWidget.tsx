@@ -36,8 +36,8 @@ export function GitStatusWidget() {
       <span>{currentBranch || 'main'}</span>
       {totalChanges > 0 && (
         <>
-          <span className="text-yellow-500">●{totalChanges}</span>
-          {stagedCount > 0 && <span className="text-green-500">+{stagedCount}</span>}
+          <span className="text-warning">●{totalChanges}</span>
+          {stagedCount > 0 && <span className="text-success">+{stagedCount}</span>}
         </>
       )}
     </div>

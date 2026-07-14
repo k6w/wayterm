@@ -14,6 +14,8 @@ import { DatabasePanel } from "../database/DatabasePanel";
 import { ClipboardPanel } from "../ui/ClipboardPanel";
 import type { SshConnection } from "../../types/ssh";
 
+// Sidebar overlay panel width. Chrome reference: ActivityBar rail = 44px (w-11),
+// vertical title bar = 200px — independent constants, not derived from each other.
 const PANEL_WIDTH = 320;
 const EASE: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94];
 
@@ -52,7 +54,7 @@ export default function Sidebar({ onNewSsh, onEditSsh }: SidebarProps) {
       {activeSidebarSection && (
         <>
           <motion.div
-            className="absolute inset-0 z-30"
+            className="absolute inset-0 z-[var(--z-sidebar-backdrop)]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -61,7 +63,7 @@ export default function Sidebar({ onNewSsh, onEditSsh }: SidebarProps) {
           />
 
           <motion.div
-            className="absolute left-0 top-0 bottom-0 z-40 flex flex-col border-r border-border"
+            className="absolute left-0 top-0 bottom-0 z-[var(--z-sidebar-panel)] flex flex-col border-r border-border"
             style={{
               width: PANEL_WIDTH,
               backdropFilter: "blur(20px)",

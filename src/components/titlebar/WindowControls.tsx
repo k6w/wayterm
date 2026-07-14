@@ -33,7 +33,7 @@ export default function WindowControls() {
       isVertical ? 'flex-col w-full border-t border-border' : 'h-full'
     }`}>
       <button
-        className={`flex items-center justify-center transition-colors hover:bg-white/10 ${
+        className={`flex items-center justify-center transition-colors hover:bg-overlay/10 ${
           isVertical ? 'w-full h-[46px] border-b border-border' : 'h-8 w-[46px]'
         }`}
         onClick={handleMinimize}
@@ -41,7 +41,7 @@ export default function WindowControls() {
         <Minus className="size-4" />
       </button>
       <button
-        className={`flex items-center justify-center transition-colors hover:bg-white/10 ${
+        className={`flex items-center justify-center transition-colors hover:bg-overlay/10 ${
           isVertical ? 'w-full h-[46px] border-b border-border' : 'h-8 w-[46px]'
         }`}
         onClick={handleMaximize}

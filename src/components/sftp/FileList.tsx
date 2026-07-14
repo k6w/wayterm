@@ -154,7 +154,7 @@ export default function FileList({
                 className={`flex items-center gap-2 px-2 py-[3px] text-xs cursor-default select-none transition-colors ${
                   isSelected
                     ? "bg-accent/15 text-text-primary"
-                    : "text-text-secondary hover:bg-white/[0.04]"
+                    : "text-text-secondary hover:bg-overlay/[0.04]"
                 }`}
                 draggable
                 onClick={(e) => handleClick(e, entry, index)}

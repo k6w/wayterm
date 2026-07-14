@@ -653,12 +653,12 @@ export default function SftpPane({
       >
         {error ? (
           <div className="flex flex-col items-center gap-2 px-4 text-center">
-            <span className="text-xs text-red-400">Connection failed</span>
+            <span className="text-xs text-error">Connection failed</span>
             <span className="text-[11px] text-text-muted">{error}</span>
           </div>
         ) : tofuPending ? (
           <div className="flex flex-col items-center gap-2 px-4 text-center">
-            <span className="text-xs text-yellow-400">Unknown host</span>
+            <span className="text-xs text-warning">Unknown host</span>
             <span className="text-[11px] text-text-muted">Verify the server fingerprint</span>
           </div>
         ) : (
@@ -1008,7 +1008,7 @@ function ToolbarButton({ icon, label, onClick, disabled, theme }: ToolbarButtonP
       className={`shrink-0 flex items-center gap-1 rounded px-1.5 py-1 text-[11px] transition-colors ${
         disabled
           ? "opacity-30 cursor-default"
-          : "hover:bg-white/[0.06] cursor-pointer"
+          : "hover:bg-overlay/[0.06] cursor-pointer"
       }`}
       style={{ color: disabled ? theme.ui.textMuted : theme.ui.textSecondary }}
     >

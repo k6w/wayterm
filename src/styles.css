@@ -1,5 +1,17 @@
 @import "tailwindcss";
 
+/*
+ * Design tokens. Colors are theme-driven (see src/stores/theme.ts). The
+ * spacing / radius / font-size tokens below give the UI a shared scale so
+ * components stop hand-picking arbitrary values:
+ *   - nav rows / list items: px-row-x py-row-y
+ *   - panel & section containers: p-panel
+ *   - gap between distinct groups within a panel: gap-section-gap
+ *     (8pt-grid "internal spacing < external spacing" rule)
+ *   - radius: rounded (sm=chips), rounded-md (controls), rounded-lg (panels)
+ * These pin Tailwind's own utilities to app-consistent values, so existing
+ * rounded / rounded-md / rounded-lg call sites adopt them automatically.
+ */
 @theme {
   --color-bg-primary: var(--bg-primary);
   --color-bg-secondary: var(--bg-secondary);
@@ -15,6 +27,30 @@
   --color-warning: var(--warning);
   --color-error: var(--error);
   --color-overlay: rgb(var(--overlay));
+
+  /* Spacing scale (named aliases; the default numeric scale still works) */
+  --spacing-row-x: 12px;
+  --spacing-row-y: 8px;
+  --spacing-panel: 12px;
+  --spacing-section-gap: 24px;
+
+  /* Radius scale (pins Tailwind's rounded-{sm,md,lg} to app values) */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 10px;
+
+  /* Micro font-size to absorb ad hoc text-[9px]/text-[10px] escapes */
+  --text-2xs: 10px;
+}
+
+/* Z-index layering scale — consume via z-[var(--z-*)] */
+:root {
+  --z-sidebar-backdrop: 30;
+  --z-sidebar-panel: 40;
+  --z-dropdown: 50;
+  --z-modal: 100;
+  --z-toast: 200;
+  --z-tooltip: 300;
 }
 
 html, body, #root {

@@ -119,7 +119,7 @@ export default function Select({
                   className={`flex w-full items-center gap-2 px-3 py-1.5 text-sm transition-colors text-left ${
                     isActive
                       ? "bg-accent/15 text-accent"
-                      : "text-text-secondary hover:bg-white/[0.06] hover:text-text-primary"
+                      : "text-text-secondary hover:bg-overlay/[0.06] hover:text-text-primary"
                   }`}
                 >
                   <span className="flex-1 truncate">{option.label}</span>

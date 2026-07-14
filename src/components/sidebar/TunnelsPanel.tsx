@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { Route, RefreshCw, Play, Square, Trash2 } from "lucide-react";
 import { useSshStore } from "../../stores/ssh";
+import { toast } from "../../stores/toast";
 import type { PortForward } from "../../lib/ipc";
 
 export default function TunnelsPanel() {
@@ -13,19 +14,17 @@ export default function TunnelsPanel() {
 
   const [loading, setLoading] = useState(false);
   const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
-  const [error, setError] = useState<string | null>(null);
 
   // Load forwards for all connections that have active sessions
   const reload = useCallback(async () => {
     setLoading(true);
-    setError(null);
     try {
       // Load for all known connections
       for (const conn of connections) {
         await loadPortForwards(conn.id).catch(() => {});
       }
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      toast.error(e instanceof Error ? e.message : String(e));
     } finally {
       setLoading(false);
     }
@@ -37,13 +36,12 @@ export default function TunnelsPanel() {
 
   const handleToggle = useCallback(async (fwd: PortForward) => {
     setTogglingIds((prev) => new Set([...prev, fwd.id]));
-    setError(null);
     try {
       // Find active session for this connection
       const session = sessions.find((s) => s.connectionId === fwd.connectionId);
       await togglePortForward(fwd.id, !fwd.isActive, session?.sessionId);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      toast.error(e instanceof Error ? e.message : String(e));
     } finally {
       setTogglingIds((prev) => {
         const next = new Set(prev);
@@ -57,7 +55,7 @@ export default function TunnelsPanel() {
     try {
       await deletePortForward(fwd.id);
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e));
+      toast.error(e instanceof Error ? e.message : String(e));
     }
   }, [deletePortForward]);
 
@@ -80,7 +78,7 @@ export default function TunnelsPanel() {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="flex items-center justify-between px-3 py-2 border-b border-white/[0.08]">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-border">
         <div className="flex items-center gap-2">
           <Route size={14} className="text-text-muted" />
           <span className="text-xs font-medium text-text-secondary">Port Forwards</span>
@@ -95,12 +93,6 @@ export default function TunnelsPanel() {
         </button>
       </div>
 
-      {error && (
-        <div className="px-3 py-2 bg-error/10 border-b border-error/20 text-xs text-error">
-          {error}
-        </div>
-      )}
-
       <div className="flex-1 overflow-y-auto">
         {portForwards.length === 0 ? (
           <div className="flex flex-col items-center gap-2 py-10 px-4 text-center">
@@ -114,13 +106,13 @@ export default function TunnelsPanel() {
           <div className="flex flex-col">
             {Array.from(grouped.entries()).map(([connId, fwds]) => (
               <div key={connId}>
-                <div className="px-3 py-1.5 text-[11px] font-medium uppercase tracking-wider text-text-muted bg-white/[0.02] border-b border-white/[0.04]">
+                <div className="px-3 py-1.5 text-[11px] font-medium uppercase tracking-wider text-text-muted bg-overlay/[0.02] border-b border-border">
                   {getConnName(connId)}
                 </div>
                 {fwds.map((fwd) => (
                   <div
                     key={fwd.id}
-                    className="flex items-center gap-2 px-3 py-2 border-b border-white/[0.04] hover:bg-white/[0.03] group"
+                    className="flex items-center gap-2 px-3 py-2 border-b border-border hover:bg-overlay/[0.03] group"
                   >
                     <span
                       className={`shrink-0 w-5 h-5 flex items-center justify-center rounded text-[10px] font-bold ${

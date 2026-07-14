@@ -3,6 +3,7 @@ import { Server, Plus, Plug, Trash2, Pencil, FolderOpen, ChevronRight, Folder, P
 import { useSshStore } from "../../stores/ssh";
 import { useTerminalStore, getFirstPaneId } from "../../stores/terminal";
 import ConfirmDialog from "../ui/ConfirmDialog";
+import { EmptyState } from "../ui/EmptyState";
 import type { SshConnection } from "../../types/ssh";
 
 interface ConnectionTreeProps {
@@ -227,16 +228,11 @@ export default function ConnectionTree({ onAddConnection, onEditConnection }: Co
       </div>
 
       {connections.length === 0 ? (
-        <div className="flex flex-col items-center gap-3 px-3 py-6">
-          <Server size={18} className="text-text-muted" />
-          <span className="text-xs text-text-muted">No connections</span>
-          <button
-            onClick={onAddConnection}
-            className="rounded-md bg-overlay/[0.08] px-3 py-1.5 text-xs text-text-secondary transition-colors hover:bg-white/[0.14] hover:text-text-primary"
-          >
-            Add Connection
-          </button>
-        </div>
+        <EmptyState
+          icon={Server}
+          title="No connections"
+          action={onAddConnection ? { label: "Add Connection", onClick: onAddConnection } : undefined}
+        />
       ) : (
         <div className="flex flex-col px-1">
           {Array.from(grouped.folders.entries()).map(([folder, conns]) => (

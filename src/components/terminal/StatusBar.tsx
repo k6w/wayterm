@@ -156,7 +156,7 @@ export default function StatusBar() {
             <span>SSH</span>
             {activeTunnelCount > 0 && (
               <span
-                className="ml-0.5 rounded-full px-1 text-[9px] font-medium leading-none py-0.5 bg-accent text-white"
+                className="ml-0.5 rounded-full px-1 text-2xs font-medium leading-none py-0.5 bg-accent text-white"
                 title={`${activeTunnelCount} active tunnel${activeTunnelCount !== 1 ? "s" : ""}`}
               >
                 {activeTunnelCount}
@@ -327,14 +327,14 @@ function ThemePicker() {
 
       {open && (
         <div
-          className="absolute bottom-full right-0 mb-1.5 z-[200] min-w-[180px] max-h-[300px] overflow-y-auto rounded-lg border border-border py-1 shadow-xl"
+          className="absolute bottom-full right-0 mb-1.5 z-[var(--z-dropdown)] min-w-[180px] max-h-[300px] overflow-y-auto rounded-lg border border-border py-1 shadow-xl"
           style={{
             backgroundColor: tpMenuBg,
             backdropFilter: tpVibrancy ? "blur(20px) saturate(1.3)" : undefined,
             WebkitBackdropFilter: tpVibrancy ? "blur(20px) saturate(1.3)" : undefined,
           }}
         >
-          <div className="px-3 py-1.5 text-[10px] font-medium text-text-muted uppercase tracking-wider">
+          <div className="px-3 py-1.5 text-2xs font-medium text-text-muted uppercase tracking-wider">
             Theme
           </div>
           {themeList.map((t) => (

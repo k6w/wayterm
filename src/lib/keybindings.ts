@@ -23,7 +23,6 @@ export function splitActivePane(direction: "horizontal" | "vertical") {
   const newPane: TerminalPane = {
     id: crypto.randomUUID(),
     sessionId: "",
-    blocks: [],
     isActive: true,
     cwd: currentPane.cwd,
     shellType: currentPane.shellType || shell.type,

@@ -506,7 +506,7 @@ export default function CommandPalette() {
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
-            className="w-full max-w-[560px] overflow-hidden rounded-xl border border-white/[0.12] shadow-2xl"
+            className="w-full max-w-[560px] overflow-hidden rounded-xl border border-border shadow-2xl"
             style={{
               backgroundColor: paletteBg,
               backdropFilter: "blur(24px) saturate(1.4)",
@@ -519,7 +519,7 @@ export default function CommandPalette() {
               {subView ? (
                 <button
                   onClick={goBack}
-                  className="shrink-0 rounded p-0.5 text-text-muted transition-colors hover:bg-white/[0.08] hover:text-text-primary"
+                  className="shrink-0 rounded p-0.5 text-text-muted transition-colors hover:bg-overlay/[0.08] hover:text-text-primary"
                 >
                   <ArrowLeft className="h-4 w-4" />
                 </button>
@@ -548,7 +548,7 @@ export default function CommandPalette() {
               )}
             </div>
 
-            <div className="h-px bg-white/[0.08]" />
+            <div className="h-px bg-overlay/[0.08]" />
 
             <div
               ref={listRef}
@@ -577,7 +577,7 @@ export default function CommandPalette() {
                         className={`flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition-colors ${
                           isSelected
                             ? "bg-accent/20"
-                            : "hover:bg-white/[0.08]"
+                            : "hover:bg-overlay/[0.08]"
                         }`}
                       >
                         <VariantIcon className="h-4 w-4 shrink-0 text-text-secondary" />
@@ -617,7 +617,7 @@ export default function CommandPalette() {
                             className={`flex w-full items-center gap-3 rounded-lg px-2.5 py-2 text-left transition-colors ${
                               isSelected
                                 ? "bg-accent/20"
-                                : "hover:bg-white/[0.08]"
+                                : "hover:bg-overlay/[0.08]"
                             }`}
                           >
                             <Icon className="h-4 w-4 shrink-0 text-text-secondary" />
