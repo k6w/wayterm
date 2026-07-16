@@ -1,4 +1,5 @@
 import type { ThemeDefinition } from "../types/theme";
+import { normalizeTheme } from "../themes/legacy";
 
 // ─── Windows Terminal theme import ──────────────────────────────────────────
 
@@ -146,7 +147,7 @@ export function importWindowsTerminalTheme(json: string): ThemeDefinition {
   const accent = wt.blue ?? ansi[4];
   const id = `wt-${slugify(name)}`;
 
-  return {
+  return normalizeTheme({
     id,
     name,
     variant: light ? "light" : "dark",
@@ -154,7 +155,7 @@ export function importWindowsTerminalTheme(json: string): ThemeDefinition {
     ui: deriveUiColors(bg, fg, accent, light),
     blur: { sidebar: 20, blocks: 4, inputBar: 12, overlay: 30 },
     opacity: { sidebar: 0.4, blocks: 0.05, inputBar: 0.08 },
-  };
+  });
 }
 
 // ─── iTerm2 .itermcolors import ──────────────────────────────────────────────
@@ -232,7 +233,7 @@ export function importItermColorsTheme(xml: string): ThemeDefinition {
   const id = `iterm-${crypto.randomUUID().slice(0, 8)}`;
   const accent = ansi[4]; // Blue
 
-  return {
+  return normalizeTheme({
     id,
     name,
     variant: light ? "light" : "dark",
@@ -240,5 +241,5 @@ export function importItermColorsTheme(xml: string): ThemeDefinition {
     ui: deriveUiColors(bg, fg, accent, light),
     blur: { sidebar: 20, blocks: 4, inputBar: 12, overlay: 30 },
     opacity: { sidebar: 0.4, blocks: 0.05, inputBar: 0.08 },
-  };
+  });
 }
