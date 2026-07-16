@@ -1,0 +1,196 @@
+{
+  "src/app/App.tsx": {
+    "nexterm/no-color-literals": {
+      "count": 1
+    },
+    "nexterm/no-inline-style": {
+      "count": 2
+    }
+  },
+  "src/app/providers.tsx": {
+    "react-hooks/exhaustive-deps": {
+      "count": 1
+    }
+  },
+  "src/components/command-palette/CommandPalette.tsx": {
+    "nexterm/no-inline-style": {
+      "count": 4
+    }
+  },
+  "src/components/git/DiffViewer.tsx": {
+    "nexterm/no-color-literals": {
+      "count": 1
+    },
+    "nexterm/no-inline-style": {
+      "count": 1
+    }
+  },
+  "src/components/serial/SerialDialog.tsx": {
+    "nexterm/no-inline-style": {
+      "count": 17
+    }
+  },
+  "src/components/settings/AppearancePanel.tsx": {
+    "nexterm/no-inline-style": {
+      "count": 2
+    }
+  },
+  "src/components/settings/SettingsView.tsx": {
+    "nexterm/no-inline-style": {
+      "count": 1
+    }
+  },
+  "src/components/sftp/FileConflictDialog.tsx": {
+    "nexterm/no-inline-style": {
+      "count": 4
+    }
+  },
+  "src/components/sftp/FileList.tsx": {
+    "nexterm/no-inline-style": {
+      "count": 1
+    }
+  },
+  "src/components/sftp/SftpContextMenu.tsx": {
+    "nexterm/no-inline-style": {
+      "count": 5
+    }
+  },
+  "src/components/sftp/SftpPane.tsx": {
+    "nexterm/no-inline-style": {
+      "count": 26
+    }
+  },
+  "src/components/sftp/TransferQueue.tsx": {
+    "nexterm/no-inline-style": {
+      "count": 1
+    }
+  },
+  "src/components/sidebar/ActivityBar.tsx": {
+    "nexterm/no-inline-style": {
+      "count": 1
+    }
+  },
+  "src/components/sidebar/ConnectionTree.tsx": {
+    "nexterm/no-color-literals": {
+      "count": 8
+    },
+    "nexterm/no-inline-style": {
+      "count": 1
+    }
+  },
+  "src/components/sidebar/Sidebar.tsx": {
+    "nexterm/no-inline-style": {
+      "count": 3
+    }
+  },
+  "src/components/ssh/ConnectionDialog.tsx": {
+    "nexterm/no-color-literals": {
+      "count": 8
+    },
+    "nexterm/no-inline-style": {
+      "count": 4
+    }
+  },
+  "src/components/ssh/QuickPortForwardDialog.tsx": {
+    "nexterm/no-inline-style": {
+      "count": 3
+    }
+  },
+  "src/components/terminal/PaneContextMenu.tsx": {
+    "nexterm/no-inline-style": {
+      "count": 5
+    }
+  },
+  "src/components/terminal/Scratchpad.tsx": {
+    "nexterm/no-color-literals": {
+      "count": 2
+    },
+    "nexterm/no-inline-style": {
+      "count": 4
+    }
+  },
+  "src/components/terminal/SerialPane.tsx": {
+    "nexterm/no-color-literals": {
+      "count": 1
+    },
+    "nexterm/no-inline-style": {
+      "count": 10
+    }
+  },
+  "src/components/terminal/SplitContainer.tsx": {
+    "nexterm/no-inline-style": {
+      "count": 1
+    }
+  },
+  "src/components/terminal/StatusBar.tsx": {
+    "nexterm/no-inline-style": {
+      "count": 4
+    }
+  },
+  "src/components/terminal/TerminalPane.tsx": {
+    "nexterm/no-color-literals": {
+      "count": 2
+    },
+    "nexterm/no-inline-style": {
+      "count": 17
+    }
+  },
+  "src/components/titlebar/Tab.tsx": {
+    "nexterm/no-inline-style": {
+      "count": 1
+    }
+  },
+  "src/components/titlebar/TabContextMenu.tsx": {
+    "nexterm/no-color-literals": {
+      "count": 7
+    },
+    "nexterm/no-inline-style": {
+      "count": 11
+    }
+  },
+  "src/components/titlebar/TabStrip.tsx": {
+    "nexterm/no-inline-style": {
+      "count": 3
+    }
+  },
+  "src/components/titlebar/TerminalTree.tsx": {
+    "nexterm/no-inline-style": {
+      "count": 2
+    }
+  },
+  "src/components/titlebar/Titlebar.tsx": {
+    "nexterm/no-inline-style": {
+      "count": 2
+    }
+  },
+  "src/components/ui/ClipboardManager.tsx": {
+    "nexterm/no-inline-style": {
+      "count": 4
+    }
+  },
+  "src/components/ui/ConfirmDialog.tsx": {
+    "nexterm/no-inline-style": {
+      "count": 4
+    }
+  },
+  "src/components/ui/InputDialog.tsx": {
+    "nexterm/no-inline-style": {
+      "count": 4
+    }
+  },
+  "src/components/ui/Select.tsx": {
+    "nexterm/no-inline-style": {
+      "count": 3
+    }
+  },
+  "src/components/ui/TofuDialog.tsx": {
+    "nexterm/no-inline-style": {
+      "count": 4
+    }
+  },
+  "src/components/ui/WelcomeScreen.tsx": {
+    "nexterm/no-inline-style": {
+      "count": 7
+    }
+  }
+}

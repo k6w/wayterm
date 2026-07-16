@@ -45,6 +45,10 @@ jobs:
 
       - run: npm ci
 
+      - name: Lint
+        if: matrix.platform == 'ubuntu-22.04'
+        run: npm run lint
+
       - name: TypeScript check
         run: npx tsc --noEmit
 
