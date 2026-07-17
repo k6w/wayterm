@@ -9,6 +9,7 @@ import { setVibrancy, getLaunchCwd } from "../lib/ipc";
 import { hexToRgb } from "../lib/color";
 import { initHomePath } from "../lib/format";
 import { getPreferredShell } from "../lib/shell-detect";
+import { applyStartupTheme } from "../lib/theme-migration";
 
 
 function syncVibrancy(enabled: boolean, opacity: number) {
@@ -29,7 +30,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (startupDone) return;
     startupDone = true;
-    applyThemeToDom(theme);
+    applyThemeToDom(useThemeStore.getState().active);
 
     Promise.all([
       initHomePath().catch(() => null),
@@ -38,10 +39,10 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       useThemeStore.getState().loadCustomThemes(),
       useSettingsStore.getState().load(),
       getLaunchCwd().catch(() => null),
-    ]).then(([, , , , , launchCwd]) => {
-      
-      const themeId = useSettingsStore.getState().settings.appearance.themeId;
-      useThemeStore.getState().setTheme(themeId);
+    ]).then(async ([, , , , , launchCwd]) => {
+      // Settings and custom themes are loaded: activate the saved theme,
+      // migrating users on a removed built-in to Graphite (one-time notice).
+      await applyStartupTheme();
       const { vibrancyEnabled: v, windowOpacity: o } =
         useSettingsStore.getState().settings.appearance;
       syncVibrancy(v, o);
@@ -80,9 +81,9 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
-  useEffect(() => {
-    applyThemeToDom(theme);
-  }, [theme]);
+  // No "apply theme on change" effect here: setTheme/previewTheme already write
+  // the theme synchronously, and a parent effect would run after AppContent's
+  // applyAppearanceToDom effect and wipe the accent override.
 
   
   const settingsLoaded = useSettingsStore((s) => s.loaded);
