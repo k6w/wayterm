@@ -1,24 +1,9 @@
 import { create } from "zustand";
-import type { ThemeDefinition } from "../types/theme";
+import { CHROME_KEYS, type ThemeDefinition } from "../types/theme";
 import { customThemeList, customThemeSave, customThemeDelete } from "../lib/ipc";
-import nextermDark from "../themes/nexterm-dark.json";
-import nextermLight from "../themes/nexterm-light.json";
-import monokaiPro from "../themes/monokai-pro.json";
-import dracula from "../themes/dracula.json";
-import nord from "../themes/nord.json";
-import solarizedDark from "../themes/solarized-dark.json";
-import solarizedLight from "../themes/solarized-light.json";
-import oneDark from "../themes/one-dark.json";
-import catppuccinMocha from "../themes/catppuccin-mocha.json";
-import tokyoNight from "../themes/tokyo-night.json";
-import gruvboxDark from "../themes/gruvbox-dark.json";
-import gruvboxLight from "../themes/gruvbox-light.json";
-import rosePine from "../themes/rose-pine.json";
-import everforestDark from "../themes/everforest-dark.json";
-import kanagawa from "../themes/kanagawa.json";
-import githubDark from "../themes/github-dark.json";
-import vibrantDark from "../themes/vibrant-dark.json";
-import vibrantLight from "../themes/vibrant-light.json";
+import { chromeCssVar, toThemeFile } from "../lib/theme-schema";
+import { BUILTIN_THEME_MAP, DEFAULT_THEME_ID, isBuiltinThemeId } from "../themes";
+import { normalizeTheme } from "../themes/legacy";
 
 interface ThemeState {
   activeThemeId: string;
@@ -34,60 +19,15 @@ interface ThemeState {
   removeCustomTheme: (id: string) => Promise<void>;
 }
 
-const builtinThemes: Record<string, ThemeDefinition> = {
-  "nexterm-dark": nextermDark as unknown as ThemeDefinition,
-  "nexterm-light": nextermLight as unknown as ThemeDefinition,
-  "monokai-pro": monokaiPro as unknown as ThemeDefinition,
-  "dracula": dracula as unknown as ThemeDefinition,
-  "nord": nord as unknown as ThemeDefinition,
-  "solarized-dark": solarizedDark as unknown as ThemeDefinition,
-  "solarized-light": solarizedLight as unknown as ThemeDefinition,
-  "one-dark": oneDark as unknown as ThemeDefinition,
-  "catppuccin-mocha": catppuccinMocha as unknown as ThemeDefinition,
-  "tokyo-night": tokyoNight as unknown as ThemeDefinition,
-  "gruvbox-dark": gruvboxDark as unknown as ThemeDefinition,
-  "gruvbox-light": gruvboxLight as unknown as ThemeDefinition,
-  "rose-pine": rosePine as unknown as ThemeDefinition,
-  "everforest-dark": everforestDark as unknown as ThemeDefinition,
-  "kanagawa": kanagawa as unknown as ThemeDefinition,
-  "github-dark": githubDark as unknown as ThemeDefinition,
-  "vibrant-dark": vibrantDark as unknown as ThemeDefinition,
-  "vibrant-light": vibrantLight as unknown as ThemeDefinition,
-};
-
-function validateTheme(obj: unknown): obj is ThemeDefinition {
-  if (!obj || typeof obj !== "object") return false;
-  const t = obj as Record<string, unknown>;
-  if (typeof t.id !== "string" || !t.id) return false;
-  if (typeof t.name !== "string" || !t.name) return false;
-  if (t.variant !== "dark" && t.variant !== "light") return false;
-
-  const term = t.terminal as Record<string, unknown> | undefined;
-  if (!term) return false;
-  if (typeof term.foreground !== "string") return false;
-  if (typeof term.background !== "string") return false;
-  if (!Array.isArray(term.ansi) || term.ansi.length !== 16) return false;
-
-  const ui = t.ui as Record<string, unknown> | undefined;
-  if (!ui) return false;
-  const requiredUi = [
-    "bgPrimary", "bgSecondary", "bgTertiary",
-    "textPrimary", "textSecondary", "textMuted",
-    "accent", "accentHover", "border", "borderFocus",
-    "success", "warning", "error",
-  ];
-  for (const key of requiredUi) {
-    if (typeof ui[key] !== "string") return false;
-  }
-
-  return true;
+function errorMessage(err: unknown): string {
+  return err instanceof Error ? err.message : String(err);
 }
 
 export const useThemeStore = create<ThemeState>((set, get) => ({
-  activeThemeId: "nexterm-dark",
-  themes: builtinThemes,
+  activeThemeId: DEFAULT_THEME_ID,
+  themes: { ...BUILTIN_THEME_MAP },
   customThemeIds: new Set<string>(),
-  active: builtinThemes["nexterm-dark"],
+  active: BUILTIN_THEME_MAP[DEFAULT_THEME_ID],
   previewThemeId: null,
 
   setTheme: (id: string) => {
@@ -121,55 +61,53 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
   },
 
   loadCustomThemes: async () => {
+    let rows: { id: string; themeJson: string }[] | null;
     try {
-      const rows = await customThemeList();
-      const newThemes: Record<string, ThemeDefinition> = {};
-      const ids = new Set<string>();
-      for (const row of rows) {
-        try {
-          const parsed = JSON.parse(row.themeJson);
-          if (validateTheme(parsed)) {
-            newThemes[parsed.id] = parsed;
-            ids.add(parsed.id);
-          }
-        } catch {
-        }
-      }
-      set((state) => ({
-        themes: { ...state.themes, ...newThemes },
-        customThemeIds: ids,
-      }));
-    } catch {
+      rows = await customThemeList();
+    } catch (err) {
+      console.warn("[theme] failed to list custom themes:", err);
+      return;
     }
+    const loaded: Record<string, ThemeDefinition> = {};
+    const ids = new Set<string>();
+    for (const row of rows ?? []) {
+      try {
+        const theme = normalizeTheme(JSON.parse(row.themeJson));
+        if (isBuiltinThemeId(theme.id)) continue;
+        loaded[theme.id] = theme;
+        ids.add(theme.id);
+      } catch (err) {
+        console.warn(`[theme] skipping custom theme "${row.id}": ${errorMessage(err)}`);
+      }
+    }
+    set((state) => ({
+      themes: { ...state.themes, ...loaded },
+      customThemeIds: ids,
+    }));
   },
 
   importTheme: async (json: string) => {
-    let parsed: unknown;
+    let raw: unknown;
     try {
-      parsed = JSON.parse(json);
+      raw = JSON.parse(json);
     } catch {
       throw new Error("Invalid JSON");
     }
 
-    if (!validateTheme(parsed)) {
+    let theme: ThemeDefinition;
+    try {
+      theme = normalizeTheme(raw);
+    } catch (err) {
+      throw new Error(`Invalid theme: ${errorMessage(err)}`);
+    }
+
+    if (isBuiltinThemeId(theme.id)) {
       throw new Error(
-        "Invalid theme format. Ensure id, name, variant, terminal, and ui fields are present."
+        `Theme ID "${theme.id}" conflicts with a built-in theme. Change the "id" field.`
       );
     }
 
-    if (builtinThemes[parsed.id]) {
-      throw new Error(
-        `Theme ID "${parsed.id}" conflicts with a built-in theme. Change the "id" field.`
-      );
-    }
-
-    const theme: ThemeDefinition = {
-      ...parsed,
-      blur: parsed.blur ?? { sidebar: 20, blocks: 4, inputBar: 12, overlay: 30 },
-      opacity: parsed.opacity ?? { sidebar: 0.4, blocks: 0.05, inputBar: 0.08 },
-    };
-
-    await customThemeSave(theme.id, JSON.stringify(theme));
+    await customThemeSave(theme.id, JSON.stringify(toThemeFile(theme)));
 
     set((state) => ({
       themes: { ...state.themes, [theme.id]: theme },
@@ -180,37 +118,36 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
   },
 
   removeCustomTheme: async (id: string) => {
-    if (builtinThemes[id]) return;
+    if (isBuiltinThemeId(id)) return;
 
     await customThemeDelete(id);
 
+    const wasActive = get().activeThemeId === id;
     set((state) => {
       const themes = { ...state.themes };
       delete themes[id];
       const ids = new Set(state.customThemeIds);
       ids.delete(id);
-
-      const needsFallback = state.activeThemeId === id;
-      return {
-        themes,
-        customThemeIds: ids,
-        ...(needsFallback
-          ? {
-              activeThemeId: "nexterm-dark",
-              active: builtinThemes["nexterm-dark"],
-            }
-          : {}),
-      };
+      return { themes, customThemeIds: ids };
     });
 
-    if (get().activeThemeId === "nexterm-dark") {
-      applyThemeToDom(builtinThemes["nexterm-dark"]);
-    }
+    if (wasActive) get().setTheme(DEFAULT_THEME_ID);
   },
 }));
 
+/**
+ * Writes a theme to the document: every chrome token as its --nx-* custom
+ * property, plus the legacy variables that un-migrated screens read.
+ * applyAppearanceToDom (src/lib/appearance.ts) must run afterwards to re-apply
+ * the accent override and glass surfaces.
+ */
 export function applyThemeToDom(theme: ThemeDefinition) {
   const root = document.documentElement;
+  for (const key of CHROME_KEYS) {
+    root.style.setProperty(chromeCssVar(key), theme.chrome[key]);
+  }
+
+  // Legacy variables (removed after Phase 5).
   const { ui } = theme;
   root.style.setProperty("--bg-primary", ui.bgPrimary);
   root.style.setProperty("--bg-secondary", ui.bgSecondary);
@@ -232,7 +169,7 @@ export function applyThemeToDom(theme: ThemeDefinition) {
   root.style.setProperty("--opacity-sidebar", `${theme.opacity.sidebar}`);
   root.style.setProperty("--opacity-blocks", `${theme.opacity.blocks}`);
   root.style.setProperty("--opacity-input-bar", `${theme.opacity.inputBar}`);
+
   root.setAttribute("data-theme", theme.variant);
-  const isLight = theme.variant === "light";
-  root.style.setProperty("--overlay", isLight ? "0 0 0" : "255 255 255");
+  root.style.setProperty("--overlay", theme.variant === "light" ? "0 0 0" : "255 255 255");
 }

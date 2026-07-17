@@ -53,7 +53,7 @@ function AppContent() {
   // density, zoom) whenever they or the active theme change, and keep the macOS
   // traffic lights aligned with the zoomed tab strip.
   useEffect(() => {
-    applyAppearanceToDom(appearance, theme.ui.accent, theme.ui.accentHover);
+    applyAppearanceToDom(appearance, theme);
     if (isMac) setTrafficLightScale(appearance.uiScale);
   }, [appearance, theme]);
 

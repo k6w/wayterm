@@ -1,175 +1,159 @@
-# Nexterm Themes
+# nexterm themes
 
-Nexterm supports 16 built-in themes and unlimited custom themes via JSON import.
+nexterm ships four built-in themes and imports custom themes from JSON. A theme has two parts: `chrome` (the app UI) and `terminal` (the terminal palette).
 
-## Built-in Themes
+## built-in themes
 
-| Theme | Variant | Accent |
-|-------|---------|--------|
-| Nexterm Dark | dark | Blue |
-| Nexterm Light | light | Blue |
-| Monokai Pro | dark | Yellow |
-| Dracula | dark | Purple |
-| Nord | dark | Cyan |
-| Solarized Dark | dark | Blue |
-| Solarized Light | light | Blue |
-| One Dark | dark | Blue |
-| Catppuccin Mocha | dark | Mauve |
-| Tokyo Night | dark | Blue |
-| Gruvbox Dark | dark | Yellow |
-| Gruvbox Light | light | Yellow |
-| Rose Pine | dark | Iris |
-| Everforest Dark | dark | Green |
-| Kanagawa | dark | Blue |
-| GitHub Dark | dark | Blue |
+| theme | id | variant | character | accent |
+|---|---|---|---|---|
+| Graphite (default) | `graphite` | dark | neutral grey | blue |
+| Frost | `frost` | dark | cool blue-black | cyan |
+| Ember | `ember` | dark | warm charcoal | amber |
+| Paper | `paper` | light | light | blue |
 
-## Creating a Custom Theme
+Every built-in theme passes WCAG AA: body text reaches at least 4.5:1 on every surface it is drawn on, and the focus ring reaches 3:1. `src/themes/builtin.test.ts` enforces this.
 
-Create a `.json` file with the following structure:
+### removed themes
+
+The redesign replaced the 18 older built-ins (Nexterm Dark/Light, Dracula, Nord, Monokai Pro, Solarized Dark/Light, One Dark Pro, Catppuccin Mocha, Tokyo Night, Gruvbox Dark/Light, Rose Pine, Everforest Dark, Kanagawa, GitHub Dark, Vibrant Dark/Light). If you were using one, nexterm switches you to Graphite on first launch and tells you once. Custom themes you imported earlier keep working.
+
+## creating a custom theme
+
+The easiest start is to copy `src/themes/graphite.json` (or `paper.json` for a light theme), change `id` and `name`, and edit the colors.
 
 ```json
 {
-  "id": "my-custom-theme",
-  "name": "My Custom Theme",
+  "id": "my-theme",
+  "name": "My Theme",
   "variant": "dark",
+  "chrome": {
+    "canvas": "#0f1012",
+    "panel": "#151618",
+    "...": "all 41 chrome tokens are required, see the table below"
+  },
   "terminal": {
-    "foreground": "#d4d4d4",
-    "background": "#1e1e1e",
-    "cursor": "#528bff",
-    "cursorAccent": "#1e1e1e",
-    "selection": "rgba(82, 139, 255, 0.25)",
+    "foreground": "#d8dae0",
+    "background": "#0f1012",
+    "cursor": "#5b95ff",
+    "cursorAccent": "#0f1012",
+    "selection": "#2f6be066",
     "ansi": [
-      "#000000", "#cc0000", "#4e9a06", "#c4a000",
-      "#3465a4", "#75507b", "#06989a", "#d3d7cf",
-      "#555753", "#ef2929", "#8ae234", "#fce94f",
-      "#729fcf", "#ad7fa8", "#34e2e2", "#eeeeec"
+      "#1c1d20", "#f87171", "#4ade80", "#fbbf24",
+      "#60a5fa", "#c084fc", "#22d3ee", "#d8dae0",
+      "#5c5f66", "#fca5a5", "#86efac", "#fde68a",
+      "#93c5fd", "#d8b4fe", "#67e8f9", "#f4f4f6"
     ]
-  },
-  "ui": {
-    "bgPrimary": "#1e1e1e",
-    "bgSecondary": "#252526",
-    "bgTertiary": "#2d2d2d",
-    "textPrimary": "#e4e4e9",
-    "textSecondary": "#a0a0b0",
-    "textMuted": "#5a5a70",
-    "accent": "#528bff",
-    "accentHover": "#6b9fff",
-    "border": "rgba(255, 255, 255, 0.08)",
-    "borderFocus": "#528bff",
-    "success": "#4ec9b0",
-    "warning": "#cca700",
-    "error": "#f44747"
-  },
-  "blur": {
-    "sidebar": 20,
-    "blocks": 4,
-    "inputBar": 12,
-    "overlay": 30
-  },
-  "opacity": {
-    "sidebar": 0.4,
-    "blocks": 0.05,
-    "inputBar": 0.08
   }
 }
 ```
 
-## Field Reference
+### rules
 
-### Root
+- Colors are hex only: `#rrggbb`, or `#rrggbbaa` where a token allows transparency. `rgb()`, `hsl()` and color names are rejected.
+- Tokens marked **opaque** below must be `#rrggbb`.
+- `id` is 1 to 64 letters, digits, `.`, `_` or `-`, and cannot be `graphite`, `frost`, `ember` or `paper`.
+- `name` is 1 to 64 characters.
+- `variant` is `"dark"` or `"light"`. It sets native UI bits such as scrollbars.
+- Unknown fields are ignored. If something is wrong, the import error names the field, for example `chrome.canvas must be an opaque hex color (#rrggbb)`.
+- Aim for the same contrast as the built-ins: 4.5:1 for text tokens on the surfaces listed in the table.
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `id` | string | Unique identifier (kebab-case, e.g. `"my-theme"`) |
-| `name` | string | Display name shown in settings |
-| `variant` | `"dark"` or `"light"` | Controls scrollbar and native UI styling |
+## root fields
 
-### `terminal` — Terminal colors
+| field | type | description |
+|---|---|---|
+| `id` | string | unique identifier |
+| `name` | string | display name in settings and the theme pickers |
+| `variant` | `"dark"` or `"light"` | light or dark native styling |
+| `chrome` | object | the 41 UI tokens below |
+| `terminal` | object | terminal colors |
+| `blur` | object, optional | vibrancy blur in px: `sidebar` (20), `blocks` (4), `inputBar` (12), `overlay` (30) |
+| `opacity` | object, optional | vibrancy opacity: `sidebar` (0.4), `blocks` (0.05), `inputBar` (0.08) |
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `foreground` | hex | Default text color |
-| `background` | hex | Terminal background |
-| `cursor` | hex | Cursor color |
-| `cursorAccent` | hex | Text color under block cursor |
-| `selection` | hex/rgba | Selection highlight |
-| `ansi` | string[16] | ANSI color palette (see below) |
+## `chrome` tokens
 
-#### ANSI palette order
+| token | opaque | used for |
+|---|---|---|
+| `canvas` | yes | window background, the lowest surface |
+| `panel` | yes | sidebars, panels, dialogs |
+| `raised` | yes | cards, menus, popovers |
+| `hover` | | hovered rows and buttons |
+| `active` | | pressed rows and buttons |
+| `scrim` | | dimmed backdrop behind dialogs (usually translucent) |
+| `border` | yes | default 1px hairline |
+| `borderStrong` | | input and button outlines |
+| `borderSubtle` | | dividers inside a panel |
+| `text` | yes | primary text (4.5:1 on canvas, panel, raised, hover, active, tabBar, tabActive, statusBar, inputBg) |
+| `textSecondary` | yes | secondary text (4.5:1 on canvas, panel, raised, hover, tabBar, tabActive, statusBar) |
+| `textMuted` | yes | labels, hints, status bar text (4.5:1 on canvas, panel, raised, tabBar, statusBar) |
+| `textDisabled` | | disabled text (no contrast requirement) |
+| `textOnAccent` | | text on accent buttons (4.5:1 on accent, accentHover, accentActive) |
+| `accent` | yes | primary action, selection marks |
+| `accentHover` | yes | primary action hover |
+| `accentActive` | | primary action pressed |
+| `accentSubtle` | | selected row background (usually translucent) |
+| `accentText` | | accent-colored text and checkmarks (4.5:1 on canvas, panel, raised) |
+| `focusRing` | yes | keyboard focus ring (3:1 on canvas and panel) |
+| `selection` | | selected text in the UI |
+| `success` | yes | success text and icons (4.5:1 on canvas and panel) |
+| `successSubtle` | | success badge background |
+| `warning` | yes | warning text and icons (4.5:1 on canvas and panel) |
+| `warningSubtle` | | warning badge background |
+| `danger` | yes | errors, destructive actions (4.5:1 on canvas and panel) |
+| `dangerSubtle` | | danger badge and destructive hover background |
+| `info` | | informational text and icons (4.5:1 on canvas and panel) |
+| `infoSubtle` | | info badge background |
+| `inputBg` | | text field and select background |
+| `inputBorder` | | text field and select outline |
+| `tabBar` | | tab strip background |
+| `tabActive` | | active tab background |
+| `statusBar` | | status bar background |
+| `tooltipBg` | | tooltip background |
+| `tooltipText` | | tooltip text (4.5:1 on tooltipBg) |
+| `kbdBg` | | shortcut chip background |
+| `kbdText` | | shortcut chip text (4.5:1 on kbdBg) |
+| `scrollbarThumb` | | scrollbar thumb (usually translucent) |
+| `scrollbarThumbHover` | | hovered scrollbar thumb |
+| `shadow` | | shadow color of floating overlays (usually translucent) |
+
+## `terminal` colors
+
+| field | format | description |
+|---|---|---|
+| `foreground` | `#rrggbb` | default text (aim for 4.5:1 on `background`) |
+| `background` | `#rrggbb` | terminal background |
+| `cursor` | `#rrggbb` | cursor |
+| `cursorAccent` | `#rrggbb` | text under a block cursor (usually the background) |
+| `selection` | `#rrggbb` or `#rrggbbaa` | selection highlight (usually translucent) |
+| `ansi` | 16 x `#rrggbb` | ANSI palette, in the order below |
 
 ```
-Index  Name           Usage
-─────  ─────────────  ──────────────────────
-0      Black          Normal black
-1      Red            Errors, deletions
-2      Green          Success, additions
-3      Yellow         Warnings, highlights
-4      Blue           Info, links
-5      Magenta        Special keywords
-6      Cyan           Strings, secondary
-7      White          Normal white
-8      Bright Black   Comments, muted text
-9      Bright Red
-10     Bright Green
-11     Bright Yellow
-12     Bright Blue
-13     Bright Magenta
-14     Bright Cyan
-15     Bright White   Emphasis text
+index  name           usage
+0      black          normal black
+1      red            errors, deletions
+2      green          success, additions
+3      yellow         warnings, highlights
+4      blue           info, links
+5      magenta        special keywords
+6      cyan           strings, secondary
+7      white          normal white
+8      bright black   comments, muted text
+9      bright red
+10     bright green
+11     bright yellow
+12     bright blue
+13     bright magenta
+14     bright cyan
+15     bright white   emphasis text
 ```
 
-### `ui` — Application UI colors
+## importing a theme
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `bgPrimary` | hex | Main background |
-| `bgSecondary` | hex | Sidebar, panels |
-| `bgTertiary` | hex | Inputs, cards |
-| `textPrimary` | hex | Main text |
-| `textSecondary` | hex | Secondary text |
-| `textMuted` | hex | Muted/disabled text |
-| `accent` | hex | Primary accent (buttons, focus rings) |
-| `accentHover` | hex | Accent hover state |
-| `border` | hex/rgba | Default borders |
-| `borderFocus` | hex | Focused element borders |
-| `success` | hex | Success indicators |
-| `warning` | hex | Warning indicators |
-| `error` | hex | Error indicators |
+1. Open **Settings > Appearance**.
+2. Click **Import JSON** in the custom themes section and pick your file.
+3. The theme is applied and saved in the app database, so it survives updates.
 
-### `blur` — Vibrancy blur (optional)
+The same section also imports Windows Terminal color schemes (`.json`) and iTerm2 presets (`.itermcolors`); nexterm derives the `chrome` tokens from the terminal colors.
 
-These values control backdrop blur when vibrancy is enabled. Defaults are used if omitted.
+### older theme files
 
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `sidebar` | number | 20 | Sidebar blur in px |
-| `blocks` | number | 4 | Content blocks blur |
-| `inputBar` | number | 12 | Input/status bar blur |
-| `overlay` | number | 30 | Modal overlay blur |
-
-### `opacity` — Vibrancy opacity (optional)
-
-Controls transparency when vibrancy is enabled. Defaults are used if omitted.
-
-| Field | Type | Default | Description |
-|-------|------|---------|-------------|
-| `sidebar` | number | 0.4 | Sidebar opacity |
-| `blocks` | number | 0.05 | Content blocks opacity |
-| `inputBar` | number | 0.08 | Input bar opacity |
-
-## Importing a Theme
-
-1. Open **Settings** > **Appearance**
-2. Click **Import JSON** in the Custom Themes section
-3. Select your `.json` file
-4. The theme is immediately applied and persisted
-
-Custom themes are stored in the app database and survive updates.
-
-## Tips
-
-- Use `rgba()` for `selection` and `border` to get transparency
-- Keep `cursorAccent` the same as your `background` for a clean cursor
-- For vibrancy, use darker `bgPrimary`/`bgSecondary` values — the blur effect lightens them
-- Copy an existing theme from `src/themes/` as a starting point
-- The `id` must be unique and cannot conflict with built-in theme IDs
+Theme files made for nexterm before the redesign use a 13-color `ui` block instead of `chrome`. They still import: nexterm converts `ui` to `chrome` (translucent `rgba()` values are flattened onto the background). New themes should use `chrome`.

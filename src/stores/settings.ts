@@ -15,7 +15,7 @@ const defaultSettings: AppSettings = {
     longCommandThresholdSeconds: 10,
   },
   appearance: {
-    themeId: "nexterm-dark",
+    themeId: "graphite",
     terminalFontFamily: "JetBrains Mono, monospace",
     terminalFontSize: 14,
     terminalFontWeight: 400,

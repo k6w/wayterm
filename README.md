@@ -10,7 +10,7 @@ a terminal that does a bit more than terminals usually do. split panes, ssh and 
 - **port forwarding** local, remote and dynamic tunnels over ssh
 - **git** stage, commit, push, pull, branches, stash and a diff viewer right in the sidebar. no repo yet? there's a button for that
 - **database** postgres, mysql, sqlite and mongodb with a query editor and history
-- **themes** 18 built in (nexterm dark/light, dracula, nord, monokai pro, solarized, one dark, catppuccin mocha, tokyo night, gruvbox, rose pine, everforest, kanagawa, github dark, vibrant dark/light), plus a custom theme editor and iterm/windows terminal import
+- **themes** four built in (graphite, frost, ember and paper), all checked for wcag aa contrast, plus custom json themes and iterm/windows terminal import
 - **command palette** everything is a keystroke away (ctrl+shift+p)
 - **snippets** save commands with variables and run them from anywhere
 - **workspaces** save a layout, get it back later
