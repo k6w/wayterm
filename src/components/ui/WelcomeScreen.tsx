@@ -6,6 +6,7 @@ import { useSettingsStore } from "../../stores/settings";
 import { getDefaultShellsVerified } from "../../lib/shell-detect";
 import type { ThemeDefinition } from "../../types/theme";
 import { isMac } from "../../lib/platform";
+import { DEFAULT_THEME_ID } from "../../themes";
 
 type DetectedShell = { type: string; path: string; label: string };
 
@@ -38,7 +39,7 @@ export function WelcomeScreen({ onDismiss }: WelcomeScreenProps) {
   const [selectedShellPath, setSelectedShellPath] = useState("");
   const [shells, setShells] = useState<DetectedShell[]>([]);
   const [shellsLoading, setShellsLoading] = useState(false);
-  const [selectedThemeId, setSelectedThemeId] = useState("nexterm-dark");
+  const [selectedThemeId, setSelectedThemeId] = useState(DEFAULT_THEME_ID);
 
   const themes = useThemeStore((s) => s.themes);
   const activeThemeId = useThemeStore((s) => s.activeThemeId);
