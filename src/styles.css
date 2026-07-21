@@ -1,49 +1,153 @@
 @import "tailwindcss";
 
 /*
- * Design tokens. Colors are theme-driven (see src/stores/theme.ts). The
- * spacing / radius / font-size tokens below give the UI a shared scale so
- * components stop hand-picking arbitrary values:
- *   - nav rows / list items: px-row-x py-row-y
- *   - panel & section containers: p-panel
- *   - gap between distinct groups within a panel: gap-section-gap
- *     (8pt-grid "internal spacing < external spacing" rule)
- *   - radius: rounded (sm=chips), rounded-md (controls), rounded-lg (panels)
- * These pin Tailwind's own utilities to app-consistent values, so existing
- * rounded / rounded-md / rounded-lg call sites adopt them automatically.
+ * Design tokens (redesign Phase 1).
+ *
+ * Colors: applyThemeToDom (src/stores/theme.ts) writes every theme chrome token
+ * to a --nx-* custom property; applyAppearanceToDom (src/lib/appearance.ts)
+ * then re-applies the accent override and the glass surfaces. The block below
+ * exposes them to Tailwind: bg-canvas, text-fg-muted, border-border-strong,
+ * outline-focus, bg-statusbar-glass, ...
+ *
+ * The legacy names further down (bg-bg-primary, text-text-primary, ...) alias
+ * the new tokens so screens not yet migrated to src/ui keep working. They are
+ * removed in Phase 5. Never use them in src/ui.
  */
 @theme {
-  --color-bg-primary: var(--bg-primary);
-  --color-bg-secondary: var(--bg-secondary);
-  --color-bg-tertiary: var(--bg-tertiary);
-  --color-text-primary: var(--text-primary);
-  --color-text-secondary: var(--text-secondary);
-  --color-text-muted: var(--text-muted);
-  --color-accent: var(--accent);
-  --color-accent-hover: var(--accent-hover);
-  --color-border: var(--border);
-  --color-border-focus: var(--border-focus);
-  --color-success: var(--success);
-  --color-warning: var(--warning);
-  --color-error: var(--error);
+  /* Surfaces */
+  --color-canvas: var(--nx-canvas);
+  --color-panel: var(--nx-panel);
+  --color-raised: var(--nx-raised);
+  --color-hover: var(--nx-hover);
+  --color-active: var(--nx-active);
+  --color-scrim: var(--nx-scrim);
+  --color-panel-glass: var(--nx-glass-panel);
+  --color-raised-glass: var(--nx-glass-raised);
+  --color-tabbar-glass: var(--nx-glass-tab-bar);
+  --color-statusbar-glass: var(--nx-glass-status-bar);
+
+  /* Borders */
+  --color-border: var(--nx-border);
+  --color-border-strong: var(--nx-border-strong);
+  --color-border-subtle: var(--nx-border-subtle);
+
+  /* Text */
+  --color-fg: var(--nx-text);
+  --color-fg-secondary: var(--nx-text-secondary);
+  --color-fg-muted: var(--nx-text-muted);
+  --color-fg-disabled: var(--nx-text-disabled);
+  --color-fg-on-accent: var(--nx-text-on-accent);
+
+  /* Accent: focus, selection and the primary action only */
+  --color-accent: var(--nx-accent);
+  --color-accent-hover: var(--nx-accent-hover);
+  --color-accent-active: var(--nx-accent-active);
+  --color-accent-subtle: var(--nx-accent-subtle);
+  --color-accent-fg: var(--nx-accent-text);
+  --color-focus: var(--nx-focus-ring);
+  --color-selection: var(--nx-selection);
+
+  /* Semantic */
+  --color-success: var(--nx-success);
+  --color-success-subtle: var(--nx-success-subtle);
+  --color-warning: var(--nx-warning);
+  --color-warning-subtle: var(--nx-warning-subtle);
+  --color-danger: var(--nx-danger);
+  --color-danger-subtle: var(--nx-danger-subtle);
+  --color-info: var(--nx-info);
+  --color-info-subtle: var(--nx-info-subtle);
+
+  /* Component surfaces */
+  --color-input: var(--nx-input-bg);
+  --color-input-border: var(--nx-input-border);
+  --color-tabbar: var(--nx-tab-bar);
+  --color-tab-active: var(--nx-tab-active);
+  --color-statusbar: var(--nx-status-bar);
+  --color-tooltip: var(--nx-tooltip-bg);
+  --color-tooltip-fg: var(--nx-tooltip-text);
+  --color-kbd: var(--nx-kbd-bg);
+  --color-kbd-fg: var(--nx-kbd-text);
+  --color-scrollbar: var(--nx-scrollbar-thumb);
+  --color-scrollbar-hover: var(--nx-scrollbar-thumb-hover);
+  --color-shadow: var(--nx-shadow);
+
+  /* Legacy aliases for un-migrated screens (removed in Phase 5) */
+  --color-bg-primary: var(--nx-canvas);
+  --color-bg-secondary: var(--nx-panel);
+  --color-bg-tertiary: var(--nx-raised);
+  --color-text-primary: var(--nx-text);
+  --color-text-secondary: var(--nx-text-secondary);
+  --color-text-muted: var(--nx-text-muted);
+  --color-border-focus: var(--nx-focus-ring);
+  --color-error: var(--nx-danger);
   --color-overlay: rgb(var(--overlay));
 
-  /* Spacing scale (named aliases; the default numeric scale still works) */
+  /* Typography: Inter for UI at 13px; scale 11 / 12 / 13 / 15 / 20 */
+  --font-sans: var(--ui-font-family);
+  --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --text-caption: 11px;
+  --text-caption--line-height: 16px;
+  --text-label: 12px;
+  --text-label--line-height: 16px;
+  --text-body: 13px;
+  --text-body--line-height: 20px;
+  --text-title: 15px;
+  --text-title--line-height: 20px;
+  --text-heading: 20px;
+  --text-heading--line-height: 28px;
+  /* Legacy micro size absorbing old text-[10px] escapes; not for src/ui */
+  --text-2xs: 10px;
+
+  /* Density: 4px grid; rows and controls are 28px (compact default) */
+  --spacing-control: var(--nx-control-h);
+  --spacing-row: var(--nx-row-h);
   --spacing-row-x: 12px;
   --spacing-row-y: 8px;
   --spacing-panel: 12px;
   --spacing-section-gap: 24px;
 
-  /* Radius scale (pins Tailwind's rounded-{sm,md,lg} to app values) */
+  /* Radius 4 / 6 / 8 (pins Tailwind's rounded-sm / rounded-md / rounded-lg) */
   --radius-sm: 4px;
   --radius-md: 6px;
-  --radius-lg: 10px;
+  --radius-lg: 8px;
 
-  /* Micro font-size to absorb ad hoc text-[9px]/text-[10px] escapes */
-  --text-2xs: 10px;
+  /* Elevation: hairline borders separate surfaces; only floating overlays cast a shadow */
+  --shadow-popover: 0 8px 24px var(--nx-shadow);
+
+  /* Motion: 120-180ms ease-out, no bounce */
+  --animate-nx-fade-in: nx-fade-in 120ms ease-out;
+
+  @keyframes nx-fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(2px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
 }
 
-/* Z-index layering scale — consume via z-[var(--z-*)] */
+/* Runtime defaults, overridden by applyThemeToDom / applyAppearanceToDom. */
+:root {
+  --ui-font-family: Inter, system-ui, sans-serif;
+  --blur-intensity: 1;
+  --nx-control-h: 28px;
+  --nx-row-h: 28px;
+  --nx-glass-panel: var(--nx-panel);
+  --nx-glass-raised: var(--nx-raised);
+  --nx-glass-tab-bar: var(--nx-tab-bar);
+  --nx-glass-status-bar: var(--nx-status-bar);
+}
+
+/* Comfortable density (setting wired in Phase 5). */
+:root[data-density="comfortable"] {
+  --nx-control-h: 32px;
+  --nx-row-h: 32px;
+}
+
+/* Z-index layering scale: consume via z-[var(--z-*)] */
 :root {
   --z-sidebar-backdrop: 30;
   --z-sidebar-panel: 40;
@@ -62,6 +166,18 @@ html, body, #root {
   font-family: var(--ui-font-family, Inter, system-ui, sans-serif);
 }
 
+body {
+  font-size: var(--text-body);
+  line-height: var(--text-body--line-height);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Glass: blur the backdrop only while vibrancy is on (data-vibrancy is set by applyAppearanceToDom). */
+:root[data-vibrancy="on"] .nx-blur {
+  backdrop-filter: blur(calc(20px * var(--blur-intensity))) saturate(1.3);
+  -webkit-backdrop-filter: blur(calc(20px * var(--blur-intensity))) saturate(1.3);
+}
+
 ::-webkit-scrollbar {
   width: 6px;
 }
@@ -71,12 +187,12 @@ html, body, #root {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(var(--overlay, 255 255 255), 0.15);
+  background: var(--nx-scrollbar-thumb);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(var(--overlay, 255 255 255), 0.25);
+  background: var(--nx-scrollbar-thumb-hover);
 }
 
 /* Hide scrollbar but keep scroll functionality */
@@ -106,7 +222,7 @@ html, body, #root {
 }
 
 .xterm-viewport::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--nx-scrollbar-thumb);
   border-radius: 3px;
 }
 
@@ -117,14 +233,20 @@ html, body, #root {
   text-rendering: optimizeLegibility;
 }
 
-/* Appearance defaults (overridden at runtime by applyAppearanceToDom). */
-:root {
-  --ui-font-family: Inter, system-ui, sans-serif;
-  --blur-intensity: 1;
-}
-
 /* Compact density: tighten the settings rows. */
 :root[data-compact="true"] .setting-row {
   padding-top: 0.375rem;
   padding-bottom: 0.375rem;
+}
+
+/* Motion: honor prefers-reduced-motion everywhere. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
