@@ -1,4 +1,4 @@
-import type { ReactElement, ReactNode } from "react";
+import { useRef, type ReactElement, type ReactNode } from "react";
 import { Tooltip as TooltipPrimitive } from "radix-ui";
 import { Kbd } from "./Kbd";
 
@@ -26,11 +26,25 @@ export function Tooltip({
   disabled = false,
   children,
 }: TooltipProps) {
+  // True from a pointer press until the trigger blurs. Focus that arrives from
+  // a pointer click must not (re)open the tooltip; keyboard focus still does.
+  const pointerFocusRef = useRef(false);
   if (disabled || content === null || content === undefined || content === false) return children;
   return (
     <TooltipPrimitive.Provider delayDuration={delayDuration} skipDelayDuration={300}>
-      <TooltipPrimitive.Root>
-        <TooltipPrimitive.Trigger asChild>{children}</TooltipPrimitive.Trigger>
+      <TooltipPrimitive.Root disableHoverableContent>
+        <TooltipPrimitive.Trigger
+          asChild
+          onPointerDown={() => {
+            pointerFocusRef.current = true;
+          }}
+          onFocus={(event) => {
+            if (pointerFocusRef.current) event.preventDefault();
+          }}
+          onBlur={() => {
+            pointerFocusRef.current = false;
+          }}
+        >{children}</TooltipPrimitive.Trigger>
         <TooltipPrimitive.Portal>
           <TooltipPrimitive.Content
             side={side}

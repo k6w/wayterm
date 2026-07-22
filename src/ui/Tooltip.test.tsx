@@ -49,4 +49,42 @@ describe("Tooltip", () => {
     expect(screen.getByRole("button", { name: "b" })).toHaveFocus();
     expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
   });
+
+  it("closes on pointer leave after a click and does not reopen from retained focus", async () => {
+    const user = userEvent.setup();
+    render(
+      <Tooltip content="Theme" delayDuration={0}>
+        <button type="button">t</button>
+      </Tooltip>
+    );
+    const button = screen.getByRole("button", { name: "t" });
+    await user.hover(button);
+    await user.click(button);
+    await user.unhover(button);
+    await waitFor(() => expect(screen.queryByRole("tooltip")).not.toBeInTheDocument());
+    // The button may keep DOM focus after the click; that must not reopen it.
+    expect(button).toHaveFocus();
+    await user.hover(button);
+    await user.unhover(button);
+    await waitFor(() => expect(screen.queryByRole("tooltip")).not.toBeInTheDocument());
+  });
+
+  it("still opens for keyboard focus after an earlier pointer click", async () => {
+    const user = userEvent.setup();
+    render(
+      <>
+        <Tooltip content="Theme" delayDuration={0}>
+          <button type="button">t</button>
+        </Tooltip>
+        <button type="button">other</button>
+      </>
+    );
+    const button = screen.getByRole("button", { name: "t" });
+    await user.click(button);
+    await user.unhover(button);
+    await user.tab();
+    await user.tab({ shift: true });
+    expect(button).toHaveFocus();
+    expect(await screen.findByRole("tooltip")).toHaveTextContent("Theme");
+  });
 });
