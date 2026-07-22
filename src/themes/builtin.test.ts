@@ -49,6 +49,23 @@ describe.each(BUILTIN_THEMES.map((theme) => [theme.name, theme] as const))("%s",
     const { foreground, background } = theme.terminal;
     expect(contrastRatio(foreground, background, background)).toBeGreaterThanOrEqual(WCAG_AA_TEXT);
   });
+
+  // ANSI colors are drawn as text/graphics on the terminal background, so each
+  // must reach 3:1. Black/bright-black (0, 8) are exempt in dark themes, where
+  // they double as near-background fills; in light themes white/bright-white
+  // (7, 15) are not exempt and must be darkened.
+  const ANSI_NAMES = [
+    "black", "red", "green", "yellow", "blue", "magenta", "cyan", "white",
+    "brightBlack", "brightRed", "brightGreen", "brightYellow", "brightBlue",
+    "brightMagenta", "brightCyan", "brightWhite",
+  ];
+  theme.terminal.ansi.forEach((color, index) => {
+    if (theme.variant === "dark" && (index === 0 || index === 8)) return;
+    it(`ansi ${index} (${ANSI_NAMES[index]}) reaches 3:1 on the terminal background`, () => {
+      const { background } = theme.terminal;
+      expect(contrastRatio(color, background, background)).toBeGreaterThanOrEqual(WCAG_AA_NON_TEXT);
+    });
+  });
 });
 
 describe("built-in theme registry", () => {
