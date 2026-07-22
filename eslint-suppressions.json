@@ -130,24 +130,6 @@
       "count": 17
     }
   },
-  "src/components/titlebar/Tab.tsx": {
-    "nexterm/no-inline-style": {
-      "count": 1
-    }
-  },
-  "src/components/titlebar/TabContextMenu.tsx": {
-    "nexterm/no-color-literals": {
-      "count": 7
-    },
-    "nexterm/no-inline-style": {
-      "count": 11
-    }
-  },
-  "src/components/titlebar/TabStrip.tsx": {
-    "nexterm/no-inline-style": {
-      "count": 3
-    }
-  },
   "src/components/titlebar/TerminalTree.tsx": {
     "nexterm/no-inline-style": {
       "count": 2

@@ -34,6 +34,7 @@ import {
 } from "../lib/buffer-persistence";
 import type { SshConnection, } from "../types/ssh";
 import type { SerialConfig } from "../types/terminal";
+import { MotionConfig } from "framer-motion";
 
 function AppContent() {
   const tabs = useTerminalStore((s) => s.tabs);
@@ -260,9 +261,12 @@ class ErrorBoundary extends React.Component<
 export default function App() {
   return (
     <ErrorBoundary>
-      <AppProviders>
-        <AppContent />
-      </AppProviders>
+      {/* Framer Motion animations follow prefers-reduced-motion. */}
+      <MotionConfig reducedMotion="user">
+        <AppProviders>
+          <AppContent />
+        </AppProviders>
+      </MotionConfig>
     </ErrorBoundary>
   );
 }

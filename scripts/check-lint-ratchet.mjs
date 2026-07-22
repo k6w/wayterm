@@ -14,6 +14,9 @@ import { existsSync, readFileSync } from "node:fs";
 const STRICT_PATHS = [
   "src/ui/",
   "src/app/providers.tsx",
+  "src/components/titlebar/Tab.tsx",
+  "src/components/titlebar/TabContextMenu.tsx",
+  "src/components/titlebar/TabStrip.tsx",
   "src/themes/",
   "src/lib/appearance.ts",
   "src/lib/color.ts",

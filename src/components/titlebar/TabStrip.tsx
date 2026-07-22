@@ -1,14 +1,13 @@
-import { useCallback, useRef, useState, useEffect } from "react";
-import { Plus, Terminal, MonitorDot, Hash, SquareTerminal, HardDrive } from "lucide-react";
+import { useCallback, useRef, useState, useEffect, type ReactNode } from "react";
+import { ChevronDown, HardDrive, Hash, MonitorDot, Plus, SquareTerminal, Terminal } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 import { useTerminalStore } from "../../stores/terminal";
-import { useThemeStore } from "../../stores/theme";
 import { useSettingsStore } from "../../stores/settings";
-import { hexToRgba } from "../../lib/color";
-import { vibrancyAlpha } from "../../lib/platform";
 import { getPreferredShell, getDefaultShells } from "../../lib/shell-detect";
+import { shortcutFor } from "../../lib/shortcut-hints";
 import type { ShellType } from "../../types/terminal";
 import type { DropZone } from "../../stores/terminal";
+import { ICON_SM, IconButton, Menu, MenuContent, MenuItem, MenuLabel, MenuTrigger, Tabs, TabsList, cn } from "../../ui";
 import Tab from "./Tab";
 
 function computeDropZone(x: number, y: number, rect: DOMRect): DropZone {
@@ -24,6 +23,7 @@ function computeDropZone(x: number, y: number, rect: DOMRect): DropZone {
 
 export default function TabStrip() {
   const tabs = useTerminalStore((s) => s.tabs);
+  const activeTabId = useTerminalStore((s) => s.activeTabId);
   const addTab = useTerminalStore((s) => s.addTab);
   const removeTab = useTerminalStore((s) => s.removeTab);
   const setActiveTab = useTerminalStore((s) => s.setActiveTab);
@@ -153,12 +153,22 @@ export default function TabStrip() {
   );
 
   return (
-    <div data-tauri-drag-region className={`flex min-w-0 items-center ${
-      isVertical ? 'flex-col w-full flex-1 overflow-y-auto' : 'h-full flex-1 overflow-x-auto'
-    }`}>
-      <div data-tauri-drag-region className={`flex items-center scrollbar-none ${
-        isVertical ? 'flex-col w-full' : 'h-full'
-      }`}>
+    <Tabs
+      value={activeTabId ?? ""}
+      onValueChange={setActiveTab}
+      orientation={isVertical ? "vertical" : "horizontal"}
+      data-tauri-drag-region
+      className={cn(
+        "flex min-w-0 items-center",
+        isVertical ? "w-full flex-1 flex-col overflow-y-auto" : "h-full flex-1 overflow-x-auto"
+      )}
+    >
+      <TabsList
+        variant="strip"
+        aria-label="Terminal tabs"
+        data-tauri-drag-region
+        className={cn("scrollbar-none", isVertical ? "w-full flex-col" : "h-full")}
+      >
         <AnimatePresence initial={false} mode="popLayout">
           {tabs.map((tab, i) => (
             <Tab
@@ -169,125 +179,76 @@ export default function TabStrip() {
               isDragTarget={dropIndex === i && dragIndex !== null && dragIndex !== i}
               isDragSource={dragIndex === i}
               onReorderStart={handleReorderStart}
-              onClick={setActiveTab}
               onClose={removeTab}
               onRename={handleRename}
               isVertical={isVertical}
             />
           ))}
         </AnimatePresence>
-      </div>
-      <NewTabButton onAdd={addTab} isVertical={isVertical} />
-      <div data-tauri-drag-region className={`shrink-0 ${
-        isVertical ? 'w-full flex-1 min-h-[20px]' : 'h-full flex-1 min-w-[20px]'
-      }`} />
-    </div>
+      </TabsList>
+      <NewTabControls onAdd={addTab} isVertical={isVertical} />
+      <div
+        data-tauri-drag-region
+        className={cn("shrink-0", isVertical ? "min-h-5 w-full flex-1" : "h-full min-w-5 flex-1")}
+      />
+    </Tabs>
   );
 }
 
 
-const SHELL_ICONS: Record<string, React.ReactNode> = {
-  powershell: <SquareTerminal size={14} />,
-  cmd: <MonitorDot size={14} />,
-  gitbash: <Hash size={14} />,
-  wsl: <Terminal size={14} />,
-  bash: <Terminal size={14} />,
-  zsh: <Terminal size={14} />,
-  fish: <Terminal size={14} />,
-  sh: <Terminal size={14} />,
-  ssh: <Terminal size={14} />,
-  sftp: <HardDrive size={14} />,
+const SHELL_ICONS: Record<string, ReactNode> = {
+  powershell: <SquareTerminal {...ICON_SM} />,
+  cmd: <MonitorDot {...ICON_SM} />,
+  gitbash: <Hash {...ICON_SM} />,
+  wsl: <Terminal {...ICON_SM} />,
+  bash: <Terminal {...ICON_SM} />,
+  zsh: <Terminal {...ICON_SM} />,
+  fish: <Terminal {...ICON_SM} />,
+  sh: <Terminal {...ICON_SM} />,
+  ssh: <Terminal {...ICON_SM} />,
+  sftp: <HardDrive {...ICON_SM} />,
 };
 
-function NewTabButton({ onAdd, isVertical }: { onAdd: (type: ShellType, path?: string) => void; isVertical: boolean }) {
-  const [open, setOpen] = useState(false);
-  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const ntTheme = useThemeStore((s) => s.active);
-  const ntVibrancy = useSettingsStore((s) => s.settings.appearance.vibrancyEnabled);
-  const ntOpacity = useSettingsStore((s) => s.settings.appearance.windowOpacity);
-  const ntMenuBg = ntVibrancy
-    ? hexToRgba(ntTheme.ui.bgSecondary, vibrancyAlpha(ntOpacity) * 0.85)
-    : ntTheme.ui.bgSecondary;
-
+/** "+" opens a tab with the default shell; the chevron menu picks another shell. */
+function NewTabControls({
+  onAdd,
+  isVertical,
+}: {
+  onAdd: (type: ShellType, path?: string) => void;
+  isVertical: boolean;
+}) {
   const shells = getDefaultShells();
   const defaultShellSetting = useSettingsStore((s) => s.settings.general.defaultShell);
   const defaultShell = getPreferredShell(defaultShellSetting);
-
-  const handleEnter = () => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => setOpen(true), 250);
-  };
-
-  const handleLeave = () => {
-    if (timerRef.current) clearTimeout(timerRef.current);
-    timerRef.current = setTimeout(() => setOpen(false), 200);
-  };
-
-  useEffect(() => {
-    return () => {
-      if (timerRef.current) clearTimeout(timerRef.current);
-    };
-  }, []);
+  const tooltipSide = isVertical ? "right" : "bottom";
 
   return (
-    <div
-      ref={containerRef}
-      className={`relative shrink-0 ${
-        isVertical ? 'w-full' : ''
-      }`}
-      onMouseEnter={handleEnter}
-      onMouseLeave={handleLeave}
-    >
-      <button
-        className={`flex items-center justify-center rounded-md text-text-secondary transition-colors hover:bg-bg-tertiary hover:text-text-primary ${
-          isVertical ? 'w-full h-10 my-1' : 'size-7'
-        }`}
-        onClick={() => {
-          onAdd(defaultShell.type, defaultShell.path);
-          setOpen(false);
-        }}
-        title={`New tab (${defaultShell.label})`}
-      >
-        <Plus className="size-3.5" />
-        {isVertical && <span className="ml-2 text-xs">New Tab</span>}
-      </button>
-
-      {open && (
-        <div
-          className={`absolute z-[var(--z-dropdown)] min-w-[170px] rounded-lg border border-border py-1 shadow-xl ${
-            isVertical ? 'left-full top-0 ml-2' : 'top-full left-0 mt-1'
-          }`}
-          style={{
-            backgroundColor: ntMenuBg,
-            backdropFilter: ntVibrancy ? "blur(20px) saturate(1.3)" : undefined,
-            WebkitBackdropFilter: ntVibrancy ? "blur(20px) saturate(1.3)" : undefined,
-          }}
-          onMouseEnter={() => {
-            if (timerRef.current) clearTimeout(timerRef.current);
-          }}
-          onMouseLeave={handleLeave}
-        >
+    <div className={cn("flex shrink-0 items-center gap-0.5", isVertical ? "w-full justify-center py-1" : "pl-1")}>
+      <IconButton
+        label={`New tab (${defaultShell.label})`}
+        icon={<Plus {...ICON_SM} />}
+        shortcut={shortcutFor("new-tab")}
+        tooltipSide={tooltipSide}
+        onClick={() => onAdd(defaultShell.type, defaultShell.path)}
+      />
+      <Menu>
+        <MenuTrigger asChild>
+          <IconButton label="Choose shell" icon={<ChevronDown {...ICON_SM} />} size="xs" tooltipSide={tooltipSide} />
+        </MenuTrigger>
+        <MenuContent align="start" side={isVertical ? "right" : "bottom"}>
+          <MenuLabel>New tab with</MenuLabel>
           {shells.map((shell, i) => (
-            <button
+            <MenuItem
               key={`${shell.type}-${i}`}
-              className="flex w-full items-center gap-2.5 px-3 py-1.5 text-xs text-text-primary transition-colors hover:bg-bg-tertiary"
-              onClick={() => {
-                onAdd(shell.type, shell.path);
-                setOpen(false);
-              }}
+              icon={SHELL_ICONS[shell.type] ?? <Terminal {...ICON_SM} />}
+              onSelect={() => onAdd(shell.type, shell.path)}
             >
-              <span className="text-text-muted">
-                {SHELL_ICONS[shell.type] ?? <Terminal size={14} />}
-              </span>
-              <span>{shell.label}</span>
-              {shell.type === defaultShell.type && i === 0 && (
-                <span className="ml-auto text-2xs text-text-muted/60">default</span>
-              )}
-            </button>
+              {shell.label}
+              {shell.path === defaultShell.path && <span className="text-caption text-fg-muted">default</span>}
+            </MenuItem>
           ))}
-        </div>
-      )}
+        </MenuContent>
+      </Menu>
     </div>
   );
 }
