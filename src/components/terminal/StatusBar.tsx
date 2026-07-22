@@ -1,46 +1,58 @@
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import {
-  Folder,
-  Terminal,
-  Columns2,
-  Rows2,
+  ArrowRightLeft,
   Bell,
   BellOff,
-  Eraser,
-  Palette,
-  Settings,
+  Columns2,
   Command,
+  Eraser,
+  Folder,
   LayoutGrid,
-  Check,
-  Sun,
   Moon,
-  ArrowRightLeft,
-  Search,
+  Palette,
   Radio,
+  Rows2,
+  Search,
+  Settings,
+  Sun,
+  Terminal,
 } from "lucide-react";
 import { useTerminalStore, collectPaneIds } from "../../stores/terminal";
 import { useThemeStore } from "../../stores/theme";
-import { useSettingsStore } from "../../stores/settings";
 import { useSshStore } from "../../stores/ssh";
-import { hexToRgba } from "../../lib/color";
-import { vibrancyAlpha } from "../../lib/platform";
 import { getDefaultShell, getDefaultShells } from "../../lib/shell-detect";
 import { shortenPath } from "../../lib/format";
 import { splitActivePane } from "../../lib/keybindings";
 import { clearBuffer } from "../../lib/terminal-registry";
+import { shortcutFor } from "../../lib/shortcut-hints";
+import { selectTheme } from "../../lib/theme-selection";
 import QuickPortForwardDialog from "../ssh/QuickPortForwardDialog";
 import { GitStatusWidget } from "../git/GitStatusWidget";
+import {
+  Badge,
+  Button,
+  ICON_SM,
+  IconButton,
+  Menu,
+  MenuContent,
+  MenuLabel,
+  MenuRadioGroup,
+  MenuRadioItem,
+  MenuTrigger,
+  Toolbar,
+  ToolbarButton,
+  ToolbarSeparator,
+  ToolbarSpacer,
+  Tooltip,
+} from "../../ui";
 
-const btnClass =
-  "flex items-center justify-center h-5 w-5 rounded transition-colors cursor-pointer hover:bg-bg-tertiary";
-const sectionBtn =
-  "flex items-center gap-1.5 px-1.5 h-5 rounded transition-colors cursor-pointer hover:bg-bg-tertiary";
-
+/**
+ * Bottom status bar. One Toolbar: Tab enters it, arrow keys move between its
+ * controls, and every icon button has a tooltip with its shortcut.
+ */
 export default function StatusBar() {
   const activePaneId = useTerminalStore((s) => s.activePaneId);
-  const pane = useTerminalStore((s) =>
-    s.activePaneId ? s.panes[s.activePaneId] : null
-  );
+  const pane = useTerminalStore((s) => (s.activePaneId ? s.panes[s.activePaneId] : null));
   const tabs = useTerminalStore((s) => s.tabs);
   const activeTabId = useTerminalStore((s) => s.activeTabId);
   const focusNextPane = useTerminalStore((s) => s.focusNextPane);
@@ -48,333 +60,241 @@ export default function StatusBar() {
   const toggleCommandPalette = useTerminalStore((s) => s.toggleCommandPalette);
   const broadcastMode = useTerminalStore((s) => s.broadcastMode);
   const toggleBroadcastMode = useTerminalStore((s) => s.toggleBroadcastMode);
-  const isLogging = useTerminalStore((s) =>
-    activePaneId ? s.loggingPanes.has(activePaneId) : false
-  );
-  const vibrancyEnabled = useSettingsStore((s) => s.settings.appearance.vibrancyEnabled);
-  const windowOpacity = useSettingsStore((s) => s.settings.appearance.windowOpacity);
-  const theme = useThemeStore((s) => s.active);
+  const isLogging = useTerminalStore((s) => (activePaneId ? s.loggingPanes.has(activePaneId) : false));
 
   const [copiedFlash, setCopiedFlash] = useState(false);
   const [bellEnabled, setBellEnabled] = useState(true);
   const [showQuickPortForward, setShowQuickPortForward] = useState(false);
 
-  const handleSearchClick = () => {
-    const event = new CustomEvent('nexterm:open-search');
-    window.dispatchEvent(event);
-  };
-
   const sshUsername = useSshStore((s) => {
     if (!pane?.sshConnectionId) return undefined;
     return s.connections.find((c) => c.id === pane.sshConnectionId)?.username;
   });
-
-  const activeTunnelCount = useSshStore((s) =>
-    s.portForwards.filter((f) => f.isActive).length
-  );
+  const activeTunnelCount = useSshStore((s) => s.portForwards.filter((f) => f.isActive).length);
 
   if (!pane || !activePaneId) return null;
 
   const displayPath = shortenPath(pane.cwd || "~", sshUsername);
 
-  
   const allShells = getDefaultShells();
   const paneShell = pane.shellPath
     ? allShells.find((s) => s.path === pane.shellPath) ?? { label: pane.shellType, path: pane.shellPath }
     : allShells.find((s) => s.type === pane.shellType) ?? getDefaultShell();
 
   const activeTab = tabs.find((t) => t.id === activeTabId);
-  const paneCount = activeTab ? countPanes(activeTab.panes) : 1;
-
   const allPaneIds = activeTab ? collectPaneIds(activeTab.panes) : [];
+  const paneCount = Math.max(allPaneIds.length, 1);
   const paneIndex = allPaneIds.indexOf(activePaneId) + 1;
 
   const handleCopyPath = async () => {
-    const pathToCopy = pane.cwd || "~";
     try {
-      await navigator.clipboard.writeText(pathToCopy);
+      await navigator.clipboard.writeText(pane.cwd || "~");
       setCopiedFlash(true);
       setTimeout(() => setCopiedFlash(false), 1200);
     } catch {
-      
+      // Clipboard permission denied: nothing to copy to.
     }
   };
 
   return (
-    <div
-      className={`shrink-0 flex items-center h-6 border-t border-border px-2 gap-0.5 text-[11px] text-text-muted select-none ${vibrancyEnabled ? "" : "bg-bg-secondary"}`}
-      style={vibrancyEnabled ? { backgroundColor: hexToRgba(theme.ui.bgSecondary, vibrancyAlpha(windowOpacity)) } : undefined}
+    <Toolbar
+      aria-label="Status bar"
+      className="nx-blur h-6 shrink-0 select-none gap-0.5 border-t border-border bg-statusbar-glass px-2 text-caption text-fg-muted"
     >
-      {}
+      <Tooltip content={`Shell: ${paneShell.path}`}>
+        <ToolbarButton>
+          <Button variant="ghost" size="xs" leadingIcon={<Terminal {...ICON_SM} />}>
+            {paneShell.label}
+          </Button>
+        </ToolbarButton>
+      </Tooltip>
 
-      {}
-      <button className={sectionBtn} title={`Shell: ${paneShell.path}`}>
-        <Terminal size={12} className="shrink-0" />
-        <span>{paneShell.label}</span>
-      </button>
+      <ToolbarSeparator />
 
-      <Separator />
+      <Tooltip content="Copy path">
+        <ToolbarButton>
+          <Button
+            variant="ghost"
+            size="xs"
+            leadingIcon={<Folder {...ICON_SM} />}
+            className="max-w-[240px]"
+            onClick={handleCopyPath}
+          >
+            <span className="truncate">{copiedFlash ? "Copied!" : displayPath}</span>
+          </Button>
+        </ToolbarButton>
+      </Tooltip>
 
-      {}
-      <button
-        className={sectionBtn}
-        onClick={handleCopyPath}
-        title="Click to copy path"
-      >
-        <Folder size={12} className="shrink-0" />
-        <span className="truncate max-w-[200px]">
-          {copiedFlash ? "Copied!" : displayPath}
-        </span>
-      </button>
-
-      {}
       <GitStatusWidget />
 
-      {}
       {paneCount > 1 && (
         <>
-          <Separator />
-          <button
-            className={sectionBtn}
-            onClick={focusNextPane}
-            title="Click to cycle panes"
-          >
-            <LayoutGrid size={12} className="shrink-0" />
-            <span>
-              Pane {paneIndex}/{paneCount}
-            </span>
-          </button>
+          <ToolbarSeparator />
+          <Tooltip content="Focus next pane">
+            <ToolbarButton>
+              <Button variant="ghost" size="xs" leadingIcon={<LayoutGrid {...ICON_SM} />} onClick={focusNextPane}>
+                Pane {paneIndex}/{paneCount}
+              </Button>
+            </ToolbarButton>
+          </Tooltip>
         </>
       )}
 
-      {}
       {pane.sshConnectionId && (
         <>
-          <Separator />
-          <span className={sectionBtn} title="SSH Connection">
-            <span className="size-1.5 rounded-full bg-success shrink-0" />
-            <span>SSH</span>
+          <ToolbarSeparator />
+          <span className="flex items-center gap-1.5 px-1.5">
+            <span aria-hidden className="size-1.5 shrink-0 rounded-full bg-success" />
+            SSH
             {activeTunnelCount > 0 && (
-              <span
-                className="ml-0.5 rounded-full px-1 text-2xs font-medium leading-none py-0.5 bg-accent text-white"
-                title={`${activeTunnelCount} active tunnel${activeTunnelCount !== 1 ? "s" : ""}`}
-              >
+              <Badge tone="solid" aria-label={`${activeTunnelCount} active tunnel${activeTunnelCount === 1 ? "" : "s"}`}>
                 {activeTunnelCount}
-              </span>
+              </Badge>
             )}
           </span>
-          <button
-            className={btnClass}
-            onClick={() => setShowQuickPortForward(true)}
-            title="Quick Port Forward"
-          >
-            <ArrowRightLeft size={13} />
-          </button>
+          <ToolbarButton>
+            <IconButton
+              size="xs"
+              label="Quick port forward"
+              icon={<ArrowRightLeft {...ICON_SM} />}
+              onClick={() => setShowQuickPortForward(true)}
+            />
+          </ToolbarButton>
+          <QuickPortForwardDialog
+            isOpen={showQuickPortForward}
+            onClose={() => setShowQuickPortForward(false)}
+            connectionId={pane.sshConnectionId}
+            sessionId={pane.sessionId}
+          />
         </>
       )}
 
-      {}
-      <div className="flex-1" />
+      <ToolbarSpacer />
 
-      {}
-
-      {}
       {isLogging && (
-        <span
-          className="flex items-center gap-1 px-1.5 h-5 text-[11px] text-error"
-          title="Session logging active"
-        >
-          <span className="size-1.5 rounded-full bg-error animate-pulse shrink-0" />
+        <Badge tone="danger" className="mr-1" aria-label="Session logging active">
+          <span aria-hidden className="size-1.5 animate-pulse rounded-full bg-danger motion-reduce:animate-none" />
           REC
-        </span>
+        </Badge>
       )}
 
-      {}
-      <button
-        className={`${btnClass} ${broadcastMode ? "text-accent bg-accent/15" : ""}`}
-        onClick={toggleBroadcastMode}
-        title={broadcastMode ? "Broadcast Input: ON (click to disable)" : "Broadcast Input: OFF"}
-      >
-        <Radio size={13} />
-      </button>
-
-      {}
-      <button
-        className={btnClass}
-        onClick={handleSearchClick}
-        title="Search in Terminal (Ctrl+F)"
-      >
-        <Search size={13} />
-      </button>
-
-      {}
-
-      {}
-      {pane.sshConnectionId && (
-        <QuickPortForwardDialog
-          isOpen={showQuickPortForward}
-          onClose={() => setShowQuickPortForward(false)}
-          connectionId={pane.sshConnectionId}
-          sessionId={pane.sessionId}
+      <ToolbarButton>
+        <IconButton
+          size="xs"
+          label="Broadcast input to all panes"
+          icon={<Radio {...ICON_SM} />}
+          pressed={broadcastMode}
+          onClick={toggleBroadcastMode}
         />
-      )}
+      </ToolbarButton>
+      <ToolbarButton>
+        <IconButton
+          size="xs"
+          label="Search in terminal"
+          icon={<Search {...ICON_SM} />}
+          shortcut={shortcutFor("search-terminal")}
+          onClick={() => window.dispatchEvent(new CustomEvent("nexterm:open-search"))}
+        />
+      </ToolbarButton>
+      <ToolbarButton>
+        <IconButton
+          size="xs"
+          label="Clear terminal"
+          icon={<Eraser {...ICON_SM} />}
+          onClick={() => clearBuffer(activePaneId)}
+        />
+      </ToolbarButton>
 
-      {}
-      <button
-        className={btnClass}
-        onClick={() => clearBuffer(activePaneId)}
-        title="Clear terminal buffer"
-      >
-        <Eraser size={13} />
-      </button>
+      <ToolbarSeparator />
 
-      <Separator />
+      <ToolbarButton>
+        <IconButton
+          size="xs"
+          label="Split right"
+          icon={<Columns2 {...ICON_SM} />}
+          shortcut={shortcutFor("split-horizontal")}
+          onClick={() => splitActivePane("horizontal")}
+        />
+      </ToolbarButton>
+      <ToolbarButton>
+        <IconButton
+          size="xs"
+          label="Split down"
+          icon={<Rows2 {...ICON_SM} />}
+          shortcut={shortcutFor("split-vertical")}
+          onClick={() => splitActivePane("vertical")}
+        />
+      </ToolbarButton>
 
-      {}
-      <button
-        className={btnClass}
-        onClick={() => splitActivePane("horizontal")}
-        title="Split Right"
-      >
-        <Columns2 size={13} />
-      </button>
-      <button
-        className={btnClass}
-        onClick={() => splitActivePane("vertical")}
-        title="Split Down"
-      >
-        <Rows2 size={13} />
-      </button>
+      <ToolbarSeparator />
 
-      <Separator />
-
-      {}
-      <button
-        className={btnClass}
-        onClick={() => setBellEnabled((b) => !b)}
-        title={bellEnabled ? "Mute bell" : "Unmute bell"}
-      >
-        {bellEnabled ? <Bell size={13} /> : <BellOff size={13} />}
-      </button>
-
-      {}
+      <ToolbarButton>
+        <IconButton
+          size="xs"
+          label={bellEnabled ? "Mute bell" : "Unmute bell"}
+          icon={bellEnabled ? <Bell {...ICON_SM} /> : <BellOff {...ICON_SM} />}
+          onClick={() => setBellEnabled((b) => !b)}
+        />
+      </ToolbarButton>
       <ThemePicker />
-
-      {}
-      <button
-        className={btnClass}
-        onClick={toggleCommandPalette}
-        title="Command Palette"
-      >
-        <Command size={13} />
-      </button>
-
-      {}
-      <button className={btnClass} onClick={toggleSettings} title="Settings">
-        <Settings size={13} />
-      </button>
-    </div>
+      <ToolbarButton>
+        <IconButton
+          size="xs"
+          label="Command palette"
+          icon={<Command {...ICON_SM} />}
+          shortcut={shortcutFor("command-palette")}
+          onClick={toggleCommandPalette}
+        />
+      </ToolbarButton>
+      <ToolbarButton>
+        <IconButton
+          size="xs"
+          label="Settings"
+          icon={<Settings {...ICON_SM} />}
+          shortcut={shortcutFor("settings")}
+          onClick={toggleSettings}
+        />
+      </ToolbarButton>
+    </Toolbar>
   );
 }
 
-
-
+/**
+ * Theme menu. Moving through the list (mouse or arrow keys) previews each
+ * theme; choosing one applies and saves it; closing without a choice reverts.
+ */
 function ThemePicker() {
-  const [open, setOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-
   const activeThemeId = useThemeStore((s) => s.activeThemeId);
   const themes = useThemeStore((s) => s.themes);
-  const setTheme = useThemeStore((s) => s.setTheme);
   const previewTheme = useThemeStore((s) => s.previewTheme);
-  const tpTheme = useThemeStore((s) => s.active);
-  const tpVibrancy = useSettingsStore((s) => s.settings.appearance.vibrancyEnabled);
-  const tpOpacity = useSettingsStore((s) => s.settings.appearance.windowOpacity);
-  const tpMenuBg = tpVibrancy
-    ? hexToRgba(tpTheme.ui.bgSecondary, vibrancyAlpha(tpOpacity) * 0.85)
-    : tpTheme.ui.bgSecondary;
-
-  const themeList = Object.values(themes);
-
-  
-  useEffect(() => {
-    if (!open) return;
-    const handleClick = (e: MouseEvent) => {
-      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    };
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
-    };
-    document.addEventListener("mousedown", handleClick);
-    document.addEventListener("keydown", handleKey);
-    return () => {
-      document.removeEventListener("mousedown", handleClick);
-      document.removeEventListener("keydown", handleKey);
-    };
-  }, [open]);
+  const activeName = themes[activeThemeId]?.name ?? activeThemeId;
 
   return (
-    <div ref={containerRef} className="relative">
-      <button
-        className="flex items-center justify-center h-5 w-5 rounded transition-colors cursor-pointer hover:bg-bg-tertiary"
-        onClick={() => setOpen((o) => !o)}
-        title={`Theme: ${themes[activeThemeId]?.name ?? activeThemeId}`}
-      >
-        <Palette size={13} />
-      </button>
-
-      {open && (
-        <div
-          className="absolute bottom-full right-0 mb-1.5 z-[var(--z-dropdown)] min-w-[180px] max-h-[300px] overflow-y-auto rounded-lg border border-border py-1 shadow-xl"
-          style={{
-            backgroundColor: tpMenuBg,
-            backdropFilter: tpVibrancy ? "blur(20px) saturate(1.3)" : undefined,
-            WebkitBackdropFilter: tpVibrancy ? "blur(20px) saturate(1.3)" : undefined,
-          }}
-        >
-          <div className="px-3 py-1.5 text-2xs font-medium text-text-muted uppercase tracking-wider">
-            Theme
-          </div>
-          {themeList.map((t) => (
-            <button
-              key={t.id}
-              className={`flex w-full items-center gap-2 px-3 py-1.5 text-xs transition-colors hover:bg-bg-tertiary ${
-                t.id === activeThemeId ? "text-accent" : "text-text-primary"
-              }`}
-              onMouseEnter={() => previewTheme(t.id)}
-              onMouseLeave={() => previewTheme(null)}
-              onClick={() => {
-                setTheme(t.id);
-                setOpen(false);
-              }}
-            >
-              {t.variant === "light" ? (
-                <Sun size={12} className="shrink-0 text-text-muted" />
+    <Menu
+      onOpenChange={(open) => {
+        if (!open) previewTheme(null);
+      }}
+    >
+      <ToolbarButton>
+        <MenuTrigger asChild>
+          <IconButton size="xs" label={`Theme: ${activeName}`} icon={<Palette {...ICON_SM} />} />
+        </MenuTrigger>
+      </ToolbarButton>
+      <MenuContent side="top" align="end" className="max-h-80 overflow-y-auto">
+        <MenuLabel>Theme</MenuLabel>
+        <MenuRadioGroup value={activeThemeId} onValueChange={(id) => void selectTheme(id)}>
+          {Object.values(themes).map((theme) => (
+            <MenuRadioItem key={theme.id} value={theme.id} onFocus={() => previewTheme(theme.id)}>
+              {theme.variant === "light" ? (
+                <Sun {...ICON_SM} aria-hidden className="text-fg-muted" />
               ) : (
-                <Moon size={12} className="shrink-0 text-text-muted" />
+                <Moon {...ICON_SM} aria-hidden className="text-fg-muted" />
               )}
-              <span className="flex-1 text-left">{t.name}</span>
-              {t.id === activeThemeId && (
-                <Check size={12} className="shrink-0 text-accent" />
-              )}
-            </button>
+              {theme.name}
+            </MenuRadioItem>
           ))}
-        </div>
-      )}
-    </div>
+        </MenuRadioGroup>
+      </MenuContent>
+    </Menu>
   );
-}
-
-function Separator() {
-  return <div className="w-px h-3 bg-border mx-0.5" />;
-}
-
-function countPanes(node: { type: string; children?: [unknown, unknown] }): number {
-  if (node.type === "pane") return 1;
-  if (node.children) {
-    return countPanes(node.children[0] as typeof node) + countPanes(node.children[1] as typeof node);
-  }
-  return 0;
 }

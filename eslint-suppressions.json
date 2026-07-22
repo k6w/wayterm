@@ -117,11 +117,6 @@
       "count": 1
     }
   },
-  "src/components/terminal/StatusBar.tsx": {
-    "nexterm/no-inline-style": {
-      "count": 4
-    }
-  },
   "src/components/terminal/TerminalPane.tsx": {
     "nexterm/no-color-literals": {
       "count": 2
