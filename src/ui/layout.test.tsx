@@ -164,3 +164,60 @@ describe("Toolbar", () => {
     expect(screen.getByRole("button", { name: "after" })).toHaveFocus();
   });
 });
+
+function PxSplitHarness({ collapsed = false, probe }: { collapsed?: boolean; probe?: () => void }) {
+  const [width, setWidth] = useState(260);
+  return (
+    <SplitPane
+      unit="px"
+      ratio={width}
+      onRatioChange={setWidth}
+      min={200}
+      max={420}
+      step={10}
+      collapsed={collapsed}
+      separatorLabel="Resize sidebar"
+      first={<div>side</div>}
+      second={<Probe onMount={probe} />}
+    />
+  );
+}
+
+function Probe({ onMount }: { onMount?: () => void }) {
+  const [mounted] = useState(() => {
+    onMount?.();
+    return true;
+  });
+  return <div>{mounted ? "main" : null}</div>;
+}
+
+describe("SplitPane in px", () => {
+  it("sizes the first pane in pixels and steps by px", async () => {
+    const user = userEvent.setup();
+    render(<PxSplitHarness />);
+    const handle = screen.getByRole("separator", { name: "Resize sidebar" });
+    expect(handle).toHaveAttribute("aria-valuenow", "260");
+    expect(handle).toHaveAttribute("aria-valuemin", "200");
+    expect(handle).toHaveAttribute("aria-valuemax", "420");
+    expect(screen.getByText("side").parentElement).toHaveStyle({ flexBasis: "260px" });
+    handle.focus();
+    await user.keyboard("{ArrowRight}");
+    expect(handle).toHaveAttribute("aria-valuenow", "270");
+    await user.keyboard("{End}");
+    expect(handle).toHaveAttribute("aria-valuenow", "420");
+    await user.keyboard("{Home}");
+    expect(handle).toHaveAttribute("aria-valuenow", "200");
+  });
+
+  it("hides the first pane and divider when collapsed without remounting the second", () => {
+    const probe = vi.fn();
+    const { rerender } = render(<PxSplitHarness probe={probe} />);
+    rerender(<PxSplitHarness collapsed probe={probe} />);
+    expect(screen.queryByText("side")).not.toBeInTheDocument();
+    expect(screen.queryByRole("separator")).not.toBeInTheDocument();
+    rerender(<PxSplitHarness probe={probe} />);
+    expect(screen.getByText("side")).toBeInTheDocument();
+    expect(screen.getByText("main")).toBeInTheDocument();
+    expect(probe).toHaveBeenCalledTimes(1);
+  });
+});
