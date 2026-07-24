@@ -4,6 +4,7 @@ import { useSettingsStore } from "../stores/settings";
 import { useWorkspaceStore } from "../stores/workspace";
 import { useSshStore } from "../stores/ssh";
 import { useTerminalStore } from "../stores/terminal";
+import { useSidebarStore } from "../stores/sidebar";
 import { setupKeybindings } from "../lib/keybindings";
 import { setVibrancy, getLaunchCwd } from "../lib/ipc";
 import { hexToRgb } from "../lib/color";
@@ -43,6 +44,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       // Settings and custom themes are loaded: activate the saved theme,
       // migrating users on a removed built-in to Graphite (one-time notice).
       await applyStartupTheme();
+      useSidebarStore.getState().hydrate(useSettingsStore.getState().settings.appearance);
       const { vibrancyEnabled: v, windowOpacity: o } =
         useSettingsStore.getState().settings.appearance;
       syncVibrancy(v, o);

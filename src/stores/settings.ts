@@ -32,6 +32,8 @@ const defaultSettings: AppSettings = {
     compactMode: false,
     tabPosition: "top",
     windowDecorations: "custom",
+    sidebarCollapsed: true,
+    sidebarWidth: 260,
   },
   terminal: {
     scrollbackLines: 10000,

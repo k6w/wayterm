@@ -33,6 +33,10 @@ export interface AppearanceSettings {
   compactMode: boolean;
   tabPosition: "top" | "bottom" | "left" | "right";
   windowDecorations: "custom" | "native";
+  /** Side panel hidden (only the activity bar shows). */
+  sidebarCollapsed: boolean;
+  /** Side panel width in CSS px, 200..420. */
+  sidebarWidth: number;
 }
 
 export interface TerminalSettings {

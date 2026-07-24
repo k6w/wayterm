@@ -28,6 +28,7 @@ const STRICT_PATHS = [
   "src/lib/theme-schema.ts",
   "src/lib/theme-selection.ts",
   "src/stores/theme.ts",
+  "src/stores/sidebar.ts",
 ];
 
 const file = "eslint-suppressions.json";
