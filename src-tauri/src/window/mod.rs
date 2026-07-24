@@ -10,12 +10,12 @@ pub fn setup(window: Option<&WebviewWindow>) {
     let _ = window;
 }
 
-// CSS distance from the window's top edge to the tab strip's vertical centre at
-// 1x zoom (the tab row is ~40px tall, so its centre sits ~22px down). The
-// webview content is scaled by the UI-scale zoom, so the native buttons must be
-// re-centred at TAB_CENTER_CSS * scale to stay aligned with the zoomed tabs.
+// CSS distance from the window's top edge to the vertical centre of the
+// unified 36px title bar at 1x zoom. The webview content is scaled by the
+// UI-scale zoom, so the native buttons must be re-centred at
+// TAB_CENTER_CSS * scale to stay aligned with the zoomed title bar.
 #[cfg(target_os = "macos")]
-const TAB_CENTER_CSS: f64 = 22.0;
+const TAB_CENTER_CSS: f64 = 18.0;
 
 // Current UI zoom factor, kept in sync with the appearance setting (stored as
 // f64 bits; the literal is 1.0f64.to_bits()).

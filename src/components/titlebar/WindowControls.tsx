@@ -2,59 +2,45 @@ import { Minus, Square, X } from "lucide-react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useSettingsStore } from "../../stores/settings";
 import { isMac } from "../../lib/platform";
+import { ICON_MD, ICON_SM, cn, focusRing } from "../../ui";
+
+// Windows/Linux caption buttons keep the native 46px-wide geometry, so they
+// are styled with kit tokens rather than the square kit IconButton.
+const CAPTION = cn(
+  "flex h-full w-[46px] items-center justify-center text-fg-muted transition-colors duration-150 ease-out",
+  focusRing
+);
 
 export default function WindowControls() {
-  const appWindow = getCurrentWindow();
   const closeToTray = useSettingsStore((s) => s.settings.general.closeToTray);
-  const tabPosition = useSettingsStore((s) => s.settings.appearance.tabPosition);
-
   if (isMac) return null;
-
-  const handleMinimize = () => {
-    appWindow.minimize();
-  };
-
-  const handleMaximize = () => {
-    appWindow.toggleMaximize();
-  };
-
-  const handleClose = () => {
-    if (closeToTray) {
-      appWindow.hide();
-    } else {
-      appWindow.close();
-    }
-  };
-
-  const isVertical = tabPosition === 'left' || tabPosition === 'right';
+  const appWindow = getCurrentWindow();
 
   return (
-    <div className={`flex items-center ${
-      isVertical ? 'flex-col w-full border-t border-border' : 'h-full'
-    }`}>
+    <div data-no-drag className="flex h-full shrink-0 items-stretch">
       <button
-        className={`flex items-center justify-center transition-colors hover:bg-overlay/10 ${
-          isVertical ? 'w-full h-[46px] border-b border-border' : 'h-8 w-[46px]'
-        }`}
-        onClick={handleMinimize}
+        type="button"
+        aria-label="Minimize"
+        className={cn(CAPTION, "hover:bg-hover hover:text-fg")}
+        onClick={() => void appWindow.minimize()}
       >
-        <Minus className="size-4" />
+        <Minus {...ICON_MD} aria-hidden />
       </button>
       <button
-        className={`flex items-center justify-center transition-colors hover:bg-overlay/10 ${
-          isVertical ? 'w-full h-[46px] border-b border-border' : 'h-8 w-[46px]'
-        }`}
-        onClick={handleMaximize}
+        type="button"
+        aria-label="Maximize"
+        className={cn(CAPTION, "hover:bg-hover hover:text-fg")}
+        onClick={() => void appWindow.toggleMaximize()}
       >
-        <Square className="size-3.5" />
+        <Square {...ICON_SM} aria-hidden />
       </button>
       <button
-        className={`flex items-center justify-center transition-colors hover:bg-red-500/80 ${
-          isVertical ? 'w-full h-[46px]' : 'h-8 w-[46px]'
-        }`}
-        onClick={handleClose}
+        type="button"
+        aria-label="Close"
+        className={cn(CAPTION, "hover:bg-danger hover:text-fg-on-accent")}
+        onClick={() => void (closeToTray ? appWindow.hide() : appWindow.close())}
       >
-        <X className="size-4" />
+        <X {...ICON_MD} aria-hidden />
       </button>
     </div>
   );

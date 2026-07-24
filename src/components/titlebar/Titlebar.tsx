@@ -1,70 +1,86 @@
-import { useCallback } from "react";
+import type { MouseEvent } from "react";
+import { Columns2, Search, Settings } from "lucide-react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useSettingsStore } from "../../stores/settings";
-import { useThemeStore } from "../../stores/theme";
-import { hexToRgba } from "../../lib/color";
-import { isMac, vibrancyAlpha, MAC_TRAFFIC_LIGHT_INSET } from "../../lib/platform";
+import { useTerminalStore } from "../../stores/terminal";
+import { isMac, MAC_TRAFFIC_LIGHT_INSET } from "../../lib/platform";
+import { splitActivePane } from "../../lib/keybindings";
+import { shortcutFor } from "../../lib/shortcut-hints";
+import { Button, ICON_SM, IconButton, Toolbar, ToolbarButton } from "../../ui";
 import TabStrip from "./TabStrip";
 import WindowControls from "./WindowControls";
 
-// Chrome width reference: ActivityBar rail = 44px (w-11), Sidebar panel = 320px
-// (PANEL_WIDTH), this vertical title bar = 200px — three independent constants,
-// intentionally unrelated.
-const VERTICAL_TITLEBAR_WIDTH = 200;
-
+/**
+ * The unified 36px title bar: macOS traffic-light inset, the tab strip (when
+ * tabs sit along the top), the command palette trigger, split and settings,
+ * and on Windows/Linux the window controls. It is always the top row of the
+ * window; tabs placed left/right/bottom render in TabRail instead.
+ */
 export default function Titlebar() {
-  const vibrancyEnabled = useSettingsStore((s) => s.settings.appearance.vibrancyEnabled);
-  const windowOpacity = useSettingsStore((s) => s.settings.appearance.windowOpacity);
   const tabPosition = useSettingsStore((s) => s.settings.appearance.tabPosition);
   const uiScale = useSettingsStore((s) => s.settings.appearance.uiScale);
-  const theme = useThemeStore((s) => s.active);
+  const hasActivePane = useTerminalStore((s) => s.activePaneId !== null);
+  const toggleCommandPalette = useTerminalStore((s) => s.toggleCommandPalette);
+  const toggleSettings = useTerminalStore((s) => s.toggleSettings);
 
-  const handleDoubleClick = useCallback((e: React.MouseEvent) => {
+  const handleDoubleClick = (e: MouseEvent) => {
     if (isMac) return;
     const target = e.target as HTMLElement;
-    if (target.closest('[data-no-drag], button, input, a')) return;
-    getCurrentWindow().toggleMaximize();
-  }, []);
-
-  const isVertical = tabPosition === 'left' || tabPosition === 'right';
-  const borderClass = tabPosition === 'top' ? 'border-b' : 
-                      tabPosition === 'bottom' ? 'border-t' : 
-                      tabPosition === 'left' ? 'border-r' : 'border-l';
+    if (target.closest("[data-no-drag], button, input, a")) return;
+    void getCurrentWindow().toggleMaximize();
+  };
 
   return (
-    <div
+    <header
       data-tauri-drag-region
-      className={`flex shrink-0 border-border ${vibrancyEnabled ? "" : "bg-bg-secondary"} ${
-        isVertical
-          ? `flex-col h-full ${borderClass}`
-          : `flex-col w-full ${borderClass}`
-      }`}
-      style={{
-        ...(vibrancyEnabled ? { backgroundColor: hexToRgba(theme.ui.bgSecondary, vibrancyAlpha(windowOpacity)) } : {}),
-        ...(isVertical ? { width: VERTICAL_TITLEBAR_WIDTH } : {}),
-      }}
       onDoubleClick={handleDoubleClick}
+      className="nx-blur flex h-9 w-full shrink-0 items-center border-b border-border bg-tabbar-glass"
     >
-      {!isVertical && <div data-tauri-drag-region className="h-[3px] w-full shrink-0" />}
-      {isVertical && <div data-tauri-drag-region className="w-full h-[3px] shrink-0" />}
-
-      <div data-tauri-drag-region className={`flex items-center ${
-        isVertical ? 'flex-col w-full' : 'h-[37px] w-full'
-      }`}>
-        {/* Divide by the zoom so the reserved gap stays a constant native width
-            that matches the (unscaled) native traffic lights. */}
-        {isMac && tabPosition === 'top' && <div className="shrink-0" style={{ width: MAC_TRAFFIC_LIGHT_INSET / uiScale }} />}
-
-        <TabStrip />
-        
-        {!isVertical && <WindowControls />}
-      </div>
-      
-      {isVertical && (
-        <div className="mt-auto">
-          <WindowControls />
-        </div>
+      {/* Divide by the zoom so the gap stays the native width of the
+          (unscaled) traffic lights. */}
+      {isMac && (
+        <div
+          data-tauri-drag-region
+          aria-hidden
+          className="h-full shrink-0"
+          style={{ width: MAC_TRAFFIC_LIGHT_INSET / uiScale }}
+        />
       )}
-    </div>
+      {tabPosition === "top" ? <TabStrip /> : <div data-tauri-drag-region className="h-full min-w-0 flex-1" />}
+      <Toolbar aria-label="Window actions" className="h-full shrink-0 gap-1 px-2">
+        <ToolbarButton>
+          <Button
+            variant="secondary"
+            size="sm"
+            className="w-56"
+            leadingIcon={<Search {...ICON_SM} />}
+            shortcut={shortcutFor("command-palette")}
+            onClick={toggleCommandPalette}
+          >
+            <span className="flex-1 truncate text-left font-normal text-fg-muted">Search or run command</span>
+          </Button>
+        </ToolbarButton>
+        <ToolbarButton>
+          <IconButton
+            label="Split pane right"
+            icon={<Columns2 {...ICON_SM} />}
+            shortcut={shortcutFor("split-horizontal")}
+            tooltipSide="bottom"
+            disabled={!hasActivePane}
+            onClick={() => splitActivePane("horizontal")}
+          />
+        </ToolbarButton>
+        <ToolbarButton>
+          <IconButton
+            label="Settings"
+            icon={<Settings {...ICON_SM} />}
+            shortcut={shortcutFor("settings")}
+            tooltipSide="bottom"
+            onClick={toggleSettings}
+          />
+        </ToolbarButton>
+      </Toolbar>
+      <WindowControls />
+    </header>
   );
 }

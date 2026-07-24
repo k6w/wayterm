@@ -130,11 +130,6 @@
       "count": 2
     }
   },
-  "src/components/titlebar/Titlebar.tsx": {
-    "nexterm/no-inline-style": {
-      "count": 2
-    }
-  },
   "src/components/ui/ClipboardManager.tsx": {
     "nexterm/no-inline-style": {
       "count": 4

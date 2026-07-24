@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { AppProviders } from "./providers";
 import Titlebar from "../components/titlebar/Titlebar";
+import TabRail from "../components/titlebar/TabRail";
 import SplitContainer from "../components/terminal/SplitContainer";
 import Sidebar from "../components/sidebar/Sidebar";
 import ActivityBar from "../components/sidebar/ActivityBar";
@@ -25,7 +26,7 @@ import { onSftpTransferProgress, setTrafficLightScale } from "../lib/ipc";
 import { useWorkspaceStore } from "../stores/workspace";
 import { getPreferredShell } from "../lib/shell-detect";
 import { hexToRgba } from "../lib/color";
-import { isMac, vibrancyAlpha, MAC_TRAFFIC_LIGHT_TOP } from "../lib/platform";
+import { isMac, vibrancyAlpha } from "../lib/platform";
 import { applyAppearanceToDom } from "../lib/appearance";
 import {
   startBufferAutoSave,
@@ -165,15 +166,10 @@ function AppContent() {
           : undefined
       }
     >
-      {/* When the title bar isn't along the top, reserve a full-width draggable
-          strip so no chrome sits under the native macOS traffic lights. */}
-      {isMac && tabPosition !== 'top' && (
-        <div data-tauri-drag-region className="w-full shrink-0" style={{ height: MAC_TRAFFIC_LIGHT_TOP }} />
-      )}
-      {tabPosition === 'top' && <Titlebar />}
+      <Titlebar />
       <UpdateNotification />
       <div className="flex-1 min-h-0 flex flex-row overflow-hidden">
-        {tabPosition === 'left' && <Titlebar />}
+        {tabPosition === 'left' && <TabRail />}
         <ActivityBar />
         <div className="flex-1 min-h-0 min-w-0 relative overflow-hidden">
           <Sidebar onNewSsh={handleNewSsh} onEditSsh={handleEditSsh} />
@@ -205,9 +201,9 @@ function AppContent() {
           )}
           <SettingsView />
         </div>
-        {tabPosition === 'right' && <Titlebar />}
+        {tabPosition === 'right' && <TabRail />}
       </div>
-      {tabPosition === 'bottom' && <Titlebar />}
+      {tabPosition === 'bottom' && <TabRail />}
       <StatusBar />
       <CommandPalette />
       <ConnectionDialog
