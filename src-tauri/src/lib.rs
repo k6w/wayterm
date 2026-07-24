@@ -211,6 +211,7 @@ pub fn run() {
             commands::sftp::local_list_dir,
             window::set_vibrancy,
             window::set_traffic_light_scale,
+            window::set_window_title,
             get_launch_cwd,
             get_home_dir,
         ])

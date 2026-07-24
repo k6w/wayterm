@@ -46,6 +46,15 @@ export async function setTrafficLightScale(scale: number): Promise<void> {
   return invoke("set_traffic_light_scale", { scale });
 }
 
+/**
+ * Sets the native window title. Use this instead of the JS window API:
+ * on macOS it also re-applies the traffic-light position, which AppKit resets
+ * whenever the title changes.
+ */
+export async function setWindowTitle(title: string): Promise<void> {
+  return invoke("set_window_title", { title });
+}
+
 export async function settingsGetAll(): Promise<Record<string, unknown>> {
   return invoke("settings_get_all");
 }

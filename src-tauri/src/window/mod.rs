@@ -12,10 +12,20 @@ pub fn setup(window: Option<&WebviewWindow>) {
 
 // CSS distance from the window's top edge to the vertical centre of the
 // unified 36px title bar at 1x zoom. The webview content is scaled by the
-// UI-scale zoom, so the native buttons must be re-centred at
-// TAB_CENTER_CSS * scale to stay aligned with the zoomed title bar.
+// UI-scale zoom, so the native buttons are centred at
+// TITLEBAR_CENTER_CSS * scale to stay aligned with the zoomed title bar.
+#[cfg(any(target_os = "macos", test))]
+const TITLEBAR_CENTER_CSS: f64 = 18.0;
+
+// Delays (ms) for re-applying the traffic-light position after something that
+// makes AppKit lay out the title bar again on a later run-loop pass: the first
+// window layout after setup(), and every window-title change. AppKit resets the
+// standard buttons to their default frame (about 6pt higher) during that pass,
+// and no Resized/Focused event fires for it.
 #[cfg(target_os = "macos")]
-const TAB_CENTER_CSS: f64 = 18.0;
+const RELAYOUT_RETRY_MS: [u64; 4] = [16, 60, 150, 350];
+#[cfg(target_os = "macos")]
+const STARTUP_RETRY_MS: [u64; 4] = [60, 150, 350, 700];
 
 // Current UI zoom factor, kept in sync with the appearance setting (stored as
 // f64 bits; the literal is 1.0f64.to_bits()).
@@ -23,9 +33,17 @@ const TAB_CENTER_CSS: f64 = 18.0;
 static UI_SCALE_BITS: std::sync::atomic::AtomicU64 =
     std::sync::atomic::AtomicU64::new(4607182418800017408);
 
-/// Re-centre the native traffic lights on the (zoomed) custom tab strip instead
-/// of letting them hug the very top of the window. Uses an absolute target so it
-/// is safe to re-apply on resize/zoom without the buttons drifting.
+/// Cocoa y origin (bottom-left based) that centres a button of `button_height`
+/// at `TITLEBAR_CENTER_CSS * scale` points below the top of a superview of
+/// `superview_height`. Absolute, so re-applying it never drifts.
+#[cfg(any(target_os = "macos", test))]
+fn traffic_light_origin_y(superview_height: f64, button_height: f64, scale: f64) -> f64 {
+    let scale = if scale.is_finite() && scale > 0.0 { scale } else { 1.0 };
+    superview_height - TITLEBAR_CENTER_CSS * scale - button_height / 2.0
+}
+
+/// Re-centre the native traffic lights on the (zoomed) custom title bar instead
+/// of letting them hug the very top of the window.
 #[cfg(target_os = "macos")]
 #[allow(deprecated)]
 unsafe fn position_traffic_lights(ns_win: cocoa::base::id) {
@@ -36,7 +54,6 @@ unsafe fn position_traffic_lights(ns_win: cocoa::base::id) {
     use std::sync::atomic::Ordering;
 
     let scale = f64::from_bits(UI_SCALE_BITS.load(Ordering::Relaxed));
-    let center_from_top = TAB_CENTER_CSS * scale;
 
     let buttons = [
         NSWindowButton::NSWindowCloseButton,
@@ -54,32 +71,62 @@ unsafe fn position_traffic_lights(ns_win: cocoa::base::id) {
         }
         let sv_frame: NSRect = msg_send![superview, frame];
         let btn_frame: NSRect = msg_send![button, frame];
-        // Cocoa's origin is bottom-left: centre the fixed-size button at
-        // `center_from_top` px down from the window's top edge.
-        let target_y =
-            sv_frame.size.height - center_from_top - btn_frame.size.height / 2.0;
+        let target_y = traffic_light_origin_y(sv_frame.size.height, btn_frame.size.height, scale);
         let origin = NSPoint::new(btn_frame.origin.x, target_y);
         let _: () = msg_send![button, setFrameOrigin: origin];
     }
 }
 
+/// Position the traffic lights now, on the main thread.
+#[cfg(target_os = "macos")]
+#[allow(deprecated)]
+fn reposition_now(window: &WebviewWindow) {
+    // Resolve the NSWindow pointer on the main thread (it is !Send, so it must
+    // not cross the thread boundary itself).
+    let w = window.clone();
+    let _ = window.run_on_main_thread(move || {
+        if let Ok(ns) = w.ns_window() {
+            unsafe { position_traffic_lights(ns as cocoa::base::id) };
+        }
+    });
+}
+
+/// Position the traffic lights now and again after each delay, so a title-bar
+/// layout pass that AppKit runs later cannot leave them at the default frame.
+#[cfg(target_os = "macos")]
+fn reposition_with_retries(window: &WebviewWindow, delays_ms: &'static [u64]) {
+    reposition_now(window);
+    let win = window.clone();
+    std::thread::spawn(move || {
+        for delay in delays_ms {
+            std::thread::sleep(std::time::Duration::from_millis(*delay));
+            reposition_now(&win);
+        }
+    });
+}
+
 /// Update the UI zoom factor the traffic-light positioning uses and re-apply it.
 /// Called from the frontend whenever the applied UI scale changes.
 #[tauri::command]
-#[allow(deprecated)]
 pub fn set_traffic_light_scale(window: WebviewWindow, scale: f64) {
     #[cfg(target_os = "macos")]
     {
         UI_SCALE_BITS.store(scale.to_bits(), std::sync::atomic::Ordering::Relaxed);
-        let win = window.clone();
-        let _ = window.run_on_main_thread(move || {
-            if let Ok(ns) = win.ns_window() {
-                unsafe { position_traffic_lights(ns as cocoa::base::id) };
-            }
-        });
+        reposition_now(&window);
     }
     #[cfg(not(target_os = "macos"))]
     let _ = (window, scale);
+}
+
+/// Set the window title. On macOS a title change makes AppKit lay out the title
+/// bar again, which resets the traffic lights to their default position, so
+/// they are re-applied afterwards. Use this instead of the JS setTitle().
+#[tauri::command]
+pub fn set_window_title(window: WebviewWindow, title: String) -> Result<(), String> {
+    window.set_title(&title).map_err(|e| e.to_string())?;
+    #[cfg(target_os = "macos")]
+    reposition_with_retries(&window, &RELAYOUT_RETRY_MS);
+    Ok(())
 }
 
 #[cfg(target_os = "macos")]
@@ -104,33 +151,14 @@ fn macos_setup(window: &WebviewWindow) {
             event,
             tauri::WindowEvent::Resized(_) | tauri::WindowEvent::Focused(_)
         ) {
-            // Resolve the NSWindow pointer on the main thread (it is !Send, so
-            // it must not cross the thread boundary itself).
-            let w = win.clone();
-            let _ = win.run_on_main_thread(move || {
-                if let Ok(ns) = w.ns_window() {
-                    unsafe { position_traffic_lights(ns as cocoa::base::id) };
-                }
-            });
+            reposition_now(&win);
         }
     });
 
     // AppKit's first layout pass lands after setup() returns, overwriting the
-    // initial placement — and no resize event fires at launch to trigger the
-    // handler above. Re-apply a few times as the window settles so the buttons
-    // are correct on startup without needing a manual resize.
-    let win_init = window.clone();
-    std::thread::spawn(move || {
-        for delay in [60u64, 150, 350, 700] {
-            std::thread::sleep(std::time::Duration::from_millis(delay));
-            let w = win_init.clone();
-            let _ = win_init.run_on_main_thread(move || {
-                if let Ok(ns) = w.ns_window() {
-                    unsafe { position_traffic_lights(ns as cocoa::base::id) };
-                }
-            });
-        }
-    });
+    // initial placement, and no resize event fires at launch to trigger the
+    // handler above. Re-apply a few times as the window settles.
+    reposition_with_retries(window, &STARTUP_RETRY_MS);
 
     let _ = window.with_webview(|webview| {
         #[allow(deprecated)]
@@ -247,3 +275,27 @@ fn apply_effects(_window: &WebviewWindow, _r: u8, _g: u8, _b: u8, _a: u8) {}
 
 #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
 fn clear_effects(_window: &WebviewWindow) {}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn centres_the_buttons_on_the_36px_title_bar() {
+        // 28pt superview, 14pt button: centre 18pt down -> origin 28 - 18 - 7.
+        assert_eq!(traffic_light_origin_y(28.0, 14.0, 1.0), 3.0);
+    }
+
+    #[test]
+    fn scales_the_centre_with_the_ui_zoom() {
+        assert_eq!(traffic_light_origin_y(52.0, 14.0, 1.25), 52.0 - 22.5 - 7.0);
+    }
+
+    #[test]
+    fn falls_back_to_1x_for_a_bad_scale() {
+        let one = traffic_light_origin_y(28.0, 14.0, 1.0);
+        assert_eq!(traffic_light_origin_y(28.0, 14.0, 0.0), one);
+        assert_eq!(traffic_light_origin_y(28.0, 14.0, f64::NAN), one);
+        assert_eq!(traffic_light_origin_y(28.0, 14.0, -2.0), one);
+    }
+}

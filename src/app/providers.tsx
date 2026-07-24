@@ -6,7 +6,8 @@ import { useSshStore } from "../stores/ssh";
 import { useTerminalStore } from "../stores/terminal";
 import { useSidebarStore } from "../stores/sidebar";
 import { setupKeybindings } from "../lib/keybindings";
-import { setVibrancy, getLaunchCwd } from "../lib/ipc";
+import { setVibrancy, getLaunchCwd, setWindowTitle } from "../lib/ipc";
+import { createTitleSync, windowTitleFor } from "../lib/window-title";
 import { hexToRgb } from "../lib/color";
 import { initHomePath } from "../lib/format";
 import { getPreferredShell } from "../lib/shell-detect";
@@ -99,16 +100,11 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     return setupKeybindings();
   }, []);
 
-  // Window title sync
+  // Window title sync. Only real changes reach the native window: on macOS each
+  // one makes AppKit reset the traffic lights, which set_window_title re-applies.
   useEffect(() => {
-    const unsub = useTerminalStore.subscribe((state) => {
-      const tab = state.tabs.find((t) => t.id === state.activeTabId);
-      const title = tab ? `${tab.title} — NexTerm` : "NexTerm";
-      import("@tauri-apps/api/window").then(({ getCurrentWindow }) => {
-        getCurrentWindow().setTitle(title).catch(() => {});
-      });
-    });
-    return unsub;
+    const sync = createTitleSync(setWindowTitle);
+    return useTerminalStore.subscribe((state) => sync(windowTitleFor(state.tabs, state.activeTabId)));
   }, []);
 
   // Workspace auto-save safety net (60s interval)
