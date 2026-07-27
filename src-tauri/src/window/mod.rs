@@ -33,6 +33,22 @@ const STARTUP_RETRY_MS: [u64; 4] = [60, 150, 350, 700];
 static UI_SCALE_BITS: std::sync::atomic::AtomicU64 =
     std::sync::atomic::AtomicU64::new(4607182418800017408);
 
+// Left edge (pt) of the close button and the pitch between the three buttons.
+// AppKit lays the buttons out at 9pt on first layout and at 12pt after a
+// resize, so x is always set explicitly. 12 + 2 * 20 + 14 = 66pt, inside the
+// 80px MAC_TRAFFIC_LIGHT_INSET (src/lib/platform.ts) the title bar reserves.
+#[cfg(any(target_os = "macos", test))]
+const TRAFFIC_LIGHT_LEFT: f64 = 12.0;
+#[cfg(any(target_os = "macos", test))]
+const TRAFFIC_LIGHT_PITCH: f64 = 20.0;
+
+/// Cocoa x origin of the traffic-light button at `index` (0 close, 1 minimise,
+/// 2 zoom). Absolute, independent of where AppKit last put the button.
+#[cfg(any(target_os = "macos", test))]
+fn traffic_light_origin_x(index: usize) -> f64 {
+    TRAFFIC_LIGHT_LEFT + TRAFFIC_LIGHT_PITCH * index as f64
+}
+
 /// Cocoa y origin (bottom-left based) that centres a button of `button_height`
 /// at `TITLEBAR_CENTER_CSS * scale` points below the top of a superview of
 /// `superview_height`. Absolute, so re-applying it never drifts.
@@ -60,7 +76,7 @@ unsafe fn position_traffic_lights(ns_win: cocoa::base::id) {
         NSWindowButton::NSWindowMiniaturizeButton,
         NSWindowButton::NSWindowZoomButton,
     ];
-    for kind in buttons {
+    for (index, kind) in buttons.into_iter().enumerate() {
         let button: id = ns_win.standardWindowButton_(kind);
         if button == nil {
             continue;
@@ -72,7 +88,7 @@ unsafe fn position_traffic_lights(ns_win: cocoa::base::id) {
         let sv_frame: NSRect = msg_send![superview, frame];
         let btn_frame: NSRect = msg_send![button, frame];
         let target_y = traffic_light_origin_y(sv_frame.size.height, btn_frame.size.height, scale);
-        let origin = NSPoint::new(btn_frame.origin.x, target_y);
+        let origin = NSPoint::new(traffic_light_origin_x(index), target_y);
         let _: () = msg_send![button, setFrameOrigin: origin];
     }
 }
@@ -284,6 +300,19 @@ mod tests {
     fn centres_the_buttons_on_the_36px_title_bar() {
         // 28pt superview, 14pt button: centre 18pt down -> origin 28 - 18 - 7.
         assert_eq!(traffic_light_origin_y(28.0, 14.0, 1.0), 3.0);
+    }
+
+    #[test]
+    fn pins_x_regardless_of_appkit_layout() {
+        assert_eq!(traffic_light_origin_x(0), 12.0);
+        assert_eq!(traffic_light_origin_x(1), 32.0);
+        assert_eq!(traffic_light_origin_x(2), 52.0);
+    }
+
+    #[test]
+    fn buttons_fit_inside_the_css_inset() {
+        // 14pt wide zoom button must end inside the 80px reserved by the CSS.
+        assert!(traffic_light_origin_x(2) + 14.0 <= 80.0);
     }
 
     #[test]
