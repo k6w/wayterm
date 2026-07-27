@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { MotionConfig } from "framer-motion";
 import { AppProviders } from "./providers";
+import NoTabsState from "./NoTabsState";
 import Titlebar from "../components/titlebar/Titlebar";
 import TabRail from "../components/titlebar/TabRail";
 import SplitContainer from "../components/terminal/SplitContainer";
@@ -15,9 +16,7 @@ import Scratchpad from "../components/terminal/Scratchpad";
 import StatusBar from "../components/terminal/StatusBar";
 import UpdateNotification from "../components/ui/UpdateNotification";
 import { ToastContainer } from "../components/ui/ToastContainer";
-import { EmptyState } from "../components/ui/EmptyState";
 import { WelcomeScreen } from "../components/ui/WelcomeScreen";
-import { Terminal as TerminalIcon } from "lucide-react";
 import { useTerminalStore } from "../stores/terminal";
 import { useSettingsStore } from "../stores/settings";
 import { useThemeStore } from "../stores/theme";
@@ -27,11 +26,10 @@ import { useSidebarStore, SIDEBAR_MAX_WIDTH, SIDEBAR_MIN_WIDTH } from "../stores
 import { useWorkspaceStore } from "../stores/workspace";
 import { onSftpTransferProgress, setTrafficLightScale } from "../lib/ipc";
 import { getPreferredShell } from "../lib/shell-detect";
-import { hexToRgba } from "../lib/color";
-import { isMac, vibrancyAlpha } from "../lib/platform";
+import { isMac } from "../lib/platform";
 import { applyAppearanceToDom } from "../lib/appearance";
 import { startBufferAutoSave, stopBufferAutoSave, saveAllBuffers } from "../lib/buffer-persistence";
-import { SplitPane, cn } from "../ui";
+import { Button, SplitPane, cn } from "../ui";
 import type { SshConnection } from "../types/ssh";
 import type { SerialConfig } from "../types/terminal";
 
@@ -39,8 +37,6 @@ function AppContent() {
   const tabs = useTerminalStore((s) => s.tabs);
   const activeTabId = useTerminalStore((s) => s.activeTabId);
   const addTab = useTerminalStore((s) => s.addTab);
-  const vibrancyEnabled = useSettingsStore((s) => s.settings.appearance.vibrancyEnabled);
-  const windowOpacity = useSettingsStore((s) => s.settings.appearance.windowOpacity);
   const appearance = useSettingsStore((s) => s.settings.appearance);
   const tabPosition = useSettingsStore((s) => s.settings.appearance.tabPosition);
   const theme = useThemeStore((s) => s.active);
@@ -158,14 +154,10 @@ function AppContent() {
 
   return (
     <div
-      className={`h-full w-full flex flex-col text-text-primary overflow-hidden ${
-        isMac ? "" : "rounded-lg border border-border"
-      } ${vibrancyEnabled ? "" : "bg-bg-primary"}`}
-      style={
-        vibrancyEnabled
-          ? { backgroundColor: hexToRgba(theme.ui.bgPrimary, vibrancyAlpha(windowOpacity)) }
-          : undefined
-      }
+      className={cn(
+        "flex h-full w-full flex-col overflow-hidden bg-canvas-glass text-fg",
+        !isMac && "rounded-lg border border-border"
+      )}
     >
       <Titlebar />
       <UpdateNotification />
@@ -199,12 +191,7 @@ function AppContent() {
                   />
                 )}
                 {tabs.length === 0 && !showWelcome && (
-                  <EmptyState
-                    fill
-                    icon={TerminalIcon}
-                    title="No active session"
-                    hint={`Press ${isMac ? "⌘" : "Ctrl"}+T to open a new tab.`}
-                  />
+                  <NoTabsState onNewTerminal={newTerminal} onNewSsh={handleNewSsh} />
                 )}
               </main>
             }
@@ -246,17 +233,12 @@ class ErrorBoundary extends React.Component<
   render() {
     if (this.state.error) {
       return (
-        <div className="h-full w-full flex flex-col items-center justify-center bg-[#1a1a2e] text-white p-8">
-          <h1 className="text-xl font-semibold mb-4">Something went wrong</h1>
-          <p className="text-sm text-gray-400 mb-6 max-w-md text-center font-mono">
-            {this.state.error.message}
-          </p>
-          <button
-            onClick={() => this.setState({ error: null })}
-            className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded text-sm transition-colors"
-          >
-            Try Again
-          </button>
+        <div role="alert" className="flex h-full w-full flex-col items-center justify-center gap-4 bg-canvas p-8 text-fg">
+          <h1 className="text-title font-semibold">Something went wrong</h1>
+          <p className="max-w-md text-center font-mono text-label text-fg-muted">{this.state.error.message}</p>
+          <Button variant="primary" onClick={() => this.setState({ error: null })}>
+            Try again
+          </Button>
         </div>
       );
     }

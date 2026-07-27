@@ -36,6 +36,7 @@ export function applyAppearanceToDom(a: AppearanceSettings, theme: ThemeDefiniti
   const surfaceAlpha = a.vibrancyEnabled ? vibrancyAlpha(a.windowOpacity) : 1;
   const overlayAlpha = a.vibrancyEnabled ? vibrancyAlpha(a.windowOpacity) * 0.85 : 1;
   const glass = (color: string, alpha: number) => (alpha >= 1 ? color : hexToRgba(color, alpha));
+  root.style.setProperty("--nx-glass-canvas", glass(c.canvas, surfaceAlpha));
   root.style.setProperty("--nx-glass-panel", glass(c.panel, surfaceAlpha));
   root.style.setProperty("--nx-glass-tab-bar", glass(c.tabBar, surfaceAlpha));
   root.style.setProperty("--nx-glass-status-bar", glass(c.statusBar, surfaceAlpha));

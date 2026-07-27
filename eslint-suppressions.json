@@ -1,12 +1,4 @@
 {
-  "src/app/App.tsx": {
-    "nexterm/no-color-literals": {
-      "count": 1
-    },
-    "nexterm/no-inline-style": {
-      "count": 1
-    }
-  },
   "src/components/command-palette/CommandPalette.tsx": {
     "nexterm/no-inline-style": {
       "count": 4

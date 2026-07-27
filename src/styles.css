@@ -21,6 +21,7 @@
   --color-hover: var(--nx-hover);
   --color-active: var(--nx-active);
   --color-scrim: var(--nx-scrim);
+  --color-canvas-glass: var(--nx-glass-canvas);
   --color-panel-glass: var(--nx-glass-panel);
   --color-raised-glass: var(--nx-glass-raised);
   --color-tabbar-glass: var(--nx-glass-tab-bar);
@@ -135,6 +136,7 @@
   --blur-intensity: 1;
   --nx-control-h: 28px;
   --nx-row-h: 28px;
+  --nx-glass-canvas: var(--nx-canvas);
   --nx-glass-panel: var(--nx-panel);
   --nx-glass-raised: var(--nx-raised);
   --nx-glass-tab-bar: var(--nx-tab-bar);

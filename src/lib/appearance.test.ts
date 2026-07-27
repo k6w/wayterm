@@ -58,6 +58,7 @@ describe("applyAppearanceToDom", () => {
 
   it("makes glass surfaces opaque while vibrancy is off", () => {
     applyAppearanceToDom(appearance({ vibrancyEnabled: false }), graphite);
+    expect(css("--nx-glass-canvas")).toBe(graphite.chrome.canvas);
     expect(css("--nx-glass-panel")).toBe(graphite.chrome.panel);
     expect(css("--nx-glass-status-bar")).toBe(graphite.chrome.statusBar);
     expect(document.documentElement.hasAttribute("data-vibrancy")).toBe(false);
@@ -66,6 +67,7 @@ describe("applyAppearanceToDom", () => {
   it("makes glass surfaces translucent while vibrancy is on", () => {
     // jsdom is not macOS, so vibrancyAlpha(0.8) is 0.8 and overlays get 0.8 * 0.85.
     applyAppearanceToDom(appearance({ vibrancyEnabled: true, windowOpacity: 0.8 }), graphite);
+    expect(css("--nx-glass-canvas")).toBe("rgba(15, 16, 18, 0.8)");
     expect(css("--nx-glass-panel")).toBe("rgba(21, 22, 24, 0.8)");
     expect(css("--nx-glass-raised")).toBe("rgba(28, 29, 32, 0.68)");
     expect(document.documentElement.getAttribute("data-vibrancy")).toBe("on");
