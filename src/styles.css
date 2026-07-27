@@ -149,8 +149,6 @@
 
 /* Z-index layering scale: consume via z-[var(--z-*)] */
 :root {
-  --z-sidebar-backdrop: 30;
-  --z-sidebar-panel: 40;
   --z-dropdown: 50;
   --z-modal: 100;
   --z-toast: 200;

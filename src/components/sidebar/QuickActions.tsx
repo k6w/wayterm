@@ -15,7 +15,6 @@ interface QuickAction {
 
 export default function QuickActions({ onNewSsh }: QuickActionsProps) {
   const addTab = useTerminalStore((s) => s.addTab);
-  const toggleSidebar = useTerminalStore((s) => s.toggleSidebar);
   const defaultShellPath = useSettingsStore((s) => s.settings.general.defaultShell);
 
   const actions: QuickAction[] = [
@@ -25,16 +24,12 @@ export default function QuickActions({ onNewSsh }: QuickActionsProps) {
       onClick: () => {
         const shell = getPreferredShell(defaultShellPath);
         addTab(shell.type, shell.path);
-        toggleSidebar();
       },
     },
     {
       icon: <Monitor size={16} />,
       label: "New SSH",
-      onClick: () => {
-        toggleSidebar();
-        onNewSsh?.();
-      },
+      onClick: () => onNewSsh?.(),
     },
   ];
 

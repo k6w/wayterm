@@ -4,7 +4,7 @@
       "count": 1
     },
     "nexterm/no-inline-style": {
-      "count": 2
+      "count": 1
     }
   },
   "src/components/command-palette/CommandPalette.tsx": {
@@ -60,22 +60,12 @@
       "count": 1
     }
   },
-  "src/components/sidebar/ActivityBar.tsx": {
-    "nexterm/no-inline-style": {
-      "count": 1
-    }
-  },
   "src/components/sidebar/ConnectionTree.tsx": {
     "nexterm/no-color-literals": {
       "count": 8
     },
     "nexterm/no-inline-style": {
       "count": 1
-    }
-  },
-  "src/components/sidebar/Sidebar.tsx": {
-    "nexterm/no-inline-style": {
-      "count": 3
     }
   },
   "src/components/ssh/ConnectionDialog.tsx": {

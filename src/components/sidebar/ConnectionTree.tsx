@@ -71,7 +71,6 @@ export default function ConnectionTree({ onAddConnection, onEditConnection }: Co
   const saveConnection = useSshStore((s) => s.saveConnection);
   const deleteConnection = useSshStore((s) => s.deleteConnection);
   const addTab = useTerminalStore((s) => s.addTab);
-  const toggleSidebar = useTerminalStore((s) => s.toggleSidebar);
 
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(new Set());
@@ -110,9 +109,8 @@ export default function ConnectionTree({ onAddConnection, onEditConnection }: Co
       if (newTab) {
         renameTab(newTab.id, conn.name);
       }
-      toggleSidebar();
     },
-    [addTab, toggleSidebar]
+    [addTab]
   );
 
   const handleConnectAll = useCallback(
@@ -125,9 +123,8 @@ export default function ConnectionTree({ onAddConnection, onEditConnection }: Co
           renameTab(newTab.id, conn.name);
         }
       }
-      toggleSidebar();
     },
-    [addTab, toggleSidebar]
+    [addTab]
   );
 
   const handleSftp = useCallback(
@@ -147,9 +144,8 @@ export default function ConnectionTree({ onAddConnection, onEditConnection }: Co
           }));
         }
       }
-      toggleSidebar();
     },
-    [addTab, toggleSidebar]
+    [addTab]
   );
 
   const handleRequestDelete = useCallback(

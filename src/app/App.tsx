@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { listen } from "@tauri-apps/api/event";
+import { MotionConfig } from "framer-motion";
 import { AppProviders } from "./providers";
 import Titlebar from "../components/titlebar/Titlebar";
 import TabRail from "../components/titlebar/TabRail";
@@ -22,20 +23,17 @@ import { useSettingsStore } from "../stores/settings";
 import { useThemeStore } from "../stores/theme";
 import { useSshStore } from "../stores/ssh";
 import { useSftpStore } from "../stores/sftp";
-import { onSftpTransferProgress, setTrafficLightScale } from "../lib/ipc";
+import { useSidebarStore, SIDEBAR_MAX_WIDTH, SIDEBAR_MIN_WIDTH } from "../stores/sidebar";
 import { useWorkspaceStore } from "../stores/workspace";
+import { onSftpTransferProgress, setTrafficLightScale } from "../lib/ipc";
 import { getPreferredShell } from "../lib/shell-detect";
 import { hexToRgba } from "../lib/color";
 import { isMac, vibrancyAlpha } from "../lib/platform";
 import { applyAppearanceToDom } from "../lib/appearance";
-import {
-  startBufferAutoSave,
-  stopBufferAutoSave,
-  saveAllBuffers,
-} from "../lib/buffer-persistence";
-import type { SshConnection, } from "../types/ssh";
+import { startBufferAutoSave, stopBufferAutoSave, saveAllBuffers } from "../lib/buffer-persistence";
+import { SplitPane, cn } from "../ui";
+import type { SshConnection } from "../types/ssh";
 import type { SerialConfig } from "../types/terminal";
-import { MotionConfig } from "framer-motion";
 
 function AppContent() {
   const tabs = useTerminalStore((s) => s.tabs);
@@ -46,6 +44,9 @@ function AppContent() {
   const appearance = useSettingsStore((s) => s.settings.appearance);
   const tabPosition = useSettingsStore((s) => s.settings.appearance.tabPosition);
   const theme = useThemeStore((s) => s.active);
+  const sidebarCollapsed = useSidebarStore((s) => s.collapsed);
+  const sidebarWidth = useSidebarStore((s) => s.width);
+  const setSidebarWidth = useSidebarStore((s) => s.setWidth);
   const [sshDialogOpen, setSshDialogOpen] = useState(false);
   const [editingConnection, setEditingConnection] = useState<SshConnection | null>(null);
   const [serialDialogOpen, setSerialDialogOpen] = useState(false);
@@ -53,13 +54,12 @@ function AppContent() {
 
   // Apply the non-theme appearance settings (UI font, accent override, blur,
   // density, zoom) whenever they or the active theme change, and keep the macOS
-  // traffic lights aligned with the zoomed tab strip.
+  // traffic lights aligned with the zoomed title bar.
   useEffect(() => {
     applyAppearanceToDom(appearance, theme);
     if (isMac) setTrafficLightScale(appearance.uiScale);
   }, [appearance, theme]);
 
-  
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout> | null = null;
     const unsub = useTerminalStore.subscribe(() => {
@@ -69,7 +69,6 @@ function AppContent() {
       }, 2000);
     });
 
-    
     const handleUnload = () => {
       useWorkspaceStore.getState().autoSave();
       if (useSettingsStore.getState().settings.terminal.bufferPersistence) {
@@ -85,7 +84,6 @@ function AppContent() {
     };
   }, []);
 
-  
   const bufferPersistence = useSettingsStore((s) => s.settings.terminal.bufferPersistence);
   useEffect(() => {
     if (bufferPersistence) {
@@ -95,7 +93,6 @@ function AppContent() {
     stopBufferAutoSave();
   }, [bufferPersistence]);
 
-  
   useEffect(() => {
     const unlisten = listen<string>("cli-open-tab", (event) => {
       const defaultShellPath = useSettingsStore.getState().settings.general.defaultShell;
@@ -107,7 +104,6 @@ function AppContent() {
     };
   }, [addTab]);
 
-  
   useEffect(() => {
     const unlisten = onSftpTransferProgress((data) => {
       useSftpStore.getState().updateTransferProgress(
@@ -155,6 +151,11 @@ function AppContent() {
     return () => window.removeEventListener("nexterm:open-serial", handler);
   }, []);
 
+  const newTerminal = useCallback(() => {
+    const shell = getPreferredShell(useSettingsStore.getState().settings.general.defaultShell);
+    addTab(shell.type, shell.path);
+  }, [addTab]);
+
   return (
     <div
       className={`h-full w-full flex flex-col text-text-primary overflow-hidden ${
@@ -168,42 +169,51 @@ function AppContent() {
     >
       <Titlebar />
       <UpdateNotification />
-      <div className="flex-1 min-h-0 flex flex-row overflow-hidden">
-        {tabPosition === 'left' && <TabRail />}
+      <div className="flex min-h-0 flex-1 flex-row overflow-hidden">
+        {tabPosition === "left" && <TabRail />}
         <ActivityBar />
-        <div className="flex-1 min-h-0 min-w-0 relative overflow-hidden">
-          <Sidebar onNewSsh={handleNewSsh} onEditSsh={handleEditSsh} />
-          {tabs.map((tab) => (
-            <div
-              key={tab.id}
-              className="absolute inset-0"
-              style={{ display: tab.id === activeTabId ? "block" : "none" }}
-            >
-              <SplitContainer node={tab.panes} />
-            </div>
-          ))}
-          {tabs.length === 0 && showWelcome && (
-            <WelcomeScreen onDismiss={() => {
-              localStorage.setItem("nexterm-welcomed", "1");
-              setShowWelcome(false);
-              const shellPath = useSettingsStore.getState().settings.general.defaultShell;
-              const shell = getPreferredShell(shellPath);
-              addTab(shell.type, shell.path);
-            }} />
-          )}
-          {tabs.length === 0 && !showWelcome && (
-            <EmptyState
-              fill
-              icon={TerminalIcon}
-              title="No active session"
-              hint={`Press ${isMac ? "⌘" : "Ctrl"}+T to open a new tab.`}
-            />
-          )}
+        <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden">
+          <SplitPane
+            unit="px"
+            ratio={sidebarWidth}
+            onRatioChange={setSidebarWidth}
+            min={SIDEBAR_MIN_WIDTH}
+            max={SIDEBAR_MAX_WIDTH}
+            collapsed={sidebarCollapsed}
+            separatorLabel="Resize sidebar"
+            first={<Sidebar onNewSsh={handleNewSsh} onEditSsh={handleEditSsh} />}
+            second={
+              <main aria-label="Terminals" className="relative h-full w-full">
+                {tabs.map((tab) => (
+                  <div key={tab.id} className={cn("absolute inset-0", tab.id !== activeTabId && "hidden")}>
+                    <SplitContainer node={tab.panes} />
+                  </div>
+                ))}
+                {tabs.length === 0 && showWelcome && (
+                  <WelcomeScreen
+                    onDismiss={() => {
+                      localStorage.setItem("nexterm-welcomed", "1");
+                      setShowWelcome(false);
+                      newTerminal();
+                    }}
+                  />
+                )}
+                {tabs.length === 0 && !showWelcome && (
+                  <EmptyState
+                    fill
+                    icon={TerminalIcon}
+                    title="No active session"
+                    hint={`Press ${isMac ? "⌘" : "Ctrl"}+T to open a new tab.`}
+                  />
+                )}
+              </main>
+            }
+          />
           <SettingsView />
         </div>
-        {tabPosition === 'right' && <TabRail />}
+        {tabPosition === "right" && <TabRail />}
       </div>
-      {tabPosition === 'bottom' && <TabRail />}
+      {tabPosition === "bottom" && <TabRail />}
       <StatusBar />
       <CommandPalette />
       <ConnectionDialog

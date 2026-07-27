@@ -1,10 +1,7 @@
-import { useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { useTerminalStore } from "../../stores/terminal";
-import { useSettingsStore } from "../../stores/settings";
-import { useThemeStore } from "../../stores/theme";
-import { hexToRgba } from "../../lib/color";
-import { vibrancyAlpha } from "../../lib/platform";
+import { PanelLeftClose } from "lucide-react";
+import { useSidebarStore } from "../../stores/sidebar";
+import { shortcutFor } from "../../lib/shortcut-hints";
+import { ICON_SM, IconButton, Toolbar, ToolbarButton } from "../../ui";
 import QuickActions from "./QuickActions";
 import ConnectionTree from "./ConnectionTree";
 import WorkspaceList from "./WorkspaceList";
@@ -12,89 +9,61 @@ import TunnelsPanel from "./TunnelsPanel";
 import { GitPanel } from "../git/GitPanel";
 import { DatabasePanel } from "../database/DatabasePanel";
 import { ClipboardPanel } from "../ui/ClipboardPanel";
+import { SIDEBAR_SECTIONS } from "./sections";
 import type { SshConnection } from "../../types/ssh";
-
-// Sidebar overlay panel width. Chrome reference: ActivityBar rail = 44px (w-11),
-// vertical title bar = 200px — independent constants, not derived from each other.
-const PANEL_WIDTH = 320;
-const EASE: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94];
 
 interface SidebarProps {
   onNewSsh?: () => void;
   onEditSsh?: (conn: SshConnection) => void;
 }
 
+/**
+ * Docked side panel: a header with the panel name and a hide button, then the
+ * panel content. The content components are restyled in Phase 4.
+ */
 export default function Sidebar({ onNewSsh, onEditSsh }: SidebarProps) {
-  const activeSidebarSection = useTerminalStore((s) => s.activeSidebarSection);
-  const setSidebarSection = useTerminalStore((s) => s.setSidebarSection);
-  const vibrancyEnabled = useSettingsStore((s) => s.settings.appearance.vibrancyEnabled);
-  const windowOpacity = useSettingsStore((s) => s.settings.appearance.windowOpacity);
-  const theme = useThemeStore((s) => s.active);
-
-  const handleClose = useCallback(() => setSidebarSection(null), [setSidebarSection]);
-
-  useEffect(() => {
-    if (!activeSidebarSection) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") { e.preventDefault(); handleClose(); }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [activeSidebarSection, handleClose]);
-
-  // Match the app chrome (bgSecondary) but slightly more opaque than the
-  // titlebar so text inside the panel is clearly readable.
-  const baseAlpha = vibrancyEnabled
-    ? Math.min(vibrancyAlpha(windowOpacity) + 0.2, 0.88)
-    : 0.96;
-  const panelBg = hexToRgba(theme.ui.bgSecondary, baseAlpha);
+  const section = useSidebarStore((s) => s.section);
+  const toggle = useSidebarStore((s) => s.toggle);
+  const info = SIDEBAR_SECTIONS.find((s) => s.id === section) ?? SIDEBAR_SECTIONS[0];
 
   return (
-    <AnimatePresence initial={false}>
-      {activeSidebarSection && (
-        <>
-          <motion.div
-            className="absolute inset-0 z-[var(--z-sidebar-backdrop)]"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.15 }}
-            onClick={handleClose}
+    <aside aria-label={info.label} className="nx-blur flex h-full flex-col bg-panel-glass">
+      <Toolbar
+        aria-label={`${info.label} panel`}
+        className="h-9 shrink-0 gap-1 border-b border-border pl-3 pr-1.5"
+      >
+        <h2 className="min-w-0 flex-1 truncate text-caption font-medium uppercase tracking-wide text-fg-muted">
+          {info.label}
+        </h2>
+        <ToolbarButton>
+          <IconButton
+            label="Hide sidebar"
+            icon={<PanelLeftClose {...ICON_SM} />}
+            shortcut={shortcutFor("toggle-sidebar")}
+            tooltipSide="bottom"
+            onClick={toggle}
           />
-
-          <motion.div
-            className="absolute left-0 top-0 bottom-0 z-[var(--z-sidebar-panel)] flex flex-col border-r border-border"
-            style={{
-              width: PANEL_WIDTH,
-              backdropFilter: "blur(20px)",
-              WebkitBackdropFilter: "blur(20px)",
-              backgroundColor: panelBg,
-            }}
-            initial={{ x: -PANEL_WIDTH }}
-            animate={{ x: 0 }}
-            exit={{ x: -PANEL_WIDTH }}
-            transition={{ type: "tween", duration: 0.2, ease: EASE }}
-          >
-            {activeSidebarSection === 'connections' && (
-              <>
-                <QuickActions onNewSsh={onNewSsh} />
-                <div className="mx-3 border-t border-border shrink-0" />
-                <div className="flex-1 py-1 min-h-0 overflow-y-auto">
-                  <ConnectionTree onAddConnection={onNewSsh} onEditConnection={onEditSsh} />
-                </div>
-                <div className="mx-3 border-t border-border shrink-0" />
-                <div className="py-1 shrink-0">
-                  <WorkspaceList />
-                </div>
-              </>
-            )}
-            {activeSidebarSection === 'git' && <GitPanel />}
-            {activeSidebarSection === 'database' && <DatabasePanel />}
-            {activeSidebarSection === 'clipboard' && <ClipboardPanel />}
-            {activeSidebarSection === 'tunnels' && <TunnelsPanel />}
-          </motion.div>
-        </>
-      )}
-    </AnimatePresence>
+        </ToolbarButton>
+      </Toolbar>
+      <div className="flex min-h-0 flex-1 flex-col">
+        {section === "connections" && (
+          <>
+            <QuickActions onNewSsh={onNewSsh} />
+            <div className="mx-3 shrink-0 border-t border-border" />
+            <div className="min-h-0 flex-1 overflow-y-auto py-1">
+              <ConnectionTree onAddConnection={onNewSsh} onEditConnection={onEditSsh} />
+            </div>
+            <div className="mx-3 shrink-0 border-t border-border" />
+            <div className="shrink-0 py-1">
+              <WorkspaceList />
+            </div>
+          </>
+        )}
+        {section === "git" && <GitPanel />}
+        {section === "database" && <DatabasePanel />}
+        {section === "clipboard" && <ClipboardPanel />}
+        {section === "tunnels" && <TunnelsPanel />}
+      </div>
+    </aside>
   );
 }

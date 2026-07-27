@@ -1,4 +1,5 @@
 import { useTerminalStore } from "../stores/terminal";
+import { useSidebarStore } from "../stores/sidebar";
 import { useSettingsStore } from "../stores/settings";
 import type { TerminalPane } from "../types/terminal";
 import { getDefaultShell } from "./shell-detect";
@@ -55,7 +56,7 @@ export function getDefaultKeybindings(): KeyAction[] {
       id: "toggle-sidebar",
       label: "Toggle Sidebar",
       keys: `${mod}+b`,
-      handler: () => store.toggleSidebar(),
+      handler: () => useSidebarStore.getState().toggle(),
     },
     {
       id: "command-palette",
@@ -189,11 +190,24 @@ export function getDefaultKeybindings(): KeyAction[] {
       id: "clipboard-manager",
       label: "Clipboard Manager",
       keys: `${mod}+Shift+v`,
-      handler: () => {
-        store.toggleSidebar();
-      },
+      handler: () => useSidebarStore.getState().activate("clipboard"),
     },
+    ...selectTabBindings(),
   ];
+}
+
+/** Mod+1 .. Mod+9 select tab 1..9; a number past the last tab does nothing. */
+function selectTabBindings(): KeyAction[] {
+  return [1, 2, 3, 4, 5, 6, 7, 8, 9].map((n) => ({
+    id: `select-tab-${n}`,
+    label: `Select Tab ${n}`,
+    keys: `${mod}+${n}`,
+    handler: () => {
+      const { tabs, setActiveTab } = useTerminalStore.getState();
+      const tab = tabs[n - 1];
+      if (tab) setActiveTab(tab.id);
+    },
+  }));
 }
 
 
