@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import {
   Button,
@@ -135,6 +135,45 @@ describe("SplitPane", () => {
     expect(handle).toHaveAttribute("aria-valuenow", "55");
     await user.keyboard("{ArrowRight}");
     expect(handle).toHaveAttribute("aria-valuenow", "55");
+  });
+});
+
+describe("SplitPane divider", () => {
+  it("has an 8px hit area centred on the 1px line, stacked above the panes", () => {
+    render(<SplitHarness />);
+    const cls = screen.getByRole("separator").className;
+    expect(cls).toContain("w-px");
+    expect(cls).toContain("z-[var(--z-divider)]");
+    expect(cls).toContain("cursor-col-resize");
+    expect(cls).toContain("before:-inset-x-[3.5px]");
+  });
+
+  it("uses a row-resize hit area when stacked", () => {
+    render(<SplitHarness direction="vertical" />);
+    const cls = screen.getByRole("separator").className;
+    expect(cls).toContain("cursor-row-resize");
+    expect(cls).toContain("before:-inset-y-[3.5px]");
+    expect(cls).toContain("z-[var(--z-divider)]");
+  });
+
+  it("is accent only while hovered or dragging, and back to normal after the drag", () => {
+    render(<SplitHarness />);
+    const handle = screen.getByRole("separator");
+    handle.setPointerCapture = vi.fn();
+    handle.releasePointerCapture = vi.fn();
+    expect(handle).not.toHaveClass("bg-accent");
+    fireEvent.pointerEnter(handle);
+    expect(handle).toHaveClass("bg-accent");
+    fireEvent.pointerLeave(handle);
+    expect(handle).not.toHaveClass("bg-accent");
+    fireEvent.pointerEnter(handle);
+    // jsdom has no PointerEvent, so build one from a MouseEvent (keeps `button`).
+    fireEvent(handle, new MouseEvent("pointerdown", { bubbles: true, button: 0 }));
+    fireEvent.pointerLeave(handle);
+    expect(handle).toHaveClass("bg-accent");
+    fireEvent(handle, new MouseEvent("pointerup", { bubbles: true }));
+    expect(handle).not.toHaveClass("bg-accent");
+    expect(handle).toHaveClass("bg-border");
   });
 });
 

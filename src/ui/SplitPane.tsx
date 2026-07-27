@@ -1,4 +1,4 @@
-import { useRef, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
+import { useRef, useState, type KeyboardEvent, type PointerEvent, type ReactNode } from "react";
 import { cn, focusRing } from "./utils";
 
 export interface SplitPaneProps {
@@ -56,6 +56,10 @@ export function SplitPane({
   className,
 }: SplitPaneProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  // Accent only while hovered or dragging. Tracked in state (not CSS :hover)
+  // because pointer capture can leave :hover stuck after the drag ends.
+  const [hovered, setHovered] = useState(false);
+  const [dragging, setDragging] = useState(false);
   const horizontal = direction === "horizontal";
   const px = unit === "px";
   const value = clampRatio(ratio, min, max);
@@ -85,6 +89,7 @@ export function SplitPane({
     event.preventDefault();
     const handle = event.currentTarget;
     handle.setPointerCapture(event.pointerId);
+    setDragging(true);
     const onMove = (move: globalThis.PointerEvent) => {
       const rect = container.getBoundingClientRect();
       const offset = horizontal ? move.clientX - rect.left : move.clientY - rect.top;
@@ -93,6 +98,9 @@ export function SplitPane({
     };
     const onUp = (up: globalThis.PointerEvent) => {
       handle.releasePointerCapture(up.pointerId);
+      setDragging(false);
+      // The browser re-fires pointerenter if the pointer is still over us.
+      setHovered(false);
       handle.removeEventListener("pointermove", onMove);
       handle.removeEventListener("pointerup", onUp);
       handle.removeEventListener("pointercancel", onUp);
@@ -128,11 +136,16 @@ export function SplitPane({
           aria-valuemax={Number.isFinite(max) ? toAria(max) : undefined}
           onKeyDown={handleKeyDown}
           onPointerDown={handlePointerDown}
+          onPointerEnter={() => setHovered(true)}
+          onPointerLeave={() => setHovered(false)}
           className={cn(
-            "relative shrink-0 bg-border transition-colors duration-150 ease-out hover:bg-accent focus-visible:bg-accent",
+            // z-index keeps the 8px hit area (::before, centred on the 1px
+            // line) above the adjacent panes.
+            "relative z-[var(--z-divider)] shrink-0 transition-colors duration-150 ease-out focus-visible:bg-accent",
+            hovered || dragging ? "bg-accent" : "bg-border",
             horizontal
-              ? "w-px cursor-col-resize before:absolute before:inset-y-0 before:-left-1 before:-right-1"
-              : "h-px cursor-row-resize before:absolute before:inset-x-0 before:-top-1 before:-bottom-1",
+              ? "w-px cursor-col-resize before:absolute before:inset-y-0 before:-inset-x-[3.5px] before:content-['']"
+              : "h-px cursor-row-resize before:absolute before:inset-x-0 before:-inset-y-[3.5px] before:content-['']",
             focusRing
           )}
         />

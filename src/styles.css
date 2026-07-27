@@ -151,6 +151,7 @@
 
 /* Z-index layering scale: consume via z-[var(--z-*)] */
 :root {
+  --z-divider: 10;
   --z-dropdown: 50;
   --z-modal: 100;
   --z-toast: 200;
