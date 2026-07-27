@@ -21,6 +21,8 @@ const STRICT_PATHS = [
   "src/components/titlebar/TabContextMenu.tsx",
   "src/components/titlebar/TabStrip.tsx",
   "src/components/terminal/StatusBar.tsx",
+  "src/components/terminal/SplitContainer.tsx",
+  "src/components/terminal/PaneFrame.tsx",
   "src/themes/",
   "src/lib/appearance.ts",
   "src/lib/color.ts",

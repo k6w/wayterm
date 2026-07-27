@@ -1,9 +1,11 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState } from "react";
 import type { SplitNode } from "../../types/terminal";
 import { useTerminalStore, countPaneNodes } from "../../stores/terminal";
+import { SplitPane } from "../../ui";
 import TerminalPane from "./TerminalPane";
 import SftpPane from "../sftp/SftpPane";
 import SerialPane from "./SerialPane";
+import PaneFrame from "./PaneFrame";
 
 interface SplitContainerProps {
   node: SplitNode;
@@ -12,9 +14,6 @@ interface SplitContainerProps {
 }
 
 export { SplitContainer };
-
-
-const GAP = 8;
 
 function findPaneNode(node: SplitNode, paneId: string): SplitNode | null {
   if (node.type === "pane" && node.paneId === paneId) return node;
@@ -27,11 +26,14 @@ function findPaneNode(node: SplitNode, paneId: string): SplitNode | null {
   return null;
 }
 
-export default function SplitContainer({
-  node,
-  depth = 0,
-  totalPaneCount,
-}: SplitContainerProps) {
+function PaneView({ paneId, isActive, paneCount }: { paneId: string; isActive: boolean; paneCount: number }) {
+  const shellType = useTerminalStore.getState().panes[paneId]?.shellType;
+  if (shellType === "sftp") return <SftpPane paneId={paneId} isActive={isActive} paneCount={paneCount} />;
+  if (shellType === "serial") return <SerialPane paneId={paneId} isActive={isActive} paneCount={paneCount} />;
+  return <TerminalPane paneId={paneId} isActive={isActive} paneCount={paneCount} />;
+}
+
+export default function SplitContainer({ node, depth = 0, totalPaneCount }: SplitContainerProps) {
   const activePaneId = useTerminalStore((s) => s.activePaneId);
   const activeTabId = useTerminalStore((s) => s.activeTabId);
   const zoomedPaneId = useTerminalStore((s) => s.zoomedPaneId);
@@ -44,56 +46,24 @@ export default function SplitContainer({
       return tab ? countPaneNodes(tab.panes) : 1;
     })();
 
-  // If a pane is zoomed, render only that pane at full size
+  // A zoomed pane renders alone at full size.
   if (zoomedPaneId && depth === 0) {
     const zoomedNode = findPaneNode(node, zoomedPaneId);
-    if (zoomedNode && zoomedNode.paneId) {
-      const pane = useTerminalStore.getState().panes[zoomedNode.paneId];
-      if (pane?.shellType === "sftp") {
-        return <SftpPane paneId={zoomedNode.paneId} isActive={true} paneCount={1} />;
-      }
-      if (pane?.shellType === "serial") {
-        return <SerialPane paneId={zoomedNode.paneId} isActive={true} paneCount={1} />;
-      }
-      return <TerminalPane paneId={zoomedNode.paneId} isActive={true} paneCount={1} />;
+    if (zoomedNode?.paneId) {
+      return <PaneView paneId={zoomedNode.paneId} isActive paneCount={1} />;
     }
   }
 
   if (node.type === "pane" && node.paneId) {
-    const pane = useTerminalStore.getState().panes[node.paneId];
-    if (pane?.shellType === "sftp") {
-      return (
-        <SftpPane
-          paneId={node.paneId}
-          isActive={activePaneId === node.paneId}
-          paneCount={paneCount}
-        />
-      );
-    }
-    if (pane?.shellType === "serial") {
-      return (
-        <SerialPane
-          paneId={node.paneId}
-          isActive={activePaneId === node.paneId}
-          paneCount={paneCount}
-        />
-      );
-    }
+    const isActive = activePaneId === node.paneId;
     return (
-      <TerminalPane
-        paneId={node.paneId}
-        isActive={activePaneId === node.paneId}
-        paneCount={paneCount}
-      />
+      <PaneFrame active={isActive} split={paneCount > 1}>
+        <PaneView paneId={node.paneId} isActive={isActive} paneCount={paneCount} />
+      </PaneFrame>
     );
   }
 
-  if (
-    node.type === "split" &&
-    node.children &&
-    node.direction &&
-    node.ratio !== undefined
-  ) {
+  if (node.type === "split" && node.children && node.direction && node.ratio !== undefined) {
     return (
       <SplitView
         direction={node.direction}
@@ -118,111 +88,20 @@ interface SplitViewProps {
   totalPaneCount: number;
 }
 
-function SplitView({
-  direction,
-  initialRatio,
-  first,
-  second,
-  depth,
-  totalPaneCount,
-}: SplitViewProps) {
+/** One split: two subtrees with a 1px hairline divider (drag or arrow keys). */
+function SplitView({ direction, initialRatio, first, second, depth, totalPaneCount }: SplitViewProps) {
+  // The ratio stays local, as before: dragging resizes the live layout only.
   const [ratio, setRatio] = useState(initialRatio);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const draggingRef = useRef(false);
-
-  const isHorizontal = direction === "horizontal";
-
-  const handleMouseDown = useCallback(
-    (e: React.MouseEvent) => {
-      e.preventDefault();
-      draggingRef.current = true;
-
-      const onMouseMove = (moveEvent: MouseEvent) => {
-        if (!draggingRef.current || !containerRef.current) return;
-        const rect = containerRef.current.getBoundingClientRect();
-        let newRatio: number;
-        if (isHorizontal) {
-          newRatio = (moveEvent.clientX - rect.left) / rect.width;
-        } else {
-          newRatio = (moveEvent.clientY - rect.top) / rect.height;
-        }
-        setRatio(Math.min(Math.max(newRatio, 0.1), 0.9));
-      };
-
-      const onMouseUp = () => {
-        draggingRef.current = false;
-        document.removeEventListener("mousemove", onMouseMove);
-        document.removeEventListener("mouseup", onMouseUp);
-        document.body.style.cursor = "";
-        document.body.style.userSelect = "";
-      };
-
-      document.addEventListener("mousemove", onMouseMove);
-      document.addEventListener("mouseup", onMouseUp);
-      document.body.style.cursor = isHorizontal
-        ? "col-resize"
-        : "row-resize";
-      document.body.style.userSelect = "none";
-    },
-    [isHorizontal]
-  );
-
-  useEffect(() => {
-    return () => {
-      draggingRef.current = false;
-      document.body.style.cursor = "";
-      document.body.style.userSelect = "";
-    };
-  }, []);
-
-  
-  const firstSize = `calc(${ratio * 100}% - ${GAP / 2}px)`;
-  const secondSize = `calc(${(1 - ratio) * 100}% - ${GAP / 2}px)`;
-
   return (
-    <div
-      ref={containerRef}
-      className={`flex h-full w-full ${isHorizontal ? "flex-row" : "flex-col"}`}
-    >
-      <div
-        className="overflow-hidden rounded-lg"
-        style={{
-          flexBasis: firstSize,
-          flexGrow: 0,
-          flexShrink: 0,
-        }}
-      >
-        <SplitContainer node={first} depth={depth + 1} totalPaneCount={totalPaneCount} />
-      </div>
-
-      {}
-      <div
-        onMouseDown={handleMouseDown}
-        className={`group shrink-0 flex items-center justify-center ${
-          isHorizontal ? "cursor-col-resize" : "cursor-row-resize"
-        }`}
-        style={{
-          [isHorizontal ? "width" : "height"]: `${GAP}px`,
-        }}
-      >
-        {}
-        <div
-          className={`rounded-full bg-transparent transition-colors duration-150 group-hover:bg-accent/50 ${
-            isHorizontal ? "h-8 w-[2px]" : "w-8 h-[2px]"
-          }`}
-        />
-      </div>
-
-      <div
-        className="overflow-hidden rounded-lg"
-        style={{
-          flexBasis: secondSize,
-          flexGrow: 0,
-          flexShrink: 0,
-        }}
-      >
-        <SplitContainer node={second} depth={depth + 1} totalPaneCount={totalPaneCount} />
-      </div>
-    </div>
+    <SplitPane
+      direction={direction}
+      ratio={ratio}
+      onRatioChange={setRatio}
+      min={0.1}
+      max={0.9}
+      separatorLabel={direction === "horizontal" ? "Resize panes left and right" : "Resize panes up and down"}
+      first={<SplitContainer node={first} depth={depth + 1} totalPaneCount={totalPaneCount} />}
+      second={<SplitContainer node={second} depth={depth + 1} totalPaneCount={totalPaneCount} />}
+    />
   );
 }

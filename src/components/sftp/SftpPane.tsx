@@ -124,8 +124,6 @@ export default function SftpPane({
 
   const updatePaneSession = useTerminalStore((s) => s.updatePaneSession);
 
-  const connect = useSftpStore((s) => s.connect);
-  const disconnect = useSftpStore((s) => s.disconnect);
   const loadRemoteDir = useSftpStore((s) => s.loadRemoteDir);
   const loadLocalDir = useSftpStore((s) => s.loadLocalDir);
   const remoteMkdir = useSftpStore((s) => s.remoteMkdir);
@@ -143,6 +141,10 @@ export default function SftpPane({
   // Connect on mount
   useEffect(() => {
     let cancelled = false;
+    // Mount-time snapshot: connect once per pane. Store actions are stable, and
+    // the pane's connection id and session id are read as they are right now.
+    const pane = useTerminalStore.getState().panes[paneId];
+    const { connect, disconnect } = useSftpStore.getState();
 
     (async () => {
       const sftpConnId = pane?.sftpConnectionId;
@@ -176,7 +178,7 @@ export default function SftpPane({
         sessionIdRef.current = sid;
         setSessionId(sid);
         // Persist so the session survives remounts (e.g. split/unsplit)
-        updatePaneSession(paneId, sid);
+        useTerminalStore.getState().updatePaneSession(paneId, sid);
         setConnecting(false);
       } catch (err) {
         if (cancelled) return;
@@ -211,7 +213,6 @@ export default function SftpPane({
         disconnect(sid).catch(() => {});
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paneId]);
 
   // -- Selection handlers --
@@ -594,8 +595,6 @@ export default function SftpPane({
   const [hovered, setHovered] = useState(false);
   const [pendingOps, setPendingOps] = useState<Set<string>>(new Set());
 
-  const isSplit = paneCount > 1;
-  const showFocus = isActive && paneCount > 1;
   const showCloseBtn = paneCount > 1 && (isActive || hovered);
 
   // Vibrancy-aware background colors
@@ -640,15 +639,8 @@ export default function SftpPane({
   if (connecting || error || tofuPending) {
     return (
       <div
-        className={`relative flex h-full w-full flex-col items-center justify-center ${isSplit ? "rounded-lg" : ""}`}
-        style={{
-          backgroundColor: bgPrimary,
-          border: showFocus
-            ? `1.5px solid ${theme.ui.accent}`
-            : isSplit
-              ? `1.5px solid ${theme.ui.border || "transparent"}`
-              : "1.5px solid transparent",
-        }}
+        className="relative flex h-full w-full flex-col items-center justify-center"
+        style={{ backgroundColor: bgPrimary }}
         onMouseDown={() => setActivePane(paneId)}
       >
         {error ? (
@@ -698,16 +690,8 @@ export default function SftpPane({
 
   return (
     <div
-      className={`relative flex h-full w-full flex-col overflow-hidden ${isSplit ? "rounded-lg" : ""}`}
-      style={{
-        backgroundColor: bgPrimary,
-        border: showFocus
-          ? `1.5px solid ${theme.ui.accent}`
-          : isSplit
-            ? `1.5px solid ${theme.ui.border || "transparent"}`
-            : "1.5px solid transparent",
-        boxShadow: showFocus ? `0 0 12px ${theme.ui.accent}33` : "none",
-      }}
+      className="relative flex h-full w-full flex-col overflow-hidden"
+      style={{ backgroundColor: bgPrimary }}
       onMouseDown={() => setActivePane(paneId)}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}

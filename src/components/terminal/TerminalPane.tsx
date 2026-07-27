@@ -234,7 +234,6 @@ export default function TerminalPane({
   const theme = useThemeStore((s) => s.active);
   const previewTheme = useThemeStore((s) => s.previewTheme);
   const settings = useSettingsStore((s) => s.settings);
-  const updatePaneSession = useTerminalStore((s) => s.updatePaneSession);
   const [showSearch, setShowSearch] = useState(false);
   const [sessionExited, setSessionExited] = useState(false);
 
@@ -268,6 +267,12 @@ export default function TerminalPane({
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
+
+    // This effect owns the xterm + PTY lifecycle and must run once per pane.
+    // Read settings and theme as a mount-time snapshot; later changes are
+    // applied by the "Sync theme" and "Sync appearance" effects below.
+    const settings = useSettingsStore.getState().settings;
+    const theme = useThemeStore.getState().active;
 
     let resizeObs: ResizeObserver | null = null;
     let cancelled = false;
@@ -461,7 +466,7 @@ export default function TerminalPane({
         }
 
         sessionRef.current = sessionId;
-        updatePaneSession(paneId, sessionId);
+        useTerminalStore.getState().updatePaneSession(paneId, sessionId);
 
         
         
@@ -713,7 +718,6 @@ export default function TerminalPane({
       fitRef.current = null;
       sessionRef.current = null;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paneId]);
 
   // ── Sync theme + vibrancy (manages WebGL addon lifecycle) ──
@@ -873,26 +877,15 @@ export default function TerminalPane({
   );
 
   const showDropZone = draggingTabId !== null && dragOverPaneId === paneId;
-  const showFocus = isActive && paneCount > 1;
   const showCloseBtn = paneCount > 1 && (isActive || hovered);
 
-  const isSplit = paneCount > 1;
-
+  // Focus is shown by the PaneFrame around this pane (unfocused panes are
+  // dimmed), so the pane itself has no border.
   return (
     <div
       ref={wrapperRef}
       data-pane-id={paneId}
-      className={`relative h-full w-full overflow-hidden ${isSplit ? "rounded-lg" : ""} ${settings.appearance.vibrancyEnabled ? "vibrancy-active" : ""}`}
-      style={{
-        border: showFocus
-          ? `1.5px solid ${theme.ui.accent}`
-          : isSplit
-            ? `1.5px solid ${theme.ui.border || "transparent"}`
-            : "1.5px solid transparent",
-        boxShadow: showFocus
-          ? `0 0 12px ${theme.ui.accent}33`
-          : "none",
-      }}
+      className={`relative h-full w-full overflow-hidden ${settings.appearance.vibrancyEnabled ? "vibrancy-active" : ""}`}
       onMouseDown={() => {
         setActivePane(paneId);
         // Re-focus terminal after React re-render settles
@@ -923,7 +916,6 @@ export default function TerminalPane({
           backgroundColor: settings.appearance.vibrancyEnabled
             ? hexToRgba(theme.terminal.background, vibrancyAlpha(settings.appearance.windowOpacity) * 0.7)
             : hexToRgba(theme.terminal.background, 0.85),
-          borderRadius: showSearch ? '0 0 8px 8px' : '8px',
         }}
       />
 

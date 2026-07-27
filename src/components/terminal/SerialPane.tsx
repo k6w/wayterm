@@ -33,7 +33,7 @@ function makeXtermTheme(theme: ReturnType<typeof useThemeStore.getState>["active
   };
 }
 
-export default function SerialPane({ paneId, isActive, paneCount = 1 }: SerialPaneProps) {
+export default function SerialPane({ paneId }: SerialPaneProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal | null>(null);
   const fitRef = useRef<FitAddon | null>(null);
@@ -48,7 +48,6 @@ export default function SerialPane({ paneId, isActive, paneCount = 1 }: SerialPa
 
   const vibrancy = settings.appearance.vibrancyEnabled;
   const opacity = settings.appearance.windowOpacity;
-  const isSplit = (paneCount ?? 1) > 1;
 
   const bgColor = vibrancy
     ? hexToRgba(theme.terminal.background, vibrancyAlpha(opacity))
@@ -87,7 +86,14 @@ export default function SerialPane({ paneId, isActive, paneCount = 1 }: SerialPa
 
   useEffect(() => {
     const container = containerRef.current;
+    // Mount-time snapshot: this effect creates the xterm instance and opens the
+    // serial port once per pane, so it must not re-run on store changes.
+    const pane = useTerminalStore.getState().panes[paneId];
     if (!container || !pane?.serialConfig) return;
+    const settings = useSettingsStore.getState().settings;
+    const theme = useThemeStore.getState().active;
+    const vibrancy = settings.appearance.vibrancyEnabled;
+    const opacity = settings.appearance.windowOpacity;
 
     const config = pane.serialConfig;
     let cancelled = false;
@@ -182,23 +188,15 @@ export default function SerialPane({ paneId, isActive, paneCount = 1 }: SerialPa
       sessionRef.current = null;
       if (sid) serialClose(sid).catch(() => {});
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [paneId]);
 
-  const showFocus = isActive && isSplit;
   const config = pane?.serialConfig;
 
+  // Focus is shown by the PaneFrame around this pane, so no border here.
   return (
     <div
-      className={`relative flex h-full w-full flex-col overflow-hidden ${isSplit ? "rounded-lg" : ""}`}
-      style={{
-        backgroundColor: bgColor,
-        border: showFocus
-          ? `1.5px solid ${theme.ui.accent}`
-          : isSplit
-            ? `1.5px solid ${theme.ui.border || "transparent"}`
-            : "1.5px solid transparent",
-      }}
+      className="relative flex h-full w-full flex-col overflow-hidden"
+      style={{ backgroundColor: bgColor }}
       onMouseDown={() => setActivePane(paneId)}
     >
       {/* Header bar */}
