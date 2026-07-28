@@ -43,4 +43,21 @@ describe("NoTabsState", () => {
     await user.tab();
     expect(screen.getByRole("button", { name: /New terminal/ })).toHaveFocus();
   });
+
+  it("gives all three actions the same variant, width and border", () => {
+    render(<NoTabsState onNewTerminal={vi.fn()} onNewSsh={vi.fn()} />);
+    const buttons = [/New terminal/, /New SSH connection/, /Command palette/].map((name) =>
+      screen.getByRole("button", { name })
+    );
+    for (const b of buttons) {
+      expect(b).toHaveClass("w-full", "border", "border-border-strong", "bg-raised");
+      expect(b).not.toHaveClass("bg-accent");
+    }
+    expect(new Set(buttons.map((b) => b.className)).size).toBe(1);
+  });
+
+  it("balances the description so no word is orphaned", () => {
+    render(<NoTabsState onNewTerminal={vi.fn()} onNewSsh={vi.fn()} />);
+    expect(screen.getByText(/Start a terminal/)).toHaveClass("text-balance");
+  });
 });

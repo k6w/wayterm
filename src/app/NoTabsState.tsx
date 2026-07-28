@@ -19,20 +19,20 @@ export default function NoTabsState({ onNewTerminal, onNewSsh }: NoTabsStateProp
         title="No open tabs"
         description="Start a terminal, connect to a server, or search every command."
         action={
-          <div className="flex flex-col items-stretch gap-2">
+          <div className="flex w-60 flex-col items-stretch gap-2">
             <Button
-              variant="primary"
+              className="w-full"
               leadingIcon={<Plus {...ICON_SM} />}
               shortcut={shortcutFor("new-tab")}
               onClick={onNewTerminal}
             >
               New terminal
             </Button>
-            <Button leadingIcon={<Monitor {...ICON_SM} />} onClick={onNewSsh}>
+            <Button className="w-full" leadingIcon={<Monitor {...ICON_SM} />} onClick={onNewSsh}>
               New SSH connection
             </Button>
             <Button
-              variant="ghost"
+              className="w-full"
               leadingIcon={<Command {...ICON_SM} />}
               shortcut={shortcutFor("command-palette")}
               onClick={toggleCommandPalette}
