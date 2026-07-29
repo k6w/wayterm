@@ -43,10 +43,17 @@ describe("Titlebar", () => {
   it("opens the command palette from the search field and shows its shortcut", async () => {
     const user = userEvent.setup();
     render(<Titlebar />);
-    const trigger = screen.getByRole("button", { name: /Search or run command/ });
+    const trigger = screen.getByRole("button", { name: /Search or run…/ });
     expect(within(trigger).getByLabelText("Ctrl+Shift+P")).toBeInTheDocument();
     await user.click(trigger);
     expect(toggleCommandPalette).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the search label short enough to never truncate, with the shortcut visible", () => {
+    render(<Titlebar />);
+    const trigger = screen.getByRole("button", { name: /Search or run…/ });
+    expect(within(trigger).getByText("Search or run…")).toBeInTheDocument();
+    expect(within(trigger).getByLabelText("Ctrl+Shift+P")).toBeVisible();
   });
 
   it("splits the active pane and opens settings", async () => {
@@ -64,10 +71,16 @@ describe("Titlebar", () => {
     expect(screen.getByRole("button", { name: "Split pane right" })).toBeDisabled();
   });
 
+  it("disables split when no tab is open even if a stale pane id remains", () => {
+    useTerminalStore.setState({ tabs: [], activeTabId: null, activePaneId: "p1" });
+    render(<Titlebar />);
+    expect(screen.getByRole("button", { name: "Split pane right" })).toBeDisabled();
+  });
+
   it("moves between its actions with the arrow keys", async () => {
     const user = userEvent.setup();
     render(<Titlebar />);
-    screen.getByRole("button", { name: /Search or run command/ }).focus();
+    screen.getByRole("button", { name: /Search or run…/ }).focus();
     await user.keyboard("{ArrowRight}");
     expect(screen.getByRole("button", { name: "Split pane right" })).toHaveFocus();
     await user.keyboard("{ArrowRight}");
@@ -77,7 +90,7 @@ describe("Titlebar", () => {
   it("shows the split shortcut in its tooltip", async () => {
     const user = userEvent.setup();
     render(<Titlebar />);
-    screen.getByRole("button", { name: /Search or run command/ }).focus();
+    screen.getByRole("button", { name: /Search or run…/ }).focus();
     await user.keyboard("{ArrowRight}");
     expect(await screen.findByRole("tooltip")).toHaveTextContent(/^Split pane right\s*Ctrl\s*Shift\s*D$/);
   });

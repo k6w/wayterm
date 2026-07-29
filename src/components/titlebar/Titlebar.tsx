@@ -19,7 +19,7 @@ import WindowControls from "./WindowControls";
 export default function Titlebar() {
   const tabPosition = useSettingsStore((s) => s.settings.appearance.tabPosition);
   const uiScale = useSettingsStore((s) => s.settings.appearance.uiScale);
-  const hasActivePane = useTerminalStore((s) => s.activePaneId !== null);
+  const hasActivePane = useTerminalStore((s) => s.tabs.length > 0 && s.activePaneId !== null);
   const toggleCommandPalette = useTerminalStore((s) => s.toggleCommandPalette);
   const toggleSettings = useTerminalStore((s) => s.toggleSettings);
 
@@ -52,12 +52,12 @@ export default function Titlebar() {
           <Button
             variant="secondary"
             size="sm"
-            className="w-56"
+            className="w-48"
             leadingIcon={<Search {...ICON_SM} />}
             shortcut={shortcutFor("command-palette")}
             onClick={toggleCommandPalette}
           >
-            <span className="flex-1 truncate text-left font-normal text-fg-muted">Search or run command</span>
+            <span className="flex-1 truncate text-left font-normal text-fg-muted">Search or run…</span>
           </Button>
         </ToolbarButton>
         <ToolbarButton>
