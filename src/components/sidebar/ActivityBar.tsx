@@ -1,3 +1,4 @@
+import { useTerminalStore } from "../../stores/terminal";
 import { useSidebarStore } from "../../stores/sidebar";
 import { shortcutFor } from "../../lib/shortcut-hints";
 import { ICON_MD, IconButton, Toolbar, ToolbarButton } from "../../ui";
@@ -10,6 +11,7 @@ import { SIDEBAR_SECTIONS } from "./sections";
 export default function ActivityBar() {
   const section = useSidebarStore((s) => s.section);
   const collapsed = useSidebarStore((s) => s.collapsed);
+  const settingsOpen = useTerminalStore((s) => s.settingsOpen);
   const activate = useSidebarStore((s) => s.activate);
 
   return (
@@ -19,7 +21,7 @@ export default function ActivityBar() {
       className="nx-blur h-full w-11 shrink-0 flex-col gap-1 border-r border-border bg-panel-glass py-2"
     >
       {SIDEBAR_SECTIONS.map(({ id, label, icon: Icon, shortcutId }) => {
-        const active = !collapsed && section === id;
+        const active = !settingsOpen && !collapsed && section === id;
         return (
           <div key={id} className="relative flex w-full justify-center">
             {active && (

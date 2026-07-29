@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import ActivityBar from "./ActivityBar";
 import Sidebar from "./Sidebar";
 import { useSidebarStore } from "../../stores/sidebar";
+import { useTerminalStore } from "../../stores/terminal";
 import { useSettingsStore } from "../../stores/settings";
 
 // Panel bodies are restyled in Phase 4 and pull in many stores; stub them.
@@ -18,6 +19,7 @@ vi.mock("./QuickActions", () => ({ default: () => <div>quick actions</div> }));
 beforeEach(() => {
   useSettingsStore.setState(useSettingsStore.getInitialState(), true);
   useSidebarStore.setState(useSidebarStore.getInitialState(), true);
+  useTerminalStore.setState({ settingsOpen: false });
 });
 
 describe("ActivityBar", () => {
@@ -45,6 +47,16 @@ describe("ActivityBar", () => {
     expect(screen.getAllByTestId("activity-indicator")).toHaveLength(1);
     await user.click(screen.getByRole("button", { name: "Git" }));
     expect(useSidebarStore.getState().collapsed).toBe(true);
+  });
+
+  it("shows no item as selected while Settings is open", () => {
+    useSidebarStore.setState({ collapsed: false, section: "git" });
+    useTerminalStore.setState({ settingsOpen: true });
+    render(<ActivityBar />);
+    for (const b of within(screen.getByRole("toolbar", { name: "Side panels" })).getAllByRole("button")) {
+      expect(b).toHaveAttribute("aria-pressed", "false");
+    }
+    expect(screen.queryByTestId("activity-indicator")).not.toBeInTheDocument();
   });
 
   it("is one tab stop moved with Up/Down", async () => {
