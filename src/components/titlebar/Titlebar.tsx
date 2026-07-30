@@ -52,7 +52,7 @@ export default function Titlebar() {
           <Button
             variant="secondary"
             size="sm"
-            className="w-48"
+            className="w-56"
             leadingIcon={<Search {...ICON_SM} />}
             shortcut={shortcutFor("command-palette")}
             onClick={toggleCommandPalette}
