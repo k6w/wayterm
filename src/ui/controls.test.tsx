@@ -2,7 +2,7 @@ import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { Checkbox, Input, SegmentedControl, Select, Switch } from "./index";
+import { Checkbox, Field, Input, SegmentedControl, Select, Switch, Textarea } from "./index";
 
 describe("Input", () => {
   it("is focusable from the keyboard and accepts typing", async () => {
@@ -160,5 +160,41 @@ describe("SegmentedControl", () => {
     await user.click(screen.getByText("Top"));
     expect(onChange).not.toHaveBeenCalled();
     expect(screen.getByText("Top").closest("button")).toHaveAttribute("data-state", "on");
+  });
+});
+
+describe("Field", () => {
+  it("labels its control and announces the hint", () => {
+    render(
+      <Field label="Host" hint="Name or IP address">
+        {(control) => <Input {...control} />}
+      </Field>
+    );
+    const input = screen.getByRole("textbox", { name: "Host" });
+    expect(input).toHaveAccessibleDescription("Name or IP address");
+    expect(input).not.toHaveAttribute("aria-invalid");
+  });
+
+  it("shows an error instead of the hint and marks the control invalid", () => {
+    render(
+      <Field label="Port" hint="Usually 22" error="Port must be between 1 and 65535">
+        {(control) => <Input {...control} />}
+      </Field>
+    );
+    const input = screen.getByRole("textbox", { name: "Port" });
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    expect(input).toHaveAccessibleDescription("Port must be between 1 and 65535");
+    expect(screen.queryByText("Usually 22")).not.toBeInTheDocument();
+  });
+});
+
+describe("Textarea", () => {
+  it("accepts multi-line typing and reports invalid state", async () => {
+    const user = userEvent.setup();
+    render(<Textarea aria-label="Startup commands" invalid />);
+    const box = screen.getByRole("textbox", { name: "Startup commands" });
+    await user.type(box, "cd /srv{Enter}ls");
+    expect(box).toHaveValue("cd /srv\nls");
+    expect(box).toHaveAttribute("aria-invalid", "true");
   });
 });

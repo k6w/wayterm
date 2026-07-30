@@ -9,6 +9,8 @@ export { Button, buttonVariants, type ButtonProps } from "./Button";
 export { IconButton, iconButtonVariants, type IconButtonProps } from "./IconButton";
 export { menuContentClass, menuItemClass, menuLabelClass, menuSeparatorClass } from "./menu-styles";
 export { Input, inputVariants, type InputProps } from "./Input";
+export { Textarea, type TextareaProps } from "./Textarea";
+export { Field, type FieldControlProps, type FieldProps } from "./Field";
 export { Select, type SelectOption, type SelectProps } from "./Select";
 export { Switch, type SwitchProps } from "./Switch";
 export { Checkbox, type CheckboxProps } from "./Checkbox";

@@ -152,7 +152,7 @@
 /* Z-index layering scale: consume via z-[var(--z-*)] */
 :root {
   --z-divider: 10;
-  --z-dropdown: 50;
+  --z-dropdown: 150; /* above --z-modal: selects and menus open inside dialogs */
   --z-modal: 100;
   --z-toast: 200;
   --z-tooltip: 300;

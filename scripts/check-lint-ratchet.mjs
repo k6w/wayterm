@@ -9,7 +9,8 @@
 // This script adds one more guarantee: files that have been migrated to the
 // design-token kit (STRICT_PATHS) must carry no suppressions at all. Each phase
 // appends the files it migrates. Never remove an entry.
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, statSync } from "node:fs";
+import { join } from "node:path";
 
 const STRICT_PATHS = [
   "src/ui/",
@@ -48,6 +49,31 @@ const suppressions = existsSync(file) ? JSON.parse(readFileSync(file, "utf8")) :
 const offenders = Object.keys(suppressions).filter((path) =>
   STRICT_PATHS.some((strict) => (strict.endsWith("/") ? path.startsWith(strict) : path === strict))
 );
+
+// Inline `eslint-disable` comments are suppressions too, and ESLint does not
+// count them in eslint-suppressions.json. Migrated files may not carry any.
+function strictFiles() {
+  const files = [];
+  for (const strict of STRICT_PATHS) {
+    if (!existsSync(strict)) continue;
+    if (!statSync(strict).isDirectory()) {
+      files.push(strict);
+      continue;
+    }
+    for (const entry of readdirSync(strict, { recursive: true })) {
+      const path = join(strict, String(entry)).split("\\").join("/");
+      if (/\.(ts|tsx|js|mjs)$/.test(path) && statSync(path).isFile()) files.push(path);
+    }
+  }
+  return files;
+}
+
+const disabled = strictFiles().filter((path) => /eslint-disable/.test(readFileSync(path, "utf8")));
+if (disabled.length > 0) {
+  console.error("Lint ratchet: these migrated files contain eslint-disable comments. Fix the code instead:");
+  for (const path of disabled) console.error(`  ${path}`);
+  process.exit(1);
+}
 
 if (offenders.length > 0) {
   console.error(

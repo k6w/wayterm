@@ -217,3 +217,30 @@ describe("Toast", () => {
     await waitFor(() => expect(useToastStore.getState().toasts).toHaveLength(0));
   });
 });
+
+describe("Dialog layout options", () => {
+  it("keeps the accessible name when the header is hidden", async () => {
+    render(
+      <Dialog open>
+        <DialogContent title="Command palette" hideHeader placement="top" flush>
+          <Input aria-label="Search commands" />
+        </DialogContent>
+      </Dialog>
+    );
+    const dialog = await screen.findByRole("dialog", { name: "Command palette" });
+    expect(within(dialog).queryByRole("button", { name: "Close" })).not.toBeInTheDocument();
+    expect(within(dialog).getByText("Command palette")).toHaveClass("sr-only");
+    expect(dialog).toHaveClass("top-[16vh]");
+  });
+
+  it("renders no empty body when there are no children", async () => {
+    render(
+      <Dialog open>
+        <DialogContent title="Delete host?" description="This cannot be undone." footer={<Button>Delete</Button>} />
+      </Dialog>
+    );
+    const dialog = await screen.findByRole("dialog", { name: "Delete host?" });
+    expect(dialog).toHaveAccessibleDescription("This cannot be undone.");
+    expect(dialog.querySelector(".overflow-y-auto")).toBeNull();
+  });
+});

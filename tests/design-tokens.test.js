@@ -42,4 +42,11 @@ describe("design tokens (src/styles.css)", () => {
     expect(css).toContain("--color-bg-primary: var(--nx-canvas)");
     expect(css).toContain("--color-text-primary: var(--nx-text)");
   });
+
+  it("stacks dropdowns above dialogs and below toasts", () => {
+    const z = (name) => Number(css.match(new RegExp(`--z-${name}:\\s*(\\d+)`))?.[1]);
+    expect(z("dropdown")).toBeGreaterThan(z("modal"));
+    expect(z("dropdown")).toBeLessThan(z("toast"));
+    expect(z("toast")).toBeLessThan(z("tooltip"));
+  });
 });
