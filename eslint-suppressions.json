@@ -114,11 +114,6 @@
       "count": 3
     }
   },
-  "src/components/ui/TofuDialog.tsx": {
-    "nexterm/no-inline-style": {
-      "count": 4
-    }
-  },
   "src/components/ui/WelcomeScreen.tsx": {
     "nexterm/no-inline-style": {
       "count": 7

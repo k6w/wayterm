@@ -18,8 +18,15 @@ import { useSftpStore } from "../../stores/sftp";
 import { useThemeStore } from "../../stores/theme";
 import { useSettingsStore } from "../../stores/settings";
 import { hexToRgba } from "../../lib/color";
-import { sshGetPendingHostKey, sshKnownHostsAdd, sshClearPendingHostKey, type PendingHostKey } from "../../lib/ipc";
-import TofuDialog from "../ui/TofuDialog";
+import {
+  sshGetPendingHostKey,
+  sshKnownHostsAdd,
+  sshKnownHostsRemove,
+  sshClearPendingHostKey,
+  type PendingHostKey,
+} from "../../lib/ipc";
+import HostKeyDialog from "../ssh/HostKeyDialog";
+import { isHostKeyChanged, knownHostsNames } from "../ssh/host-key";
 import { vibrancyAlpha } from "../../lib/platform";
 import PathBreadcrumb from "./PathBreadcrumb";
 import FileList from "./FileList";
@@ -75,6 +82,7 @@ export default function SftpPane({
   const [error, setError] = useState<string | null>(null);
   const [desktopDragOver, setDesktopDragOver] = useState(false);
   const [tofuPending, setTofuPending] = useState<PendingHostKey | null>(null);
+  const [hostKeyChanged, setHostKeyChanged] = useState<{ host: string; port: number } | null>(null);
 
   // Selection state
   const [localSelected, setLocalSelected] = useState<Set<string>>(new Set());
@@ -195,6 +203,9 @@ export default function SftpPane({
           } catch {
             // fall through to generic error
           }
+        }
+        if (conn && isHostKeyChanged(msg)) {
+          setHostKeyChanged({ host: conn.host, port: conn.port ?? 22 });
         }
         setError(msg);
         setConnecting(false);
@@ -635,6 +646,30 @@ export default function SftpPane({
     setError("Connection cancelled — host not trusted.");
   }, [tofuPending]);
 
+  // Changed key, confirmed by the user: drop the old known_hosts entries and
+  // reconnect. The reconnect fails with TOFU_REQUIRED, which shows the new key.
+  const handleReplaceChangedKey = useCallback(async () => {
+    if (!hostKeyChanged || !sftpConn) return;
+    const { host, port } = hostKeyChanged;
+    setHostKeyChanged(null);
+    setError(null);
+    setConnecting(true);
+    try {
+      for (const name of knownHostsNames(host, port)) await sshKnownHostsRemove(name);
+      const sid = await useSftpStore.getState().connect(sftpConnId, sftpConn.name ?? "SFTP");
+      sessionIdRef.current = sid;
+      setSessionId(sid);
+      updatePaneSession(paneId, sid);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      const key = msg.includes("TOFU_REQUIRED") ? await sshGetPendingHostKey(host, port).catch(() => null) : null;
+      if (key) setTofuPending(key);
+      else setError(msg);
+    } finally {
+      setConnecting(false);
+    }
+  }, [hostKeyChanged, sftpConn, sftpConnId, paneId, updatePaneSession]);
+
   // -- Connecting / error state --
   if (connecting || error || tofuPending) {
     return (
@@ -678,11 +713,17 @@ export default function SftpPane({
             </div>
           </>
         )}
-        <TofuDialog
-          open={!!tofuPending}
-          pendingKey={tofuPending}
+        <HostKeyDialog
+          prompt={
+            tofuPending
+              ? { kind: "unknown", key: tofuPending }
+              : hostKeyChanged
+                ? { kind: "changed", ...hostKeyChanged }
+                : null
+          }
           onTrust={handleTofuTrust}
-          onCancel={handleTofuCancel}
+          onReplace={handleReplaceChangedKey}
+          onCancel={tofuPending ? handleTofuCancel : () => setHostKeyChanged(null)}
         />
       </div>
     );
