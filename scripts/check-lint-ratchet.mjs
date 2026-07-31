@@ -47,6 +47,7 @@ const STRICT_PATHS = [
   "src/components/ssh/connection-form.ts",
   "src/components/ssh/HostKeyDialog.tsx",
   "src/components/ssh/host-key.ts",
+  "src/components/serial/",
 ];
 
 const file = "eslint-suppressions.json";
