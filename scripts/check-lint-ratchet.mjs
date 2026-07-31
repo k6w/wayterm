@@ -42,6 +42,7 @@ const STRICT_PATHS = [
   "src/lib/keybindings.ts",
   "src/app/App.tsx",
   "src/app/NoTabsState.tsx",
+  "src/components/command-palette/",
 ];
 
 const file = "eslint-suppressions.json";
