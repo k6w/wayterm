@@ -43,6 +43,8 @@ const STRICT_PATHS = [
   "src/app/App.tsx",
   "src/app/NoTabsState.tsx",
   "src/components/command-palette/",
+  "src/components/ssh/ConnectionDialog.tsx",
+  "src/components/ssh/connection-form.ts",
 ];
 
 const file = "eslint-suppressions.json";

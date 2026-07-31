@@ -1,167 +1,143 @@
-import { useState, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { X, Lock, KeyRound, Shield, ChevronDown, Plus, Trash2 } from "lucide-react";
+import { useId, useRef, useState, type CSSProperties, type FormEvent, type KeyboardEvent } from "react";
+import { ChevronRight, KeyRound, Lock, Plus, Shield, Trash2, X } from "lucide-react";
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  Field,
+  IconButton,
+  Input,
+  Section,
+  SegmentedControl,
+  Select,
+  Switch,
+  Textarea,
+  cn,
+  focusRing,
+  ICON_SM,
+  type SegmentedOption,
+} from "../../ui";
 import { useSshStore } from "../../stores/ssh";
+import { useTerminalStore } from "../../stores/terminal";
 import { useThemeStore } from "../../stores/theme";
-import { useSettingsStore } from "../../stores/settings";
-import { hexToRgba } from "../../lib/color";
-import { vibrancyAlpha } from "../../lib/platform";
-import Select from "../ui/Select";
-import type { SshConnection, AuthMethod } from "../../types/ssh";
+import { isMac } from "../../lib/platform";
+import { CONNECTION_TAG_COLORS } from "../../themes/connection-tags";
+import type { AuthMethod, SshConnection } from "../../types/ssh";
+import {
+  createFormState,
+  toConnection,
+  validateConnectionForm,
+  type ConnectionFormErrors,
+  type ConnectionFormState,
+} from "./connection-form";
 
 interface ConnectionDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (connection: SshConnection) => void;
+  onSave: (connection: SshConnection) => void | Promise<void>;
   editConnection?: SshConnection | null;
 }
 
-const COLOR_TAGS = [
-  { name: "red", value: "#ef4444" },
-  { name: "green", value: "#22c55e" },
-  { name: "blue", value: "#3b82f6" },
-  { name: "yellow", value: "#eab308" },
-  { name: "purple", value: "#a855f7" },
-  { name: "cyan", value: "#06b6d4" },
-  { name: "orange", value: "#f97316" },
-  { name: "pink", value: "#ec4899" },
+// Radix Select reserves "" for "no value", so the "none" choices get sentinels.
+const KEY_PATH = "__path__";
+const NO_JUMP_HOST = "__none__";
+const INHERIT_THEME = "__inherit__";
+
+const AUTH_OPTIONS: readonly SegmentedOption<AuthMethod>[] = [
+  { value: "password", label: "Password", icon: <Lock {...ICON_SM} /> },
+  { value: "key", label: "Key", icon: <KeyRound {...ICON_SM} /> },
+  { value: "agent", label: "Agent", icon: <Shield {...ICON_SM} /> },
 ];
 
-const AUTH_METHODS: { id: AuthMethod; label: string; icon: React.ComponentType<{ size?: number; className?: string }> }[] = [
-  { id: "password", label: "Password", icon: Lock },
-  { id: "key", label: "Key", icon: KeyRound },
-  { id: "agent", label: "Agent", icon: Shield },
-];
+const NO_ERRORS: ConnectionFormErrors = {};
 
-function generateId(): string {
-  return crypto.randomUUID();
+/** New / edit SSH connection. The form mounts on every open, so it starts from `editConnection`. */
+export default function ConnectionDialog({ isOpen, onClose, onSave, editConnection }: ConnectionDialogProps) {
+  return (
+    <Dialog
+      open={isOpen}
+      onOpenChange={(next) => {
+        if (!next) onClose();
+      }}
+    >
+      {isOpen && <ConnectionForm onClose={onClose} onSave={onSave} editConnection={editConnection ?? null} />}
+    </Dialog>
+  );
 }
 
-function createDefaultFormState() {
-  return {
-    name: "",
-    host: "",
-    port: 22,
-    username: "",
-    authMethod: "password" as AuthMethod,
-    password: "",
-    privateKeyPath: "",
-    selectedKeyId: "",
-    passphrase: "",
-    colorTag: null as string | null,
-    startupCommands: "",
-    // Advanced
-    jumpHostId: null as string | null,
-    themeOverride: null as string | null,
-    agentForwarding: false,
-    envVars: {} as Record<string, string>,
-  };
+interface ConnectionFormProps {
+  onClose: () => void;
+  onSave: (connection: SshConnection) => void | Promise<void>;
+  editConnection: SshConnection | null;
 }
 
-export default function ConnectionDialog({
-  isOpen,
-  onClose,
-  onSave,
-  editConnection,
-}: ConnectionDialogProps) {
-  const [form, setForm] = useState(createDefaultFormState());
+function ConnectionForm({ onClose, onSave, editConnection }: ConnectionFormProps) {
+  const [form, setForm] = useState<ConnectionFormState>(() => createFormState(editConnection));
+  const [submitted, setSubmitted] = useState(false);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [newEnvKey, setNewEnvKey] = useState("");
   const [newEnvVal, setNewEnvVal] = useState("");
   const storedKeys = useSshStore((s) => s.keys);
   const allConnections = useSshStore((s) => s.connections);
-  const theme = useThemeStore((s) => s.active);
   const themes = useThemeStore((s) => s.themes);
-  const vibrancy = useSettingsStore((s) => s.settings.appearance.vibrancyEnabled);
-  const windowOpacity = useSettingsStore((s) => s.settings.appearance.windowOpacity);
+  const formRef = useRef<HTMLFormElement>(null);
+  // Which button submitted the form; "save" unless Save & Connect or Mod+Enter said otherwise.
+  const intentRef = useRef<"save" | "connect">("save");
+  const nameRef = useRef<HTMLInputElement>(null);
+  const formId = useId();
+  const advancedId = useId();
+  const agentForwardingId = useId();
 
-  const cardBg = vibrancy
-    ? hexToRgba(theme.ui.bgPrimary, vibrancyAlpha(windowOpacity) * 0.92)
-    : theme.ui.bgPrimary;
+  const errors = submitted ? validateConnectionForm(form) : NO_ERRORS;
 
-  useEffect(() => {
-    if (isOpen) {
-      if (editConnection) {
-        setForm({
-          name: editConnection.name,
-          host: editConnection.host,
-          port: editConnection.port,
-          username: editConnection.username,
-          authMethod: editConnection.authMethod,
-          password: "",
-          privateKeyPath: "",
-          selectedKeyId: editConnection.privateKeyId ?? "",
-          passphrase: "",
-          colorTag: editConnection.colorTag,
-          startupCommands: editConnection.startupCommands ?? "",
-          jumpHostId: editConnection.jumpHostId ?? null,
-          themeOverride: editConnection.themeOverride ?? null,
-          agentForwarding: editConnection.agentForwarding ?? false,
-          envVars: editConnection.envVars ?? {},
-        });
-      } else {
-        setForm(createDefaultFormState());
-      }
-      setAdvancedOpen(false);
-      setNewEnvKey("");
-      setNewEnvVal("");
-    }
-  }, [isOpen, editConnection]);
-
-  const handleEscape = useCallback(
-    (e: KeyboardEvent) => {
-      if (e.key === "Escape" && isOpen) {
-        onClose();
-      }
-    },
-    [isOpen, onClose]
-  );
-
-  useEffect(() => {
-    window.addEventListener("keydown", handleEscape);
-    return () => window.removeEventListener("keydown", handleEscape);
-  }, [handleEscape]);
-
-  const handleSubmit = useCallback(
-    (e: React.FormEvent) => {
-      e.preventDefault();
-
-      const now = new Date().toISOString();
-
-      const connection: SshConnection = {
-        id: editConnection?.id ?? generateId(),
-        name: form.name.trim(),
-        host: form.host.trim(),
-        port: form.port,
-        username: form.username.trim(),
-        authMethod: form.authMethod,
-        privateKeyId: form.selectedKeyId || null,
-        jumpHostId: form.jumpHostId,
-        startupCommands: form.startupCommands.trim() || null,
-        colorTag: form.colorTag,
-        folderPath: editConnection?.folderPath ?? "/",
-        sortOrder: editConnection?.sortOrder ?? 0,
-        themeOverride: form.themeOverride,
-        agentForwarding: form.agentForwarding,
-        envVars: form.envVars,
-        createdAt: editConnection?.createdAt ?? now,
-        updatedAt: now,
-      };
-
-      onSave(connection);
-    },
-    [form, editConnection, onSave]
-  );
-
-  const updateField = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => {
+  const update = <K extends keyof ConnectionFormState>(key: K, value: ConnectionFormState[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
+  const handleSubmit = (event: FormEvent) => {
+    event.preventDefault();
+    const intent = intentRef.current;
+    intentRef.current = "save";
+    setSubmitted(true);
+    if (Object.keys(validateConnectionForm(form)).length > 0) {
+      requestAnimationFrame(() => {
+        formRef.current?.querySelector<HTMLElement>('[aria-invalid="true"]')?.focus();
+      });
+      return;
+    }
+    const connection = toConnection(form, editConnection, new Date().toISOString(), () => crypto.randomUUID());
+    if (intent === "save") {
+      void onSave(connection);
+      return;
+    }
+    // Save & Connect: open the tab only once the connection is persisted.
+    void (async () => {
+      try {
+        await onSave(connection);
+      } catch {
+        return;
+      }
+      const { addTab, renameTab } = useTerminalStore.getState();
+      addTab("ssh", undefined, connection.id);
+      const { tabs } = useTerminalStore.getState();
+      const newTab = tabs[tabs.length - 1];
+      if (newTab) renameTab(newTab.id, connection.name);
+    })();
+  };
+
+  // Mod+Enter submits from any field, including the startup commands box.
+  const handleKeyDown = (event: KeyboardEvent<HTMLFormElement>) => {
+    if (event.key === "Enter" && (isMac ? event.metaKey : event.ctrlKey)) {
+      event.preventDefault();
+      intentRef.current = "connect";
+      formRef.current?.requestSubmit();
+    }
+  };
+
   const addEnvVar = () => {
-    const k = newEnvKey.trim();
-    const v = newEnvVal.trim();
-    if (!k) return;
-    setForm((prev) => ({ ...prev, envVars: { ...prev.envVars, [k]: v } }));
+    const key = newEnvKey.trim();
+    if (!key) return;
+    setForm((prev) => ({ ...prev, envVars: { ...prev.envVars, [key]: newEnvVal.trim() } }));
     setNewEnvKey("");
     setNewEnvVal("");
   };
@@ -174,404 +150,346 @@ export default function ConnectionDialog({
     });
   };
 
-  const inputClasses =
-    "bg-bg-tertiary border border-border rounded-md px-3 py-2 text-sm text-text-primary focus:border-accent outline-none w-full transition-colors";
-
-  const labelClasses = "text-sm text-text-secondary mb-1.5 block";
+  const onEnvKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === "Enter" && !event.metaKey && !event.ctrlKey) {
+      event.preventDefault();
+      addEnvVar();
+    }
+  };
 
   const keyOptions = [
-    { value: "", label: "Use path below instead" },
-    ...storedKeys.map((k) => ({
-      value: k.id,
-      label: `${k.name} (${k.algorithm})`,
-    })),
+    { value: KEY_PATH, label: "Use the key path below" },
+    ...storedKeys.map((k) => ({ value: k.id, label: `${k.name} (${k.algorithm})` })),
   ];
-
-  // Jump host options: all connections except the one being edited
   const jumpHostOptions = [
-    { value: "", label: "None" },
+    { value: NO_JUMP_HOST, label: "None" },
     ...allConnections
       .filter((c) => c.id !== editConnection?.id)
       .map((c) => ({ value: c.id, label: `${c.name} (${c.host}:${c.port})` })),
   ];
-
-  // Theme override options
   const themeOptions = [
-    { value: "", label: "Default (inherit)" },
+    { value: INHERIT_THEME, label: "Default (inherit)" },
     ...Object.values(themes).map((t) => ({ value: t.id, label: t.name })),
   ];
 
   return (
-    <AnimatePresence>
-      {isOpen && (
-        <motion.div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.15 }}
-          onClick={onClose}
-        >
-          <motion.div
-            className="relative w-full max-w-lg rounded-xl border border-border overflow-hidden"
-            style={{
-              backgroundColor: cardBg,
-              backdropFilter: vibrancy ? "blur(24px) saturate(1.4)" : undefined,
-              WebkitBackdropFilter: vibrancy ? "blur(24px) saturate(1.4)" : undefined,
-            }}
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            onClick={(e) => e.stopPropagation()}
+    <DialogContent
+      title={editConnection ? "Edit connection" : "New connection"}
+      onOpenAutoFocus={(event) => {
+        event.preventDefault();
+        nameRef.current?.focus();
+      }}
+      footer={
+        <>
+          <Button variant="ghost" onClick={onClose}>
+            Cancel
+          </Button>
+          <Button type="submit" form={formId} onClick={() => (intentRef.current = "save")}>
+            Save
+          </Button>
+          <Button
+            type="submit"
+            form={formId}
+            variant="primary"
+            shortcut="Mod+Enter"
+            onClick={() => (intentRef.current = "connect")}
           >
-            <div className="flex items-center justify-between px-6 py-4 border-b border-border">
-              <h2 className="text-base font-medium text-text-primary">
-                {editConnection ? "Edit Connection" : "New Connection"}
-              </h2>
-              <button
-                type="button"
-                onClick={onClose}
-                className="p-1 text-text-muted hover:text-text-primary transition-colors"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            <form onSubmit={handleSubmit} className="px-6 py-5 space-y-4 max-h-[70vh] overflow-y-auto">
-              <div>
-                <label className={labelClasses}>Name</label>
-                <input
-                  type="text"
-                  value={form.name}
-                  onChange={(e) => updateField("name", e.target.value)}
-                  className={inputClasses}
-                  placeholder="My Server"
-                  required
+            Save & Connect
+          </Button>
+        </>
+      }
+    >
+      <form
+        ref={formRef}
+        id={formId}
+        noValidate
+        onSubmit={handleSubmit}
+        onKeyDown={handleKeyDown}
+        className="flex flex-col gap-6 py-1"
+      >
+        <Section title="Connection">
+          <Field label="Name" error={errors.name}>
+            {(control) => (
+              <Input
+                {...control}
+                ref={nameRef}
+                value={form.name}
+                onChange={(e) => update("name", e.target.value)}
+                placeholder="My Server"
+              />
+            )}
+          </Field>
+          <div className="grid grid-cols-[1fr_96px] items-start gap-3">
+            <Field label="Host" error={errors.host}>
+              {(control) => (
+                <Input
+                  {...control}
+                  value={form.host}
+                  onChange={(e) => update("host", e.target.value)}
+                  placeholder="hostname or IP"
+                  autoCapitalize="off"
+                  spellCheck={false}
                 />
-              </div>
-
-              <div className="grid grid-cols-[1fr_100px] gap-3">
-                <div>
-                  <label className={labelClasses}>Host</label>
-                  <input
-                    type="text"
-                    value={form.host}
-                    onChange={(e) => updateField("host", e.target.value)}
-                    className={inputClasses}
-                    placeholder="hostname or IP"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className={labelClasses}>Port</label>
-                  <input
-                    type="number"
-                    value={form.port}
-                    onChange={(e) => updateField("port", parseInt(e.target.value, 10) || 22)}
-                    className={inputClasses}
-                    min={1}
-                    max={65535}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className={labelClasses}>Username</label>
-                <input
-                  type="text"
-                  value={form.username}
-                  onChange={(e) => updateField("username", e.target.value)}
-                  className={inputClasses}
-                  placeholder="root"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className={labelClasses}>Auth Method</label>
-                <div className="flex gap-2">
-                  {AUTH_METHODS.map((method) => {
-                    const Icon = method.icon;
-                    const isSelected = form.authMethod === method.id;
-                    return (
-                      <button
-                        key={method.id}
-                        type="button"
-                        onClick={() => updateField("authMethod", method.id)}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-md border text-sm transition-colors flex-1 justify-center ${
-                          isSelected
-                            ? "border-accent bg-accent/15 text-accent"
-                            : "border-border bg-bg-tertiary text-text-secondary hover:text-text-primary hover:border-border-focus"
-                        }`}
-                      >
-                        <Icon size={14} />
-                        {method.label}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {form.authMethod === "password" && (
-                <div>
-                  <label className={labelClasses}>Password</label>
-                  <input
-                    type="password"
-                    value={form.password}
-                    onChange={(e) => updateField("password", e.target.value)}
-                    className={inputClasses}
-                    placeholder="Enter password"
-                    autoComplete="off"
-                  />
-                  <p className="mt-1 text-xs text-text-muted">
-                    Stored in memory only for this session
-                  </p>
-                </div>
               )}
+            </Field>
+            <Field label="Port" error={errors.port}>
+              {(control) => (
+                <Input
+                  {...control}
+                  inputMode="numeric"
+                  value={form.port}
+                  onChange={(e) => update("port", e.target.value)}
+                />
+              )}
+            </Field>
+          </div>
+          <Field label="Username" error={errors.username}>
+            {(control) => (
+              <Input
+                {...control}
+                value={form.username}
+                onChange={(e) => update("username", e.target.value)}
+                placeholder="root"
+                autoCapitalize="off"
+                spellCheck={false}
+              />
+            )}
+          </Field>
+          <ColorTagPicker value={form.colorTag} onChange={(tag) => update("colorTag", tag)} />
+          <Field label="Startup commands" hint="Run after the connection opens (optional)">
+            {(control) => (
+              <Textarea
+                {...control}
+                className="font-mono"
+                value={form.startupCommands}
+                onChange={(e) => update("startupCommands", e.target.value)}
+                placeholder="cd /srv/app"
+              />
+            )}
+          </Field>
+        </Section>
 
-              {form.authMethod === "key" && (
-                <div className="space-y-3">
-                  {storedKeys.length > 0 && (
-                    <div>
-                      <label className={labelClasses}>Stored Key</label>
-                      <Select
-                        value={form.selectedKeyId}
-                        onChange={(v) => updateField("selectedKeyId", v)}
-                        options={keyOptions}
-                      />
-                    </div>
+        <Section title="Authentication">
+          <SegmentedControl
+            aria-label="Authentication method"
+            value={form.authMethod}
+            onValueChange={(method) => update("authMethod", method)}
+            options={AUTH_OPTIONS}
+            className="self-start"
+          />
+          {form.authMethod === "password" && (
+            <Field label="Password" hint="Not saved. SSH asks for the password each time you connect.">
+              {(control) => (
+                <Input
+                  {...control}
+                  type="password"
+                  autoComplete="off"
+                  value={form.password}
+                  onChange={(e) => update("password", e.target.value)}
+                  placeholder="Enter password"
+                />
+              )}
+            </Field>
+          )}
+          {form.authMethod === "key" && (
+            <>
+              {storedKeys.length > 0 && (
+                <Field label="Stored key">
+                  {({ id }) => (
+                    <Select
+                      id={id}
+                      value={form.selectedKeyId || KEY_PATH}
+                      onValueChange={(v) => update("selectedKeyId", v === KEY_PATH ? "" : v)}
+                      options={keyOptions}
+                    />
                   )}
-                  {!form.selectedKeyId && (
-                    <div>
-                      <label className={labelClasses}>Private Key Path</label>
-                      <input
-                        type="text"
-                        value={form.privateKeyPath}
-                        onChange={(e) => updateField("privateKeyPath", e.target.value)}
-                        className={inputClasses}
-                        placeholder="~/.ssh/id_ed25519"
-                      />
-                    </div>
+                </Field>
+              )}
+              {!form.selectedKeyId && (
+                <Field label="Private key path">
+                  {(control) => (
+                    <Input
+                      {...control}
+                      className="font-mono"
+                      value={form.privateKeyPath}
+                      onChange={(e) => update("privateKeyPath", e.target.value)}
+                      placeholder="~/.ssh/id_ed25519"
+                      spellCheck={false}
+                    />
                   )}
-                  <div>
-                    <label className={labelClasses}>Passphrase (optional)</label>
-                    <input
-                      type="password"
-                      value={form.passphrase}
-                      onChange={(e) => updateField("passphrase", e.target.value)}
-                      className={inputClasses}
-                      placeholder="Key passphrase"
-                      autoComplete="off"
+                </Field>
+              )}
+              <Field label="Passphrase (optional)">
+                {(control) => (
+                  <Input
+                    {...control}
+                    type="password"
+                    autoComplete="off"
+                    value={form.passphrase}
+                    onChange={(e) => update("passphrase", e.target.value)}
+                    placeholder="Key passphrase"
+                  />
+                )}
+              </Field>
+            </>
+          )}
+          {form.authMethod === "agent" && (
+            <p className="rounded-md border border-border bg-raised px-3 py-2 text-label text-fg-secondary">
+              SSH agent forwarding will be used. Make sure your SSH agent is running and has the appropriate keys
+              loaded.
+            </p>
+          )}
+        </Section>
+
+        <section aria-labelledby={`${advancedId}-heading`} className="flex flex-col gap-3">
+          <h3 id={`${advancedId}-heading`}>
+            <button
+              type="button"
+              aria-expanded={advancedOpen}
+              aria-controls={advancedId}
+              onClick={() => setAdvancedOpen((open) => !open)}
+              className={cn(
+                "flex items-center gap-1 rounded-sm text-caption font-semibold uppercase tracking-wide text-fg-muted hover:text-fg",
+                focusRing
+              )}
+            >
+              <ChevronRight
+                {...ICON_SM}
+                aria-hidden
+                className={cn("transition-transform duration-150 ease-out", advancedOpen && "rotate-90")}
+              />
+              Advanced
+            </button>
+          </h3>
+          {advancedOpen && (
+            <div id={advancedId} className="flex flex-col gap-3">
+              <Field label="Jump host (ProxyJump)" hint="Connect through this host as a bastion/jump server">
+                {({ id }) => (
+                  <Select
+                    id={id}
+                    value={form.jumpHostId ?? NO_JUMP_HOST}
+                    onValueChange={(v) => update("jumpHostId", v === NO_JUMP_HOST ? null : v)}
+                    options={jumpHostOptions}
+                  />
+                )}
+              </Field>
+              <Field label="Terminal theme override">
+                {({ id }) => (
+                  <Select
+                    id={id}
+                    value={form.themeOverride ?? INHERIT_THEME}
+                    onValueChange={(v) => update("themeOverride", v === INHERIT_THEME ? null : v)}
+                    options={themeOptions}
+                  />
+                )}
+              </Field>
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <label htmlFor={agentForwardingId} className="text-body text-fg">
+                    Agent forwarding
+                  </label>
+                  <p className="text-label text-fg-muted">Forward your SSH agent to the remote host</p>
+                </div>
+                <Switch
+                  id={agentForwardingId}
+                  checked={form.agentForwarding}
+                  onCheckedChange={(checked) => update("agentForwarding", checked)}
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <span className="text-label font-medium text-fg-secondary">Environment variables</span>
+                {Object.entries(form.envVars).map(([key, value]) => (
+                  <div key={key} className="flex items-center gap-2">
+                    <code className="min-w-0 flex-1 truncate rounded-md border border-border bg-raised px-2 py-1 font-mono text-label text-fg">
+                      {key}={value}
+                    </code>
+                    <IconButton
+                      label={`Remove ${key}`}
+                      icon={<Trash2 {...ICON_SM} />}
+                      onClick={() => removeEnvVar(key)}
                     />
                   </div>
-                </div>
-              )}
-
-              {form.authMethod === "agent" && (
-                <div className="rounded-lg border border-border bg-bg-tertiary px-4 py-3">
-                  <p className="text-sm text-text-secondary">
-                    SSH agent forwarding will be used. Make sure your SSH agent is running
-                    and has the appropriate keys loaded.
-                  </p>
-                </div>
-              )}
-
-              <div>
-                <label className={labelClasses}>Color Tag</label>
+                ))}
                 <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => updateField("colorTag", null)}
-                    className={`w-6 h-6 rounded-full border-2 transition-colors ${
-                      form.colorTag === null
-                        ? "border-accent bg-bg-tertiary"
-                        : "border-border bg-bg-tertiary hover:border-border-focus"
-                    }`}
-                    title="None"
-                  >
-                    {form.colorTag === null && (
-                      <X size={12} className="text-text-muted mx-auto" />
-                    )}
-                  </button>
-                  {COLOR_TAGS.map((color) => {
-                    const isSelected = form.colorTag === color.name;
-                    return (
-                      <button
-                        key={color.name}
-                        type="button"
-                        onClick={() => updateField("colorTag", color.name)}
-                        className={`w-6 h-6 rounded-full border-2 transition-all ${
-                          isSelected
-                            ? "border-white scale-110"
-                            : "border-transparent hover:scale-110"
-                        }`}
-                        style={{ backgroundColor: color.value }}
-                        title={color.name}
-                      />
-                    );
-                  })}
+                  <Input
+                    size="sm"
+                    aria-label="Variable name"
+                    className="font-mono"
+                    value={newEnvKey}
+                    onChange={(e) => setNewEnvKey(e.target.value)}
+                    onKeyDown={onEnvKeyDown}
+                    placeholder="KEY"
+                    spellCheck={false}
+                  />
+                  <Input
+                    size="sm"
+                    aria-label="Variable value"
+                    className="font-mono"
+                    value={newEnvVal}
+                    onChange={(e) => setNewEnvVal(e.target.value)}
+                    onKeyDown={onEnvKeyDown}
+                    placeholder="value"
+                    spellCheck={false}
+                  />
+                  <IconButton
+                    label="Add variable"
+                    icon={<Plus {...ICON_SM} />}
+                    disabled={!newEnvKey.trim()}
+                    onClick={addEnvVar}
+                  />
                 </div>
               </div>
-
-              <div>
-                <label className={labelClasses}>Startup Commands</label>
-                <textarea
-                  value={form.startupCommands}
-                  onChange={(e) => updateField("startupCommands", e.target.value)}
-                  className={`${inputClasses} resize-none min-h-[80px]`}
-                  placeholder="Commands to run after connection (optional)"
-                  rows={3}
-                />
-              </div>
-
-              {/* Advanced section */}
-              <div className="border border-border rounded-lg overflow-hidden">
-                <button
-                  type="button"
-                  onClick={() => setAdvancedOpen((prev) => !prev)}
-                  className="flex items-center justify-between w-full px-4 py-2.5 text-sm text-text-secondary hover:text-text-primary hover:bg-bg-tertiary transition-colors"
-                >
-                  <span className="font-medium">Advanced</span>
-                  <ChevronDown
-                    size={14}
-                    className={`text-text-muted transition-transform duration-200 ${advancedOpen ? "rotate-180" : ""}`}
-                  />
-                </button>
-
-                <AnimatePresence initial={false}>
-                  {advancedOpen && (
-                    <motion.div
-                      initial={{ height: 0, opacity: 0 }}
-                      animate={{ height: "auto", opacity: 1 }}
-                      exit={{ height: 0, opacity: 0 }}
-                      transition={{ duration: 0.2 }}
-                      className="overflow-hidden"
-                    >
-                      <div className="px-4 pb-4 space-y-4 border-t border-border pt-3">
-                        {/* Jump Host */}
-                        <div>
-                          <label className={labelClasses}>Jump Host (ProxyJump)</label>
-                          <Select
-                            value={form.jumpHostId ?? ""}
-                            onChange={(v) => updateField("jumpHostId", v || null)}
-                            options={jumpHostOptions}
-                          />
-                          <p className="mt-1 text-xs text-text-muted">
-                            Connect through this host as a bastion/jump server
-                          </p>
-                        </div>
-
-                        {/* Terminal Theme Override */}
-                        <div>
-                          <label className={labelClasses}>Terminal Theme Override</label>
-                          <Select
-                            value={form.themeOverride ?? ""}
-                            onChange={(v) => updateField("themeOverride", v || null)}
-                            options={themeOptions}
-                          />
-                        </div>
-
-                        {/* Agent Forwarding */}
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <span className="text-sm text-text-secondary">Agent Forwarding</span>
-                            <p className="text-xs text-text-muted mt-0.5">Forward your SSH agent to the remote host</p>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => updateField("agentForwarding", !form.agentForwarding)}
-                            className={`relative w-10 h-5 rounded-full transition-colors shrink-0 ${
-                              form.agentForwarding ? "bg-accent" : "bg-bg-tertiary border border-border"
-                            }`}
-                          >
-                            <span
-                              className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-white transition-transform ${
-                                form.agentForwarding ? "translate-x-5" : "translate-x-0"
-                              }`}
-                            />
-                          </button>
-                        </div>
-
-                        {/* Environment Variables */}
-                        <div>
-                          <label className={labelClasses}>Environment Variables</label>
-                          {Object.keys(form.envVars).length > 0 && (
-                            <div className="mb-2 space-y-1.5">
-                              {Object.entries(form.envVars).map(([k, v]) => (
-                                <div key={k} className="flex items-center gap-2">
-                                  <span className="flex-1 min-w-0 px-2 py-1.5 bg-bg-tertiary border border-border rounded-md text-xs font-mono text-text-primary truncate">
-                                    {k}={v}
-                                  </span>
-                                  <button
-                                    type="button"
-                                    onClick={() => removeEnvVar(k)}
-                                    className="shrink-0 p-1 text-text-muted hover:text-error transition-colors"
-                                  >
-                                    <Trash2 size={13} />
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                          <div className="flex gap-2">
-                            <input
-                              type="text"
-                              value={newEnvKey}
-                              onChange={(e) => setNewEnvKey(e.target.value)}
-                              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addEnvVar(); } }}
-                              className="flex-1 bg-bg-tertiary border border-border rounded-md px-2 py-1.5 text-xs text-text-primary focus:border-accent outline-none font-mono"
-                              placeholder="KEY"
-                            />
-                            <input
-                              type="text"
-                              value={newEnvVal}
-                              onChange={(e) => setNewEnvVal(e.target.value)}
-                              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addEnvVar(); } }}
-                              className="flex-1 bg-bg-tertiary border border-border rounded-md px-2 py-1.5 text-xs text-text-primary focus:border-accent outline-none font-mono"
-                              placeholder="value"
-                            />
-                            <button
-                              type="button"
-                              onClick={addEnvVar}
-                              disabled={!newEnvKey.trim()}
-                              className="shrink-0 p-1.5 rounded-md border border-border bg-bg-tertiary text-text-muted hover:text-accent hover:border-accent disabled:opacity-40 transition-colors"
-                            >
-                              <Plus size={13} />
-                            </button>
-                          </div>
-                        </div>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </div>
-
-              <div className="flex items-center justify-end gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={onClose}
-                  className="px-4 py-2 text-sm text-text-secondary hover:text-text-primary transition-colors rounded-md"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 text-sm bg-bg-tertiary border border-border hover:border-accent text-text-primary rounded-md transition-colors"
-                >
-                  Save
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 text-sm bg-accent hover:bg-accent-hover text-white rounded-md transition-colors font-medium"
-                >
-                  Save & Connect
-                </button>
-              </div>
-            </form>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+            </div>
+          )}
+        </section>
+      </form>
+    </DialogContent>
   );
 }
+
+interface ColorTagPickerProps {
+  value: string | null;
+  onChange: (tag: string | null) => void;
+}
+
+function ColorTagPicker({ value, onChange }: ColorTagPickerProps) {
+  const labelId = useId();
+  const swatch = cn(
+    "inline-flex size-6 items-center justify-center rounded-full border border-border transition-colors duration-150 ease-out",
+    focusRing
+  );
+  return (
+    <div className="flex flex-col gap-1">
+      <span id={labelId} className="text-label font-medium text-fg-secondary">
+        Color tag
+      </span>
+      <div role="group" aria-labelledby={labelId} className="flex items-center gap-2">
+        <button
+          type="button"
+          aria-label="No color"
+          aria-pressed={value === null}
+          onClick={() => onChange(null)}
+          className={cn(swatch, "bg-raised text-fg-muted", value === null && "outline-solid outline-2 outline-offset-1 outline-fg")}
+        >
+          <X {...ICON_SM} aria-hidden />
+        </button>
+        {CONNECTION_TAG_COLORS.map((color) => (
+          <button
+            key={color.name}
+            type="button"
+            aria-label={color.label}
+            aria-pressed={value === color.name}
+            onClick={() => onChange(color.name)}
+            style={{ "--nx-dyn-tag": color.value } as CSSProperties}
+            className={cn(
+              swatch,
+              "bg-(--nx-dyn-tag)",
+              value === color.name && "outline-solid outline-2 outline-offset-1 outline-fg"
+            )}
+          />
+        ))}
+      </div>
+    </div>
+  );
+}
+
