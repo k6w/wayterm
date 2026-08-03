@@ -94,16 +94,6 @@
       "count": 4
     }
   },
-  "src/components/ui/ConfirmDialog.tsx": {
-    "nexterm/no-inline-style": {
-      "count": 4
-    }
-  },
-  "src/components/ui/InputDialog.tsx": {
-    "nexterm/no-inline-style": {
-      "count": 4
-    }
-  },
   "src/components/ui/Select.tsx": {
     "nexterm/no-inline-style": {
       "count": 3

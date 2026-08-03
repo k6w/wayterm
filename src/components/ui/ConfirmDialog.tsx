@@ -1,11 +1,5 @@
-import { useEffect, useCallback } from "react";
-import { createPortal } from "react-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import { AlertTriangle } from "lucide-react";
-import { useThemeStore } from "../../stores/theme";
-import { useSettingsStore } from "../../stores/settings";
-import { hexToRgba } from "../../lib/color";
-import { vibrancyAlpha } from "../../lib/platform";
+import { useRef } from "react";
+import { Button, Dialog, DialogContent } from "../../ui";
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -18,6 +12,12 @@ interface ConfirmDialogProps {
   onCancel: () => void;
 }
 
+/**
+ * Yes/no question on the kit Dialog. A danger confirmation starts with focus
+ * on Cancel, so pressing Enter right away never deletes anything; a default
+ * one starts on the confirm button. Escape, the close button and a click
+ * outside all cancel.
+ */
 export default function ConfirmDialog({
   open,
   title,
@@ -28,98 +28,38 @@ export default function ConfirmDialog({
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
-  const theme = useThemeStore((s) => s.active);
-  const vibrancy = useSettingsStore((s) => s.settings.appearance.vibrancyEnabled);
-  const opacity = useSettingsStore((s) => s.settings.appearance.windowOpacity);
-
-  const cardBg = vibrancy
-    ? hexToRgba(theme.ui.bgPrimary, vibrancyAlpha(opacity) * 0.92)
-    : theme.ui.bgPrimary;
-  const footerBg = vibrancy
-    ? hexToRgba(theme.ui.bgSecondary, vibrancyAlpha(opacity) * 0.5)
-    : undefined;
-
-  const handleKey = useCallback(
-    (e: KeyboardEvent) => {
-      if (!open) return;
-      if (e.key === "Escape") onCancel();
-      if (e.key === "Enter") onConfirm();
-    },
-    [open, onCancel, onConfirm]
-  );
-
-  useEffect(() => {
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [handleKey]);
-
-  return createPortal(
-    <AnimatePresence>
-      {open && (
-        <motion.div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.12 }}
-          onClick={onCancel}
-        >
-          <motion.div
-            className="w-[360px] max-w-[calc(100vw-2rem)] rounded-xl border border-border overflow-hidden shadow-2xl"
-            style={{
-              backgroundColor: cardBg,
-              backdropFilter: vibrancy ? "blur(24px) saturate(1.4)" : undefined,
-              WebkitBackdropFilter: vibrancy ? "blur(24px) saturate(1.4)" : undefined,
-            }}
-            initial={{ opacity: 0, scale: 0.95, y: 8 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 8 }}
-            transition={{ duration: 0.15 }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="px-5 pt-5 pb-4 flex gap-3.5">
-              <div
-                className={`flex size-9 shrink-0 items-center justify-center rounded-full ${
-                  variant === "danger" ? "bg-error/15" : "bg-accent/15"
-                }`}
-              >
-                <AlertTriangle
-                  size={18}
-                  className={variant === "danger" ? "text-error" : "text-accent"}
-                />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-medium text-text-primary">{title}</h3>
-                <p className="mt-1 text-xs text-text-muted leading-relaxed">
-                  {message}
-                </p>
-              </div>
-            </div>
-            <div
-              className="flex items-center justify-end gap-2 px-5 py-3 border-t border-border"
-              style={{ backgroundColor: footerBg }}
+  const cancelRef = useRef<HTMLButtonElement>(null);
+  const confirmRef = useRef<HTMLButtonElement>(null);
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) onCancel();
+      }}
+    >
+      <DialogContent
+        size="sm"
+        title={title}
+        description={message}
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          (variant === "danger" ? cancelRef : confirmRef).current?.focus();
+        }}
+        footer={
+          <>
+            <Button ref={cancelRef} variant="ghost" onClick={onCancel}>
+              {cancelLabel}
+            </Button>
+            <Button
+              ref={confirmRef}
+              variant={variant === "danger" ? "danger" : "primary"}
+              onClick={onConfirm}
             >
-              <button
-                onClick={onCancel}
-                className="px-3 py-1.5 text-xs text-text-secondary hover:text-text-primary rounded-md transition-colors"
-              >
-                {cancelLabel}
-              </button>
-              <button
-                onClick={onConfirm}
-                className={`px-3 py-1.5 text-xs font-medium text-white rounded-md transition-colors ${
-                  variant === "danger"
-                    ? "bg-error hover:bg-error/80"
-                    : "bg-accent hover:bg-accent-hover"
-                }`}
-              >
-                {confirmLabel}
-              </button>
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>,
-    document.body
+              {confirmLabel}
+            </Button>
+          </>
+        }
+      />
+    </Dialog>
   );
 }
