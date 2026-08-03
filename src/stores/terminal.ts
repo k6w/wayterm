@@ -31,6 +31,8 @@ interface TerminalState {
   paneFocusHistory: string[];
   commandPaletteOpen: boolean;
   settingsOpen: boolean;
+  /** Panel Settings should show next time it opens (consumed by SettingsView). */
+  settingsPanel: string | null;
   zoomedPaneId: string | null;
   draggingTabId: string | null;
   dropTarget: { paneId: string; zone: DropZone } | null;
@@ -78,6 +80,9 @@ interface TerminalState {
   toggleZoom: () => void;
   toggleCommandPalette: () => void;
   toggleSettings: () => void;
+  /** Opens Settings on a specific panel id (e.g. "ssh"). */
+  openSettings: (panel: string) => void;
+  clearSettingsPanel: () => void;
 
   // Feature: Tab Color Labels
   setTabColor: (tabId: string, color: string | null) => void;
@@ -107,6 +112,7 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
   zoomedPaneId: null,
   commandPaletteOpen: false,
   settingsOpen: false,
+  settingsPanel: null,
   draggingTabId: null,
   dropTarget: null,
   dragOverPaneId: null,
@@ -543,6 +549,8 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
   toggleCommandPalette: () =>
     set((s) => ({ commandPaletteOpen: !s.commandPaletteOpen })),
   toggleSettings: () => set((s) => ({ settingsOpen: !s.settingsOpen })),
+  openSettings: (panel) => set({ settingsOpen: true, settingsPanel: panel }),
+  clearSettingsPanel: () => set({ settingsPanel: null }),
 
   setTabColor: (tabId, color) => set((s) => ({
     tabs: s.tabs.map((t) =>

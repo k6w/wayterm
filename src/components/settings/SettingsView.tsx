@@ -22,6 +22,14 @@ export default function SettingsView() {
   const theme = useThemeStore((s) => s.active);
   const [activePanel, setActivePanel] = useState<PanelId>("general");
   const [query, setQuery] = useState("");
+  const requestedPanel = useTerminalStore((s) => s.settingsPanel);
+  const clearSettingsPanel = useTerminalStore((s) => s.clearSettingsPanel);
+
+  useEffect(() => {
+    if (!requestedPanel) return;
+    if (settingsOpen && requestedPanel in PANELS) setActivePanel(requestedPanel as PanelId);
+    clearSettingsPanel();
+  }, [requestedPanel, settingsOpen, clearSettingsPanel]);
 
   const handleEscape = useCallback(
     (e: KeyboardEvent) => {

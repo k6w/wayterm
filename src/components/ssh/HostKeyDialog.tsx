@@ -1,8 +1,8 @@
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { ShieldAlert, ShieldCheck, ShieldQuestion } from "lucide-react";
-import { Button, Checkbox, Dialog, DialogContent, ICON_MD, ICON_SM } from "../../ui";
+import { Button, Dialog, DialogContent, ICON_MD, ICON_SM } from "../../ui";
 import type { PendingHostKey } from "../../lib/ipc";
-import { fingerprintParts, hostLabel, removalSummary } from "./host-key";
+import { fingerprintParts, hostLabel } from "./host-key";
 
 export type HostKeyPrompt =
   | { kind: "unknown"; key: PendingHostKey }
@@ -15,8 +15,8 @@ interface HostKeyDialogProps {
   pending?: boolean;
   /** Unknown host: save the key to known_hosts and connect. */
   onTrust: () => void;
-  /** Changed key: remove the old known_hosts entry and reconnect (which asks about the new key). */
-  onReplace: () => void;
+  /** Changed key: open Settings on the SSH panel (known hosts). Nothing is trusted or removed here. */
+  onOpenSettings: () => void;
   /** Closes the dialog without trusting anything (also Escape and the close button). */
   onCancel: () => void;
 }
@@ -24,10 +24,10 @@ interface HostKeyDialogProps {
 /**
  * Asks before trusting a host key. Focus starts on the safe choice, and Enter
  * only activates the focused button. A changed key is a possible
- * man-in-the-middle attack: it is styled as danger and the replace action stays
- * disabled until the user confirms they verified the new key.
+ * man-in-the-middle attack: it is styled as danger and offers no way to trust
+ * or remove a key, only to close or to review known hosts in SSH settings.
  */
-export default function HostKeyDialog({ prompt, pending = false, onTrust, onReplace, onCancel }: HostKeyDialogProps) {
+export default function HostKeyDialog({ prompt, pending = false, onTrust, onOpenSettings, onCancel }: HostKeyDialogProps) {
   return (
     <Dialog
       open={prompt !== null}
@@ -37,7 +37,7 @@ export default function HostKeyDialog({ prompt, pending = false, onTrust, onRepl
     >
       {prompt?.kind === "unknown" && <UnknownHost pendingKey={prompt.key} pending={pending} onTrust={onTrust} onCancel={onCancel} />}
       {prompt?.kind === "changed" && (
-        <ChangedKey host={prompt.host} port={prompt.port} onReplace={onReplace} onCancel={onCancel} />
+        <ChangedKey host={prompt.host} port={prompt.port} onOpenSettings={onOpenSettings} onCancel={onCancel} />
       )}
     </Dialog>
   );
@@ -107,33 +107,31 @@ function UnknownHost({
 function ChangedKey({
   host,
   port,
-  onReplace,
+  onOpenSettings,
   onCancel,
 }: {
   host: string;
   port: number;
-  onReplace: () => void;
+  onOpenSettings: () => void;
   onCancel: () => void;
 }) {
-  const [verified, setVerified] = useState(false);
-  const cancelRef = useRef<HTMLButtonElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
   const label = hostLabel(host, port);
   return (
     <DialogContent
       size="md"
       title="Host key changed"
-      description={`The key ${label} sent does not match the one saved in ~/.ssh/known_hosts.`}
+      hideClose
+      description={`The key ${label} sent differs from the one saved in ~/.ssh/known_hosts.`}
       onOpenAutoFocus={(event) => {
         event.preventDefault();
-        cancelRef.current?.focus();
+        closeRef.current?.focus();
       }}
       footer={
         <>
-          <Button ref={cancelRef} onClick={onCancel}>
-            Cancel
-          </Button>
-          <Button variant="danger" disabled={!verified} onClick={onReplace}>
-            Remove old key and reconnect
+          <Button onClick={onOpenSettings}>Open SSH settings</Button>
+          <Button ref={closeRef} variant="primary" onClick={onCancel}>
+            Close
           </Button>
         </>
       }
@@ -145,17 +143,18 @@ function ChangedKey({
           </span>
           <p>
             Someone could be intercepting this connection (a man-in-the-middle attack), or the server was
-            reinstalled. Do not continue unless the server administrator confirms the key changed.
+            reinstalled. The connection was not made. Do not continue unless the server administrator confirms the
+            key changed.
           </p>
         </div>
+        <dl className="grid min-w-0 grid-cols-[88px_1fr] gap-x-3 gap-y-2 rounded-md border border-border bg-raised p-3 text-label">
+          <dt className="text-fg-muted">Host</dt>
+          <dd className="min-w-0 break-all font-mono text-fg">{label}</dd>
+        </dl>
         <p className="text-label text-fg-muted">
-          {removalSummary(host, port)} You will then be asked to verify the new fingerprint.
+          To use this server again, review its saved key in SSH settings under known hosts. Nothing is changed from
+          this dialog.
         </p>
-        <Checkbox
-          label="I verified the new key with the server administrator"
-          checked={verified}
-          onCheckedChange={(checked) => setVerified(checked === true)}
-        />
       </div>
     </DialogContent>
   );

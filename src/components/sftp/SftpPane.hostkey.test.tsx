@@ -42,6 +42,8 @@ beforeEach(() => {
   useTerminalStore.setState({
     panes: { p1: { id: "p1", sessionId: "", isActive: true, cwd: "~", shellType: "sftp", sftpConnectionId: "c1" } },
     activePaneId: "p1",
+    settingsOpen: false,
+    settingsPanel: null,
   });
 });
 
@@ -57,29 +59,27 @@ describe("SftpPane host keys", () => {
     expect(await screen.findByRole("dialog", { name: "Unknown host" })).toBeInTheDocument();
   });
 
-  it("removes the old key after confirmation, then asks about the new one", async () => {
-    connect
-      .mockRejectedValueOnce(new Error("HOST KEY CHANGED for example.com:22! This could indicate ..."))
-      .mockRejectedValueOnce(new Error("TOFU_REQUIRED:example.com:22"));
-    vi.mocked(invoke).mockImplementation(async (cmd) => (cmd === "ssh_get_pending_host_key" ? PENDING : null));
-    const user = userEvent.setup();
-    render(<SftpPane paneId="p1" isActive />);
-    await screen.findByRole("dialog", { name: "Host key changed" });
-    await user.click(screen.getByRole("checkbox", { name: /I verified the new key/ }));
-    await user.click(screen.getByRole("button", { name: "Remove old key and reconnect" }));
-    expect(await screen.findByRole("dialog", { name: "Unknown host" })).toBeInTheDocument();
-    expect(invoke).toHaveBeenCalledWith("ssh_known_hosts_remove", { hostname: "example.com" });
-    expect(invoke).toHaveBeenCalledWith("ssh_known_hosts_remove", { hostname: "[example.com]:22" });
-  });
-
-  it("keeps the error and removes nothing when the user closes the warning", async () => {
+  it("offers no removal or trust for a changed key and keeps the error when closed", async () => {
     connect.mockRejectedValueOnce(new Error("HOST KEY CHANGED for example.com:22! This could indicate ..."));
     const user = userEvent.setup();
     render(<SftpPane paneId="p1" isActive />);
     await screen.findByRole("dialog", { name: "Host key changed" });
-    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(screen.queryByRole("button", { name: /remove|trust/i })).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Close" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(screen.getByText(/HOST KEY CHANGED for example\.com/)).toBeInTheDocument();
+    expect(invoke).not.toHaveBeenCalledWith("ssh_known_hosts_remove", expect.anything());
+    expect(invoke).not.toHaveBeenCalledWith("ssh_known_hosts_add", expect.anything());
+  });
+
+  it("opens Settings on the SSH panel from the changed-key dialog", async () => {
+    connect.mockRejectedValueOnce(new Error("HOST KEY CHANGED for example.com:22! This could indicate ..."));
+    const user = userEvent.setup();
+    render(<SftpPane paneId="p1" isActive />);
+    await screen.findByRole("dialog", { name: "Host key changed" });
+    await user.click(screen.getByRole("button", { name: "Open SSH settings" }));
+    expect(useTerminalStore.getState().settingsOpen).toBe(true);
+    expect(useTerminalStore.getState().settingsPanel).toBe("ssh");
     expect(invoke).not.toHaveBeenCalledWith("ssh_known_hosts_remove", expect.anything());
   });
 

@@ -17,7 +17,7 @@ const UNKNOWN: HostKeyPrompt = {
 const CHANGED: HostKeyPrompt = { kind: "changed", host: "example.com", port: 22 };
 
 function renderDialog(prompt: HostKeyPrompt | null, pending = false) {
-  const handlers = { onTrust: vi.fn(), onReplace: vi.fn(), onCancel: vi.fn() };
+  const handlers = { onTrust: vi.fn(), onOpenSettings: vi.fn(), onCancel: vi.fn() };
   render(<HostKeyDialog prompt={prompt} pending={pending} {...handlers} />);
   return { user: userEvent.setup(), ...handlers };
 }
@@ -76,49 +76,43 @@ describe("HostKeyDialog", () => {
   });
 
   describe("changed key", () => {
-    it("warns about a possible attack and starts on Cancel", async () => {
+    it("warns about a possible attack, shows the host, and starts on Close", async () => {
       renderDialog(CHANGED);
       const dialog = await screen.findByRole("dialog", { name: "Host key changed" });
-      expect(dialog).toHaveAccessibleDescription(/example\.com sent does not match/);
-      expect(screen.getByRole("alert")).toHaveTextContent(/man-in-the-middle/);
+      expect(dialog).toHaveAccessibleDescription(/example\.com.*differs from the one saved/);
+      expect(screen.getByRole("alert")).toHaveTextContent(/man-in-the-middle|attack/);
       expect(screen.getByRole("alert")).toHaveClass("bg-danger-subtle");
-      expect(screen.getByRole("button", { name: "Cancel" })).toHaveFocus();
+      expect(dialog).toHaveTextContent("example.com");
+      expect(screen.getByRole("button", { name: "Close" })).toHaveFocus();
     });
 
-    it("keeps the replace action disabled until the user confirms", async () => {
-      const { user, onReplace } = renderDialog(CHANGED);
-      const replace = await screen.findByRole("button", { name: "Remove old key and reconnect" });
-      expect(replace).toBeDisabled();
-      await user.click(replace);
-      expect(onReplace).not.toHaveBeenCalled();
-      await user.click(screen.getByRole("checkbox", { name: "I verified the new key with the server administrator" }));
-      expect(replace).toBeEnabled();
-      await user.click(replace);
-      expect(onReplace).toHaveBeenCalledTimes(1);
-    });
-
-    it("states exactly what removal deletes for port 22", async () => {
+    it("offers no trust or removal action", async () => {
       renderDialog(CHANGED);
       await screen.findByRole("dialog");
-      const dialog = screen.getByRole("dialog");
-      expect(dialog).toHaveTextContent("[example.com]:22");
-      expect(dialog).toHaveTextContent(/other ports.*kept/i);
-      expect(dialog).not.toHaveTextContent(/every saved key/i);
+      expect(screen.queryByRole("button", { name: /remove|trust|replace|reconnect/i })).not.toBeInTheDocument();
+      expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
     });
 
-    it("states exactly what removal deletes for port 2222", async () => {
-      renderDialog({ kind: "changed", host: "example.com", port: 2222 });
-      const dialog = await screen.findByRole("dialog");
-      expect(dialog).toHaveTextContent("[example.com]:2222");
-      expect(dialog).toHaveTextContent(/plain example\.com entry/);
-    });
-
-    it("closes without changing anything", async () => {
-      const { user, onCancel, onReplace } = renderDialog(CHANGED);
+    it("closes on Escape and on Enter (focused Close)", async () => {
+      const { user, onCancel, onOpenSettings } = renderDialog(CHANGED);
       await screen.findByRole("dialog");
       await user.keyboard("{Enter}");
       expect(onCancel).toHaveBeenCalledTimes(1);
-      expect(onReplace).not.toHaveBeenCalled();
+      expect(onOpenSettings).not.toHaveBeenCalled();
+    });
+
+    it("closes on Escape", async () => {
+      const { user, onCancel } = renderDialog(CHANGED);
+      await screen.findByRole("dialog");
+      await user.keyboard("{Escape}");
+      expect(onCancel).toHaveBeenCalledTimes(1);
+    });
+
+    it("opens SSH settings from the secondary button", async () => {
+      const { user, onOpenSettings, onCancel } = renderDialog(CHANGED);
+      await user.click(await screen.findByRole("button", { name: "Open SSH settings" }));
+      expect(onOpenSettings).toHaveBeenCalledTimes(1);
+      expect(onCancel).not.toHaveBeenCalled();
     });
   });
 });

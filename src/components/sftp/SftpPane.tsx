@@ -21,12 +21,11 @@ import { hexToRgba } from "../../lib/color";
 import {
   sshGetPendingHostKey,
   sshKnownHostsAdd,
-  sshKnownHostsRemove,
   sshClearPendingHostKey,
   type PendingHostKey,
 } from "../../lib/ipc";
 import HostKeyDialog from "../ssh/HostKeyDialog";
-import { isHostKeyChanged, knownHostsNames } from "../ssh/host-key";
+import { isHostKeyChanged } from "../ssh/host-key";
 import { vibrancyAlpha } from "../../lib/platform";
 import PathBreadcrumb from "./PathBreadcrumb";
 import FileList from "./FileList";
@@ -652,29 +651,11 @@ export default function SftpPane({
     setError("Connection cancelled — host not trusted.");
   }, [tofuPending]);
 
-  // Changed key, confirmed by the user: drop the old known_hosts entries and
-  // reconnect. The reconnect fails with TOFU_REQUIRED, which shows the new key.
-  const handleReplaceChangedKey = useCallback(async () => {
-    if (!hostKeyChanged || !sftpConn) return;
-    const { host, port } = hostKeyChanged;
+  // Changed key: the dialog only closes or sends the user to SSH settings.
+  const handleOpenSshSettings = useCallback(() => {
     setHostKeyChanged(null);
-    setError(null);
-    setConnecting(true);
-    try {
-      for (const name of knownHostsNames(host, port)) await sshKnownHostsRemove(name);
-      const sid = await useSftpStore.getState().connect(sftpConnId, sftpConn.name ?? "SFTP");
-      sessionIdRef.current = sid;
-      setSessionId(sid);
-      updatePaneSession(paneId, sid);
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : String(err);
-      const key = msg.includes("TOFU_REQUIRED") ? await sshGetPendingHostKey(host, port).catch(() => null) : null;
-      if (key) setTofuPending(key);
-      else setError(msg);
-    } finally {
-      setConnecting(false);
-    }
-  }, [hostKeyChanged, sftpConn, sftpConnId, paneId, updatePaneSession]);
+    useTerminalStore.getState().openSettings("ssh");
+  }, []);
 
   // -- Connecting / error state --
   if (connecting || error || tofuPending) {
@@ -729,7 +710,7 @@ export default function SftpPane({
           }
           pending={trusting}
           onTrust={handleTofuTrust}
-          onReplace={handleReplaceChangedKey}
+          onOpenSettings={handleOpenSshSettings}
           onCancel={tofuPending ? handleTofuCancel : () => setHostKeyChanged(null)}
         />
       </div>
