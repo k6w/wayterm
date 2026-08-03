@@ -22,6 +22,20 @@ export function knownHostsNames(host: string, port: number): string[] {
   return port === 22 ? [host, `[${host}]:22`] : [`[${host}]:${port}`, host];
 }
 
+/**
+ * Says exactly which known_hosts entries removal deletes, built from the same
+ * names knownHostsNames returns. The backend deletes whole lines that list any
+ * of those names and keeps entries for other ports.
+ */
+export function removalSummary(host: string, port: number): string {
+  const [first, second] = knownHostsNames(host, port);
+  const names =
+    port === 22
+      ? `the ${first} entry and the ${second} entry`
+      : `the ${first} entry and the plain ${second} entry (which matches any port)`;
+  return `Removing the old key deletes ${names} from known_hosts, including lines that also list other hosts. Entries for other ports are kept.`;
+}
+
 export interface FingerprintParts {
   /** "SHA256", or null when the fingerprint has no algorithm prefix. */
   algorithm: string | null;

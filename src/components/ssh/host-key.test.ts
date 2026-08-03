@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { fingerprintParts, hostLabel, isHostKeyChanged, knownHostsNames } from "./host-key";
+import { fingerprintParts, hostLabel, isHostKeyChanged, knownHostsNames, removalSummary } from "./host-key";
 
 describe("isHostKeyChanged", () => {
   it("recognizes the backend's changed-key error and nothing else", () => {
@@ -20,6 +20,23 @@ describe("knownHostsNames", () => {
   it("covers every name the backend matches a host by", () => {
     expect(knownHostsNames("example.com", 22)).toEqual(["example.com", "[example.com]:22"]);
     expect(knownHostsNames("10.0.0.5", 2222)).toEqual(["[10.0.0.5]:2222", "10.0.0.5"]);
+  });
+});
+
+describe("removalSummary", () => {
+  it("on port 22 names the plain and [host]:22 entries and says other ports are kept", () => {
+    const text = removalSummary("example.com", 22);
+    expect(text).toContain("example.com");
+    expect(text).toContain("[example.com]:22");
+    expect(text).toMatch(/other ports.*kept/i);
+    expect(text).not.toMatch(/every saved key/i);
+  });
+
+  it("on another port names [host]:port and the plain host entry", () => {
+    const text = removalSummary("example.com", 2222);
+    expect(text).toContain("[example.com]:2222");
+    expect(text).toMatch(/plain example\.com entry/);
+    expect(text).toMatch(/other ports.*kept/i);
   });
 });
 

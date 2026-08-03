@@ -16,9 +16,9 @@ const UNKNOWN: HostKeyPrompt = {
 
 const CHANGED: HostKeyPrompt = { kind: "changed", host: "example.com", port: 22 };
 
-function renderDialog(prompt: HostKeyPrompt | null) {
+function renderDialog(prompt: HostKeyPrompt | null, pending = false) {
   const handlers = { onTrust: vi.fn(), onReplace: vi.fn(), onCancel: vi.fn() };
-  render(<HostKeyDialog prompt={prompt} {...handlers} />);
+  render(<HostKeyDialog prompt={prompt} pending={pending} {...handlers} />);
   return { user: userEvent.setup(), ...handlers };
 }
 
@@ -57,6 +57,16 @@ describe("HostKeyDialog", () => {
       expect(onTrust).toHaveBeenCalledTimes(1);
     });
 
+    it("disables Trust and Cancel and ignores Escape while pending", async () => {
+      const { user, onTrust, onCancel } = renderDialog(UNKNOWN, true);
+      await screen.findByRole("dialog");
+      expect(screen.getByRole("button", { name: "Trust host" })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
+      await user.keyboard("{Escape}");
+      expect(onCancel).not.toHaveBeenCalled();
+      expect(onTrust).not.toHaveBeenCalled();
+    });
+
     it("cancels on Escape", async () => {
       const { user, onCancel } = renderDialog(UNKNOWN);
       await screen.findByRole("dialog");
@@ -85,6 +95,22 @@ describe("HostKeyDialog", () => {
       expect(replace).toBeEnabled();
       await user.click(replace);
       expect(onReplace).toHaveBeenCalledTimes(1);
+    });
+
+    it("states exactly what removal deletes for port 22", async () => {
+      renderDialog(CHANGED);
+      await screen.findByRole("dialog");
+      const dialog = screen.getByRole("dialog");
+      expect(dialog).toHaveTextContent("[example.com]:22");
+      expect(dialog).toHaveTextContent(/other ports.*kept/i);
+      expect(dialog).not.toHaveTextContent(/every saved key/i);
+    });
+
+    it("states exactly what removal deletes for port 2222", async () => {
+      renderDialog({ kind: "changed", host: "example.com", port: 2222 });
+      const dialog = await screen.findByRole("dialog");
+      expect(dialog).toHaveTextContent("[example.com]:2222");
+      expect(dialog).toHaveTextContent(/plain example\.com entry/);
     });
 
     it("closes without changing anything", async () => {

@@ -82,4 +82,27 @@ describe("SftpPane host keys", () => {
     expect(screen.getByText(/HOST KEY CHANGED for example\.com/)).toBeInTheDocument();
     expect(invoke).not.toHaveBeenCalledWith("ssh_known_hosts_remove", expect.anything());
   });
+
+  it("calls add once on a double click and disables Trust and Cancel while it is pending", async () => {
+    connect.mockRejectedValueOnce(new Error("TOFU_REQUIRED:example.com:22")).mockResolvedValue("sid");
+    let release: () => void = () => {};
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    vi.mocked(invoke).mockImplementation(async (cmd) => {
+      if (cmd === "ssh_get_pending_host_key") return PENDING;
+      if (cmd === "ssh_known_hosts_add") await gate;
+      return null;
+    });
+    const user = userEvent.setup();
+    render(<SftpPane paneId="p1" isActive />);
+    const trust = await screen.findByRole("button", { name: "Trust host" });
+    await user.dblClick(trust);
+    expect(screen.getByRole("button", { name: "Trust host" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Cancel" })).toBeDisabled();
+    release();
+    await waitFor(() => expect(connect).toHaveBeenCalledTimes(2));
+    const adds = vi.mocked(invoke).mock.calls.filter(([cmd]) => cmd === "ssh_known_hosts_add");
+    expect(adds).toHaveLength(1);
+  });
 });

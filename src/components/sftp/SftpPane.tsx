@@ -82,6 +82,8 @@ export default function SftpPane({
   const [error, setError] = useState<string | null>(null);
   const [desktopDragOver, setDesktopDragOver] = useState(false);
   const [tofuPending, setTofuPending] = useState<PendingHostKey | null>(null);
+  const [trusting, setTrusting] = useState(false);
+  const trustingRef = useRef(false);
   const [hostKeyChanged, setHostKeyChanged] = useState<{ host: string; port: number } | null>(null);
 
   // Selection state
@@ -620,7 +622,9 @@ export default function SftpPane({
   const sftpConn = useSshStore.getState().connections.find((c) => c.id === sftpConnId);
 
   const handleTofuTrust = useCallback(async () => {
-    if (!tofuPending || !sftpConn) return;
+    if (!tofuPending || !sftpConn || trustingRef.current) return;
+    trustingRef.current = true;
+    setTrusting(true);
     try {
       await sshKnownHostsAdd(tofuPending.host, tofuPending.port, tofuPending.keyType, tofuPending.keyData);
       await sshClearPendingHostKey(tofuPending.host, tofuPending.port);
@@ -634,6 +638,8 @@ export default function SftpPane({
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
     } finally {
+      trustingRef.current = false;
+      setTrusting(false);
       setConnecting(false);
     }
   }, [tofuPending, sftpConn, sftpConnId, paneId, updatePaneSession]);
@@ -721,6 +727,7 @@ export default function SftpPane({
                 ? { kind: "changed", ...hostKeyChanged }
                 : null
           }
+          pending={trusting}
           onTrust={handleTofuTrust}
           onReplace={handleReplaceChangedKey}
           onCancel={tofuPending ? handleTofuCancel : () => setHostKeyChanged(null)}

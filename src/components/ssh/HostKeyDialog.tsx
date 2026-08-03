@@ -2,7 +2,7 @@ import { useRef, useState } from "react";
 import { ShieldAlert, ShieldCheck, ShieldQuestion } from "lucide-react";
 import { Button, Checkbox, Dialog, DialogContent, ICON_MD, ICON_SM } from "../../ui";
 import type { PendingHostKey } from "../../lib/ipc";
-import { fingerprintParts, hostLabel } from "./host-key";
+import { fingerprintParts, hostLabel, removalSummary } from "./host-key";
 
 export type HostKeyPrompt =
   | { kind: "unknown"; key: PendingHostKey }
@@ -11,6 +11,8 @@ export type HostKeyPrompt =
 interface HostKeyDialogProps {
   /** null keeps the dialog closed. */
   prompt: HostKeyPrompt | null;
+  /** True while a trust request is running: buttons are disabled and Escape is ignored. */
+  pending?: boolean;
   /** Unknown host: save the key to known_hosts and connect. */
   onTrust: () => void;
   /** Changed key: remove the old known_hosts entry and reconnect (which asks about the new key). */
@@ -25,15 +27,15 @@ interface HostKeyDialogProps {
  * man-in-the-middle attack: it is styled as danger and the replace action stays
  * disabled until the user confirms they verified the new key.
  */
-export default function HostKeyDialog({ prompt, onTrust, onReplace, onCancel }: HostKeyDialogProps) {
+export default function HostKeyDialog({ prompt, pending = false, onTrust, onReplace, onCancel }: HostKeyDialogProps) {
   return (
     <Dialog
       open={prompt !== null}
       onOpenChange={(next) => {
-        if (!next) onCancel();
+        if (!next && !pending) onCancel();
       }}
     >
-      {prompt?.kind === "unknown" && <UnknownHost pendingKey={prompt.key} onTrust={onTrust} onCancel={onCancel} />}
+      {prompt?.kind === "unknown" && <UnknownHost pendingKey={prompt.key} pending={pending} onTrust={onTrust} onCancel={onCancel} />}
       {prompt?.kind === "changed" && (
         <ChangedKey host={prompt.host} port={prompt.port} onReplace={onReplace} onCancel={onCancel} />
       )}
@@ -43,10 +45,12 @@ export default function HostKeyDialog({ prompt, onTrust, onReplace, onCancel }: 
 
 function UnknownHost({
   pendingKey,
+  pending,
   onTrust,
   onCancel,
 }: {
   pendingKey: PendingHostKey;
+  pending: boolean;
   onTrust: () => void;
   onCancel: () => void;
 }) {
@@ -64,10 +68,10 @@ function UnknownHost({
       }}
       footer={
         <>
-          <Button ref={cancelRef} onClick={onCancel}>
+          <Button ref={cancelRef} disabled={pending} onClick={onCancel}>
             Cancel
           </Button>
-          <Button variant="primary" leadingIcon={<ShieldCheck {...ICON_SM} />} onClick={onTrust}>
+          <Button variant="primary" disabled={pending} leadingIcon={<ShieldCheck {...ICON_SM} />} onClick={onTrust}>
             Trust host
           </Button>
         </>
@@ -145,8 +149,7 @@ function ChangedKey({
           </p>
         </div>
         <p className="text-label text-fg-muted">
-          Removing the old key deletes every saved key for <span className="font-mono text-fg">{host}</span>. You
-          will then be asked to verify the new fingerprint.
+          {removalSummary(host, port)} You will then be asked to verify the new fingerprint.
         </p>
         <Checkbox
           label="I verified the new key with the server administrator"
