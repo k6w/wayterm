@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { ExternalLink } from "lucide-react";
 import { Terminal } from "@xterm/xterm";
 import { WebglAddon } from "@xterm/addon-webgl";
 import { FitAddon } from "@xterm/addon-fit";
@@ -10,6 +9,7 @@ import { useSettingsStore } from "../../stores/settings";
 import { useTerminalStore, collectPaneIds } from "../../stores/terminal";
 import DropZoneOverlay from "./DropZoneOverlay";
 import PaneContextMenu from "./PaneContextMenu";
+import PaneControls from "./PaneControls";
 import { SearchBar } from "../search/SearchBar";
 import {
   terminalSpawn,
@@ -1001,49 +1001,11 @@ export default function TerminalPane({
       )}
 
       {showCloseBtn && (
-        <div
-          className="absolute top-2 right-5 z-10 flex items-center gap-0.5"
-          onMouseDown={(e) => e.stopPropagation()}
-        >
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              detachPaneToTab(paneId);
-            }}
-            className="flex h-5 w-5 items-center justify-center rounded opacity-50 transition-opacity hover:opacity-100"
-            style={{
-              background: theme.ui.bgSecondary,
-              color: theme.ui.textMuted,
-            }}
-            title="Detach to tab"
-          >
-            <ExternalLink size={10} />
-          </button>
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              closePaneInTab(paneId);
-            }}
-            className="flex h-5 w-5 items-center justify-center rounded opacity-50 transition-opacity hover:opacity-100"
-            style={{
-              background: theme.ui.bgSecondary,
-              color: theme.ui.textMuted,
-            }}
-            title="Close pane"
-          >
-            <svg
-              width="10"
-              height="10"
-              viewBox="0 0 10 10"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-            >
-              <path d="M1 1l8 8M9 1l-8 8" />
-            </svg>
-          </button>
-        </div>
+        <PaneControls
+          searchOpen={showSearch}
+          onDetach={() => detachPaneToTab(paneId)}
+          onClose={() => closePaneInTab(paneId)}
+        />
       )}
 
       {showDropZone && <DropZoneOverlay activeZone={dragOverZone} />}
