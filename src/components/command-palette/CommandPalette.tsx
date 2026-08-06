@@ -219,7 +219,7 @@ function PaletteBody() {
         )}
         <Input
           ref={inputRef}
-          variant="bare"
+          variant="plain"
           role="combobox"
           aria-label={view === "themes" ? "Search themes" : "Search commands"}
           aria-expanded={count > 0}

@@ -5,15 +5,19 @@ import { cn, focusRing } from "./utils";
 export const inputVariants = cva(
   cn(
     "w-full min-w-0 text-fg placeholder:text-fg-muted transition-colors duration-150 ease-out",
-    "disabled:cursor-not-allowed disabled:opacity-50",
-    focusRing
+    "disabled:cursor-not-allowed disabled:opacity-50"
   ),
   {
     variants: {
       variant: {
         default:
-          "rounded-md border border-input-border bg-input px-2 hover:border-border-strong aria-[invalid=true]:border-danger",
-        bare: "rounded-sm border-0 bg-transparent px-0",
+          cn(
+            "rounded-md border border-input-border bg-input px-2 hover:border-border-strong aria-[invalid=true]:border-danger",
+            focusRing
+          ),
+        bare: cn("rounded-sm border-0 bg-transparent px-0", focusRing),
+        /** Borderless, no ring: the caret is the only focus cue (command palette, where the surface itself is focused). */
+        plain: "rounded-sm border-0 bg-transparent px-0 outline-none",
       },
       size: {
         sm: "h-6 text-label",
