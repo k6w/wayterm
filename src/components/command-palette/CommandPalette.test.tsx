@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { invoke } from "@tauri-apps/api/core";
 import CommandPalette from "./CommandPalette";
@@ -158,6 +158,44 @@ describe("CommandPalette", () => {
     it("marks the current theme", async () => {
       await openThemes();
       expect(screen.getByRole("option", { name: /Graphite \(current\)/ })).toBeInTheDocument();
+    });
+  });
+
+  describe("focus on close", () => {
+    function renderWithPanes() {
+      useTerminalStore.setState({ commandPaletteOpen: false, activePaneId: "p1" });
+      const panes = render(
+        <>
+          <div data-pane-id="p1">
+            <textarea aria-label="term-1" />
+          </div>
+          <div data-pane-id="p2">
+            <textarea aria-label="term-2" />
+          </div>
+          <CommandPalette />
+        </>
+      );
+      return panes;
+    }
+
+    it("returns focus to the terminal that had it before opening", async () => {
+      const user = userEvent.setup();
+      renderWithPanes();
+      screen.getByLabelText("term-2").focus();
+      act(() => useTerminalStore.setState({ commandPaletteOpen: true }));
+      await screen.findByRole("combobox", { name: "Search commands" });
+      await user.keyboard("{Escape}");
+      await waitFor(() => expect(screen.getByLabelText("term-2")).toHaveFocus());
+    });
+
+    it("falls back to the active terminal when nothing useful had focus", async () => {
+      const user = userEvent.setup();
+      renderWithPanes();
+      (document.activeElement as HTMLElement | null)?.blur();
+      act(() => useTerminalStore.setState({ commandPaletteOpen: true }));
+      await screen.findByRole("combobox", { name: "Search commands" });
+      await user.keyboard("{Escape}");
+      await waitFor(() => expect(screen.getByLabelText("term-1")).toHaveFocus());
     });
   });
 });

@@ -7,6 +7,7 @@ import { historyRecent } from "../../lib/ipc";
 import { selectTheme } from "../../lib/theme-selection";
 import { buildPaletteActions, historyActions, type PaletteAction } from "./actions";
 import { displayOrder, filterActions, filterThemes, groupActions, wrapIndex } from "./filter";
+import { restoreFocusAfterPalette } from "./restore-focus";
 import { PaletteList, type PaletteSection } from "./PaletteList";
 
 type View = "commands" | "themes";
@@ -41,6 +42,7 @@ function PaletteBody() {
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const [previousFocus] = useState(() => document.activeElement);
   const listId = useId();
   const optionId = (index: number) => `${listId}-option-${index}`;
 
@@ -203,6 +205,10 @@ function PaletteBody() {
       onOpenAutoFocus={(event) => {
         event.preventDefault();
         inputRef.current?.focus();
+      }}
+      onCloseAutoFocus={(event) => {
+        event.preventDefault();
+        restoreFocusAfterPalette(previousFocus);
       }}
     >
       <div className="flex h-11 shrink-0 items-center gap-2 border-b border-border px-3">
