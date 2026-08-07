@@ -81,7 +81,7 @@
       "count": 2
     },
     "nexterm/no-inline-style": {
-      "count": 14
+      "count": 10
     }
   },
   "src/components/titlebar/TerminalTree.tsx": {

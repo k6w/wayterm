@@ -11,7 +11,7 @@ describe("PaneControls", () => {
     const user = userEvent.setup();
     render(<PaneControls searchOpen={false} onDetach={onDetach} onClose={onClose} />);
     const buttons = screen.getAllByRole("button");
-    expect(buttons.map((b) => b.getAttribute("title"))).toEqual(["Detach to tab", "Close pane"]);
+    expect(buttons.map((b) => b.getAttribute("aria-label"))).toEqual(["Detach to tab", "Close pane"]);
     await user.click(buttons[0]);
     await user.click(buttons[1]);
     expect(onDetach).toHaveBeenCalled();
