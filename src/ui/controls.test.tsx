@@ -22,6 +22,13 @@ describe("Input", () => {
     expect(screen.getByRole("textbox", { name: "Port" })).toHaveAttribute("aria-invalid", "true");
   });
 
+  it("plain variant is borderless with no focus ring", () => {
+    render(<Input aria-label="Plain" variant="plain" />);
+    const input = screen.getByRole("textbox", { name: "Plain" });
+    expect(input).toHaveClass("border-0", "outline-none");
+    expect(input.className).not.toMatch(/focus-visible/);
+  });
+
   it("cannot be edited when disabled", async () => {
     const user = userEvent.setup();
     render(<Input aria-label="Host" disabled />);
@@ -60,6 +67,15 @@ describe("Select", () => {
     await waitFor(() => expect(screen.queryByRole("listbox")).not.toBeInTheDocument());
     expect(trigger).toHaveTextContent("Two");
     expect(trigger).toHaveFocus();
+  });
+
+  it("sizes its list to at least the trigger width, with no competing min-width", async () => {
+    const user = userEvent.setup();
+    render(<SelectHarness />);
+    await user.click(screen.getByRole("combobox", { name: "Count" }));
+    const content = (await screen.findByRole("listbox")).closest("[data-radix-popper-content-wrapper]")?.firstElementChild;
+    expect(content).toHaveClass("min-w-(--radix-select-trigger-width)");
+    expect(content).not.toHaveClass("min-w-44");
   });
 
   it("closes on Escape without changing the value", async () => {

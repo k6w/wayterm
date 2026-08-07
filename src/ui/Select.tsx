@@ -1,6 +1,6 @@
 import { Select as SelectPrimitive } from "radix-ui";
 import { Check, ChevronDown } from "lucide-react";
-import { menuContentClass, menuItemClass } from "./menu-styles";
+import { menuItemClass, menuSurfaceClass } from "./menu-styles";
 import { cn, focusRing, ICON_SM } from "./utils";
 
 export interface SelectOption {
@@ -56,7 +56,7 @@ export function Select({
         <SelectPrimitive.Content
           position="popper"
           sideOffset={4}
-          className={cn(menuContentClass, "max-h-72 min-w-(--radix-select-trigger-width)")}
+          className={cn(menuSurfaceClass, "max-h-72 min-w-(--radix-select-trigger-width)")}
         >
           <SelectPrimitive.Viewport>
             {options.map((option) => (
