@@ -41,13 +41,20 @@ describe("SerialDialog", () => {
     expect(screen.getByRole("button", { name: "Connect" })).toBeDisabled();
   });
 
+  it("shows title-case labels for every option list", async () => {
+    const { user } = renderDialog();
+    await user.click(screen.getByRole("combobox", { name: "Parity" }));
+    const labels = (await screen.findAllByRole("option")).map((o) => o.textContent);
+    expect(labels).toEqual(["None", "Even", "Odd"]);
+  });
+
   it("connects with the chosen settings and closes", async () => {
     const { user, onConnect, onClose } = renderDialog();
     await user.type(await screen.findByRole("textbox", { name: "Port" }), "COM3");
     await user.click(screen.getByRole("combobox", { name: "Baud rate" }));
     await user.click(await screen.findByRole("option", { name: "9600" }));
     await user.click(screen.getByRole("combobox", { name: "Parity" }));
-    await user.click(await screen.findByRole("option", { name: "even" }));
+    await user.click(await screen.findByRole("option", { name: "Even" }));
     await user.click(screen.getByRole("button", { name: "Connect" }));
     expect(onConnect).toHaveBeenCalledWith({
       portName: "COM3",

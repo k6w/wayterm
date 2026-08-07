@@ -53,6 +53,18 @@ describe("ConnectionDialog", () => {
     expect(within(dialog).getByRole("region", { name: "Authentication" })).toBeInTheDocument();
   });
 
+  it("uses the standard input size for the environment variable fields", async () => {
+    const { user } = renderDialog();
+    await user.click(await screen.findByRole("button", { name: "Advanced" }));
+    const standard = screen.getByRole("textbox", { name: "Name" });
+    for (const name of ["Variable name", "Variable value"]) {
+      const field = screen.getByRole("textbox", { name });
+      expect(field).toHaveClass("h-control");
+      expect(field).not.toHaveClass("h-6");
+    }
+    expect(standard).toHaveClass("h-control");
+  });
+
   it("keeps Advanced collapsed until it is expanded", async () => {
     const { user } = renderDialog();
     const toggle = await screen.findByRole("button", { name: "Advanced" });

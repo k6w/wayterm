@@ -17,7 +17,11 @@ const numberOptions = (values: readonly number[]) => values.map((v) => ({ value:
 const BAUD_OPTIONS = numberOptions(BAUD_RATES);
 const DATA_BITS_OPTIONS = numberOptions([5, 6, 7, 8]);
 const STOP_BITS_OPTIONS = numberOptions([1, 2]);
-const PARITY_OPTIONS = ["none", "even", "odd"].map((v) => ({ value: v, label: v }));
+const PARITY_OPTIONS = [
+  { value: "none", label: "None" },
+  { value: "even", label: "Even" },
+  { value: "odd", label: "Odd" },
+];
 const FLOW_OPTIONS = [
   { value: "none", label: "None" },
   { value: "hardware", label: "Hardware (RTS/CTS)" },

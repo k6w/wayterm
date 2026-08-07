@@ -412,7 +412,6 @@ function ConnectionForm({ onClose, onSave, editConnection }: ConnectionFormProps
                 ))}
                 <div className="flex items-center gap-2">
                   <Input
-                    size="sm"
                     aria-label="Variable name"
                     className="font-mono"
                     value={newEnvKey}
@@ -422,7 +421,6 @@ function ConnectionForm({ onClose, onSave, editConnection }: ConnectionFormProps
                     spellCheck={false}
                   />
                   <Input
-                    size="sm"
                     aria-label="Variable value"
                     className="font-mono"
                     value={newEnvVal}
@@ -433,6 +431,7 @@ function ConnectionForm({ onClose, onSave, editConnection }: ConnectionFormProps
                   />
                   <IconButton
                     label="Add variable"
+                    size="md"
                     icon={<Plus {...ICON_SM} />}
                     disabled={!newEnvKey.trim()}
                     onClick={addEnvVar}
