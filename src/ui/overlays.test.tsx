@@ -52,6 +52,55 @@ describe("Dialog", () => {
     expect(dialog).toContainElement(document.activeElement as HTMLElement);
   });
 
+  it("flags the initially focused control so it shows the focus ring", async () => {
+    const user = userEvent.setup();
+    render(
+      <Dialog>
+        <DialogTrigger asChild>
+          <Button>Open</Button>
+        </DialogTrigger>
+        <DialogContent
+          title="Delete"
+          footer={<Button data-testid="safe">Cancel</Button>}
+          onOpenAutoFocus={(event) => {
+            event.preventDefault();
+            screen.getByTestId("safe").focus();
+          }}
+        >
+          Sure?
+        </DialogContent>
+      </Dialog>
+    );
+    await user.click(screen.getByRole("button", { name: "Open" }));
+    const safe = await screen.findByTestId("safe");
+    expect(safe).toHaveFocus();
+    expect(safe).toHaveAttribute("data-initial-focus");
+    await user.tab();
+    expect(safe).not.toHaveAttribute("data-initial-focus");
+  });
+
+  it("puts the close button after the footer buttons in Tab order", async () => {
+    const user = userEvent.setup();
+    render(
+      <Dialog defaultOpen>
+        <DialogContent title="Rename" footer={<Button>Save</Button>}>
+          <Input aria-label="Name" />
+        </DialogContent>
+      </Dialog>
+    );
+    const dialog = await screen.findByRole("dialog");
+    const order = within(dialog)
+      .getAllByRole("button")
+      .map((b) => b.getAttribute("aria-label") ?? b.textContent);
+    expect(order).toEqual(["Save", "Close"]);
+    const field = within(dialog).getByRole("textbox", { name: "Name" });
+    field.focus();
+    await user.tab();
+    expect(within(dialog).getByRole("button", { name: "Save" })).toHaveFocus();
+    await user.tab();
+    expect(within(dialog).getByRole("button", { name: "Close" })).toHaveFocus();
+  });
+
   it("closes on Escape and returns focus to the trigger", async () => {
     const user = userEvent.setup();
     renderDialog();

@@ -37,6 +37,19 @@ export interface DialogContentProps
 }
 
 /**
+ * Programmatic focus does not match :focus-visible after a mouse or shortcut
+ * open, so a dialog's initially focused control would show no ring. Flag it;
+ * focusRing styles `data-initial-focus` like :focus-visible.
+ */
+function markInitialFocus(event: Event) {
+  if (!event.defaultPrevented) return;
+  const target = document.activeElement;
+  if (!(target instanceof HTMLElement) || target === document.body) return;
+  target.setAttribute("data-initial-focus", "");
+  target.addEventListener("blur", () => target.removeAttribute("data-initial-focus"), { once: true });
+}
+
+/**
  * Modal dialog. Focus moves inside and is trapped, Escape closes, and focus
  * returns to the trigger.
  */
@@ -51,6 +64,7 @@ export function DialogContent({
   flush = false,
   className,
   children,
+  onOpenAutoFocus,
   ...rest
 }: DialogContentProps) {
   const hasBody = children !== undefined && children !== null && children !== false;
@@ -66,6 +80,10 @@ export function DialogContent({
           SIZE[size],
           className
         )}
+        onOpenAutoFocus={(event) => {
+          onOpenAutoFocus?.(event);
+          markInitialFocus(event);
+        }}
         {...rest}
       >
         {hideHeader ? (
@@ -74,7 +92,7 @@ export function DialogContent({
             {description && <DialogPrimitive.Description className="sr-only">{description}</DialogPrimitive.Description>}
           </>
         ) : (
-          <div className="flex items-start justify-between gap-4 border-b border-border px-4 py-3">
+          <div className={cn("border-b border-border px-4 py-3", !hideClose && "pr-12")}>
             <div className="min-w-0">
               <DialogPrimitive.Title className="text-title font-semibold text-fg">{title}</DialogPrimitive.Title>
               {description && (
@@ -83,11 +101,6 @@ export function DialogContent({
                 </DialogPrimitive.Description>
               )}
             </div>
-            {!hideClose && (
-              <DialogPrimitive.Close asChild>
-                <IconButton label="Close" icon={<X {...ICON_SM} />} tooltip={false} />
-              </DialogPrimitive.Close>
-            )}
           </div>
         )}
         {hasBody && (
@@ -102,6 +115,17 @@ export function DialogContent({
         )}
         {footer && (
           <div className="flex items-center justify-end gap-2 border-t border-border px-4 py-3">{footer}</div>
+        )}
+        {/* Last in the DOM so Tab reaches the footer buttons first; placed in the header's corner. */}
+        {!hideClose && !hideHeader && (
+          <DialogPrimitive.Close asChild>
+            <IconButton
+              label="Close"
+              icon={<X {...ICON_SM} />}
+              tooltip={false}
+              className="absolute right-3 top-3"
+            />
+          </DialogPrimitive.Close>
         )}
       </DialogPrimitive.Content>
     </DialogPrimitive.Portal>
