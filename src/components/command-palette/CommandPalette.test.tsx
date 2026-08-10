@@ -197,5 +197,18 @@ describe("CommandPalette", () => {
       await user.keyboard("{Escape}");
       await waitFor(() => expect(screen.getByLabelText("term-1")).toHaveFocus());
     });
+
+    it("goes to the active terminal when a button opened the palette", async () => {
+      const user = userEvent.setup();
+      renderWithPanes();
+      const opener = document.createElement("button");
+      document.body.appendChild(opener);
+      opener.focus();
+      act(() => useTerminalStore.setState({ commandPaletteOpen: true }));
+      await screen.findByRole("combobox", { name: "Search commands" });
+      await user.keyboard("{Escape}");
+      await waitFor(() => expect(screen.getByLabelText("term-1")).toHaveFocus());
+      opener.remove();
+    });
   });
 });
