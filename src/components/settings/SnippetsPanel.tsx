@@ -1,403 +1,236 @@
-import { useEffect, useRef, useState } from "react";
-import {
-  Plus,
-  Trash2,
-  Play,
-  Edit2,
-  Download,
-  Upload,
-  Tag,
-  ChevronDown,
-  ChevronRight,
-  ScrollText,
-} from "lucide-react";
+import { useRef, useState, type ChangeEvent } from "react";
+import { ChevronRight, Download, Pencil, Play, Plus, ScrollText, Trash2, Upload } from "lucide-react";
 import { useSettingsStore } from "../../stores/settings";
 import { useTerminalStore } from "../../stores/terminal";
-import { getCachedTerminal } from "../../lib/terminal-registry";
-import type { Snippet } from "../../types/settings";
-import { resolveSnippetVars, SNIPPET_VARIABLE_HINTS } from "../../lib/snippet-utils";
 import { useSshStore } from "../../stores/ssh";
-import { SettingsSection, TextField, TextArea } from "./ui";
-import { Button, IconButton } from "../ui/Button";
-import { EmptyState } from "../ui/EmptyState";
+import { getCachedTerminal } from "../../lib/terminal-registry";
+import { resolveSnippetVars } from "../../lib/snippet-utils";
+import { downloadTextFile } from "../../lib/download-file";
+import {
+  Button,
+  EmptyState,
+  ICON_MD,
+  ICON_SM,
+  IconButton,
+  ListRow,
+  Section,
+  Toolbar,
+  ToolbarButton,
+  cn,
+} from "../../ui";
 import ConfirmDialog from "../ui/ConfirmDialog";
+import { PanelGroup } from "../sidebar/PanelChrome";
+import SnippetDialog from "./SnippetDialog";
+import { groupSnippets, mergeImportedSnippets, saveSnippet, type SnippetDraft } from "./snippets";
+import type { Snippet } from "../../types/settings";
 
-function saveSnippetsToFile(snippets: Snippet[]) {
-  const blob = new Blob([JSON.stringify(snippets, null, 2)], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = "nexterm-snippets.json";
-  a.click();
-  URL.revokeObjectURL(url);
+const EMPTY_DRAFT: SnippetDraft = { name: "", category: "", command: "" };
+/** Stable fallback, so the store selector does not return a new array on every read. */
+const NO_SNIPPETS: Snippet[] = [];
+
+/** Variables for the active pane: SSH host and user when it is an SSH tab. */
+function snippetContext() {
+  const state = useTerminalStore.getState();
+  const paneId = state.activePaneId;
+  const pane = paneId ? state.panes[paneId] : undefined;
+  const conn = pane?.sshConnectionId
+    ? useSshStore.getState().connections.find((c) => c.id === pane.sshConnectionId)
+    : undefined;
+  return { hostname: conn?.host ?? "localhost", username: conn?.username ?? "", cwd: pane?.cwd ?? "", paneId: paneId ?? "" };
 }
 
+/** Types the snippet into the active terminal, one line every 50ms. */
+function runSnippet(snippet: Snippet) {
+  const paneId = useTerminalStore.getState().activePaneId;
+  if (!paneId) return;
+  const entry = getCachedTerminal(paneId);
+  if (!entry) return;
+  resolveSnippetVars(snippet.command, snippetContext())
+    .split("\n")
+    .forEach((line, i) => setTimeout(() => entry.terminal.paste(line + "\r"), i * 50));
+}
+
+/** Settings > Snippets: saved commands, grouped by category. */
 export default function SnippetsPanel() {
-  const { settings, update } = useSettingsStore();
-  const snippets: Snippet[] = settings.snippets || [];
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [name, setName] = useState("");
-  const [command, setCommand] = useState("");
-  const [category, setCategory] = useState("");
-  const [isAdding, setIsAdding] = useState(false);
+  const snippets = useSettingsStore((s) => s.settings.snippets ?? NO_SNIPPETS);
+  const update = useSettingsStore((s) => s.update);
+
+  const [dialog, setDialog] = useState<{ draft: SnippetDraft; editingId: string | null } | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(
-    new Set(["__none__"])
-  );
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Focus the name field whenever the add/edit form opens.
-  useEffect(() => {
-    if (isAdding || editingId) {
-      const el = document.getElementById("snippet-name-field") as HTMLInputElement | null;
-      el?.focus();
-    }
-  }, [isAdding, editingId]);
+  const groups = groupSnippets(snippets);
+  const deleting = deletingId ? snippets.find((s) => s.id === deletingId) : undefined;
 
-  function getContext() {
-    const state = useTerminalStore.getState();
-    const paneId = state.activePaneId;
-    const pane = paneId ? state.panes[paneId] : undefined;
-    const conn = pane?.sshConnectionId
-      ? useSshStore.getState().connections.find((c) => c.id === pane.sshConnectionId)
-      : undefined;
-    return {
-      hostname: conn?.host ?? "localhost",
-      username: conn?.username ?? "",
-      cwd: pane?.cwd ?? "",
-      paneId: paneId ?? "",
-    };
-  }
+  const save = (list: Snippet[]) => void update("snippets", list);
 
-  function runSnippet(snippet: Snippet) {
-    const paneId = useTerminalStore.getState().activePaneId;
-    if (!paneId) return;
-    const resolved = resolveSnippetVars(snippet.command, getContext());
-    const entry = getCachedTerminal(paneId);
-    if (!entry) return;
-    const lines = resolved.split("\n");
-    lines.forEach((line, i) => {
-      setTimeout(() => {
-        entry.terminal.paste(line + "\r");
-      }, i * 50);
-    });
-  }
-
-  function startEdit(s: Snippet) {
-    setEditingId(s.id);
-    setName(s.name);
-    setCommand(s.command);
-    setCategory(s.category ?? "");
-    setIsAdding(false);
-  }
-
-  function startAdd() {
-    setIsAdding(true);
-    setEditingId(null);
-    setName("");
-    setCommand("");
-    setCategory("");
-  }
-
-  function cancelEdit() {
-    setEditingId(null);
-    setIsAdding(false);
-  }
-
-  function saveEdit() {
-    if (!name.trim() || !command.trim()) return;
-    const updated = snippets.map((s) =>
-      s.id === editingId
-        ? {
-            ...s,
-            name: name.trim(),
-            command: command.trim(),
-            category: category.trim() || undefined,
-          }
-        : s
-    );
-    update("snippets" as never, updated as never);
-    setEditingId(null);
-  }
-
-  function saveNew() {
-    if (!name.trim() || !command.trim()) return;
-    const newSnippet: Snippet = {
-      id: crypto.randomUUID(),
-      name: name.trim(),
-      command: command.trim(),
-      category: category.trim() || undefined,
-    };
-    update("snippets" as never, [...snippets, newSnippet] as never);
-    setIsAdding(false);
-  }
-
-  function deleteSnippet(id: string) {
-    update(
-      "snippets" as never,
-      snippets.filter((s) => s.id !== id) as never
-    );
-  }
-
-  function handleExport() {
-    saveSnippetsToFile(snippets);
-  }
-
-  function handleImportClick() {
-    fileInputRef.current?.click();
-  }
-
-  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
+  const handleImport = (event: ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    // Reset so the same file can be imported again.
+    event.target.value = "";
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = (ev) => {
+    reader.onload = () => {
       try {
-        const parsed = JSON.parse(ev.target?.result as string);
-        if (!Array.isArray(parsed)) return;
-        const imported = parsed as Snippet[];
-        const existing = new Set(snippets.map((s) => s.id));
-        const merged = [
-          ...snippets,
-          ...imported
-            .filter((s) => !existing.has(s.id))
-            .map((s) => ({ ...s, id: s.id || crypto.randomUUID() })),
-        ];
-        update("snippets" as never, merged as never);
+        const merged = mergeImportedSnippets(snippets, JSON.parse(String(reader.result)), () => crypto.randomUUID());
+        if (merged) save(merged);
       } catch {
-        // ignore malformed JSON
+        // Not JSON: nothing to import.
       }
     };
     reader.readAsText(file);
-    // reset so the same file can be re-imported
-    e.target.value = "";
-  }
+  };
 
-  function toggleCategory(cat: string) {
-    setExpandedCategories((prev) => {
+  const toggleGroup = (key: string) =>
+    setCollapsed((prev) => {
       const next = new Set(prev);
-      if (next.has(cat)) next.delete(cat);
-      else next.add(cat);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
       return next;
     });
-  }
-
-  // Group snippets by category
-  const grouped: Record<string, Snippet[]> = {};
-  for (const s of snippets) {
-    const cat = s.category || "__none__";
-    if (!grouped[cat]) grouped[cat] = [];
-    grouped[cat].push(s);
-  }
-  const categories = Object.keys(grouped).sort((a, b) => {
-    if (a === "__none__") return 1;
-    if (b === "__none__") return -1;
-    return a.localeCompare(b);
-  });
-
-  const deletingSnippet = deletingId
-    ? snippets.find((s) => s.id === deletingId)
-    : undefined;
-
-  const editForm = (onSave: () => void, onCancel: () => void) => (
-    <div className="space-y-2 rounded-lg border border-border bg-bg-tertiary p-3">
-      <TextField
-        id="snippet-name-field"
-        value={name}
-        onChange={setName}
-        placeholder="Snippet name"
-        className="w-full"
-      />
-      <TextField
-        value={category}
-        onChange={setCategory}
-        placeholder="Category (optional)"
-        className="w-full"
-      />
-      <TextArea
-        value={command}
-        onChange={setCommand}
-        placeholder="Command (use {{hostname}}, {{user}}, {{cwd}}, {{date}})"
-        rows={3}
-        mono
-        className="w-full"
-        onKeyDown={(e) => {
-          if (e.key === "Enter" && e.ctrlKey) {
-            e.preventDefault();
-            onSave();
-          }
-          if (e.key === "Escape") {
-            e.preventDefault();
-            onCancel();
-          }
-        }}
-      />
-      <div className="flex flex-wrap gap-1">
-        {SNIPPET_VARIABLE_HINTS.map((hint) => (
-          <button
-            key={hint.variable}
-            type="button"
-            title={hint.description}
-            onClick={() => setCommand((c) => c + hint.variable)}
-            className="rounded border border-border bg-bg-secondary px-1.5 py-0.5 font-mono text-xs text-text-muted transition-colors hover:border-border-focus hover:text-text-secondary"
-          >
-            {hint.variable}
-          </button>
-        ))}
-      </div>
-      <div className="flex justify-end gap-2 pt-1">
-        <Button variant="ghost" size="sm" onClick={onCancel}>
-          Cancel
-        </Button>
-        <Button
-          variant="primary"
-          size="sm"
-          onClick={onSave}
-          disabled={!name.trim() || !command.trim()}
-        >
-          Save
-        </Button>
-      </div>
-    </div>
-  );
-
-  const toolbar = (
-    <div className="flex gap-1">
-      <Button
-        variant="ghost"
-        size="sm"
-        className="border border-border"
-        title="Import snippets from JSON"
-        onClick={handleImportClick}
-      >
-        <Upload size={12} />
-        Import
-      </Button>
-      <Button
-        variant="ghost"
-        size="sm"
-        className="border border-border"
-        title="Export snippets to JSON"
-        disabled={snippets.length === 0}
-        onClick={handleExport}
-      >
-        <Download size={12} />
-        Export
-      </Button>
-      <Button variant="primary" size="sm" onClick={startAdd}>
-        <Plus size={12} />
-        New
-      </Button>
-    </div>
-  );
 
   return (
-    <div className="space-y-8">
-      <SettingsSection
+    <div className="flex flex-col gap-6">
+      <Section
         title="Snippets"
-        description="Run from the command palette or sidebar"
-        action={toolbar}
-        card={false}
+        description="Saved commands. Run them from here or from the command palette."
+        actions={
+          <Toolbar aria-label="Snippet actions" className="gap-1">
+            <ToolbarButton>
+              <Button size="sm" variant="ghost" leadingIcon={<Upload {...ICON_SM} />} onClick={() => fileInputRef.current?.click()}>
+                Import
+              </Button>
+            </ToolbarButton>
+            <ToolbarButton>
+              <Button
+                size="sm"
+                variant="ghost"
+                leadingIcon={<Download {...ICON_SM} />}
+                disabled={snippets.length === 0}
+                onClick={() => downloadTextFile("nexterm-snippets.json", JSON.stringify(snippets, null, 2), "application/json")}
+              >
+                Export
+              </Button>
+            </ToolbarButton>
+            <ToolbarButton>
+              <Button
+                size="sm"
+                variant="primary"
+                leadingIcon={<Plus {...ICON_SM} />}
+                onClick={() => setDialog({ draft: EMPTY_DRAFT, editingId: null })}
+              >
+                New snippet
+              </Button>
+            </ToolbarButton>
+          </Toolbar>
+        }
       >
-        {isAdding && editForm(saveNew, cancelEdit)}
-
-        {categories.length === 0 && !isAdding ? (
+        {groups.length === 0 ? (
           <EmptyState
-            icon={ScrollText}
+            icon={<ScrollText {...ICON_MD} />}
             title="No snippets yet"
-            hint="Save commands you run often, then launch them from the palette or sidebar."
-            action={{ label: "New snippet", onClick: startAdd }}
+            description="Save commands you run often, then launch them from the command palette."
+            action={
+              <Button size="sm" leadingIcon={<Plus {...ICON_SM} />} onClick={() => setDialog({ draft: EMPTY_DRAFT, editingId: null })}>
+                New snippet
+              </Button>
+            }
           />
         ) : (
-          categories.map((cat) => {
-            const isExpanded = expandedCategories.has(cat);
-            const label = cat === "__none__" ? "Uncategorized" : cat;
-            return (
-              <div key={cat} className="space-y-1">
-                {categories.length > 1 && (
-                  <button
-                    type="button"
-                    onClick={() => toggleCategory(cat)}
-                    className="flex w-full items-center gap-1.5 py-0.5 text-xs text-text-muted transition-colors hover:text-text-secondary"
-                  >
-                    <Tag size={11} />
-                    <span className="font-medium uppercase tracking-wide">{label}</span>
-                    <span className="ml-1 text-text-muted">({grouped[cat].length})</span>
-                    <span className="ml-auto">
-                      {isExpanded ? (
-                        <ChevronDown size={13} />
-                      ) : (
-                        <ChevronRight size={13} />
-                      )}
-                    </span>
-                  </button>
-                )}
-                {(isExpanded || categories.length === 1) &&
-                  grouped[cat].map((s) => (
-                    <div key={s.id}>
-                      {editingId === s.id ? (
-                        editForm(saveEdit, cancelEdit)
-                      ) : (
-                        <div className="group flex items-start gap-2 rounded-lg border border-border bg-bg-secondary p-2.5 transition-colors hover:border-border-focus">
-                          <div className="min-w-0 flex-1">
-                            <div className="truncate text-sm font-medium text-text-primary">
-                              {s.name}
-                            </div>
-                            <div className="mt-0.5 truncate font-mono text-xs text-text-muted">
-                              {s.command.slice(0, 80)}
-                              {s.command.length > 80 ? "…" : ""}
-                            </div>
-                          </div>
-                          <div className="flex shrink-0 gap-1 opacity-0 transition-opacity group-hover:opacity-100">
+          <div className="flex flex-col gap-2">
+            {groups.map((group) => {
+              const key = group.category ?? "";
+              const open = groups.length === 1 || !collapsed.has(key);
+              return (
+                <PanelGroup
+                  key={key}
+                  title={group.category ?? "Uncategorized"}
+                  count={group.snippets.length}
+                  actions={
+                    groups.length > 1 && (
+                      <IconButton
+                        size="xs"
+                        label={open ? "Collapse" : "Expand"}
+                        aria-expanded={open}
+                        icon={<ChevronRight {...ICON_SM} className={cn("transition-transform duration-150 ease-out", open && "rotate-90")} />}
+                        onClick={() => toggleGroup(key)}
+                      />
+                    )
+                  }
+                >
+                  {open &&
+                    group.snippets.map((snippet) => (
+                      <ListRow
+                        key={snippet.id}
+                        label={snippet.name}
+                        description={<span className="font-mono">{snippet.command}</span>}
+                        onSelect={() =>
+                          setDialog({
+                            draft: { name: snippet.name, category: snippet.category ?? "", command: snippet.command },
+                            editingId: snippet.id,
+                          })
+                        }
+                        actions={
+                          <>
+                            <IconButton size="xs" label="Run snippet" icon={<Play {...ICON_SM} />} onClick={() => runSnippet(snippet)} />
                             <IconButton
-                              title="Run snippet"
-                              onClick={() => runSnippet(s)}
-                              className="hover:text-success"
-                            >
-                              <Play size={13} />
-                            </IconButton>
-                            <IconButton title="Edit snippet" onClick={() => startEdit(s)}>
-                              <Edit2 size={13} />
-                            </IconButton>
+                              size="xs"
+                              label="Edit snippet"
+                              icon={<Pencil {...ICON_SM} />}
+                              onClick={() =>
+                                setDialog({
+                                  draft: { name: snippet.name, category: snippet.category ?? "", command: snippet.command },
+                                  editingId: snippet.id,
+                                })
+                              }
+                            />
                             <IconButton
-                              title="Delete snippet"
-                              onClick={() => setDeletingId(s.id)}
-                              className="hover:text-error"
-                            >
-                              <Trash2 size={13} />
-                            </IconButton>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-              </div>
-            );
-          })
+                              size="xs"
+                              label="Delete snippet"
+                              icon={<Trash2 {...ICON_SM} />}
+                              onClick={() => setDeletingId(snippet.id)}
+                            />
+                          </>
+                        }
+                      />
+                    ))}
+                </PanelGroup>
+              );
+            })}
+          </div>
         )}
-      </SettingsSection>
+      </Section>
 
-      {/* Hidden file input for import */}
       <input
         ref={fileInputRef}
         type="file"
         accept=".json,application/json"
+        aria-label="Import snippets file"
         className="hidden"
-        onChange={handleFileChange}
+        onChange={handleImport}
+      />
+
+      <SnippetDialog
+        draft={dialog?.draft ?? null}
+        editing={dialog?.editingId != null}
+        onSave={(draft) => {
+          save(saveSnippet(snippets, draft, dialog?.editingId ?? null, () => crypto.randomUUID()));
+          setDialog(null);
+        }}
+        onCancel={() => setDialog(null)}
       />
 
       <ConfirmDialog
         open={deletingId !== null}
         title="Delete snippet"
         message={
-          deletingSnippet
-            ? `Delete "${deletingSnippet.name}"? This can't be undone.`
-            : "Delete this snippet? This can't be undone."
+          deleting ? `Delete "${deleting.name}"? This can't be undone.` : "Delete this snippet? This can't be undone."
         }
         confirmLabel="Delete"
         variant="danger"
         onConfirm={() => {
-          if (deletingId) deleteSnippet(deletingId);
+          if (deletingId) save(snippets.filter((s) => s.id !== deletingId));
           setDeletingId(null);
         }}
         onCancel={() => setDeletingId(null)}

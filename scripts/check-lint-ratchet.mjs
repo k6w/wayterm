@@ -61,6 +61,9 @@ const STRICT_PATHS = [
   "src/components/ssh/port-forward-form.ts",
   "src/components/ssh/QuickPortForwardDialog.tsx",
   "src/components/clipboard/",
+  "src/components/settings/snippets.ts",
+  "src/components/settings/SnippetDialog.tsx",
+  "src/components/settings/SnippetsPanel.tsx",
 ];
 
 const file = "eslint-suppressions.json";
