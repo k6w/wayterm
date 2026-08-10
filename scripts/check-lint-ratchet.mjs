@@ -51,6 +51,8 @@ const STRICT_PATHS = [
   "src/components/ui/ConfirmDialog.tsx",
   "src/components/ui/InputDialog.tsx",
   "src/components/search/",
+  "src/lib/download-file.ts",
+  "src/components/sidebar/PanelChrome.tsx",
 ];
 
 const file = "eslint-suppressions.json";

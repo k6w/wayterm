@@ -7,6 +7,7 @@ import {
   IconButton,
   ListRow,
   Panel,
+  Progress,
   Section,
   SplitPane,
   Tabs,
@@ -258,5 +259,80 @@ describe("SplitPane in px", () => {
     expect(screen.getByText("side")).toBeInTheDocument();
     expect(screen.getByText("main")).toBeInTheDocument();
     expect(probe).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("ListRow tree and actions", () => {
+  it("indents by level and keeps the default padding at level 0", () => {
+    render(
+      <>
+        <ListRow label="top" />
+        <ListRow label="child" indent={1} />
+      </>
+    );
+    expect(screen.getByRole("button", { name: "top" })).toHaveClass("pl-2", "pr-2");
+    expect(screen.getByRole("button", { name: "child" })).toHaveClass("pl-6");
+  });
+
+  it("renders actions next to the row button, revealed on hover or focus", async () => {
+    const user = userEvent.setup();
+    const onSelect = vi.fn();
+    const onDelete = vi.fn();
+    render(
+      <ListRow
+        label="prod"
+        onSelect={onSelect}
+        actions={
+          <button type="button" onClick={onDelete}>
+            Delete
+          </button>
+        }
+      />
+    );
+    const row = screen.getByRole("button", { name: "prod" });
+    const del = screen.getByRole("button", { name: "Delete" });
+    expect(row).not.toContainElement(del);
+    expect(del.closest("[data-row-actions]")).toHaveClass("opacity-0", "group-hover/row:opacity-100", "group-focus-within/row:opacity-100");
+    await user.click(del);
+    expect(onDelete).toHaveBeenCalledTimes(1);
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it("forwards a ref and ARIA tree attributes to the row button", () => {
+    let node: HTMLButtonElement | null = null;
+    render(
+      <ListRow
+        label="folder"
+        role="treeitem"
+        aria-level={1}
+        aria-expanded
+        ref={(el) => {
+          node = el;
+        }}
+      />
+    );
+    const row = screen.getByRole("treeitem", { name: "folder" });
+    expect(row).toHaveAttribute("aria-level", "1");
+    expect(row).toHaveAttribute("aria-expanded", "true");
+    expect(node).toBe(row);
+  });
+});
+
+describe("Progress", () => {
+  it("exposes a clamped percentage and colors by tone", () => {
+    render(
+      <>
+        <Progress label="backup.tar" value={42.4} tone="success" />
+        <Progress label="huge" value={180} />
+        <Progress label="unknown" value={Number.NaN} tone="danger" />
+      </>
+    );
+    const bar = screen.getByRole("progressbar", { name: "backup.tar" });
+    expect(bar).toHaveAttribute("aria-valuenow", "42");
+    expect(bar.firstElementChild).toHaveClass("bg-success");
+    expect(bar.firstElementChild).toHaveStyle({ width: "42%" });
+    expect(screen.getByRole("progressbar", { name: "huge" })).toHaveAttribute("aria-valuenow", "100");
+    expect(screen.getByRole("progressbar", { name: "huge" }).firstElementChild).toHaveClass("bg-info");
+    expect(screen.getByRole("progressbar", { name: "unknown" })).toHaveAttribute("aria-valuenow", "0");
   });
 });

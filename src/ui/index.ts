@@ -70,6 +70,7 @@ export { Toast, Toaster, ToastProvider, ToastViewport, type ToastProps, type Toa
 export { Panel, panelVariants, type PanelProps } from "./Panel";
 export { Section, type SectionProps } from "./Section";
 export { ListRow, type ListRowProps } from "./ListRow";
+export { Progress, type ProgressProps } from "./Progress";
 export {
   Tabs,
   TabsContent,
