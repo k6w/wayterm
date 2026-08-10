@@ -10,7 +10,7 @@ import { useSettingsStore } from "../../stores/settings";
 // Panel bodies are restyled in Phase 4 and pull in many stores; stub them.
 vi.mock("../git/GitPanel", () => ({ GitPanel: () => <div>git body</div> }));
 vi.mock("../database/DatabasePanel", () => ({ DatabasePanel: () => <div>database body</div> }));
-vi.mock("../ui/ClipboardPanel", () => ({ ClipboardPanel: () => <div>clipboard body</div> }));
+vi.mock("../clipboard/ClipboardPanel", () => ({ ClipboardPanel: () => <div>clipboard body</div> }));
 vi.mock("./TunnelsPanel", () => ({ default: () => <div>tunnels body</div> }));
 vi.mock("./ConnectionTree", () => ({ default: () => <div>connections body</div> }));
 vi.mock("./WorkspaceList", () => ({ default: () => <div>workspaces</div> }));

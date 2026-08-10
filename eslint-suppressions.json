@@ -76,11 +76,6 @@
       "count": 2
     }
   },
-  "src/components/ui/ClipboardManager.tsx": {
-    "nexterm/no-inline-style": {
-      "count": 4
-    }
-  },
   "src/components/ui/Select.tsx": {
     "nexterm/no-inline-style": {
       "count": 3

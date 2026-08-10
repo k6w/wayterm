@@ -8,7 +8,7 @@ import WorkspaceList from "./WorkspaceList";
 import TunnelsPanel from "./TunnelsPanel";
 import { GitPanel } from "../git/GitPanel";
 import { DatabasePanel } from "../database/DatabasePanel";
-import { ClipboardPanel } from "../ui/ClipboardPanel";
+import { ClipboardPanel } from "../clipboard/ClipboardPanel";
 import { SIDEBAR_SECTIONS } from "./sections";
 import { PanelContent } from "./PanelChrome";
 import type { SshConnection } from "../../types/ssh";
