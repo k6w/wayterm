@@ -42,11 +42,6 @@
       "count": 1
     }
   },
-  "src/components/ssh/QuickPortForwardDialog.tsx": {
-    "nexterm/no-inline-style": {
-      "count": 3
-    }
-  },
   "src/components/terminal/PaneContextMenu.tsx": {
     "nexterm/no-inline-style": {
       "count": 5

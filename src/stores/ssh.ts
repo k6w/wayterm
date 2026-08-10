@@ -43,6 +43,8 @@ interface SshState {
   removeSession: (sessionId: string) => void;
   updateSessionStatus: (sessionId: string, status: ConnectionStatus) => void;
   loadPortForwards: (connectionId: string) => Promise<void>;
+  /** Every listed connection's forwards in one list (the Port Forwards panel). A connection that fails to load contributes none. */
+  loadAllPortForwards: (connectionIds: string[]) => Promise<void>;
   savePortForward: (forward: PortForward) => Promise<void>;
   deletePortForward: (id: string) => Promise<void>;
   togglePortForward: (id: string, isActive: boolean, sessionId?: string) => Promise<void>;
@@ -143,6 +145,13 @@ export const useSshStore = create<SshState>((set, get) => ({
     } catch {
       set({ portForwards: [] });
     }
+  },
+
+  loadAllPortForwards: async (connectionIds: string[]) => {
+    const lists = await Promise.all(
+      connectionIds.map((id) => sshListPortForwards(id).catch(() => [] as PortForward[]))
+    );
+    set({ portForwards: lists.flat() });
   },
 
   savePortForward: async (forward: PortForward) => {
