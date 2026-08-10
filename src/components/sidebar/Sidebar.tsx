@@ -10,6 +10,7 @@ import { GitPanel } from "../git/GitPanel";
 import { DatabasePanel } from "../database/DatabasePanel";
 import { ClipboardPanel } from "../ui/ClipboardPanel";
 import { SIDEBAR_SECTIONS } from "./sections";
+import { PanelContent } from "./PanelChrome";
 import type { SshConnection } from "../../types/ssh";
 
 interface SidebarProps {
@@ -19,7 +20,8 @@ interface SidebarProps {
 
 /**
  * Docked side panel: a header with the panel name and a hide button, then the
- * panel content. The content components are restyled in Phase 4.
+ * panel content. Every panel body follows the same shape (PanelChrome.tsx): an
+ * action row, then scrolling ListRows; none repeats the panel name.
  */
 export default function Sidebar({ onNewSsh, onEditSsh }: SidebarProps) {
   const section = useSidebarStore((s) => s.section);
@@ -49,14 +51,11 @@ export default function Sidebar({ onNewSsh, onEditSsh }: SidebarProps) {
         {section === "connections" && (
           <>
             <QuickActions onNewSsh={onNewSsh} />
-            <div className="mx-3 shrink-0 border-t border-border" />
-            <div className="min-h-0 flex-1 overflow-y-auto py-1">
+            <PanelContent>
               <ConnectionTree onAddConnection={onNewSsh} onEditConnection={onEditSsh} />
-            </div>
-            <div className="mx-3 shrink-0 border-t border-border" />
-            <div className="shrink-0 py-1">
+              <div className="mx-1 my-1 border-t border-border" />
               <WorkspaceList />
-            </div>
+            </PanelContent>
           </>
         )}
         {section === "git" && <GitPanel />}

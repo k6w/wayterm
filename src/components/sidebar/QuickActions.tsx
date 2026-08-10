@@ -1,52 +1,41 @@
-import { Terminal, Monitor } from "lucide-react";
+import { Plus, SquareTerminal } from "lucide-react";
 import { useTerminalStore } from "../../stores/terminal";
 import { useSettingsStore } from "../../stores/settings";
 import { getPreferredShell } from "../../lib/shell-detect";
+import { shortcutFor } from "../../lib/shortcut-hints";
+import { Button, ICON_SM, ToolbarButton } from "../../ui";
+import { PanelToolbar } from "./PanelChrome";
 
 interface QuickActionsProps {
   onNewSsh?: () => void;
 }
 
-interface QuickAction {
-  icon: React.ReactNode;
-  label: string;
-  onClick: () => void;
-}
-
+/** The Connections panel's action row: new local terminal, new SSH connection. */
 export default function QuickActions({ onNewSsh }: QuickActionsProps) {
   const addTab = useTerminalStore((s) => s.addTab);
   const defaultShellPath = useSettingsStore((s) => s.settings.general.defaultShell);
 
-  const actions: QuickAction[] = [
-    {
-      icon: <Terminal size={16} />,
-      label: "New Tab",
-      onClick: () => {
-        const shell = getPreferredShell(defaultShellPath);
-        addTab(shell.type, shell.path);
-      },
-    },
-    {
-      icon: <Monitor size={16} />,
-      label: "New SSH",
-      onClick: () => onNewSsh?.(),
-    },
-  ];
-
   return (
-    <div className="px-3 py-3">
-      <div className="grid grid-cols-2 gap-2">
-        {actions.map((action) => (
-          <button
-            key={action.label}
-            onClick={action.onClick}
-            className="flex flex-col items-center gap-1.5 rounded-lg bg-overlay/[0.08] px-2 py-2.5 text-text-secondary transition-colors hover:bg-overlay/[0.14] hover:text-text-primary"
-          >
-            {action.icon}
-            <span className="text-[11px] leading-none">{action.label}</span>
-          </button>
-        ))}
-      </div>
-    </div>
+    <PanelToolbar aria-label="Connection actions">
+      <ToolbarButton>
+        <Button
+          variant="ghost"
+          size="sm"
+          leadingIcon={<SquareTerminal {...ICON_SM} />}
+          shortcut={shortcutFor("new-tab")}
+          onClick={() => {
+            const shell = getPreferredShell(defaultShellPath);
+            addTab(shell.type, shell.path);
+          }}
+        >
+          New terminal
+        </Button>
+      </ToolbarButton>
+      <ToolbarButton>
+        <Button variant="ghost" size="sm" leadingIcon={<Plus {...ICON_SM} />} onClick={() => onNewSsh?.()}>
+          New SSH
+        </Button>
+      </ToolbarButton>
+    </PanelToolbar>
   );
 }

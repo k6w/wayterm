@@ -1,9 +1,25 @@
-import { useCallback, useState, useMemo, useRef } from "react";
-import { Server, Plus, Plug, Trash2, Pencil, FolderOpen, ChevronRight, Folder, PlayCircle } from "lucide-react";
+import { useCallback, useMemo, useRef, useState, type CSSProperties, type DragEvent, type KeyboardEvent } from "react";
+import { ChevronRight, Folder, FolderOpen, Pencil, PlayCircle, Plug, Plus, Server, Trash2 } from "lucide-react";
 import { useSshStore } from "../../stores/ssh";
 import { useTerminalStore, getFirstPaneId } from "../../stores/terminal";
+import { CONNECTION_TAG_COLORS } from "../../themes/connection-tags";
+import {
+  Badge,
+  Button,
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuSeparator,
+  ContextMenuTrigger,
+  EmptyState,
+  ICON_MD,
+  ICON_SM,
+  IconButton,
+  ListRow,
+  cn,
+} from "../../ui";
 import ConfirmDialog from "../ui/ConfirmDialog";
-import { EmptyState } from "../ui/EmptyState";
+import { buildTreeRows, treeKeyAction, type TreeRow } from "./connection-tree";
 import type { SshConnection } from "../../types/ssh";
 
 interface ConnectionTreeProps {
@@ -11,86 +27,43 @@ interface ConnectionTreeProps {
   onEditConnection?: (conn: SshConnection) => void;
 }
 
-const COLOR_MAP: Record<string, string> = {
-  red: "#ef4444",
-  green: "#22c55e",
-  blue: "#3b82f6",
-  yellow: "#eab308",
-  purple: "#a855f7",
-  cyan: "#06b6d4",
-  orange: "#f97316",
-  pink: "#ec4899",
-};
-
-function ConnectionItem({ conn, indent, onConnect, onSftp, onEdit, onDelete, onDragStart, onDragOver, onDrop, onDragEnd, isDragOver }: {
-  conn: SshConnection;
-  indent?: boolean;
-  onConnect: (c: SshConnection) => void;
-  onSftp: (c: SshConnection) => void;
-  onEdit: (e: React.MouseEvent, c: SshConnection) => void;
-  onDelete: (e: React.MouseEvent, c: SshConnection) => void;
-  onDragStart: (e: React.DragEvent, c: SshConnection) => void;
-  onDragOver: (e: React.DragEvent, c: SshConnection) => void;
-  onDrop: (e: React.DragEvent, c: SshConnection) => void;
-  onDragEnd: () => void;
-  isDragOver: boolean;
-}) {
-  return (
-    <div
-      draggable
-      onDragStart={(e) => onDragStart(e, conn)}
-      onDragOver={(e) => onDragOver(e, conn)}
-      onDrop={(e) => onDrop(e, conn)}
-      onDragEnd={onDragEnd}
-      className={`group flex items-center gap-2 rounded-md py-1.5 transition-colors hover:bg-overlay/[0.06] cursor-pointer ${indent ? "pl-6 pr-2" : "px-2"} ${isDragOver ? "border border-dashed border-accent/50 bg-accent/5" : "border border-transparent"}`}
-      onClick={() => onConnect(conn)}
-    >
-      {conn.colorTag && (
-        <span
-          className="size-2 shrink-0 rounded-full"
-          style={{ backgroundColor: COLOR_MAP[conn.colorTag] || conn.colorTag }}
-        />
-      )}
-      <Server size={14} className="shrink-0 text-text-muted" />
-      <div className="flex min-w-0 flex-1 flex-col items-start">
-        <span className="truncate text-xs text-text-primary">{conn.name}</span>
-        <span className="truncate text-[10px] text-text-muted">{conn.username}@{conn.host}:{conn.port}</span>
-      </div>
-      <div className="flex items-center gap-0.5 opacity-0 transition-opacity group-hover:opacity-100">
-        <button onClick={() => onConnect(conn)} className="flex size-5 items-center justify-center rounded text-text-muted transition-colors hover:bg-overlay/[0.1] hover:text-accent" title="Connect"><Plug size={11} /></button>
-        <button onClick={(e) => { e.stopPropagation(); onSftp(conn); }} className="flex size-5 items-center justify-center rounded text-text-muted transition-colors hover:bg-overlay/[0.1] hover:text-accent" title="SFTP"><FolderOpen size={11} /></button>
-        <button onClick={(e) => onEdit(e, conn)} className="flex size-5 items-center justify-center rounded text-text-muted transition-colors hover:bg-overlay/[0.1] hover:text-text-primary" title="Edit"><Pencil size={11} /></button>
-        <button onClick={(e) => onDelete(e, conn)} className="flex size-5 items-center justify-center rounded text-text-muted transition-colors hover:bg-overlay/[0.1] hover:text-error" title="Delete"><Trash2 size={11} /></button>
-      </div>
-    </div>
-  );
+/** Tag name -> color. Unknown names are user data and pass through as-is. */
+function tagColor(tag: string): string {
+  return CONNECTION_TAG_COLORS.find((t) => t.name === tag)?.value ?? tag;
 }
 
+/**
+ * Saved SSH connections as a tree (folders, then loose connections). One tab
+ * stop; arrows move, Left/Right fold, Enter connects. Hover or focus shows the
+ * inline actions; right-click (or the context-menu key) shows all of them.
+ */
 export default function ConnectionTree({ onAddConnection, onEditConnection }: ConnectionTreeProps) {
   const connections = useSshStore((s) => s.connections);
   const saveConnection = useSshStore((s) => s.saveConnection);
   const deleteConnection = useSshStore((s) => s.deleteConnection);
   const addTab = useTerminalStore((s) => s.addTab);
+  const panes = useTerminalStore((s) => s.panes);
 
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [collapsedFolders, setCollapsedFolders] = useState<Set<string>>(new Set());
+  const [focusId, setFocusId] = useState<string | null>(null);
   const [dragOverId, setDragOverId] = useState<string | null>(null);
   const dragSourceRef = useRef<SshConnection | null>(null);
+  const rowRefs = useRef(new Map<string, HTMLButtonElement>());
 
-  const grouped = useMemo(() => {
-    const folders = new Map<string, SshConnection[]>();
-    const ungrouped: SshConnection[] = [];
-    for (const conn of [...connections].sort((a, b) => a.sortOrder - b.sortOrder)) {
-      if (conn.folderPath && conn.folderPath.trim() && conn.folderPath.trim() !== "/") {
-        const folder = conn.folderPath.trim();
-        if (!folders.has(folder)) folders.set(folder, []);
-        folders.get(folder)!.push(conn);
-      } else {
-        ungrouped.push(conn);
-      }
+  const rows = useMemo(() => buildTreeRows(connections, collapsedFolders), [connections, collapsedFolders]);
+  // The roving tab stop: the last focused row, or the first row when that one is gone.
+  const tabStopId = rows.some((r) => r.id === focusId) ? focusId : (rows[0]?.id ?? null);
+
+  // Connections with a tab open (terminal or SFTP) get a status dot.
+  const openIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const pane of Object.values(panes)) {
+      if (pane.sshConnectionId) ids.add(pane.sshConnectionId);
+      if (pane.sftpConnectionId) ids.add(pane.sftpConnectionId);
     }
-    return { folders, ungrouped };
-  }, [connections]);
+    return ids;
+  }, [panes]);
 
   const toggleFolder = useCallback((folder: string) => {
     setCollapsedFolders((prev) => {
@@ -106,25 +79,16 @@ export default function ConnectionTree({ onAddConnection, onEditConnection }: Co
       addTab("ssh", undefined, conn.id);
       const { tabs, renameTab } = useTerminalStore.getState();
       const newTab = tabs[tabs.length - 1];
-      if (newTab) {
-        renameTab(newTab.id, conn.name);
-      }
+      if (newTab) renameTab(newTab.id, conn.name);
     },
     [addTab]
   );
 
   const handleConnectAll = useCallback(
     (conns: SshConnection[]) => {
-      for (const conn of conns) {
-        addTab("ssh", undefined, conn.id);
-        const { tabs, renameTab } = useTerminalStore.getState();
-        const newTab = tabs[tabs.length - 1];
-        if (newTab) {
-          renameTab(newTab.id, conn.name);
-        }
-      }
+      for (const conn of conns) handleConnect(conn);
     },
-    [addTab]
+    [handleConnect]
   );
 
   const handleSftp = useCallback(
@@ -132,28 +96,16 @@ export default function ConnectionTree({ onAddConnection, onEditConnection }: Co
       addTab("sftp");
       const { tabs, renameTab } = useTerminalStore.getState();
       const newTab = tabs[tabs.length - 1];
-      if (newTab) {
-        renameTab(newTab.id, `SFTP: ${conn.name}`);
-        const paneId = getFirstPaneId(newTab.panes);
-        if (paneId) {
-          useTerminalStore.setState((s) => ({
-            panes: {
-              ...s.panes,
-              [paneId]: { ...s.panes[paneId], sftpConnectionId: conn.id },
-            },
-          }));
-        }
+      if (!newTab) return;
+      renameTab(newTab.id, `SFTP: ${conn.name}`);
+      const paneId = getFirstPaneId(newTab.panes);
+      if (paneId) {
+        useTerminalStore.setState((s) => ({
+          panes: { ...s.panes, [paneId]: { ...s.panes[paneId], sftpConnectionId: conn.id } },
+        }));
       }
     },
     [addTab]
-  );
-
-  const handleRequestDelete = useCallback(
-    (e: React.MouseEvent, conn: SshConnection) => {
-      e.stopPropagation();
-      setDeleteTarget({ id: conn.id, name: conn.name });
-    },
-    []
   );
 
   const handleConfirmDelete = useCallback(async () => {
@@ -162,133 +114,197 @@ export default function ConnectionTree({ onAddConnection, onEditConnection }: Co
     setDeleteTarget(null);
   }, [deleteTarget, deleteConnection]);
 
-  const handleEdit = useCallback(
-    (e: React.MouseEvent, conn: SshConnection) => {
-      e.stopPropagation();
-      onEditConnection?.(conn);
-    },
-    [onEditConnection]
-  );
+  const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+    // Keys from a portalled context menu bubble here through React; ignore them.
+    if (!tabStopId || !event.currentTarget.contains(event.target as Node)) return;
+    const result = treeKeyAction(rows, tabStopId, event.key);
+    if (!result) return;
+    event.preventDefault();
+    if (result.toggleFolder) toggleFolder(result.toggleFolder);
+    if (result.focus) {
+      setFocusId(result.focus);
+      rowRefs.current.get(result.focus)?.focus();
+    }
+  };
 
-  // Drag handlers
-  const handleDragStart = useCallback((e: React.DragEvent, conn: SshConnection) => {
+  // Drag to reorder within a folder: swap the two connections' sort orders.
+  const handleDragStart = (event: DragEvent, conn: SshConnection) => {
     dragSourceRef.current = conn;
-    e.dataTransfer.effectAllowed = "move";
-    e.dataTransfer.setData("text/plain", conn.id);
-  }, []);
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", conn.id);
+  };
 
-  const handleDragOver = useCallback((e: React.DragEvent, conn: SshConnection) => {
-    e.preventDefault();
-    e.dataTransfer.dropEffect = "move";
+  const handleDragOver = (event: DragEvent, conn: SshConnection) => {
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
     setDragOverId(conn.id);
-  }, []);
+  };
 
-  const handleDrop = useCallback(
-    async (e: React.DragEvent, targetConn: SshConnection) => {
-      e.preventDefault();
-      setDragOverId(null);
-      const source = dragSourceRef.current;
-      if (!source || source.id === targetConn.id) return;
+  const handleDrop = async (event: DragEvent, target: SshConnection) => {
+    event.preventDefault();
+    setDragOverId(null);
+    const source = dragSourceRef.current;
+    if (!source || source.id === target.id || source.folderPath !== target.folderPath) return;
+    const now = new Date().toISOString();
+    await saveConnection({ ...source, sortOrder: target.sortOrder, updatedAt: now });
+    await saveConnection({ ...target, sortOrder: source.sortOrder, updatedAt: now });
+    dragSourceRef.current = null;
+  };
 
-      // Reorder: swap sort orders within same folder
-      if (source.folderPath !== targetConn.folderPath) return;
-
-      const now = new Date().toISOString();
-      const sourceSortOrder = source.sortOrder;
-      const targetSortOrder = targetConn.sortOrder;
-
-      await saveConnection({ ...source, sortOrder: targetSortOrder, updatedAt: now });
-      await saveConnection({ ...targetConn, sortOrder: sourceSortOrder, updatedAt: now });
-      dragSourceRef.current = null;
-    },
-    [saveConnection]
-  );
-
-  const handleDragEnd = useCallback(() => {
+  const handleDragEnd = () => {
     setDragOverId(null);
     dragSourceRef.current = null;
-  }, []);
+  };
+
+  const rowRef = (id: string) => (node: HTMLButtonElement | null) => {
+    if (node) rowRefs.current.set(id, node);
+    else rowRefs.current.delete(id);
+  };
+
+  if (connections.length === 0) {
+    return (
+      <EmptyState
+        icon={<Server {...ICON_MD} />}
+        title="No connections"
+        description="Save an SSH host to connect to it in one click."
+        action={
+          onAddConnection && (
+            <Button size="sm" leadingIcon={<Plus {...ICON_SM} />} onClick={onAddConnection}>
+              New SSH connection
+            </Button>
+          )
+        }
+      />
+    );
+  }
+
+  const renderRow = (row: TreeRow) => {
+    const treeProps = {
+      ref: rowRef(row.id),
+      role: "treeitem",
+      tabIndex: row.id === tabStopId ? 0 : -1,
+      onFocus: () => setFocusId(row.id),
+    } as const;
+
+    if (row.kind === "folder") {
+      return (
+        <ContextMenu key={row.id}>
+          <ContextMenuTrigger asChild>
+            <div>
+              <ListRow
+                {...treeProps}
+                aria-level={1}
+                aria-expanded={row.expanded}
+                icon={
+                  <>
+                    <ChevronRight
+                      {...ICON_SM}
+                      className={cn("transition-transform duration-150 ease-out", row.expanded && "rotate-90")}
+                    />
+                    <Folder {...ICON_SM} />
+                  </>
+                }
+                label={row.folder}
+                trailing={<Badge>{row.connections.length}</Badge>}
+                onSelect={() => toggleFolder(row.folder)}
+                actions={
+                  <IconButton
+                    size="xs"
+                    tabIndex={-1}
+                    label="Connect all"
+                    icon={<PlayCircle {...ICON_SM} />}
+                    onClick={() => handleConnectAll(row.connections)}
+                  />
+                }
+              />
+            </div>
+          </ContextMenuTrigger>
+          <ContextMenuContent>
+            <ContextMenuItem icon={<PlayCircle {...ICON_SM} />} onSelect={() => handleConnectAll(row.connections)}>
+              Connect all
+            </ContextMenuItem>
+          </ContextMenuContent>
+        </ContextMenu>
+      );
+    }
+
+    const { conn } = row;
+    const tag = conn.colorTag ? tagColor(conn.colorTag) : null;
+    const isOpen = openIds.has(conn.id);
+    return (
+      <ContextMenu key={row.id}>
+        <ContextMenuTrigger asChild>
+          <div
+            draggable
+            onDragStart={(event) => handleDragStart(event, conn)}
+            onDragOver={(event) => handleDragOver(event, conn)}
+            onDrop={(event) => void handleDrop(event, conn)}
+            onDragEnd={handleDragEnd}
+            className={cn("rounded-md", dragOverId === conn.id && "bg-accent-subtle")}
+          >
+            <ListRow
+              {...treeProps}
+              aria-level={row.folder === null ? 1 : 2}
+              indent={row.folder === null ? 0 : 1}
+              icon={
+                <>
+                  {tag && (
+                    <span
+                      data-testid="tag-dot"
+                      className="size-2 shrink-0 rounded-full bg-(--nx-dyn-tag)"
+                      style={{ "--nx-dyn-tag": tag } as CSSProperties}
+                    />
+                  )}
+                  <Server {...ICON_SM} />
+                </>
+              }
+              label={conn.name}
+              description={`${conn.username}@${conn.host}:${conn.port}`}
+              trailing={
+                isOpen && <span role="img" aria-label="Open in a tab" className="size-1.5 shrink-0 rounded-full bg-success" />
+              }
+              onSelect={() => handleConnect(conn)}
+              actions={
+                <>
+                  <IconButton size="xs" tabIndex={-1} label="Connect" icon={<Plug {...ICON_SM} />} onClick={() => handleConnect(conn)} />
+                  <IconButton size="xs" tabIndex={-1} label="Open SFTP" icon={<FolderOpen {...ICON_SM} />} onClick={() => handleSftp(conn)} />
+                  <IconButton size="xs" tabIndex={-1} label="Edit" icon={<Pencil {...ICON_SM} />} onClick={() => onEditConnection?.(conn)} />
+                  <IconButton
+                    size="xs"
+                    tabIndex={-1}
+                    label="Delete"
+                    icon={<Trash2 {...ICON_SM} />}
+                    onClick={() => setDeleteTarget({ id: conn.id, name: conn.name })}
+                  />
+                </>
+              }
+            />
+          </div>
+        </ContextMenuTrigger>
+        <ContextMenuContent>
+          <ContextMenuItem icon={<Plug {...ICON_SM} />} onSelect={() => handleConnect(conn)}>
+            Connect
+          </ContextMenuItem>
+          <ContextMenuItem icon={<FolderOpen {...ICON_SM} />} onSelect={() => handleSftp(conn)}>
+            Open SFTP
+          </ContextMenuItem>
+          <ContextMenuItem icon={<Pencil {...ICON_SM} />} onSelect={() => onEditConnection?.(conn)}>
+            Edit
+          </ContextMenuItem>
+          <ContextMenuSeparator />
+          <ContextMenuItem danger icon={<Trash2 {...ICON_SM} />} onSelect={() => setDeleteTarget({ id: conn.id, name: conn.name })}>
+            Delete
+          </ContextMenuItem>
+        </ContextMenuContent>
+      </ContextMenu>
+    );
+  };
 
   return (
-    <div className="flex flex-col">
-      <div className="flex items-center justify-between px-3 py-2">
-        <span className="text-[11px] font-medium uppercase tracking-wider text-text-muted">
-          Connections
-        </span>
-        <button
-          onClick={onAddConnection}
-          className="flex size-5 items-center justify-center rounded text-text-muted transition-colors hover:bg-overlay/[0.08] hover:text-text-secondary"
-        >
-          <Plus size={14} />
-        </button>
+    <>
+      <div role="tree" aria-label="Connections" className="flex flex-col" onKeyDown={handleKeyDown}>
+        {rows.map(renderRow)}
       </div>
-
-      {connections.length === 0 ? (
-        <EmptyState
-          icon={Server}
-          title="No connections"
-          action={onAddConnection ? { label: "Add Connection", onClick: onAddConnection } : undefined}
-        />
-      ) : (
-        <div className="flex flex-col px-1">
-          {Array.from(grouped.folders.entries()).map(([folder, conns]) => (
-            <div key={folder}>
-              <div
-                className="group flex items-center gap-1.5 px-2 py-1.5 cursor-pointer rounded-md hover:bg-overlay/[0.04] select-none"
-                onClick={() => toggleFolder(folder)}
-              >
-                <ChevronRight
-                  size={12}
-                  className={`text-text-muted transition-transform ${collapsedFolders.has(folder) ? "" : "rotate-90"}`}
-                />
-                <Folder size={13} className="text-text-muted" />
-                <span className="text-[11px] text-text-secondary font-medium truncate flex-1">{folder}</span>
-                <span className="text-[10px] text-text-muted">{conns.length}</span>
-                <button
-                  type="button"
-                  onClick={(e) => { e.stopPropagation(); handleConnectAll(conns); }}
-                  className="opacity-0 group-hover:opacity-100 flex size-5 items-center justify-center rounded text-text-muted transition-colors hover:bg-overlay/[0.1] hover:text-accent"
-                  title="Connect All"
-                >
-                  <PlayCircle size={12} />
-                </button>
-              </div>
-              {!collapsedFolders.has(folder) && conns.map((conn) => (
-                <ConnectionItem
-                  key={conn.id}
-                  conn={conn}
-                  indent
-                  onConnect={handleConnect}
-                  onSftp={handleSftp}
-                  onEdit={handleEdit}
-                  onDelete={handleRequestDelete}
-                  onDragStart={handleDragStart}
-                  onDragOver={handleDragOver}
-                  onDrop={handleDrop}
-                  onDragEnd={handleDragEnd}
-                  isDragOver={dragOverId === conn.id}
-                />
-              ))}
-            </div>
-          ))}
-          {grouped.ungrouped.map((conn) => (
-            <ConnectionItem
-              key={conn.id}
-              conn={conn}
-              onConnect={handleConnect}
-              onSftp={handleSftp}
-              onEdit={handleEdit}
-              onDelete={handleRequestDelete}
-              onDragStart={handleDragStart}
-              onDragOver={handleDragOver}
-              onDrop={handleDrop}
-              onDragEnd={handleDragEnd}
-              isDragOver={dragOverId === conn.id}
-            />
-          ))}
-        </div>
-      )}
-
       <ConfirmDialog
         open={!!deleteTarget}
         title="Delete Connection"
@@ -296,6 +312,6 @@ export default function ConnectionTree({ onAddConnection, onEditConnection }: Co
         onConfirm={handleConfirmDelete}
         onCancel={() => setDeleteTarget(null)}
       />
-    </div>
+    </>
   );
 }

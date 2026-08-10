@@ -53,6 +53,10 @@ const STRICT_PATHS = [
   "src/components/search/",
   "src/lib/download-file.ts",
   "src/components/sidebar/PanelChrome.tsx",
+  "src/components/sidebar/connection-tree.ts",
+  "src/components/sidebar/ConnectionTree.tsx",
+  "src/components/sidebar/WorkspaceList.tsx",
+  "src/components/sidebar/QuickActions.tsx",
 ];
 
 const file = "eslint-suppressions.json";
