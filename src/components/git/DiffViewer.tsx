@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Columns2, AlignLeft } from 'lucide-react';
+import { AlignLeft, Check, Columns2 } from 'lucide-react';
+import { Badge, EmptyState, ICON_MD, ICON_SM, SegmentedControl, Toolbar, ToolbarSpacer, cn, focusRing } from '../../ui';
 import type { GitDiff } from '../../types/git';
 
 interface DiffViewerProps {
@@ -77,10 +78,10 @@ function buildSideBySide(lines: DiffLine[]): { left: DiffLine | null; right: Dif
 
 function lineClass(type: DiffLine['type']) {
   switch (type) {
-    case 'added': return 'bg-success/10 text-success';
-    case 'removed': return 'bg-error/10 text-error';
-    case 'hunk': return 'bg-accent/5 text-accent/70 select-none';
-    default: return 'text-text-secondary';
+    case 'added': return 'bg-success-subtle text-success';
+    case 'removed': return 'bg-danger-subtle text-danger';
+    case 'hunk': return 'bg-info-subtle text-info select-none';
+    default: return 'text-fg-secondary';
   }
 }
 
@@ -101,55 +102,44 @@ function FileDiff({ diff, splitMode }: FileDiffProps) {
   const lines = parseDiff(diff.changes);
 
   return (
-    <div className="mb-4 border border-border rounded-lg overflow-hidden">
-      {/* File header */}
+    <section className="mb-3 overflow-hidden rounded-lg border border-border">
       <button
         type="button"
+        aria-expanded={!collapsed}
         onClick={() => setCollapsed((p) => !p)}
-        className="w-full flex items-center justify-between px-3 py-2 bg-overlay/[0.04] hover:bg-overlay/[0.06] transition-colors text-left"
+        className={cn(
+          'flex w-full items-center justify-between gap-2 bg-raised px-3 py-1.5 text-left transition-colors duration-150 ease-out hover:bg-hover',
+          focusRing
+        )}
       >
-        <span className="text-xs font-mono text-text-primary truncate">{diff.file}</span>
-        <div className="flex items-center gap-2 shrink-0 ml-2">
-          {diff.additions > 0 && (
-            <span className="text-[10px] text-success">+{diff.additions}</span>
-          )}
-          {diff.deletions > 0 && (
-            <span className="text-[10px] text-error">-{diff.deletions}</span>
-          )}
-        </div>
+        <span className="truncate font-mono text-label text-fg">{diff.file}</span>
+        <span className="flex shrink-0 items-center gap-1">
+          {diff.additions > 0 && <Badge tone="success">+{diff.additions}</Badge>}
+          {diff.deletions > 0 && <Badge tone="danger">-{diff.deletions}</Badge>}
+        </span>
       </button>
 
       {!collapsed && (
         <div className="overflow-x-auto">
-          {splitMode ? (
-            <SplitView lines={lines} />
-          ) : (
-            <UnifiedView lines={lines} />
-          )}
+          {splitMode ? <SplitView lines={lines} /> : <UnifiedView lines={lines} />}
         </div>
       )}
-    </div>
+    </section>
   );
 }
 
+const NUMBER_CELL = 'w-10 select-none border-r border-border px-1.5 py-0 text-right align-top text-caption text-fg-muted';
+
 function UnifiedView({ lines }: { lines: DiffLine[] }) {
   return (
-    <table className="w-full text-[11px] font-mono border-collapse">
+    <table className="w-full border-collapse font-mono text-label">
       <tbody>
         {lines.map((line, i) => (
           <tr key={i} className={lineClass(line.type)}>
-            <td className="w-10 text-right px-1.5 py-0 text-text-muted select-none border-r border-border align-top text-[10px]">
-              {line.type !== 'hunk' ? (line.oldLineNo ?? '') : ''}
-            </td>
-            <td className="w-10 text-right px-1.5 py-0 text-text-muted select-none border-r border-border align-top text-[10px]">
-              {line.type !== 'hunk' ? (line.newLineNo ?? '') : ''}
-            </td>
-            <td className="w-4 px-1 py-0 text-center select-none align-top">
-              {linePrefix(line.type)}
-            </td>
-            <td className="px-2 py-0 whitespace-pre align-top">
-              {line.content}
-            </td>
+            <td className={NUMBER_CELL}>{line.type !== 'hunk' ? (line.oldLineNo ?? '') : ''}</td>
+            <td className={NUMBER_CELL}>{line.type !== 'hunk' ? (line.newLineNo ?? '') : ''}</td>
+            <td className="w-4 select-none px-1 py-0 text-center align-top">{linePrefix(line.type)}</td>
+            <td className="whitespace-pre px-2 py-0 align-top">{line.content}</td>
           </tr>
         ))}
       </tbody>
@@ -161,7 +151,7 @@ function SplitView({ lines }: { lines: DiffLine[] }) {
   const pairs = buildSideBySide(lines);
 
   return (
-    <table className="w-full text-[11px] font-mono border-collapse">
+    <table className="w-full border-collapse font-mono text-label">
       <tbody>
         {pairs.map((pair, i) => {
           const { left, right } = pair;
@@ -170,7 +160,7 @@ function SplitView({ lines }: { lines: DiffLine[] }) {
           if (left?.type === 'hunk') {
             return (
               <tr key={i}>
-                <td colSpan={4} className={`px-2 py-0 ${lineClass('hunk')}`}>
+                <td colSpan={4} className={cn('px-2 py-0', lineClass('hunk'))}>
                   {left.content}
                 </td>
               </tr>
@@ -179,21 +169,12 @@ function SplitView({ lines }: { lines: DiffLine[] }) {
 
           return (
             <tr key={i}>
-              {/* Left side */}
-              <td className="w-9 text-right px-1 py-0 text-text-muted select-none border-r border-border text-[10px] align-top" style={{ minWidth: '2rem' }}>
-                {left?.oldLineNo ?? ''}
-              </td>
-              <td
-                className={`px-2 py-0 whitespace-pre align-top w-1/2 ${left ? lineClass(left.type) : ''}`}
-                style={{ borderRight: '1px solid rgba(255,255,255,0.06)' }}
-              >
+              <td className={cn(NUMBER_CELL, 'min-w-8')}>{left?.oldLineNo ?? ''}</td>
+              <td className={cn('w-1/2 whitespace-pre border-r border-border px-2 py-0 align-top', left && lineClass(left.type))}>
                 {left ? `${linePrefix(left.type)}${left.content}` : ''}
               </td>
-              {/* Right side */}
-              <td className="w-9 text-right px-1 py-0 text-text-muted select-none border-r border-border text-[10px] align-top" style={{ minWidth: '2rem' }}>
-                {right?.newLineNo ?? ''}
-              </td>
-              <td className={`px-2 py-0 whitespace-pre align-top w-1/2 ${right ? lineClass(right.type) : ''}`}>
+              <td className={cn(NUMBER_CELL, 'min-w-8')}>{right?.newLineNo ?? ''}</td>
+              <td className={cn('w-1/2 whitespace-pre px-2 py-0 align-top', right && lineClass(right.type))}>
                 {right ? `${linePrefix(right.type)}${right.content}` : ''}
               </td>
             </tr>
@@ -204,51 +185,36 @@ function SplitView({ lines }: { lines: DiffLine[] }) {
   );
 }
 
+/** File-by-file diff with a unified / side-by-side switch. */
 export default function DiffViewer({ diffs }: DiffViewerProps) {
-  const [splitMode, setSplitMode] = useState(false);
+  const [mode, setMode] = useState<'unified' | 'split'>('unified');
 
   if (diffs.length === 0) {
-    return (
-      <div className="flex items-center justify-center py-8 text-xs text-text-muted">
-        No changes
-      </div>
-    );
+    return <EmptyState icon={<Check {...ICON_MD} />} title="No changes" />;
   }
 
   return (
-    <div className="flex flex-col h-full">
-      {/* Toolbar */}
-      <div className="flex items-center justify-between px-3 py-1.5 border-b border-border">
-        <span className="text-[11px] text-text-muted">{diffs.length} file{diffs.length !== 1 ? 's' : ''} changed</span>
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={() => setSplitMode(false)}
-            className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] transition-colors ${
-              !splitMode ? 'bg-accent/15 text-accent' : 'text-text-muted hover:text-text-secondary'
-            }`}
-            title="Unified view"
-          >
-            <AlignLeft size={11} />
-            Unified
-          </button>
-          <button
-            type="button"
-            onClick={() => setSplitMode(true)}
-            className={`flex items-center gap-1 px-2 py-1 rounded text-[10px] transition-colors ${
-              splitMode ? 'bg-accent/15 text-accent' : 'text-text-muted hover:text-text-secondary'
-            }`}
-            title="Split view"
-          >
-            <Columns2 size={11} />
-            Split
-          </button>
-        </div>
-      </div>
+    <div className="flex h-full flex-col">
+      <Toolbar aria-label="Diff view" className="h-8 shrink-0 gap-2 border-b border-border px-3">
+        <span className="text-label text-fg-muted">
+          {diffs.length} file{diffs.length !== 1 ? 's' : ''} changed
+        </span>
+        <ToolbarSpacer />
+        <SegmentedControl
+          size="sm"
+          aria-label="Diff layout"
+          value={mode}
+          onValueChange={setMode}
+          options={[
+            { value: 'unified', label: 'Unified', icon: <AlignLeft {...ICON_SM} /> },
+            { value: 'split', label: 'Split', icon: <Columns2 {...ICON_SM} /> },
+          ]}
+        />
+      </Toolbar>
 
       <div className="flex-1 overflow-y-auto p-3">
         {diffs.map((diff) => (
-          <FileDiff key={diff.file} diff={diff} splitMode={splitMode} />
+          <FileDiff key={diff.file} diff={diff} splitMode={mode === 'split'} />
         ))}
       </div>
     </div>

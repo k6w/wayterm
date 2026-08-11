@@ -64,6 +64,11 @@ const STRICT_PATHS = [
   "src/components/settings/snippets.ts",
   "src/components/settings/SnippetDialog.tsx",
   "src/components/settings/SnippetsPanel.tsx",
+  "src/components/git/git-changes.ts",
+  "src/components/git/GitPanel.tsx",
+  "src/components/git/GitChanges.tsx",
+  "src/components/git/GitHistory.tsx",
+  "src/components/git/DiffViewer.tsx",
 ];
 
 const file = "eslint-suppressions.json";

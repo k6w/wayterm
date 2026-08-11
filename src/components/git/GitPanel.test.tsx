@@ -1,0 +1,125 @@
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { render, screen, waitFor, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { GitPanel } from "./GitPanel";
+import { useGitStore } from "../../stores/git";
+import { useTerminalStore } from "../../stores/terminal";
+import type { GitStatus } from "../../types/git";
+
+const STATUS: GitStatus = {
+  branch: "main",
+  ahead: 0,
+  behind: 0,
+  staged: ["src/a.ts"],
+  modified: ["src/b.ts"],
+  added: [],
+  deleted: ["old.txt"],
+  untracked: [],
+  conflicted: 0,
+  stashes: 1,
+};
+
+const actions = {
+  fetchStatus: vi.fn(async () => true),
+  fetchBranches: vi.fn(async () => {}),
+  fetchCommits: vi.fn(async () => {}),
+  fetchDiff: vi.fn(async () => [{ file: "src/b.ts", additions: 1, deletions: 0, changes: "@@ -1 +1 @@\n+x" }]),
+  initRepo: vi.fn(async () => {}),
+  checkout: vi.fn(async () => {}),
+  pull: vi.fn(async () => {}),
+  push: vi.fn(async () => {}),
+  commit: vi.fn(async () => {}),
+  stage: vi.fn(async () => {}),
+  unstage: vi.fn(async () => {}),
+  stash: vi.fn(async () => {}),
+  applyStash: vi.fn(async () => {}),
+  dropStash: vi.fn(async () => {}),
+};
+
+function setPane(cwd: string) {
+  useTerminalStore.setState({
+    activePaneId: "p1",
+    panes: { p1: { id: "p1", sessionId: "s1", isActive: true, cwd, shellType: "zsh" } },
+  });
+}
+
+beforeEach(() => {
+  for (const fn of Object.values(actions)) fn.mockClear();
+  useGitStore.setState({
+    status: STATUS,
+    branches: [
+      { name: "main", current: true, remote: false },
+      { name: "feature", current: false, remote: false },
+    ],
+    commits: [],
+    currentBranch: "main",
+    isLoading: false,
+    error: null,
+    ...actions,
+  });
+  setPane("/repo");
+});
+
+describe("GitPanel", () => {
+  it("loads the repo of the active pane and groups staged and unstaged changes", async () => {
+    render(<GitPanel />);
+    await waitFor(() => expect(actions.fetchStatus).toHaveBeenCalledWith("/repo", undefined));
+    const staged = screen.getByRole("region", { name: "Staged" });
+    const changes = screen.getByRole("region", { name: "Changes" });
+    expect(within(staged).getByRole("button", { name: /src\/a\.ts, staged/ })).toBeInTheDocument();
+    expect(within(changes).getByRole("button", { name: /src\/b\.ts, modified/ })).toBeInTheDocument();
+    expect(within(changes).getByRole("button", { name: /old\.txt, deleted/ })).toBeInTheDocument();
+  });
+
+  it("stages, stages all and unstages from the rows", async () => {
+    const user = userEvent.setup();
+    render(<GitPanel />);
+    await user.click(screen.getByRole("button", { name: "Stage src/b.ts" }));
+    expect(actions.stage).toHaveBeenCalledWith("/repo", ["src/b.ts"]);
+    await user.click(screen.getByRole("button", { name: "Stage all" }));
+    expect(actions.stage).toHaveBeenLastCalledWith("/repo", ["src/b.ts", "old.txt"]);
+    await user.click(screen.getByRole("button", { name: "Unstage src/a.ts" }));
+    expect(actions.unstage).toHaveBeenCalledWith("/repo", ["src/a.ts"]);
+  });
+
+  it("commits with Mod+Enter and clears the message", async () => {
+    const user = userEvent.setup();
+    render(<GitPanel />);
+    const box = screen.getByRole("textbox", { name: "Commit message" });
+    await user.type(box, "fix: things{Control>}{Enter}{/Control}");
+    await waitFor(() => expect(actions.commit).toHaveBeenCalledWith("/repo", "fix: things"));
+    await waitFor(() => expect(box).toHaveValue(""));
+  });
+
+  it("opens the diff of a file from its row and goes back", async () => {
+    const user = userEvent.setup();
+    render(<GitPanel />);
+    await user.click(screen.getByRole("button", { name: /src\/b\.ts, modified/ }));
+    expect(actions.fetchDiff).toHaveBeenCalledWith("/repo", "src/b.ts");
+    expect(await screen.findByText("1 file changed")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Back to changes" }));
+    expect(screen.getByRole("region", { name: "Staged" })).toBeInTheDocument();
+  });
+
+  it("switches views and checks out another branch", async () => {
+    const user = userEvent.setup();
+    render(<GitPanel />);
+    await user.click(screen.getByRole("radio", { name: "Branches" }));
+    await user.click(screen.getByRole("button", { name: "feature" }));
+    expect(actions.checkout).toHaveBeenCalledWith("/repo", "feature");
+  });
+
+  it("shows top-aligned empty states for a missing folder and a non-repo", async () => {
+    const user = userEvent.setup();
+    setPane("~");
+    const { unmount } = render(<GitPanel />);
+    expect(screen.getByText("No folder to inspect").closest("div")).not.toHaveClass("h-full");
+    unmount();
+
+    setPane("/tmp");
+    useGitStore.setState({ error: "Not a git repository", status: null, fetchStatus: vi.fn(async () => false) });
+    render(<GitPanel />);
+    await user.click(screen.getByRole("button", { name: "Initialize repository" }));
+    expect(actions.initRepo).toHaveBeenCalledWith("/tmp");
+  });
+});
