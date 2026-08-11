@@ -70,6 +70,12 @@ const STRICT_PATHS = [
   "src/components/git/GitHistory.tsx",
   "src/components/git/DiffViewer.tsx",
   "src/components/database/",
+  "src/components/sftp/sftp-paths.ts",
+  "src/components/sftp/file-table.ts",
+  "src/components/sftp/FileTable.tsx",
+  "src/components/sftp/PathBreadcrumb.tsx",
+  "src/components/sftp/TransferQueue.tsx",
+  "src/components/sftp/FileConflictDialog.tsx",
 ];
 
 const file = "eslint-suppressions.json";

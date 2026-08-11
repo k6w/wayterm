@@ -1,177 +1,102 @@
-import { useRef, useState, useEffect } from "react";
-import { ChevronRight, Star, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { Bookmark, ChevronRight, Star, Trash2 } from "lucide-react";
 import { useSettingsStore } from "../../stores/settings";
-import type { SftpBookmark } from "../../types/settings";
+import { ICON_SM, IconButton, ListRow, Popover, PopoverContent, PopoverTrigger, cn, focusRing } from "../../ui";
+import { breadcrumbs } from "./sftp-paths";
 
 interface PathBreadcrumbProps {
   path: string;
   onNavigate: (path: string) => void;
+  /** Names the trail for screen readers: "{label} path". */
   label?: string;
+  /** Bookmark star and the saved-bookmarks list (remote side). */
   showBookmarks?: boolean;
 }
 
-export default function PathBreadcrumb({
-  path,
-  onNavigate,
-  label,
-  showBookmarks = false,
-}: PathBreadcrumbProps) {
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const sftpBookmarks = useSettingsStore((s) => s.settings.sftpBookmarks);
-  const setSftpBookmarks = useSettingsStore((s) => s.setSftpBookmarks);
+/** Clickable path trail, scrolling sideways when long, with optional bookmarks. */
+export default function PathBreadcrumb({ path, onNavigate, label, showBookmarks = false }: PathBreadcrumbProps) {
+  const bookmarks = useSettingsStore((s) => s.settings.sftpBookmarks);
+  const setBookmarks = useSettingsStore((s) => s.setSftpBookmarks);
+  const crumbs = breadcrumbs(path);
+  const isBookmarked = bookmarks.some((b) => b.path === path);
+  const [listOpen, setListOpen] = useState(false);
 
-  const isWindows = /^[A-Za-z]:[\\/]/.test(path);
-  const separator = "/";
-  const normalizedPath = path.replace(/\\/g, "/");
-
-  const parts = normalizedPath.split("/").filter(Boolean);
-
-  const segments: { name: string; fullPath: string }[] = [];
-
-  if (isWindows) {
-    if (parts.length > 0) {
-      segments.push({ name: parts[0], fullPath: parts[0] + "/" });
-      for (let i = 1; i < parts.length; i++) {
-        segments.push({
-          name: parts[i],
-          fullPath: parts.slice(0, i + 1).join(separator) + (i === 0 ? "/" : ""),
-        });
-      }
-      for (let i = 1; i < segments.length; i++) {
-        segments[i].fullPath = parts[0] + "/" + parts.slice(1, i + 1).join(separator);
-      }
-    }
-  } else {
-    for (let i = 0; i < parts.length; i++) {
-      segments.push({
-        name: parts[i],
-        fullPath: "/" + parts.slice(0, i + 1).join(separator),
-      });
-    }
-  }
-
-  const isBookmarked = sftpBookmarks.some((b) => b.path === path);
-
-  const handleToggleBookmark = () => {
+  const toggleBookmark = () => {
     if (isBookmarked) {
-      setSftpBookmarks(sftpBookmarks.filter((b) => b.path !== path));
+      setBookmarks(bookmarks.filter((b) => b.path !== path));
     } else {
-      const name = parts[parts.length - 1] || path;
-      const bookmark: SftpBookmark = {
-        id: crypto.randomUUID(),
-        name,
-        path,
-      };
-      setSftpBookmarks([...sftpBookmarks, bookmark]);
+      const name = crumbs.length > 1 ? crumbs[crumbs.length - 1].name : path;
+      setBookmarks([...bookmarks, { id: crypto.randomUUID(), name, path }]);
     }
   };
-
-  const handleRemoveBookmark = (id: string) => {
-    setSftpBookmarks(sftpBookmarks.filter((b) => b.id !== id));
-  };
-
-  // Close dropdown on outside click
-  useEffect(() => {
-    if (!dropdownOpen) return;
-    const handler = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setDropdownOpen(false);
-      }
-    };
-    window.addEventListener("mousedown", handler);
-    return () => window.removeEventListener("mousedown", handler);
-  }, [dropdownOpen]);
 
   return (
-    <div className="flex items-center gap-0.5 overflow-x-auto text-xs min-w-0 px-2 py-1 flex-1">
-      {label && (
-        <span className="shrink-0 rounded bg-overlay/[0.06] px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider text-text-muted mr-1.5">
-          {label}
-        </span>
-      )}
-
-      {/* Root */}
-      <button
-        onClick={() => onNavigate(isWindows && parts.length > 0 ? parts[0] + "/" : "/")}
-        className="shrink-0 text-text-secondary hover:text-text-primary transition-colors"
-      >
-        {isWindows && parts.length > 0 ? parts[0] + separator : "/"}
-      </button>
-
-      {/* Path segments */}
-      {(isWindows ? segments.slice(1) : segments).map((seg, i, arr) => {
-        const isLast = i === arr.length - 1;
-        return (
-          <span key={seg.fullPath} className="flex items-center gap-0.5 shrink-0">
-            <ChevronRight size={10} className="text-text-muted" />
-            <button
-              onClick={() => onNavigate(seg.fullPath)}
-              className={`transition-colors ${
-                isLast
-                  ? "text-accent font-medium"
-                  : "text-text-secondary hover:text-text-primary"
-              }`}
-            >
-              {seg.name}
-            </button>
-          </span>
-        );
-      })}
-
-      {/* Bookmark controls */}
+    <div className="flex min-w-0 flex-1 items-center gap-1">
+      <nav aria-label={label ? `${label} path` : "Path"} className="scrollbar-none min-w-0 flex-1 overflow-x-auto">
+        <ol className="flex items-center gap-0.5 whitespace-nowrap text-label">
+          {crumbs.map((crumb, i) => {
+            const last = i === crumbs.length - 1;
+            return (
+              <li key={crumb.path} className="flex items-center gap-0.5">
+                {i > 0 && <ChevronRight size={12} strokeWidth={1.5} aria-hidden className="shrink-0 text-fg-muted" />}
+                <button
+                  type="button"
+                  aria-current={last ? "location" : undefined}
+                  onClick={() => onNavigate(crumb.path)}
+                  className={cn(
+                    "rounded-sm px-1 transition-colors duration-150 ease-out",
+                    last ? "font-medium text-fg" : "text-fg-secondary hover:text-fg",
+                    focusRing
+                  )}
+                >
+                  {crumb.name}
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+      </nav>
       {showBookmarks && (
-        <div ref={dropdownRef} className="relative ml-auto shrink-0 flex items-center gap-0.5">
-          <button
-            onClick={handleToggleBookmark}
-            className={`flex size-5 items-center justify-center rounded transition-colors ${
-              isBookmarked
-                ? "text-warning hover:text-text-muted"
-                : "text-text-muted hover:text-warning"
-            }`}
-            title={isBookmarked ? "Remove bookmark" : "Bookmark this path"}
-          >
-            <Star size={11} fill={isBookmarked ? "currentColor" : "none"} />
-          </button>
-
-          {sftpBookmarks.length > 0 && (
-            <button
-              onClick={() => setDropdownOpen((p) => !p)}
-              className="flex size-5 items-center justify-center rounded text-text-muted hover:text-text-secondary transition-colors"
-              title="Bookmarks"
-            >
-              <ChevronRight
-                size={10}
-                className={`transition-transform duration-150 ${dropdownOpen ? "rotate-90" : "rotate-0"}`}
-              />
-            </button>
+        <>
+          <IconButton
+            size="xs"
+            label={isBookmarked ? "Remove bookmark" : "Bookmark this path"}
+            pressed={isBookmarked}
+            icon={<Star {...ICON_SM} fill={isBookmarked ? "currentColor" : "none"} />}
+            onClick={toggleBookmark}
+          />
+          {bookmarks.length > 0 && (
+            <Popover open={listOpen} onOpenChange={setListOpen}>
+              <PopoverTrigger asChild>
+                <IconButton size="xs" label="Bookmarks" icon={<Bookmark {...ICON_SM} />} />
+              </PopoverTrigger>
+              <PopoverContent align="end" className="w-64">
+                <ul aria-label="Bookmarks" className="flex max-h-60 flex-col overflow-y-auto">
+                  {bookmarks.map((bm) => (
+                    <li key={bm.id}>
+                      <ListRow
+                        label={bm.name}
+                        description={<span className="font-mono">{bm.path}</span>}
+                        onSelect={() => {
+                          onNavigate(bm.path);
+                          setListOpen(false);
+                        }}
+                        actions={
+                          <IconButton
+                            size="xs"
+                            label={`Remove ${bm.name}`}
+                            icon={<Trash2 {...ICON_SM} />}
+                            onClick={() => setBookmarks(bookmarks.filter((b) => b.id !== bm.id))}
+                          />
+                        }
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </PopoverContent>
+            </Popover>
           )}
-
-          {dropdownOpen && (
-            <div className="absolute right-0 top-full mt-1 z-50 min-w-[200px] rounded-lg border border-border bg-bg-secondary shadow-xl overflow-hidden">
-              <div className="py-1 max-h-[200px] overflow-y-auto">
-                {sftpBookmarks.map((bm) => (
-                  <div key={bm.id} className="group flex items-center gap-2 px-2 py-1.5 hover:bg-overlay/[0.06]">
-                    <button
-                      className="flex-1 text-left text-xs text-text-secondary hover:text-text-primary truncate"
-                      onClick={() => { onNavigate(bm.path); setDropdownOpen(false); }}
-                      title={bm.path}
-                    >
-                      <span className="font-medium">{bm.name}</span>
-                      <span className="text-[10px] text-text-muted block truncate">{bm.path}</span>
-                    </button>
-                    <button
-                      onClick={() => handleRemoveBookmark(bm.id)}
-                      className="opacity-0 group-hover:opacity-100 text-text-muted hover:text-error transition-colors"
-                    >
-                      <Trash2 size={11} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
+        </>
       )}
     </div>
   );

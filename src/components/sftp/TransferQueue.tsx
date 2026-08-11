@@ -1,135 +1,71 @@
 import { useState } from "react";
-import { Upload, Download, ChevronDown, ChevronUp, X } from "lucide-react";
-import { useThemeStore } from "../../stores/theme";
-import { useSettingsStore } from "../../stores/settings";
-import { hexToRgba } from "../../lib/color";
-import { vibrancyAlpha } from "../../lib/platform";
+import { ChevronDown, ChevronUp, Download, Upload } from "lucide-react";
+import { Badge, Button, ICON_SM, Progress, cn } from "../../ui";
 import type { Transfer } from "../../types/sftp";
+import { TRANSFER_TONE, transferPercent, transferStatusLabel } from "./file-table";
+
+const TEXT_TONE = {
+  neutral: "text-fg-muted",
+  info: "text-info",
+  success: "text-success",
+  danger: "text-danger",
+} as const;
 
 interface TransferQueueProps {
   transfers: Transfer[];
   onClearCompleted: () => void;
 }
 
-const STATUS_COLORS: Record<Transfer["status"], string> = {
-  queued: "text-text-muted",
-  in_progress: "text-accent",
-  completed: "text-success",
-  error: "text-error",
-};
-
-const STATUS_BAR_COLORS: Record<Transfer["status"], string> = {
-  queued: "bg-text-muted/30",
-  in_progress: "bg-accent",
-  completed: "bg-success",
-  error: "bg-error",
-};
-
-export default function TransferQueue({
-  transfers,
-  onClearCompleted,
-}: TransferQueueProps) {
-  const [collapsed, setCollapsed] = useState(true);
-  const theme = useThemeStore((s) => s.active);
-  const vibrancy = useSettingsStore((s) => s.settings.appearance.vibrancyEnabled);
-  const windowOpacity = useSettingsStore((s) => s.settings.appearance.windowOpacity);
-
+/**
+ * Collapsible transfer list docked under the file lists (collapsed by
+ * default). Hidden while there are no transfers.
+ */
+export default function TransferQueue({ transfers, onClearCompleted }: TransferQueueProps) {
+  const [open, setOpen] = useState(false);
   if (transfers.length === 0) return null;
 
-  const bgSecondary = vibrancy
-    ? hexToRgba(theme.ui.bgSecondary, vibrancyAlpha(windowOpacity))
-    : theme.ui.bgSecondary;
-
-  const completedCount = transfers.filter(
-    (t) => t.status === "completed" || t.status === "error"
-  ).length;
+  const finished = transfers.filter((t) => t.status === "completed" || t.status === "error").length;
+  const running = transfers.filter((t) => t.status === "in_progress").length;
 
   return (
-    <div
-      className="border-t border-border shrink-0"
-      style={{ backgroundColor: bgSecondary }}
-    >
-      {}
-      <button
-        onClick={() => setCollapsed(!collapsed)}
-        className="flex w-full items-center gap-2 px-3 py-1.5 text-[11px] font-medium text-text-secondary hover:bg-overlay/[0.04] transition-colors"
-      >
-        {collapsed ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
-        <span>
-          Transfers ({transfers.length})
-        </span>
-        <span className="flex-1" />
-        {completedCount > 0 && (
-          <span
-            onClick={(e) => {
-              e.stopPropagation();
-              onClearCompleted();
-            }}
-            className="flex items-center gap-1 text-text-muted hover:text-text-primary transition-colors"
-          >
-            <X size={10} />
-            Clear
-          </span>
+    <section aria-label="Transfers" className="shrink-0 border-t border-border bg-panel">
+      <div className="flex h-8 items-center gap-2 pl-1 pr-2">
+        <Button
+          size="sm"
+          variant="ghost"
+          aria-expanded={open}
+          leadingIcon={open ? <ChevronDown {...ICON_SM} /> : <ChevronUp {...ICON_SM} />}
+          onClick={() => setOpen((v) => !v)}
+        >
+          Transfers
+        </Button>
+        <Badge>{transfers.length}</Badge>
+        {running > 0 && <Badge tone="info">{running} running</Badge>}
+        <span aria-hidden className="flex-1" />
+        {finished > 0 && (
+          <Button size="xs" variant="ghost" onClick={onClearCompleted}>
+            Clear finished
+          </Button>
         )}
-      </button>
-
-      {}
-      {!collapsed && (
-        <div className="max-h-[140px] overflow-auto">
-          {transfers.map((transfer) => {
-            const pct =
-              transfer.totalBytes > 0
-                ? Math.round(
-                    (transfer.bytesTransferred / transfer.totalBytes) * 100
-                  )
-                : 0;
+      </div>
+      {open && (
+        <ul className="max-h-36 overflow-y-auto pb-1">
+          {transfers.map((t) => {
+            const tone = TRANSFER_TONE[t.status];
+            const Icon = t.direction === "upload" ? Upload : Download;
             return (
-              <div
-                key={transfer.id}
-                className="flex items-center gap-2 px-3 py-[3px] text-xs"
-                style={{ height: 28 }}
-              >
-                {}
-                <span className={STATUS_COLORS[transfer.status]}>
-                  {transfer.direction === "upload" ? (
-                    <Upload size={12} />
-                  ) : (
-                    <Download size={12} />
-                  )}
+              <li key={t.id} title={t.error ?? undefined} className="flex h-row items-center gap-2 px-3 text-label">
+                <Icon {...ICON_SM} aria-label={t.direction === "upload" ? "Upload" : "Download"} className={cn("shrink-0", TEXT_TONE[tone])} />
+                <span className="min-w-0 flex-1 truncate text-fg-secondary">{t.fileName}</span>
+                <Progress label={t.fileName} value={transferPercent(t)} tone={tone} className="w-20 shrink-0" />
+                <span className={cn("w-12 shrink-0 text-right tabular-nums text-caption", TEXT_TONE[tone])}>
+                  {transferStatusLabel(t)}
                 </span>
-
-                {}
-                <span className="truncate min-w-0 flex-1 text-text-secondary">
-                  {transfer.fileName}
-                </span>
-
-                {}
-                <div className="w-20 h-1.5 rounded-full bg-overlay/[0.06] shrink-0 overflow-hidden">
-                  <div
-                    className={`h-full rounded-full transition-all ${STATUS_BAR_COLORS[transfer.status]}`}
-                    style={{
-                      width: `${transfer.status === "completed" ? 100 : pct}%`,
-                    }}
-                  />
-                </div>
-
-                {}
-                <span
-                  className={`w-10 text-right text-[10px] tabular-nums shrink-0 ${STATUS_COLORS[transfer.status]}`}
-                >
-                  {transfer.status === "error"
-                    ? "ERR"
-                    : transfer.status === "completed"
-                      ? "Done"
-                      : transfer.status === "queued"
-                        ? "Wait"
-                        : `${pct}%`}
-                </span>
-              </div>
+              </li>
             );
           })}
-        </div>
+        </ul>
       )}
-    </div>
+    </section>
   );
 }

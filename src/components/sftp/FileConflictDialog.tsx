@@ -1,41 +1,33 @@
-import { useEffect, useCallback } from "react";
-import { createPortal } from "react-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import { AlertTriangle, Copy, SkipForward, Replace } from "lucide-react";
-import { useThemeStore } from "../../stores/theme";
-import { useSettingsStore } from "../../stores/settings";
-import { hexToRgba } from "../../lib/color";
-import { vibrancyAlpha } from "../../lib/platform";
+import { useRef } from "react";
+import { AlertTriangle, Copy, Replace } from "lucide-react";
+import { Button, Dialog, DialogContent, ICON_MD, ICON_SM } from "../../ui";
+import { joinRemote } from "./sftp-paths";
 
 interface FileConflictDialogProps {
   open: boolean;
   fileName: string;
   onReplace: () => void;
+  /** Keep both: upload under the next free name ("a (1).txt"); receives the full remote path. */
   onRename: (newPath: string) => void;
   onSkip: () => void;
-  
+  /** Names already in the remote folder. */
   remoteNames: Set<string>;
-  
+  /** The remote folder the file goes to. */
   remoteDir: string;
 }
 
-
-function nextAvailableName(
-  fileName: string,
-  existingNames: Set<string>
-): string {
-  const dotIdx = fileName.lastIndexOf(".");
-  const base = dotIdx > 0 ? fileName.slice(0, dotIdx) : fileName;
-  const ext = dotIdx > 0 ? fileName.slice(dotIdx) : "";
-
-  let n = 1;
-  while (true) {
+/** "report (1).pdf", "report (2).pdf", ... the first name not in `existing`. */
+export function nextAvailableName(fileName: string, existing: ReadonlySet<string>): string {
+  const dot = fileName.lastIndexOf(".");
+  const base = dot > 0 ? fileName.slice(0, dot) : fileName;
+  const ext = dot > 0 ? fileName.slice(dot) : "";
+  for (let n = 1; ; n++) {
     const candidate = `${base} (${n})${ext}`;
-    if (!existingNames.has(candidate)) return candidate;
-    n++;
+    if (!existing.has(candidate)) return candidate;
   }
 }
 
+/** Asks what to do when an upload would overwrite a remote file. Focus starts on Skip, the safe choice. */
 export default function FileConflictDialog({
   open,
   fileName,
@@ -45,107 +37,46 @@ export default function FileConflictDialog({
   remoteNames,
   remoteDir,
 }: FileConflictDialogProps) {
-  const theme = useThemeStore((s) => s.active);
-  const vibrancy = useSettingsStore((s) => s.settings.appearance.vibrancyEnabled);
-  const opacity = useSettingsStore((s) => s.settings.appearance.windowOpacity);
-
-  const cardBg = vibrancy
-    ? hexToRgba(theme.ui.bgPrimary, vibrancyAlpha(opacity) * 0.92)
-    : theme.ui.bgPrimary;
-  const footerBg = vibrancy
-    ? hexToRgba(theme.ui.bgSecondary, vibrancyAlpha(opacity) * 0.5)
-    : undefined;
-
-  const handleKey = useCallback(
-    (e: KeyboardEvent) => {
-      if (!open) return;
-      if (e.key === "Escape") onSkip();
-    },
-    [open, onSkip]
-  );
-
-  useEffect(() => {
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [handleKey]);
-
-  const handleKeepBoth = useCallback(() => {
-    const newName = nextAvailableName(fileName, remoteNames);
-    const newPath = remoteDir.replace(/\/+$/, "") + "/" + newName;
-    onRename(newPath);
-  }, [fileName, remoteNames, remoteDir, onRename]);
-
-  return createPortal(
-    <AnimatePresence>
-      {open && (
-        <motion.div
-          className="fixed inset-0 z-[60] flex items-center justify-center bg-black/50"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.12 }}
-          onClick={onSkip}
-        >
-          <motion.div
-            className="w-[380px] max-w-[calc(100vw-2rem)] rounded-xl border border-border overflow-hidden shadow-2xl"
-            style={{
-              backgroundColor: cardBg,
-              backdropFilter: vibrancy ? "blur(24px) saturate(1.4)" : undefined,
-              WebkitBackdropFilter: vibrancy ? "blur(24px) saturate(1.4)" : undefined,
-            }}
-            initial={{ opacity: 0, scale: 0.95, y: 8 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 8 }}
-            transition={{ duration: 0.15 }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="px-5 pt-5 pb-4 flex gap-3.5">
-              <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-warning/15">
-                <AlertTriangle size={18} className="text-warning" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <h3 className="text-sm font-medium text-text-primary">
-                  File already exists
-                </h3>
-                <p className="mt-1 text-xs text-text-muted leading-relaxed">
-                  <span className="font-medium text-text-secondary">
-                    {fileName}
-                  </span>{" "}
-                  already exists in the remote directory. What would you like to
-                  do?
-                </p>
-              </div>
-            </div>
-            <div
-              className="flex items-center justify-end gap-2 px-5 py-3 border-t border-border"
-              style={{ backgroundColor: footerBg }}
+  const skipRef = useRef<HTMLButtonElement>(null);
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(next) => {
+        if (!next) onSkip();
+      }}
+    >
+      <DialogContent
+        size="sm"
+        title="File already exists"
+        onOpenAutoFocus={(event) => {
+          event.preventDefault();
+          skipRef.current?.focus();
+        }}
+        footer={
+          <>
+            <Button ref={skipRef} variant="ghost" onClick={onSkip}>
+              Skip
+            </Button>
+            <Button
+              leadingIcon={<Copy {...ICON_SM} />}
+              onClick={() => onRename(joinRemote(remoteDir, nextAvailableName(fileName, remoteNames)))}
             >
-              <button
-                onClick={onSkip}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-text-secondary hover:text-text-primary rounded-md transition-colors"
-              >
-                <SkipForward size={12} />
-                Skip
-              </button>
-              <button
-                onClick={handleKeepBoth}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs text-text-secondary hover:text-text-primary rounded-md border border-border hover:bg-overlay/[0.04] transition-colors"
-              >
-                <Copy size={12} />
-                Keep Both
-              </button>
-              <button
-                onClick={onReplace}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white rounded-md bg-accent hover:bg-accent-hover transition-colors"
-              >
-                <Replace size={12} />
-                Replace
-              </button>
-            </div>
-          </motion.div>
-        </motion.div>
-      )}
-    </AnimatePresence>,
-    document.body
+              Keep both
+            </Button>
+            <Button variant="primary" leadingIcon={<Replace {...ICON_SM} />} onClick={onReplace}>
+              Replace
+            </Button>
+          </>
+        }
+      >
+        <div className="flex gap-3">
+          <AlertTriangle {...ICON_MD} aria-hidden className="mt-0.5 shrink-0 text-warning" />
+          <p className="text-body text-fg-secondary">
+            <span className="font-medium text-fg">{fileName}</span> already exists in{" "}
+            <span className="font-mono text-fg">{remoteDir}</span>. Replace it, keep both, or skip this file?
+          </p>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
