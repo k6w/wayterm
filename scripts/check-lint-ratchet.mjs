@@ -69,6 +69,7 @@ const STRICT_PATHS = [
   "src/components/git/GitChanges.tsx",
   "src/components/git/GitHistory.tsx",
   "src/components/git/DiffViewer.tsx",
+  "src/components/database/",
 ];
 
 const file = "eslint-suppressions.json";
