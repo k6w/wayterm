@@ -9,21 +9,6 @@
       "count": 1
     }
   },
-  "src/components/sftp/FileList.tsx": {
-    "nexterm/no-inline-style": {
-      "count": 1
-    }
-  },
-  "src/components/sftp/SftpContextMenu.tsx": {
-    "nexterm/no-inline-style": {
-      "count": 5
-    }
-  },
-  "src/components/sftp/SftpPane.tsx": {
-    "nexterm/no-inline-style": {
-      "count": 23
-    }
-  },
   "src/components/terminal/PaneContextMenu.tsx": {
     "nexterm/no-inline-style": {
       "count": 5
