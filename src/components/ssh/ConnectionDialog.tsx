@@ -49,6 +49,12 @@ const AUTH_OPTIONS: readonly SegmentedOption<AuthMethod>[] = [
   { value: "agent", label: "Agent", icon: <Shield {...ICON_SM} /> },
 ];
 
+function errorMessage(error: unknown): string {
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
+  return "Unknown error.";
+}
+
 const NO_ERRORS: ConnectionFormErrors = {};
 
 /** New / edit SSH connection. The form mounts on every open, so it starts from `editConnection`. */
@@ -74,6 +80,7 @@ interface ConnectionFormProps {
 function ConnectionForm({ onClose, onSave, editConnection }: ConnectionFormProps) {
   const [form, setForm] = useState<ConnectionFormState>(() => createFormState(editConnection));
   const [submitted, setSubmitted] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [newEnvKey, setNewEnvKey] = useState("");
   const [newEnvVal, setNewEnvVal] = useState("");
@@ -106,17 +113,16 @@ function ConnectionForm({ onClose, onSave, editConnection }: ConnectionFormProps
       return;
     }
     const connection = toConnection(form, editConnection, new Date().toISOString(), () => crypto.randomUUID());
-    if (intent === "save") {
-      void onSave(connection);
-      return;
-    }
-    // Save & Connect: open the tab only once the connection is persisted.
+    setSaveError(null);
+    // The tab (Save & Connect) opens only once the connection is persisted.
     void (async () => {
       try {
         await onSave(connection);
-      } catch {
+      } catch (error) {
+        setSaveError(errorMessage(error));
         return;
       }
+      if (intent === "save") return;
       const { addTab, renameTab } = useTerminalStore.getState();
       addTab("ssh", undefined, connection.id);
       const { tabs } = useTerminalStore.getState();
@@ -199,6 +205,14 @@ function ConnectionForm({ onClose, onSave, editConnection }: ConnectionFormProps
         </>
       }
     >
+      {saveError && (
+        <p
+          role="alert"
+          className="mb-3 rounded-md border border-danger bg-raised px-3 py-2 text-label text-danger"
+        >
+          Could not save this connection: {saveError}
+        </p>
+      )}
       <form
         ref={formRef}
         id={formId}

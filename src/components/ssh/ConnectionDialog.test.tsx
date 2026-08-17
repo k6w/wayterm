@@ -207,4 +207,18 @@ describe("ConnectionDialog", () => {
     expect(screen.getByText(/not saved/i)).toBeInTheDocument();
     expect(screen.queryByText(/stored in memory/i)).not.toBeInTheDocument();
   });
+
+  it("shows an inline error and stays open when saving is rejected", async () => {
+    const onSave = vi.fn().mockRejectedValue(new Error("invalid args `profile`: expected a string"));
+    const onClose = vi.fn();
+    const user = userEvent.setup();
+    render(<ConnectionDialog isOpen onClose={onClose} onSave={onSave} editConnection={null} />);
+    await screen.findByRole("dialog");
+    await fillRequired(user);
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(/could not save/i);
+    expect(alert).toHaveTextContent(/expected a string/);
+    expect(onClose).not.toHaveBeenCalled();
+  });
 });

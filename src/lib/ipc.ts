@@ -85,12 +85,29 @@ export async function pathExists(path: string): Promise<boolean> {
   return invoke("path_exists", { path });
 }
 
+/**
+ * The Rust ConnectionProfile stores `env_vars` as a JSON string ("{}" when empty);
+ * the app works with a Record<string, string>. Convert at this boundary.
+ */
+function parseEnvVars(value: unknown): Record<string, string> {
+  if (value && typeof value === "object") return value as Record<string, string>;
+  if (typeof value !== "string") return {};
+  try {
+    const parsed: unknown = JSON.parse(value);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? (parsed as Record<string, string>) : {};
+  } catch {
+    return {};
+  }
+}
+
 export async function sshListConnections(): Promise<unknown[]> {
-  return invoke("ssh_list_connections");
+  const list = await invoke<unknown[] | null>("ssh_list_connections");
+  return (list ?? []).map((c) => ({ ...(c as object), envVars: parseEnvVars((c as { envVars?: unknown }).envVars) }));
 }
 
 export async function sshSaveConnection(profile: unknown): Promise<void> {
-  return invoke("ssh_save_connection", { profile });
+  const { envVars, ...rest } = profile as { envVars?: Record<string, string> };
+  return invoke("ssh_save_connection", { profile: { ...rest, envVars: JSON.stringify(envVars ?? {}) } });
 }
 
 export async function sshDeleteConnection(id: string): Promise<void> {
