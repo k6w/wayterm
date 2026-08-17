@@ -1,6 +1,6 @@
 import type { ComponentPropsWithRef } from "react";
 import { cva, type VariantProps } from "class-variance-authority";
-import { cn, focusRing } from "./utils";
+import { cn, focusRing, CODE_TEXT_ATTRS } from "./utils";
 
 export const inputVariants = cva(
   cn(
@@ -33,14 +33,17 @@ export interface InputProps
     VariantProps<typeof inputVariants> {
   /** Marks the field invalid (aria-invalid + danger border). */
   invalid?: boolean;
+  /** Code, command, path or host text: mono font, and no spell check, autocorrect, smart punctuation or autocapitalize. */
+  code?: boolean;
 }
 
 /** Single-line text field. Label it with <label htmlFor> or aria-label. */
-export function Input({ variant, size, invalid, className, ...rest }: InputProps) {
+export function Input({ variant, size, invalid, code, className, ...rest }: InputProps) {
   return (
     <input
       aria-invalid={invalid || undefined}
-      className={cn(inputVariants({ variant, size }), className)}
+      {...(code ? CODE_TEXT_ATTRS : undefined)}
+      className={cn(inputVariants({ variant, size }), code && "font-mono", className)}
       {...rest}
     />
   );

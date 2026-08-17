@@ -109,7 +109,7 @@ export function SearchBar({ searchAddon, onClose }: SearchBarProps) {
         value={query}
         onChange={(event) => changeQuery(event.target.value)}
         onKeyDown={onKeyDown}
-        spellCheck={false}
+        code
         className="max-w-72 flex-1"
       />
       <span aria-live="polite" className="min-w-16 shrink-0 text-label tabular-nums text-fg-muted">

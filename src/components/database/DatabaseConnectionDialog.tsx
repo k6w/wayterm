@@ -80,6 +80,7 @@ function ConnectionForm({ onSave, onClose }: Omit<DatabaseConnectionDialogProps,
       {(control) => (
         <Input
           {...control}
+          code={key !== "name"}
           ref={(el) => {
             inputs.current[key] = el;
           }}

@@ -91,15 +91,15 @@ function PortForwardsBody({ connectionId, sessionId }: { connectionId: string; s
             <div className="grid grid-cols-[1fr_2fr_1fr] gap-2">
               <Field label="Local port" error={errors.localPort}>
                 {(control) => (
-                  <Input {...control} inputMode="numeric" autoFocus value={form.localPort} onChange={(e) => set("localPort")(e.target.value)} />
+                  <Input {...control} code inputMode="numeric" autoFocus value={form.localPort} onChange={(e) => set("localPort")(e.target.value)} />
                 )}
               </Field>
               <Field label="Remote host" error={errors.remoteHost}>
-                {(control) => <Input {...control} value={form.remoteHost} onChange={(e) => set("remoteHost")(e.target.value)} />}
+                {(control) => <Input {...control} code value={form.remoteHost} onChange={(e) => set("remoteHost")(e.target.value)} />}
               </Field>
               <Field label="Remote port" error={errors.remotePort}>
                 {(control) => (
-                  <Input {...control} inputMode="numeric" value={form.remotePort} onChange={(e) => set("remotePort")(e.target.value)} />
+                  <Input {...control} code inputMode="numeric" value={form.remotePort} onChange={(e) => set("remotePort")(e.target.value)} />
                 )}
               </Field>
             </div>

@@ -241,8 +241,7 @@ function ConnectionForm({ onClose, onSave, editConnection }: ConnectionFormProps
                   value={form.host}
                   onChange={(e) => update("host", e.target.value)}
                   placeholder="hostname or IP"
-                  autoCapitalize="off"
-                  spellCheck={false}
+                  code
                 />
               )}
             </Field>
@@ -250,6 +249,7 @@ function ConnectionForm({ onClose, onSave, editConnection }: ConnectionFormProps
               {(control) => (
                 <Input
                   {...control}
+                  code
                   inputMode="numeric"
                   value={form.port}
                   onChange={(e) => update("port", e.target.value)}
@@ -264,8 +264,7 @@ function ConnectionForm({ onClose, onSave, editConnection }: ConnectionFormProps
                 value={form.username}
                 onChange={(e) => update("username", e.target.value)}
                 placeholder="root"
-                autoCapitalize="off"
-                spellCheck={false}
+                code
               />
             )}
           </Field>
@@ -274,7 +273,7 @@ function ConnectionForm({ onClose, onSave, editConnection }: ConnectionFormProps
             {(control) => (
               <Textarea
                 {...control}
-                className="font-mono"
+                code
                 value={form.startupCommands}
                 onChange={(e) => update("startupCommands", e.target.value)}
                 placeholder="cd /srv/app"
@@ -324,11 +323,10 @@ function ConnectionForm({ onClose, onSave, editConnection }: ConnectionFormProps
                   {(control) => (
                     <Input
                       {...control}
-                      className="font-mono"
+                      code
                       value={form.privateKeyPath}
                       onChange={(e) => update("privateKeyPath", e.target.value)}
                       placeholder="~/.ssh/id_ed25519"
-                      spellCheck={false}
                     />
                   )}
                 </Field>
@@ -427,21 +425,19 @@ function ConnectionForm({ onClose, onSave, editConnection }: ConnectionFormProps
                 <div className="flex items-center gap-2">
                   <Input
                     aria-label="Variable name"
-                    className="font-mono"
+                    code
                     value={newEnvKey}
                     onChange={(e) => setNewEnvKey(e.target.value)}
                     onKeyDown={onEnvKeyDown}
                     placeholder="KEY"
-                    spellCheck={false}
                   />
                   <Input
                     aria-label="Variable value"
-                    className="font-mono"
+                    code
                     value={newEnvVal}
                     onChange={(e) => setNewEnvVal(e.target.value)}
                     onKeyDown={onEnvKeyDown}
                     placeholder="value"
-                    spellCheck={false}
                   />
                   <IconButton
                     label="Add variable"

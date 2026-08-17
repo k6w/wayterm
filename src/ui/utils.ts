@@ -19,3 +19,11 @@ export const focusRing = [
 /** lucide icon presets: 14px and 16px at 1.5 stroke (spec section 1). */
 export const ICON_SM = { size: 14, strokeWidth: 1.5 } as const;
 export const ICON_MD = { size: 16, strokeWidth: 1.5 } as const;
+
+/** Attributes that stop macOS/WebKit rewriting code, commands, paths and hosts as prose. */
+export const CODE_TEXT_ATTRS = {
+  spellCheck: false,
+  autoCorrect: "off",
+  autoCapitalize: "off",
+  autoComplete: "off",
+} as const;

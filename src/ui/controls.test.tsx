@@ -204,6 +204,31 @@ describe("Field", () => {
   });
 });
 
+describe("code fields", () => {
+  const CODE_ATTRS = { spellcheck: "false", autocorrect: "off", autocapitalize: "off", autocomplete: "off" };
+
+  it("Input code turns off text rewriting and uses the mono font", () => {
+    render(<Input aria-label="Host" code />);
+    const input = screen.getByRole("textbox", { name: "Host" });
+    for (const [name, value] of Object.entries(CODE_ATTRS)) expect(input).toHaveAttribute(name, value);
+    expect(input).toHaveClass("font-mono");
+  });
+
+  it("Textarea code turns off text rewriting and uses the mono font", () => {
+    render(<Textarea aria-label="Query" code />);
+    const area = screen.getByRole("textbox", { name: "Query" });
+    for (const [name, value] of Object.entries(CODE_ATTRS)) expect(area).toHaveAttribute(name, value);
+    expect(area).toHaveClass("font-mono");
+  });
+
+  it("leaves prose fields alone by default", () => {
+    render(<Input aria-label="Notes" />);
+    const input = screen.getByRole("textbox", { name: "Notes" });
+    expect(input).not.toHaveAttribute("autocorrect");
+    expect(input).not.toHaveClass("font-mono");
+  });
+});
+
 describe("Textarea", () => {
   it("accepts multi-line typing and reports invalid state", async () => {
     const user = userEvent.setup();

@@ -226,8 +226,7 @@ function PaletteBody() {
           aria-controls={listId}
           aria-autocomplete="list"
           aria-activedescendant={activeId}
-          autoComplete="off"
-          spellCheck={false}
+          code
           placeholder={view === "themes" ? "Search themes..." : "Type a command..."}
           value={query}
           onChange={(event) => changeQuery(event.target.value)}

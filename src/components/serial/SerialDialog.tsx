@@ -118,11 +118,10 @@ export default function SerialDialog({ open, onClose, onConnect }: SerialDialogP
                 ) : (
                   <Input
                     {...control}
-                    className="font-mono"
+                    code
                     value={portName}
                     onChange={(e) => setPortName(e.target.value)}
                     placeholder="e.g. COM3 or /dev/ttyUSB0"
-                    spellCheck={false}
                   />
                 )}
                 <IconButton

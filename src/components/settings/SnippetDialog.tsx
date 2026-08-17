@@ -89,7 +89,7 @@ function SnippetForm({
             <Textarea
               {...control}
               rows={4}
-              className="font-mono"
+              code
               placeholder="tail -f /var/log/app.log"
               value={draft.command}
               onChange={(e) => set("command")(e.target.value)}

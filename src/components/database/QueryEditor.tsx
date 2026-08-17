@@ -54,7 +54,7 @@ export default function QueryEditor({ query, onQueryChange, history, running, on
       <Textarea
         aria-label="SQL query"
         rows={6}
-        className="font-mono"
+        code
         placeholder="SELECT * FROM users LIMIT 10"
         value={query}
         onChange={(e) => {
