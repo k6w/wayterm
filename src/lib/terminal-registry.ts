@@ -47,6 +47,21 @@ export function copySelection(paneId: string): boolean {
   return true;
 }
 
+/**
+ * Records the terminal selection in clipboard history whenever the webview
+ * copies natively (Cmd+C on macOS and the Edit menu never reach copySelection).
+ * copySelection writes through navigator.clipboard, which fires no copy event,
+ * so one copy is never recorded twice. Returns a cleanup function.
+ */
+export function recordNativeCopies(terminal: Pick<Terminal, "getSelection">, element: HTMLElement): () => void {
+  const onCopy = () => {
+    const selection = terminal.getSelection();
+    if (selection) useClipboardStore.getState().addEntry(selection, "terminal");
+  };
+  element.addEventListener("copy", onCopy);
+  return () => element.removeEventListener("copy", onCopy);
+}
+
 export async function pasteToTerminal(paneId: string): Promise<boolean> {
   const term = cache.get(paneId)?.terminal;
   if (!term) return false;

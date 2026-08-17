@@ -26,6 +26,7 @@ import {
   getCachedTerminal,
   setCachedTerminal,
   removeCachedTerminal,
+  recordNativeCopies,
 } from "../../lib/terminal-registry";
 import {
   attachSerializeAddon,
@@ -378,6 +379,8 @@ export default function TerminalPane({
         const fitAddon = new FitAddon();
         term.loadAddon(fitAddon);
         term.open(termEl);
+        // Cmd+C copies natively in the webview; record it like Ctrl+Shift+C. The element lives as long as the cached terminal.
+        recordNativeCopies(term, termEl);
 
         
         const webLinksAddon = new WebLinksAddon();
