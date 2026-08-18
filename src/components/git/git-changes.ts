@@ -1,10 +1,11 @@
 import type { GitStatus } from "../../types/git";
 
-export type ChangeCode = "S" | "M" | "A" | "D" | "U";
+export type ChangeCode = "S" | "M" | "A" | "D" | "R" | "U";
 
 export interface ChangeRow {
   path: string;
   code: ChangeCode;
+  staged?: boolean;
 }
 
 /** Badge text, tone and spoken name for each change code. */
@@ -13,13 +14,32 @@ export const CHANGE_CODES: Record<ChangeCode, { tone: "info" | "warning" | "succ
   M: { tone: "warning", label: "Modified" },
   A: { tone: "success", label: "Added" },
   D: { tone: "danger", label: "Deleted" },
+  R: { tone: "info", label: "Renamed" },
   U: { tone: "neutral", label: "Untracked" },
 };
+
+/** Badge code for an index status letter; unknown or missing letters stay "S". */
+function stagedCode(letter?: string): ChangeCode {
+  switch (letter) {
+    case "A":
+    case "C":
+      return "A";
+    case "M":
+    case "T":
+      return "M";
+    case "D":
+      return "D";
+    case "R":
+      return "R";
+    default:
+      return "S";
+  }
+}
 
 /** Staged files, then unstaged changes in the order modified, added, deleted, untracked. */
 export function changeGroups(status: GitStatus): { staged: ChangeRow[]; unstaged: ChangeRow[] } {
   return {
-    staged: status.staged.map((path) => ({ path, code: "S" })),
+    staged: status.staged.map((path) => ({ path, code: stagedCode(status.stagedCodes?.[path]), staged: true })),
     unstaged: [
       ...status.modified.map((path) => ({ path, code: "M" as const })),
       ...status.added.map((path) => ({ path, code: "A" as const })),

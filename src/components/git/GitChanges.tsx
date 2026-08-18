@@ -21,7 +21,7 @@ import type { GitStatus } from "../../types/git";
 interface GitChangesProps {
   status: GitStatus;
   branch: string | null;
-  onShowDiff: (file?: string) => void;
+  onShowDiff: (file?: string, staged?: boolean) => void;
   onPull: () => void;
   onPush: () => void;
   onStash: () => void;
@@ -70,7 +70,7 @@ export default function GitChanges({
         }
         label={<span className="font-mono">{change.path}</span>}
         aria-label={`${change.path}, ${code.label.toLowerCase()}. Show diff`}
-        onSelect={() => onShowDiff(change.path)}
+        onSelect={() => onShowDiff(change.path, change.staged)}
         actions={
           action === "stage" ? (
             <IconButton size="xs" label={`Stage ${change.path}`} icon={<Plus {...ICON_SM} />} onClick={() => onStage([change.path])} />

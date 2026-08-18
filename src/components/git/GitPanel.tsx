@@ -87,8 +87,14 @@ export function GitPanel() {
     if (refresh.includes("commits")) void fetchCommits(cwd, 50);
   };
 
-  const showDiff = async (file?: string) => {
-    setDiff(await fetchDiff(cwd, file));
+  const showDiff = async (file?: string, staged?: boolean) => {
+    if (file) {
+      setDiff(await fetchDiff(cwd, file, staged));
+      return;
+    }
+    // Whole-repo view: unstaged changes followed by staged ones.
+    const [unstaged, indexed] = await Promise.all([fetchDiff(cwd), fetchDiff(cwd, undefined, true)]);
+    setDiff([...unstaged, ...indexed.filter((d) => !unstaged.some((u) => u.file === d.file))]);
   };
 
   if (!isRepoPath(cwd)) {
@@ -162,7 +168,7 @@ export function GitPanel() {
           <GitChanges
             status={status}
             branch={currentBranch}
-            onShowDiff={(file) => void showDiff(file)}
+            onShowDiff={(file, staged) => void showDiff(file, staged)}
             onPull={run(() => pull(cwd), ["status", "commits"])}
             onPush={run(() => push(cwd), ["status"])}
             onStash={run(() => stash(cwd, "WIP"), ["status"])}

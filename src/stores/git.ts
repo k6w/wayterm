@@ -30,7 +30,7 @@ interface GitStore {
   fetchBranches: (path: string, connectionId?: string) => Promise<void>;
   fetchCommits: (path: string, limit?: number, connectionId?: string) => Promise<void>;
   fetchRemotes: (path: string) => Promise<void>;
-  fetchDiff: (path: string, file?: string) => Promise<GitDiff[]>;
+  fetchDiff: (path: string, file?: string, staged?: boolean) => Promise<GitDiff[]>;
   initRepo: (path: string, connectionId?: string) => Promise<void>;
   checkout: (path: string, branch: string) => Promise<void>;
   pull: (path: string) => Promise<void>;
@@ -94,9 +94,9 @@ export const useGitStore = create<GitStore>((set, get) => ({
     }
   },
 
-  fetchDiff: async (path: string, file?: string) => {
+  fetchDiff: async (path: string, file?: string, staged?: boolean) => {
     try {
-      return await gitGetDiff(path, file);
+      return await gitGetDiff(path, file, staged);
     } catch (error) {
       set({ error: String(error) });
       return [];

@@ -359,8 +359,8 @@ export async function gitGetRemotes(path: string): Promise<import("../types/git"
   return invoke("git_get_remotes", { path });
 }
 
-export async function gitGetDiff(path: string, file?: string): Promise<import("../types/git").GitDiff[]> {
-  return invoke("git_get_diff", { path, file });
+export async function gitGetDiff(path: string, file?: string, staged = false): Promise<import("../types/git").GitDiff[]> {
+  return invoke("git_get_diff", { path, file, staged });
 }
 
 export async function gitInit(path: string): Promise<void> {

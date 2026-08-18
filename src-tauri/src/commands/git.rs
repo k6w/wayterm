@@ -48,6 +48,19 @@ fn categorize_status_line(
     }
 }
 
+/// The index status letter and path of a staged porcelain entry, if any.
+fn staged_code(line: &str) -> Option<(String, String)> {
+    if line.len() < 4 {
+        return None;
+    }
+    let x = line.as_bytes()[0] as char;
+    let y = line.as_bytes()[1] as char;
+    if matches!(x, ' ' | '?' | 'U') || y == 'U' || (x, y) == ('A', 'A') || (x, y) == ('D', 'D') {
+        return None;
+    }
+    Some((line[3..].to_string(), x.to_string()))
+}
+
 fn configure_silent_command(cmd: &mut Command) -> &mut Command {
     cmd.stdin(std::process::Stdio::null())
         .stdout(std::process::Stdio::piped())
@@ -124,6 +137,8 @@ pub struct GitStatus {
     pub untracked: Vec<String>,
     pub conflicted: i32,
     pub stashes: i32,
+    /// Index status letter (A/M/D/R/C/T) for each staged path.
+    pub staged_codes: std::collections::HashMap<String, String>,
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -223,6 +238,7 @@ pub async fn git_get_status(path: String, connection_id: Option<String>, pool: S
     let mut deleted: Vec<String> = Vec::new();
     let mut untracked: Vec<String> = Vec::new();
     let mut conflicted = 0;
+    let mut staged_codes = std::collections::HashMap::new();
     let mut ahead = 0;
     let mut behind = 0;
 
@@ -243,6 +259,9 @@ pub async fn git_get_status(path: String, connection_id: Option<String>, pool: S
             continue;
         }
 
+        if let Some((p, code)) = staged_code(line) {
+            staged_codes.insert(p, code);
+        }
         categorize_status_line(
             line,
             &mut staged,
@@ -273,6 +292,7 @@ pub async fn git_get_status(path: String, connection_id: Option<String>, pool: S
         untracked,
         conflicted,
         stashes,
+        staged_codes,
     })
 }
 
@@ -442,39 +462,87 @@ pub async fn git_get_remotes(path: String) -> Result<Vec<GitRemote>, String> {
     Ok(remotes)
 }
 
-#[tauri::command]
-pub async fn git_get_diff(path: String, file: Option<String>) -> Result<Vec<GitDiff>, String> {
-    let mut args = vec!["diff", "--numstat"];
-    if let Some(ref f) = file {
-        args.push(f);
-    }
-
-    let output = configure_silent_command(Command::new("git")
-        .args(&args)
-        .current_dir(&path))
+/// Run git with `args` in `path` and return stdout. `ok_codes` lists non-zero
+/// exit codes that still count as success (`diff --no-index` exits 1 on a diff).
+fn run_git(path: &str, args: &[&str], ok_codes: &[i32]) -> Result<String, String> {
+    let output = configure_silent_command(Command::new("git").args(args).current_dir(path))
         .output()
-        .map_err(|e| format!("Failed to get diff: {}", e))?;
-
-    if !output.status.success() {
-        return Err("Failed to get diff".to_string());
+        .map_err(|e| format!("Failed to execute git: {}", e))?;
+    let code = output.status.code().unwrap_or(-1);
+    if !output.status.success() && !ok_codes.contains(&code) {
+        return Err(String::from_utf8_lossy(&output.stderr).trim().to_string());
     }
+    Ok(String::from_utf8_lossy(&output.stdout).to_string())
+}
 
-    let mut diffs = Vec::new();
-    let output_str = String::from_utf8_lossy(&output.stdout);
-
-    for line in output_str.lines() {
-        let parts: Vec<&str> = line.split_whitespace().collect();
-        if parts.len() >= 3 {
-            diffs.push(GitDiff {
-                additions: parts[0].parse().unwrap_or(0),
-                deletions: parts[1].parse().unwrap_or(0),
-                file: parts[2].to_string(),
-                changes: String::new(),
-            });
+/// Split a multi-file unified diff into one `GitDiff` per `diff --git` section.
+fn parse_unified_diff(text: &str) -> Vec<GitDiff> {
+    let mut diffs: Vec<GitDiff> = Vec::new();
+    let mut in_hunk = false;
+    for line in text.lines() {
+        if let Some(rest) = line.strip_prefix("diff --git ") {
+            in_hunk = false;
+            // "a/<path> b/<path>": the b/ side is the current name.
+            let file = rest.rsplit_once(" b/").map(|(_, f)| f).unwrap_or(rest).to_string();
+            diffs.push(GitDiff { file, additions: 0, deletions: 0, changes: String::new() });
+        }
+        if let Some(d) = diffs.last_mut() {
+            in_hunk |= line.starts_with("@@");
+            if in_hunk {
+                if line.starts_with('+') && !line.starts_with("+++") {
+                    d.additions += 1;
+                } else if line.starts_with('-') && !line.starts_with("---") {
+                    d.deletions += 1;
+                }
+            }
+            d.changes.push_str(line);
+            d.changes.push('\n');
         }
     }
+    diffs
+}
 
+fn is_untracked(path: &str, file: &str) -> bool {
+    run_git(path, &["ls-files", "--others", "--exclude-standard", "--", file], &[])
+        .map(|out| !out.trim().is_empty())
+        .unwrap_or(false)
+}
+
+/// Unified diffs for `file` (or every changed file). `staged` diffs the index
+/// against HEAD; otherwise the worktree against the index. An untracked file is
+/// shown as entirely added.
+fn collect_diff(path: &str, file: Option<&str>, staged: bool) -> Result<Vec<GitDiff>, String> {
+    let mut args = vec!["diff", "--no-color", "--no-ext-diff"];
+    if staged {
+        args.push("--cached");
+    }
+    if let Some(f) = file {
+        args.push("--");
+        args.push(f);
+    }
+    let mut diffs = parse_unified_diff(&run_git(path, &args, &[])?);
+
+    if !staged {
+        if let Some(f) = file {
+            if diffs.is_empty() && is_untracked(path, f) {
+                let text = run_git(
+                    path,
+                    &["diff", "--no-color", "--no-index", "--", "/dev/null", f],
+                    &[1],
+                )?;
+                diffs = parse_unified_diff(&text);
+                for d in &mut diffs {
+                    d.file = f.to_string();
+                }
+            }
+        }
+    }
     Ok(diffs)
+}
+
+#[tauri::command]
+pub async fn git_get_diff(path: String, file: Option<String>, staged: Option<bool>) -> Result<Vec<GitDiff>, String> {
+    collect_diff(&path, file.as_deref(), staged.unwrap_or(false))
 }
 
 #[tauri::command]
@@ -648,6 +716,7 @@ async fn git_get_status_ssh(pool: &DbPool, connection_id: &str, path: &str) -> R
     let mut deleted: Vec<String> = Vec::new();
     let mut untracked: Vec<String> = Vec::new();
     let mut conflicted = 0;
+    let mut staged_codes = std::collections::HashMap::new();
     let mut ahead = 0;
     let mut behind = 0;
     let mut branch = String::from("main");
@@ -685,6 +754,9 @@ async fn git_get_status_ssh(pool: &DbPool, connection_id: &str, path: &str) -> R
             continue;
         }
 
+        if let Some((p, code)) = staged_code(line) {
+            staged_codes.insert(p, code);
+        }
         categorize_status_line(
             line,
             &mut staged,
@@ -707,6 +779,7 @@ async fn git_get_status_ssh(pool: &DbPool, connection_id: &str, path: &str) -> R
         untracked,
         conflicted,
         stashes,
+        staged_codes,
     })
 }
 
@@ -784,4 +857,102 @@ async fn git_get_commits_ssh(pool: &DbPool, connection_id: &str, path: &str, lim
     }
     
     Ok(commits)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    struct TempRepo(std::path::PathBuf);
+
+    impl TempRepo {
+        fn new(name: &str) -> Self {
+            let dir = std::env::temp_dir().join(format!("nexterm_git_{}_{}", name, std::process::id()));
+            let _ = std::fs::remove_dir_all(&dir);
+            std::fs::create_dir_all(&dir).unwrap();
+            let repo = TempRepo(dir);
+            repo.git(&["init", "-q"]);
+            repo.git(&["config", "user.email", "t@example.com"]);
+            repo.git(&["config", "user.name", "T"]);
+            repo.git(&["config", "commit.gpgsign", "false"]);
+            repo
+        }
+        fn path(&self) -> &str {
+            self.0.to_str().unwrap()
+        }
+        fn git(&self, args: &[&str]) {
+            run_git(self.path(), args, &[]).unwrap();
+        }
+        fn write(&self, file: &str, body: &str) {
+            std::fs::write(self.0.join(file), body).unwrap();
+        }
+    }
+
+    impl Drop for TempRepo {
+        fn drop(&mut self) {
+            let _ = std::fs::remove_dir_all(&self.0);
+        }
+    }
+
+    fn committed_repo(name: &str) -> TempRepo {
+        let repo = TempRepo::new(name);
+        repo.write("a.txt", "one\ntwo\n");
+        repo.git(&["add", "a.txt"]);
+        repo.git(&["commit", "-q", "-m", "init"]);
+        repo
+    }
+
+    #[test]
+    fn unstaged_diff_has_real_lines() {
+        let repo = committed_repo("unstaged");
+        repo.write("a.txt", "one\nthree\n");
+        let diffs = collect_diff(repo.path(), Some("a.txt"), false).unwrap();
+        assert_eq!(diffs.len(), 1);
+        assert_eq!(diffs[0].file, "a.txt");
+        assert_eq!((diffs[0].additions, diffs[0].deletions), (1, 1));
+        assert!(diffs[0].changes.contains("-two"));
+        assert!(diffs[0].changes.contains("+three"));
+    }
+
+    #[test]
+    fn staged_diff_compares_index_to_head() {
+        let repo = committed_repo("staged");
+        repo.write("a.txt", "one\ntwo\nfour\n");
+        repo.git(&["add", "a.txt"]);
+        assert!(collect_diff(repo.path(), Some("a.txt"), false).unwrap().is_empty());
+        let diffs = collect_diff(repo.path(), Some("a.txt"), true).unwrap();
+        assert_eq!(diffs.len(), 1);
+        assert!(diffs[0].changes.contains("+four"));
+    }
+
+    #[test]
+    fn untracked_file_is_all_added() {
+        let repo = committed_repo("untracked");
+        repo.write("new.txt", "x\ny\n");
+        let diffs = collect_diff(repo.path(), Some("new.txt"), false).unwrap();
+        assert_eq!(diffs.len(), 1);
+        assert_eq!(diffs[0].file, "new.txt");
+        assert_eq!((diffs[0].additions, diffs[0].deletions), (2, 0));
+        assert!(diffs[0].changes.contains("+x"));
+    }
+
+    #[test]
+    fn no_file_returns_every_changed_file() {
+        let repo = committed_repo("all");
+        repo.write("b.txt", "b\n");
+        repo.git(&["add", "b.txt"]);
+        repo.git(&["commit", "-q", "-m", "b"]);
+        repo.write("a.txt", "changed\n");
+        repo.write("b.txt", "changed\n");
+        assert_eq!(collect_diff(repo.path(), None, false).unwrap().len(), 2);
+    }
+
+    #[test]
+    fn staged_code_reports_index_letter() {
+        assert_eq!(staged_code("A  new.rs"), Some(("new.rs".into(), "A".into())));
+        assert_eq!(staged_code("MM both.rs"), Some(("both.rs".into(), "M".into())));
+        assert_eq!(staged_code("D  gone.rs"), Some(("gone.rs".into(), "D".into())));
+        assert_eq!(staged_code(" M work.rs"), None);
+        assert_eq!(staged_code("?? new.rs"), None);
+    }
 }

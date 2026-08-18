@@ -18,7 +18,7 @@ const STATUS: GitStatus = {
 describe("changeGroups", () => {
   it("splits staged from unstaged and codes each file", () => {
     expect(changeGroups(STATUS)).toEqual({
-      staged: [{ path: "src/a.ts", code: "S" }],
+      staged: [{ path: "src/a.ts", code: "S", staged: true }],
       unstaged: [
         { path: "src/b.ts", code: "M" },
         { path: "src/c.ts", code: "A" },
@@ -26,6 +26,17 @@ describe("changeGroups", () => {
         { path: "notes.md", code: "U" },
       ],
     });
+  });
+});
+
+describe("changeGroups staged codes", () => {
+  it("uses the real index status for staged badges", () => {
+    const status = {
+      ...STATUS,
+      staged: ["n.ts", "m.ts", "d.ts", "r.ts"],
+      stagedCodes: { "n.ts": "A", "m.ts": "M", "d.ts": "D", "r.ts": "R" },
+    };
+    expect(changeGroups(status).staged.map((r) => r.code)).toEqual(["A", "M", "D", "R"]);
   });
 });
 

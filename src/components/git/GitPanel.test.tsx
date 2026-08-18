@@ -95,10 +95,17 @@ describe("GitPanel", () => {
     const user = userEvent.setup();
     render(<GitPanel />);
     await user.click(screen.getByRole("button", { name: /src\/b\.ts, modified/ }));
-    expect(actions.fetchDiff).toHaveBeenCalledWith("/repo", "src/b.ts");
+    expect(actions.fetchDiff).toHaveBeenCalledWith("/repo", "src/b.ts", undefined);
     expect(await screen.findByText("1 file changed")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Back to changes" }));
     expect(screen.getByRole("region", { name: "Staged" })).toBeInTheDocument();
+  });
+
+  it("requests the staged diff for a staged file", async () => {
+    const user = userEvent.setup();
+    render(<GitPanel />);
+    await user.click(screen.getByRole("button", { name: /src\/a\.ts, staged/ }));
+    expect(actions.fetchDiff).toHaveBeenCalledWith("/repo", "src/a.ts", true);
   });
 
   it("switches views and checks out another branch", async () => {

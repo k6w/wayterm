@@ -9,6 +9,8 @@ export interface GitStatus {
   untracked: string[];
   conflicted: number;
   stashes: number;
+  /** Index status letter (A/M/D/R/...) per staged path. */
+  stagedCodes?: Record<string, string>;
 }
 
 export interface GitFileStatus {
