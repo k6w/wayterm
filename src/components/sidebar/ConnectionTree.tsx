@@ -248,13 +248,16 @@ export default function ConnectionTree({ onAddConnection, onEditConnection }: Co
               indent={row.folder === null ? 0 : 1}
               icon={
                 <>
-                  {tag && (
-                    <span
-                      data-testid="tag-dot"
-                      className="size-2 shrink-0 rounded-full bg-(--nx-dyn-tag)"
-                      style={{ "--nx-dyn-tag": tag } as CSSProperties}
-                    />
-                  )}
+                  {/* Always reserve the slot so tagged and untagged rows line up. */}
+                  <span data-testid="tag-slot" className="inline-flex size-2 shrink-0">
+                    {tag && (
+                      <span
+                        data-testid="tag-dot"
+                        className="size-2 rounded-full bg-(--nx-dyn-tag)"
+                        style={{ "--nx-dyn-tag": tag } as CSSProperties}
+                      />
+                    )}
+                  </span>
                   <Server {...ICON_SM} />
                 </>
               }

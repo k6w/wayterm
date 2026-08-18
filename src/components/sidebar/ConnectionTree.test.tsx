@@ -78,6 +78,15 @@ describe("ConnectionTree", () => {
     });
   });
 
+  it("reserves the tag slot on untagged rows so names align", () => {
+    render(<ConnectionTree />);
+    const web = screen.getByRole("treeitem", { name: /web/ });
+    const laptop = screen.getByRole("treeitem", { name: /laptop/ });
+    expect(web.querySelector("[data-testid=tag-slot]")).toBeInTheDocument();
+    expect(laptop.querySelector("[data-testid=tag-slot]")).toBeInTheDocument();
+    expect(laptop.querySelector("[data-testid=tag-dot]")).not.toBeInTheDocument();
+  });
+
   it("offers every action in the context menu, and asks before deleting", async () => {
     const user = userEvent.setup();
     const onEdit = vi.fn();
