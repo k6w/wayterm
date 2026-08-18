@@ -2,6 +2,8 @@ import { useId, useRef, useState, type FormEvent, type KeyboardEvent } from "rea
 import { Button, Checkbox, Dialog, DialogContent, Field, Input, Select } from "../../ui";
 import {
   DATABASE_TYPES,
+  changeDatabaseType,
+  isFileDatabase,
   EMPTY_DATABASE_FORM,
   toDatabaseConnection,
   validateDatabaseForm,
@@ -112,19 +114,25 @@ function ConnectionForm({ onSave, onClose }: Omit<DatabaseConnectionDialogProps,
             <Select
               id={control.id}
               value={form.type}
-              onValueChange={(value) => set("type", value as DatabaseFormState["type"])}
+              onValueChange={(value) => setForm((prev) => changeDatabaseType(prev, value as DatabaseFormState["type"]))}
               options={DATABASE_TYPES}
             />
           )}
         </Field>
-        <div className="grid grid-cols-[2fr_1fr] gap-2">
-          {text("host", "Host")}
-          {text("port", "Port", { inputMode: "numeric" })}
-        </div>
-        {text("database", "Database")}
-        {text("username", "Username", { autoComplete: "off" })}
-        {text("password", "Password", { type: "password", autoComplete: "off" })}
-        <Checkbox label="Use SSL" checked={form.ssl} onCheckedChange={(checked) => set("ssl", checked === true)} />
+        {isFileDatabase(form.type) ? (
+          text("database", "File path", { placeholder: "/path/to/data.db" })
+        ) : (
+          <>
+            <div className="grid grid-cols-[2fr_1fr] gap-2">
+              {text("host", "Host")}
+              {text("port", "Port", { inputMode: "numeric" })}
+            </div>
+            {text("database", "Database")}
+            {text("username", "Username", { autoComplete: "off" })}
+            {text("password", "Password", { type: "password", autoComplete: "off" })}
+            <Checkbox label="Use SSL" checked={form.ssl} onCheckedChange={(checked) => set("ssl", checked === true)} />
+          </>
+        )}
         {saveError && (
           <p role="alert" className="rounded-md border border-danger bg-danger-subtle px-2 py-1.5 text-label text-danger">
             {saveError}

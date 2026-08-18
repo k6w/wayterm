@@ -33,9 +33,37 @@ export const EMPTY_DATABASE_FORM: DatabaseFormState = {
   ssl: false,
 };
 
+/** Standard port per networked driver. SQLite is a file and has none. */
+export const DEFAULT_PORTS: Partial<Record<DatabaseConnection["type"], number>> = {
+  postgresql: 5432,
+  mysql: 3306,
+  mongodb: 27017,
+};
+
+/** SQLite opens a file; every other driver connects to a server. */
+export function isFileDatabase(type: DatabaseConnection["type"]): boolean {
+  return type === "sqlite";
+}
+
+/** Switches the driver. The port follows the new driver's default unless the user typed their own. */
+export function changeDatabaseType(form: DatabaseFormState, type: DatabaseConnection["type"]): DatabaseFormState {
+  const previousDefault = DEFAULT_PORTS[form.type];
+  const portIsDefault = form.port.trim() === "" || form.port === String(previousDefault);
+  const nextDefault = DEFAULT_PORTS[type];
+  return {
+    ...form,
+    type,
+    port: portIsDefault ? (nextDefault === undefined ? "" : String(nextDefault)) : form.port,
+  };
+}
+
 export function validateDatabaseForm(form: DatabaseFormState): DatabaseFormErrors {
   const errors: DatabaseFormErrors = {};
   if (!form.name.trim()) errors.name = "Enter a name.";
+  if (isFileDatabase(form.type)) {
+    if (!form.database.trim()) errors.database = "Enter a file path.";
+    return errors;
+  }
   if (!form.host.trim()) errors.host = "Enter a host.";
   if (parsePort(form.port) === null) errors.port = "Use a port from 1 to 65535.";
   if (!form.database.trim()) errors.database = "Enter a database.";
@@ -46,15 +74,17 @@ export function validateDatabaseForm(form: DatabaseFormState): DatabaseFormError
 /**
  * The connection to save. The backend stores the id as the primary key and
  * requires it, so a new connection gets one here. Call only on a valid form.
+ * A SQLite connection keeps just the file path (in `database`).
  */
 export function toDatabaseConnection(form: DatabaseFormState, newId: () => string): DatabaseConnection {
+  const base = { id: newId(), name: form.name.trim(), type: form.type, database: form.database.trim() };
+  if (isFileDatabase(form.type)) {
+    return { ...base, host: "", port: 0, username: "", password: "", ssl: false };
+  }
   return {
-    id: newId(),
-    name: form.name.trim(),
-    type: form.type,
+    ...base,
     host: form.host.trim(),
     port: parsePort(form.port) ?? 0,
-    database: form.database.trim(),
     username: form.username.trim(),
     password: form.password,
     ssl: form.ssl,

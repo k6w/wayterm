@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   EMPTY_DATABASE_FORM,
+  changeDatabaseType,
+  DEFAULT_PORTS,
   cellText,
   historyStep,
   resultsToCsv,
@@ -69,5 +71,50 @@ describe("historyStep", () => {
     expect(historyStep(2, "ArrowUp", 3)).toBe(2);
     expect(historyStep(1, "ArrowDown", 3)).toBe(0);
     expect(historyStep(0, "ArrowDown", 3)).toBe(-1);
+  });
+});
+
+describe("per-driver form", () => {
+  it("has the standard default port for each networked driver", () => {
+    expect(DEFAULT_PORTS).toEqual({ postgresql: 5432, mysql: 3306, mongodb: 27017 });
+  });
+
+  it("switches the port with the driver while it is still the default", () => {
+    expect(changeDatabaseType(EMPTY_DATABASE_FORM, "mysql")).toMatchObject({ type: "mysql", port: "3306" });
+    expect(changeDatabaseType({ ...EMPTY_DATABASE_FORM, type: "mysql", port: "3306" }, "mongodb").port).toBe("27017");
+  });
+
+  it("keeps a port the user typed", () => {
+    expect(changeDatabaseType({ ...EMPTY_DATABASE_FORM, port: "6543" }, "mysql").port).toBe("6543");
+  });
+
+  it("SQLite needs only a name and a file path", () => {
+    const sqlite = { ...EMPTY_DATABASE_FORM, type: "sqlite" as const, host: "", port: "", username: "" };
+    expect(validateDatabaseForm(sqlite)).toEqual({ name: "Enter a name.", database: "Enter a file path." });
+    expect(validateDatabaseForm({ ...sqlite, name: "local", database: "/tmp/app.db" })).toEqual({});
+  });
+
+  it.each(["postgresql", "mysql", "mongodb"] as const)("%s still requires host, port, database and user", (type) => {
+    const errors = validateDatabaseForm({ ...EMPTY_DATABASE_FORM, type, name: "x", host: "", port: "", username: "" });
+    expect(Object.keys(errors).sort()).toEqual(["database", "host", "port", "username"]);
+  });
+
+  it("saves a SQLite connection with no network fields", () => {
+    expect(
+      toDatabaseConnection(
+        { ...EMPTY_DATABASE_FORM, type: "sqlite", name: "local", database: " /tmp/app.db ", username: "x", ssl: true },
+        () => "id-2"
+      )
+    ).toEqual({
+      id: "id-2",
+      name: "local",
+      type: "sqlite",
+      host: "",
+      port: 0,
+      database: "/tmp/app.db",
+      username: "",
+      password: "",
+      ssl: false,
+    });
   });
 });

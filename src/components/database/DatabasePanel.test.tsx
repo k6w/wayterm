@@ -66,6 +66,51 @@ function connected(history: { query: string }[] = []) {
 }
 
 describe("DatabasePanel", () => {
+  async function openNewConnection() {
+    const user = userEvent.setup();
+    render(<DatabasePanel />);
+    await user.click(screen.getByRole("button", { name: "New connection" }));
+    const dialog = screen.getByRole("dialog", { name: "New database connection" });
+    return { user, dialog };
+  }
+
+  async function pickDriver(user: ReturnType<typeof userEvent.setup>, dialog: HTMLElement, label: string) {
+    await user.click(within(dialog).getByRole("combobox", { name: "Type" }));
+    await user.click(await screen.findByRole("option", { name: label }));
+  }
+
+  it("shows only a name and a file path for SQLite, and saves without a username", async () => {
+    const { user, dialog } = await openNewConnection();
+    await pickDriver(user, dialog, "SQLite");
+    for (const hidden of ["Host", "Port", "Username", "Password"]) {
+      expect(within(dialog).queryByLabelText(hidden)).not.toBeInTheDocument();
+    }
+    expect(within(dialog).queryByRole("checkbox", { name: "Use SSL" })).not.toBeInTheDocument();
+    await user.type(within(dialog).getByRole("textbox", { name: "Name" }), "local");
+    await user.type(within(dialog).getByRole("textbox", { name: "File path" }), "/tmp/app.db{Enter}");
+    await waitFor(() =>
+      expect(actions.saveConnection).toHaveBeenCalledWith(
+        expect.objectContaining({ type: "sqlite", name: "local", database: "/tmp/app.db", username: "", ssl: false })
+      )
+    );
+  });
+
+  it.each([
+    ["MySQL", "3306"],
+    ["MongoDB", "27017"],
+    ["PostgreSQL", "5432"],
+  ])("%s keeps the server fields with port %s", async (label, port) => {
+    const { user, dialog } = await openNewConnection();
+    await pickDriver(user, dialog, label === "PostgreSQL" ? "MySQL" : "PostgreSQL");
+    await pickDriver(user, dialog, label);
+    expect(within(dialog).getByRole("textbox", { name: "Port" })).toHaveValue(port);
+    for (const shown of ["Host", "Database", "Username"]) {
+      expect(within(dialog).getByRole("textbox", { name: shown })).toBeInTheDocument();
+    }
+    expect(within(dialog).getByLabelText("Password")).toBeInTheDocument();
+    expect(within(dialog).getByRole("checkbox", { name: "Use SSL" })).toBeInTheDocument();
+  });
+
   it("lists saved connections and connects on select", async () => {
     const user = userEvent.setup();
     render(<DatabasePanel />);
