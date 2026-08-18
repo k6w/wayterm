@@ -123,16 +123,16 @@ export function DatabasePanel() {
           </Button>
         </ToolbarButton>
       </PanelToolbar>
-      <PanelContent>
+      <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-1">
         <QueryEditor query={query} onQueryChange={setQuery} history={queryHistory} running={running} onRun={() => void run()} />
         {queryError && (
-          <p role="alert" className="mx-2 mb-2 rounded-md border border-danger bg-danger-subtle px-2 py-1.5 font-mono text-label text-danger">
+          <p role="alert" className="mx-2 mb-2 shrink-0 rounded-md border border-danger bg-danger-subtle px-2 py-1.5 font-mono text-label text-danger">
             {queryError}
           </p>
         )}
         {result && !result.error && <ResultsGrid result={result} />}
         {queryHistory.length > 0 && (
-          <PanelGroup title="History" count={queryHistory.length} className="p-1">
+          <PanelGroup title="History" count={queryHistory.length} className="shrink-0 p-1">
             {queryHistory.map((item) => (
               <ListRow
                 key={item.id}
@@ -146,7 +146,7 @@ export function DatabasePanel() {
             ))}
           </PanelGroup>
         )}
-      </PanelContent>
+      </div>
     </>
   );
 }

@@ -109,6 +109,32 @@ describe("DatabasePanel", () => {
     expect(within(grid).getByText("ada")).toBeInTheDocument();
   });
 
+  it("lays the results out to fill the panel and scroll both ways under a sticky header", async () => {
+    const columns = Array.from({ length: 30 }, (_, i) => `column_${i}`);
+    const wide: QueryResult = {
+      columns,
+      rows: [Object.fromEntries(columns.map((c) => [c, "v"]))],
+      rowCount: 1,
+      executionTime: 1,
+    };
+    actions.executeQuery.mockImplementation(async () => wide);
+    const user = userEvent.setup();
+    connected();
+    render(<DatabasePanel />);
+    await user.type(screen.getByRole("textbox", { name: "SQL query" }), "select 1{Control>}{Enter}{/Control}");
+    const grid = await screen.findByRole("region", { name: "Query results" });
+    // The grid takes the free height of the panel instead of a fixed cap, and keeps a floor so rows stay visible.
+    expect(grid).toHaveClass("flex-1", "min-h-40");
+    expect(grid).not.toHaveClass("max-h-64");
+    const table = within(grid).getByRole("table");
+    const scroller = table.parentElement as HTMLElement;
+    expect(scroller).toHaveClass("min-h-0", "flex-1", "overflow-auto");
+    expect(table).toHaveClass("w-max", "min-w-full");
+    expect(within(grid).getByRole("columnheader", { name: "column_0" })).toHaveClass("sticky", "top-0");
+    // The panel body is a column the grid can grow in.
+    expect(grid.parentElement).toHaveClass("flex", "flex-col", "min-h-0", "flex-1");
+  });
+
   it("says why a query failed", async () => {
     const user = userEvent.setup();
     actions.executeQuery.mockImplementation(async () => {

@@ -50,7 +50,7 @@ export default function QueryEditor({ query, onQueryChange, history, running, on
   };
 
   return (
-    <div className="flex flex-col gap-2 p-2">
+    <div className="flex shrink-0 flex-col gap-2 p-2">
       <Textarea
         aria-label="SQL query"
         rows={6}
