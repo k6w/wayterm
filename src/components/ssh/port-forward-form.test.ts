@@ -47,5 +47,6 @@ describe("labels", () => {
     expect(forwardType("dynamic")).toEqual({ short: "D", long: "Dynamic" });
     expect(forwardType("socks")).toEqual({ short: "S", long: "socks" });
     expect(forwardRoute({ localPort: 8080, remoteHost: "web", remotePort: 80 })).toBe("8080 → web:80");
+    expect(forwardRoute({ portForwardType: "dynamic", localPort: 1080, remoteHost: "", remotePort: 0 })).toBe("SOCKS :1080");
   });
 });

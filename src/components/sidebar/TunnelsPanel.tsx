@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { RefreshCw, Route, Trash2 } from "lucide-react";
 import { useSshStore } from "../../stores/ssh";
 import { toast } from "../../stores/toast";
-import { Badge, EmptyState, ICON_MD, ICON_SM, IconButton, ListRow, Spinner, ToolbarButton, ToolbarSpacer } from "../../ui";
+import { Badge, EmptyState, ICON_MD, ICON_SM, IconButton, ListRow, Spinner, ToolbarButton, ToolbarSpacer, Tooltip } from "../../ui";
 import { forwardRoute, forwardType } from "../ssh/port-forward-form";
 import { PanelContent, PanelGroup, PanelToolbar } from "./PanelChrome";
 import type { PortForward } from "../../lib/ipc";
@@ -110,7 +110,11 @@ export default function TunnelsPanel() {
                         {type.short}
                       </Badge>
                     }
-                    label={<span className="font-mono">{forwardRoute(forward)}</span>}
+                    label={
+                      <Tooltip content={forwardRoute(forward)}>
+                        <span className="font-mono">{forwardRoute(forward)}</span>
+                      </Tooltip>
+                    }
                     description={`${type.long} forward`}
                     trailing={
                       busy ? (

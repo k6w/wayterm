@@ -51,7 +51,10 @@ export function forwardType(type: string): { short: string; long: string } {
   return TYPE_LABELS[type] ?? { short: type.slice(0, 1).toUpperCase(), long: type };
 }
 
-/** "8080 → db.internal:5432" */
-export function forwardRoute(forward: Pick<PortForward, "localPort" | "remoteHost" | "remotePort">): string {
+/** "8080 → db.internal:5432", or "SOCKS :1080" for a dynamic forward (it has no fixed remote end). */
+export function forwardRoute(
+  forward: Pick<PortForward, "localPort" | "remoteHost" | "remotePort"> & { portForwardType?: string }
+): string {
+  if (forward.portForwardType === "dynamic") return `SOCKS :${forward.localPort}`;
   return `${forward.localPort} → ${forward.remoteHost}:${forward.remotePort}`;
 }

@@ -66,6 +66,22 @@ describe("TunnelsPanel", () => {
     expect(screen.queryByRole("heading", { name: /port forwards/i })).not.toBeInTheDocument();
   });
 
+  it("shows the full route in a tooltip and SOCKS for dynamic forwards", async () => {
+    const user = userEvent.setup();
+    const long = "a-very-long-hostname.internal.example.com";
+    FORWARDS.c1 = [
+      { ...fwd("f1", "c1", 5433, true), remoteHost: long },
+      { ...fwd("f4", "c1", 1080), portForwardType: "dynamic", remoteHost: "", remotePort: 0 },
+    ];
+    render(<TunnelsPanel />);
+    const region = await screen.findByRole("region", { name: "prod" });
+    expect(region).toHaveTextContent("SOCKS :1080");
+    expect(region).not.toHaveTextContent("localhost:0");
+    await user.hover(screen.getByText(`5433 → ${long}:5432`));
+    expect(await screen.findByRole("tooltip")).toHaveTextContent(`5433 → ${long}:5432`);
+    FORWARDS.c1 = [fwd("f1", "c1", 5433, true)];
+  });
+
   it("starts a stopped forward when its row is selected", async () => {
     const user = userEvent.setup();
     render(<TunnelsPanel />);

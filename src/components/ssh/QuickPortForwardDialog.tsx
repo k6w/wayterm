@@ -1,7 +1,8 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { Plus, Trash2 } from "lucide-react";
 import { useSshStore } from "../../stores/ssh";
-import { Button, Dialog, DialogContent, Field, ICON_SM, IconButton, Input, Switch } from "../../ui";
+import { Button, Dialog, DialogContent, Field, ICON_SM, IconButton, Input, Switch, Tooltip } from "../../ui";
+import type { PortForward } from "../../lib/ipc";
 import {
   EMPTY_PORT_FORWARD_FORM,
   forwardRoute,
@@ -10,6 +11,9 @@ import {
   type PortForwardFormErrors,
   type PortForwardFormState,
 } from "./port-forward-form";
+
+const route = (forward: PortForward) =>
+  forward.portForwardType === "dynamic" ? forwardRoute(forward) : `localhost:${forwardRoute(forward)}`;
 
 interface QuickPortForwardDialogProps {
   isOpen: boolean;
@@ -138,9 +142,9 @@ function PortForwardsBody({ connectionId, sessionId }: { connectionId: string; s
           <ul aria-label="Port forwards for this connection" className="flex flex-col gap-1">
             {forwards.map((forward) => (
               <li key={forward.id} className="flex min-h-row items-center gap-2 rounded-md px-2 hover:bg-hover">
-                <span className="min-w-0 flex-1 truncate font-mono text-body text-fg">
-                  localhost:{forwardRoute(forward)}
-                </span>
+                <Tooltip content={route(forward)}>
+                  <span className="min-w-0 flex-1 truncate font-mono text-body text-fg">{route(forward)}</span>
+                </Tooltip>
                 <Switch
                   label={`Forward ${forward.localPort} active`}
                   checked={forward.isActive}
