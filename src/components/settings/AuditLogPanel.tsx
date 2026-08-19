@@ -2,6 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { Search, Download, RefreshCw, History } from "lucide-react";
 import { historyRecent } from "../../lib/ipc";
 import { Button, IconButton } from "../ui/Button";
+import { plural } from "../../lib/plural";
 import { EmptyState } from "../ui/EmptyState";
 import { SettingsSection, TextField } from "./ui";
 
@@ -168,7 +169,7 @@ export default function AuditLogPanel() {
                 </table>
               </div>
               <div className="border-t border-border bg-bg-secondary px-3 py-1.5 text-[10px] text-text-muted">
-                {filtered.length} entr{filtered.length !== 1 ? "ies" : "y"}
+                {plural(filtered.length, "entry", "entries")}
                 {filter && ` (filtered from ${entries.length})`}
               </div>
             </>

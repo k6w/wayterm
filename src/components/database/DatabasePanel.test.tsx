@@ -111,6 +111,12 @@ describe("DatabasePanel", () => {
     expect(within(dialog).getByRole("checkbox", { name: "Use SSL" })).toBeInTheDocument();
   });
 
+  it("says 1 row in history, not 1 rows", () => {
+    connected([{ query: "select 1" }]);
+    render(<DatabasePanel />);
+    expect(screen.getByText("1 row")).toBeInTheDocument();
+  });
+
   it("lists saved connections and connects on select", async () => {
     const user = userEvent.setup();
     render(<DatabasePanel />);

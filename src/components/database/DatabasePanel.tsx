@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Database, Plus, Trash2, Unplug } from "lucide-react";
+import { plural } from "../../lib/plural";
 import { useDatabaseStore } from "../../stores/database";
 import {
   Badge,
@@ -139,7 +140,7 @@ export function DatabasePanel() {
                 label={<span className="font-mono">{item.query}</span>}
                 description={`${new Date(item.timestamp).toLocaleString()} · ${item.duration}ms`}
                 trailing={
-                  item.error ? <Badge tone="danger">Error</Badge> : <Badge tone="success">{item.rowCount} rows</Badge>
+                  item.error ? <Badge tone="danger">Error</Badge> : <Badge tone="success">{plural(item.rowCount, "row")}</Badge>
                 }
                 onSelect={() => setQuery(item.query)}
               />

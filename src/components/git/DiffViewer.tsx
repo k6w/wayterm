@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { AlignLeft, Check, Columns2 } from 'lucide-react';
 import { Badge, EmptyState, ICON_MD, ICON_SM, SegmentedControl, Toolbar, ToolbarSpacer, cn, focusRing } from '../../ui';
+import { plural } from '../../lib/plural';
 import type { GitDiff } from '../../types/git';
 
 interface DiffViewerProps {
@@ -196,9 +197,7 @@ export default function DiffViewer({ diffs }: DiffViewerProps) {
   return (
     <div className="flex h-full flex-col">
       <Toolbar aria-label="Diff view" className="h-8 shrink-0 gap-2 border-b border-border px-3">
-        <span className="text-label text-fg-muted">
-          {diffs.length} file{diffs.length !== 1 ? 's' : ''} changed
-        </span>
+        <span className="whitespace-nowrap text-label text-fg-muted">{plural(diffs.length, 'file')} changed</span>
         <ToolbarSpacer />
         <SegmentedControl
           size="sm"

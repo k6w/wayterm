@@ -1,4 +1,5 @@
 import { FileJson, FileText } from "lucide-react";
+import { plural } from "../../lib/plural";
 import { downloadTextFile } from "../../lib/download-file";
 import { Button, ICON_SM, Toolbar, ToolbarButton, ToolbarSpacer } from "../../ui";
 import { cellText, resultsToCsv } from "./database-form";
@@ -13,7 +14,7 @@ export default function ResultsGrid({ result }: { result: QueryResult }) {
     <section aria-label="Query results" className="flex min-h-40 flex-1 flex-col border-y border-border">
       <Toolbar aria-label="Result actions" className="h-7 shrink-0 gap-1 border-b border-border px-2">
         <span className="text-caption text-fg-muted">
-          {result.rowCount} {result.rowCount === 1 ? "row" : "rows"}
+          {plural(result.rowCount, "row")}
         </span>
         <ToolbarSpacer />
         <ToolbarButton>
