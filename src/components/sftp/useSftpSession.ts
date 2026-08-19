@@ -21,6 +21,8 @@ export interface SftpSession {
   /** Changed key: close the dialog and open Settings on the SSH panel. */
   openSshSettings: () => void;
   cancelHostKey: () => void;
+  /** Run the connect again after a failure (once per call). */
+  retry: () => void;
 }
 
 /**
@@ -35,6 +37,7 @@ export function useSftpSession(paneId: string): SftpSession {
   const [connecting, setConnecting] = useState(true);
   const [connectionName, setConnectionName] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
   const [tofuPending, setTofuPending] = useState<PendingHostKey | null>(null);
   const [trusting, setTrusting] = useState(false);
   const trustingRef = useRef(false);
@@ -117,7 +120,14 @@ export function useSftpSession(paneId: string): SftpSession {
         disconnect(sid).catch(() => {});
       }
     };
-  }, [paneId]);
+  }, [paneId, attempt]);
+
+  const retry = useCallback(() => {
+    setError(null);
+    setHostKeyChanged(null);
+    setConnecting(true);
+    setAttempt((n) => n + 1);
+  }, []);
 
   const trustHost = useCallback(async () => {
     // The ref blocks a second request before the disabled state renders (double click).
@@ -161,6 +171,7 @@ export function useSftpSession(paneId: string): SftpSession {
     sessionId,
     connecting,
     error,
+    retry,
     connectionName,
     hostKeyPrompt,
     trusting,

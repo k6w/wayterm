@@ -49,6 +49,22 @@ describe("SftpPane", () => {
     expect(screen.queryByRole("button", { name: "Close pane" })).not.toBeInTheDocument();
   });
 
+  it("shows a connection failure in an empty state and retries once per click", async () => {
+    const user = userEvent.setup();
+    ops.connect.mockRejectedValueOnce(new Error("Connection refused"));
+    useTerminalStore.setState({
+      panes: { p1: { id: "p1", sessionId: "gone", isActive: true, cwd: "~", shellType: "sftp", sftpConnectionId: "c1" } },
+    });
+    render(<SftpPane paneId="p1" isActive />);
+    expect(await screen.findByText("Connection failed")).toBeInTheDocument();
+    expect(screen.getByText("Connection refused")).toBeInTheDocument();
+    expect(ops.connect).toHaveBeenCalledTimes(1);
+    await user.click(screen.getByRole("button", { name: "Retry" }));
+    await waitFor(() => expect(ops.connect).toHaveBeenCalledTimes(2));
+    expect(await screen.findByRole("region", { name: "Remote files" })).toBeInTheDocument();
+    expect(ops.connect).toHaveBeenCalledTimes(2);
+  });
+
   it("hides and shows the local side", async () => {
     const user = userEvent.setup();
     render(<SftpPane paneId="p1" isActive />);

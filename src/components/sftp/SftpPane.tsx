@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { Download, ExternalLink, FolderPlus, PanelLeft, PanelLeftClose, Pencil, RefreshCw, Trash2, Upload, X } from "lucide-react";
+import { AlertCircle, Download, ExternalLink, FolderPlus, PanelLeft, PanelLeftClose, Pencil, RefreshCw, Trash2, Upload, X } from "lucide-react";
 import { useTerminalStore } from "../../stores/terminal";
 import { useSftpStore } from "../../stores/sftp";
-import { ICON_MD, ICON_SM, IconButton, SplitPane, Spinner, ToolbarButton, ToolbarSeparator, ToolbarSpacer } from "../../ui";
+import { Button, EmptyState, ICON_MD, ICON_SM, IconButton, SplitPane, Spinner, ToolbarButton, ToolbarSeparator, ToolbarSpacer } from "../../ui";
 import HostKeyDialog from "../ssh/HostKeyDialog";
 import ConfirmDialog from "../ui/ConfirmDialog";
 import InputDialog from "../ui/InputDialog";
@@ -51,10 +51,16 @@ export default function SftpPane({ paneId, isActive, paneCount = 1 }: SftpPanePr
         onMouseDown={() => setActivePane(paneId)}
       >
         {sftp.error ? (
-          <>
-            <p className="text-body font-medium text-danger">Connection failed</p>
-            <p className="max-w-md text-label text-fg-muted">{sftp.error}</p>
-          </>
+          <EmptyState
+            icon={<AlertCircle {...ICON_MD} />}
+            title="Connection failed"
+            description={sftp.error}
+            action={
+              <Button size="sm" variant="primary" leadingIcon={<RefreshCw {...ICON_SM} />} onClick={sftp.retry}>
+                Retry
+              </Button>
+            }
+          />
         ) : sftp.hostKeyPrompt ? (
           <>
             <p className="text-body font-medium text-warning">Unknown host</p>
