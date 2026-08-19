@@ -44,6 +44,7 @@ beforeEach(() => {
     isConnected: false,
     isLoading: false,
     queryHistory: [],
+    workspaces: {},
     ...actions,
   });
 });
@@ -184,6 +185,18 @@ describe("DatabasePanel", () => {
     expect(within(grid).getByRole("columnheader", { name: "column_0" })).toHaveClass("sticky", "top-0");
     // The panel body is a column the grid can grow in.
     expect(grid.parentElement).toHaveClass("flex", "flex-col", "min-h-0", "flex-1");
+  });
+
+  it("keeps the query text and last results after the panel unmounts and returns", async () => {
+    const user = userEvent.setup();
+    connected();
+    const first = render(<DatabasePanel />);
+    await user.type(screen.getByRole("textbox", { name: "SQL query" }), "select 1{Control>}{Enter}{/Control}");
+    await screen.findByRole("region", { name: "Query results" });
+    first.unmount();
+    render(<DatabasePanel />);
+    expect(screen.getByRole("textbox", { name: "SQL query" })).toHaveValue("select 1");
+    expect(screen.getByRole("region", { name: "Query results" })).toHaveTextContent("ada");
   });
 
   it("says why a query failed", async () => {

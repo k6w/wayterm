@@ -12,7 +12,18 @@ import {
 } from "../lib/ipc";
 import { toast } from "./toast";
 
+/** Editor text and last outcome for one connection. Memory only, so it survives panel switches but not a restart. */
+export interface QueryWorkspace {
+  query: string;
+  result: QueryResult | null;
+  error: string | null;
+}
+
+export const EMPTY_WORKSPACE: QueryWorkspace = { query: "", result: null, error: null };
+
 interface DatabaseStore extends DatabaseState {
+  workspaces: Record<string, QueryWorkspace>;
+  updateWorkspace: (connectionId: string, patch: Partial<QueryWorkspace>) => void;
   activeConnection: DatabaseConnection | null;
   isConnected: boolean;
   isLoading: boolean;
@@ -39,6 +50,16 @@ export const useDatabaseStore = create<DatabaseStore>((set, get) => ({
   error: null,
   queryHistory: [],
   currentQuery: "",
+  workspaces: {},
+
+  updateWorkspace: (connectionId, patch) => {
+    set((state) => ({
+      workspaces: {
+        ...state.workspaces,
+        [connectionId]: { ...(state.workspaces[connectionId] ?? EMPTY_WORKSPACE), ...patch },
+      },
+    }));
+  },
 
   connect: async (connectionId: string) => {
     try {

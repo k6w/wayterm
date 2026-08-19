@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Database, Plus, Trash2, Unplug } from "lucide-react";
 import { plural } from "../../lib/plural";
-import { useDatabaseStore } from "../../stores/database";
+import { EMPTY_WORKSPACE, useDatabaseStore, type QueryWorkspace } from "../../stores/database";
 import {
   Badge,
   Button,
@@ -17,7 +17,6 @@ import { PanelContent, PanelGroup, PanelToolbar } from "../sidebar/PanelChrome";
 import DatabaseConnectionDialog from "./DatabaseConnectionDialog";
 import QueryEditor from "./QueryEditor";
 import ResultsGrid from "./ResultsGrid";
-import type { QueryResult } from "../../types/database";
 
 /** Database client: saved connections, then (once connected) a query editor, results and history. */
 export function DatabasePanel() {
@@ -33,11 +32,17 @@ export function DatabasePanel() {
     loadConnections,
     saveConnection,
     deleteConnection,
+    workspaces,
+    updateWorkspace,
   } = useDatabaseStore();
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const [result, setResult] = useState<QueryResult | null>(null);
-  const [queryError, setQueryError] = useState<string | null>(null);
+  // Query text and last results live in the store per connection, so they survive switching sidebar panels.
+  const connectionId = activeConnection?.id ?? null;
+  const { query, result, error: queryError } = (connectionId && workspaces[connectionId]) || EMPTY_WORKSPACE;
+  const patch = (next: Partial<QueryWorkspace>) => {
+    if (connectionId) updateWorkspace(connectionId, next);
+  };
+  const setQuery = (value: string) => patch({ query: value });
   const [running, setRunning] = useState(false);
 
   useEffect(() => {
@@ -46,22 +51,20 @@ export function DatabasePanel() {
 
   const run = async () => {
     if (!query.trim() || !activeConnection) return;
-    setQueryError(null);
+    patch({ error: null });
     setRunning(true);
     try {
-      setResult(await executeQuery(query));
+      patch({ result: await executeQuery(query) });
     } catch (e) {
-      setResult(null);
-      setQueryError(e instanceof Error ? e.message : String(e));
+      patch({ result: null, error: e instanceof Error ? e.message : String(e) });
     } finally {
       setRunning(false);
     }
   };
 
   const handleDisconnect = async () => {
+    patch({ result: null, error: null });
     await disconnect();
-    setResult(null);
-    setQueryError(null);
   };
 
   const dialog = (
