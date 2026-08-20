@@ -78,6 +78,9 @@ const STRICT_PATHS = [
   "src/components/sftp/FileConflictDialog.tsx",
   "src/components/sftp/",
   "src/components/settings/SettingRow.tsx",
+  "src/components/settings/SettingsView.tsx",
+  "src/components/settings/nav.tsx",
+  "src/components/settings/searchIndex.ts",
 ];
 
 const file = "eslint-suppressions.json";

@@ -1,192 +1,143 @@
-import { useState, useEffect, useCallback } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { X, Search } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Search, X } from "lucide-react";
 import { useTerminalStore } from "../../stores/terminal";
-import { useSettingsStore } from "../../stores/settings";
-import { useThemeStore } from "../../stores/theme";
-import { hexToRgba } from "../../lib/color";
-import { vibrancyAlpha } from "../../lib/platform";
-import { NAV_GROUPS, PANELS, PANEL_LABEL, type PanelId } from "./nav";
-import { SETTINGS_SEARCH_INDEX } from "./searchIndex";
+import { EmptyState, IconButton, Input, ListRow, ICON_MD, ICON_SM, cn } from "../../ui";
+import { NAV_GROUPS, PANELS, PANEL_LABEL, isPanelId, type PanelId } from "./nav";
+import { searchSettings } from "./searchIndex";
 
 /**
- * Full-window settings surface. Fills the main content region (the app chrome
- * stays around it) rather than floating as a modal popup.
+ * Full-window settings surface. It fills the main content region (the title
+ * bar, activity bar and status bar stay around it) instead of floating as a
+ * modal. The chosen panel survives closing and reopening; the search does not.
  */
 export default function SettingsView() {
   const settingsOpen = useTerminalStore((s) => s.settingsOpen);
   const toggleSettings = useTerminalStore((s) => s.toggleSettings);
-  const vibrancy = useSettingsStore((s) => s.settings.appearance.vibrancyEnabled);
-  const opacity = useSettingsStore((s) => s.settings.appearance.windowOpacity);
-  const blurIntensity = useSettingsStore((s) => s.settings.appearance.blurIntensity);
-  const theme = useThemeStore((s) => s.active);
-  const [activePanel, setActivePanel] = useState<PanelId>("general");
-  const [query, setQuery] = useState("");
   const requestedPanel = useTerminalStore((s) => s.settingsPanel);
   const clearSettingsPanel = useTerminalStore((s) => s.clearSettingsPanel);
+  const [activePanel, setActivePanel] = useState<PanelId>("general");
 
+  // openSettings(panel) deep links (e.g. the SFTP pane opens "ssh").
   useEffect(() => {
     if (!requestedPanel) return;
-    if (settingsOpen && requestedPanel in PANELS) setActivePanel(requestedPanel as PanelId);
+    if (settingsOpen && isPanelId(requestedPanel)) setActivePanel(requestedPanel);
     clearSettingsPanel();
   }, [requestedPanel, settingsOpen, clearSettingsPanel]);
 
-  const handleEscape = useCallback(
-    (e: KeyboardEvent) => {
-      if (e.key === "Escape") toggleSettings();
-    },
-    [toggleSettings]
-  );
+  if (!settingsOpen) return null;
+  return <SettingsSurface activePanel={activePanel} onSelectPanel={setActivePanel} onClose={toggleSettings} />;
+}
 
-  useEffect(() => {
-    if (!settingsOpen) return;
-    window.addEventListener("keydown", handleEscape);
-    return () => window.removeEventListener("keydown", handleEscape);
-  }, [settingsOpen, handleEscape]);
+interface SettingsSurfaceProps {
+  activePanel: PanelId;
+  onSelectPanel: (panel: PanelId) => void;
+  onClose: () => void;
+}
 
-  useEffect(() => {
-    if (!settingsOpen) setQuery("");
-  }, [settingsOpen]);
-
-  const q = query.trim().toLowerCase();
-  const results = q
-    ? SETTINGS_SEARCH_INDEX.filter(
-        (e) =>
-          e.label.toLowerCase().includes(q) ||
-          e.keywords?.toLowerCase().includes(q) ||
-          PANEL_LABEL[e.panel].toLowerCase().includes(q)
-      )
-    : null;
-
+/** Mounted only while settings is open, so the search starts empty on every open. */
+function SettingsSurface({ activePanel, onSelectPanel, onClose }: SettingsSurfaceProps) {
+  const [query, setQuery] = useState("");
+  const results = searchSettings(query);
   const ActivePanel = PANELS[activePanel];
 
+  useEffect(() => {
+    const onKeyDown = (event: KeyboardEvent) => {
+      // Open selects, menus and confirm dialogs handle Escape first and mark it handled.
+      if (event.key === "Escape" && !event.defaultPrevented) onClose();
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onClose]);
+
   const pick = (panel: PanelId) => {
-    setActivePanel(panel);
+    onSelectPanel(panel);
     setQuery("");
   };
 
-  const surfaceStyle = vibrancy
-    ? {
-        backgroundColor: hexToRgba(
-          theme.ui.bgPrimary,
-          Math.min(vibrancyAlpha(opacity) + 0.14, 0.92)
-        ),
-        backdropFilter: `blur(${30 * blurIntensity}px) saturate(1.3)`,
-        WebkitBackdropFilter: `blur(${30 * blurIntensity}px) saturate(1.3)`,
-      }
-    : { backgroundColor: theme.ui.bgPrimary };
-
   return (
-    <AnimatePresence>
-      {settingsOpen && (
-        <motion.div
-          key="settings"
-          initial={{ opacity: 0, scale: 0.99 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.99 }}
-          transition={{ duration: 0.16, ease: [0.32, 0.72, 0, 1] }}
-          style={surfaceStyle}
-          className="absolute inset-0 z-[var(--z-modal)] flex flex-col"
-        >
-          <header className="flex h-12 shrink-0 items-center gap-3 border-b border-border px-5">
-            <h1 className="text-sm font-semibold text-text-primary">Settings</h1>
-            <div className="relative ml-2 w-64">
-              <Search
-                size={14}
-                className="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-text-muted"
-              />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="Search settings"
-                className="w-full rounded-md border border-border bg-overlay/[0.03] py-1.5 pl-8 pr-3 text-xs text-text-primary outline-none transition-colors placeholder:text-text-muted focus:border-accent"
-              />
-            </div>
-            <button
-              onClick={toggleSettings}
-              aria-label="Close settings"
-              className="ml-auto rounded-md p-1.5 text-text-muted transition-colors hover:bg-overlay/[0.08] hover:text-text-primary"
-            >
-              <X size={16} />
-            </button>
-          </header>
-
-          <div className="flex min-h-0 flex-1">
-            <nav className="w-[220px] shrink-0 overflow-y-auto border-r border-border p-3">
-              {results ? (
-                results.length === 0 ? (
-                  <div className="px-2 py-6 text-center text-xs text-text-muted">
-                    No settings match "{query}"
-                  </div>
-                ) : (
-                  <div className="space-y-0.5">
-                    {results.map((e) => (
-                      <button
-                        key={`${e.panel}:${e.label}`}
-                        onClick={() => pick(e.panel)}
-                        className="flex w-full flex-col items-start rounded-md px-2.5 py-1.5 text-left transition-colors hover:bg-overlay/[0.06]"
-                      >
-                        <span className="text-sm text-text-primary">{e.label}</span>
-                        <span className="text-[11px] text-text-muted">
-                          {PANEL_LABEL[e.panel]}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                )
-              ) : (
-                NAV_GROUPS.map((group) => (
-                  <div key={group.title} className="mb-4">
-                    <div className="px-2 pb-1 text-[11px] font-medium uppercase tracking-wider text-text-muted">
-                      {group.title}
-                    </div>
-                    {group.items.map((item) => {
-                      const Icon = item.icon;
-                      const active = activePanel === item.id;
-                      return (
-                        <button
-                          key={item.id}
-                          onClick={() => setActivePanel(item.id)}
-                          className={`relative flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors ${
-                            active
-                              ? "text-accent"
-                              : "text-text-secondary hover:bg-overlay/[0.06] hover:text-text-primary"
-                          }`}
-                        >
-                          {active && (
-                            <motion.span
-                              layoutId="settings-nav-active"
-                              className="absolute inset-0 rounded-md bg-accent/15"
-                              transition={{ type: "spring", stiffness: 500, damping: 38 }}
-                            />
-                          )}
-                          <Icon size={15} />
-                          <span className="relative">{item.label}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                ))
-              )}
-            </nav>
-
-            <div className="flex-1 overflow-y-auto">
-              <AnimatePresence mode="wait">
-                <motion.div
-                  key={activePanel}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  transition={{ duration: 0.15, ease: "easeOut" }}
-                  className="mx-auto max-w-[760px] px-8 py-8"
-                >
-                  <ActivePanel />
-                </motion.div>
-              </AnimatePresence>
-            </div>
+    <section
+      aria-label="Settings"
+      className="absolute inset-0 z-[var(--z-modal)] flex animate-nx-fade-in bg-canvas-glass nx-blur"
+    >
+      <div className="flex w-[232px] shrink-0 flex-col border-r border-border bg-panel-glass">
+        <div className="flex flex-col gap-3 px-3 pb-2 pt-3">
+          <h1 className="px-1 text-title font-semibold text-fg">Settings</h1>
+          <div
+            className={cn(
+              "flex h-control items-center gap-2 rounded-md border border-input-border bg-input px-2",
+              "focus-within:outline-solid focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-focus"
+            )}
+          >
+            <Search {...ICON_SM} aria-hidden className="shrink-0 text-fg-muted" />
+            <Input
+              variant="plain"
+              size="sm"
+              type="search"
+              autoFocus
+              aria-label="Search settings"
+              placeholder="Search settings"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" && results && results.length > 0) {
+                  event.preventDefault();
+                  pick(results[0].panel);
+                }
+              }}
+            />
           </div>
-        </motion.div>
-      )}
-    </AnimatePresence>
+        </div>
+        <nav aria-label="Settings sections" className="min-h-0 flex-1 overflow-y-auto px-3 pb-3">
+          {results ? (
+            results.length === 0 ? (
+              <EmptyState title={`No settings match "${query.trim()}"`} className="px-2 py-6" />
+            ) : (
+              <div className="flex flex-col gap-0.5">
+                {results.map((entry) => (
+                  <ListRow
+                    key={`${entry.panel}:${entry.label}`}
+                    label={entry.label}
+                    description={PANEL_LABEL[entry.panel]}
+                    onSelect={() => pick(entry.panel)}
+                  />
+                ))}
+              </div>
+            )
+          ) : (
+            NAV_GROUPS.map((group) => (
+              <div key={group.title} role="group" aria-label={group.title} className="mb-3 flex flex-col gap-0.5">
+                <p aria-hidden className="px-2 pb-1 pt-2 text-caption font-medium uppercase tracking-wide text-fg-muted">
+                  {group.title}
+                </p>
+                {group.items.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <ListRow
+                      key={item.id}
+                      label={item.label}
+                      icon={<Icon {...ICON_MD} />}
+                      selected={activePanel === item.id}
+                      onSelect={() => onSelectPanel(item.id)}
+                    />
+                  );
+                })}
+              </div>
+            ))
+          )}
+        </nav>
+      </div>
+
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-border px-6">
+          <h2 className="text-title font-semibold text-fg">{PANEL_LABEL[activePanel]}</h2>
+          <IconButton label="Close settings" shortcut="Escape" icon={<X {...ICON_MD} />} onClick={onClose} />
+        </header>
+        <div className="min-h-0 flex-1 overflow-y-auto">
+          <div key={activePanel} className="mx-auto max-w-[720px] animate-nx-fade-in px-6 py-6">
+            <ActivePanel />
+          </div>
+        </div>
+      </div>
+    </section>
   );
 }

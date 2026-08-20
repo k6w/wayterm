@@ -4,11 +4,6 @@
       "count": 2
     }
   },
-  "src/components/settings/SettingsView.tsx": {
-    "nexterm/no-inline-style": {
-      "count": 1
-    }
-  },
   "src/components/terminal/PaneContextMenu.tsx": {
     "nexterm/no-inline-style": {
       "count": 5

@@ -1,4 +1,4 @@
-import type { PanelId } from "./nav";
+import { PANEL_LABEL, type PanelId } from "./nav";
 
 export interface SettingEntry {
   panel: PanelId;
@@ -73,3 +73,18 @@ export const SETTINGS_SEARCH_INDEX: SettingEntry[] = [
   // History
   { panel: "history", label: "Command history", keywords: "audit log recent commands" },
 ];
+
+/**
+ * Settings whose label, keywords or panel name contain `query` (case-insensitive),
+ * in index order. Null for a blank query, meaning "show the navigation instead".
+ */
+export function searchSettings(query: string): SettingEntry[] | null {
+  const q = query.trim().toLowerCase();
+  if (!q) return null;
+  return SETTINGS_SEARCH_INDEX.filter(
+    (entry) =>
+      entry.label.toLowerCase().includes(q) ||
+      Boolean(entry.keywords?.toLowerCase().includes(q)) ||
+      PANEL_LABEL[entry.panel].toLowerCase().includes(q)
+  );
+}

@@ -1,14 +1,15 @@
 import type { ComponentType } from "react";
 import {
-  Settings,
-  Palette,
-  Terminal,
-  Keyboard,
-  Monitor,
-  KeyRound,
-  User,
   Code2,
   History,
+  KeyRound,
+  Keyboard,
+  Monitor,
+  Palette,
+  Settings,
+  Terminal,
+  User,
+  type LucideIcon,
 } from "lucide-react";
 import GeneralPanel from "./GeneralPanel";
 import AppearancePanel from "./AppearancePanel";
@@ -20,21 +21,29 @@ import ProfilesPanel from "./ProfilesPanel";
 import SnippetsPanel from "./SnippetsPanel";
 import AuditLogPanel from "./AuditLogPanel";
 
-export type PanelId =
-  | "general"
-  | "appearance"
-  | "terminal"
-  | "keybindings"
-  | "ssh"
-  | "keys"
-  | "profiles"
-  | "snippets"
-  | "history";
+/** Panel ids. `openSettings(panel)` deep links use them ("ssh" from the SFTP pane), so never rename one. */
+export const PANEL_IDS = [
+  "general",
+  "appearance",
+  "keybindings",
+  "terminal",
+  "profiles",
+  "snippets",
+  "ssh",
+  "keys",
+  "history",
+] as const;
+
+export type PanelId = (typeof PANEL_IDS)[number];
+
+export function isPanelId(value: string): value is PanelId {
+  return (PANEL_IDS as readonly string[]).includes(value);
+}
 
 export interface NavItem {
   id: PanelId;
   label: string;
-  icon: ComponentType<{ size?: number }>;
+  icon: LucideIcon;
 }
 
 export interface NavGroup {
@@ -44,7 +53,7 @@ export interface NavGroup {
 
 export const NAV_GROUPS: NavGroup[] = [
   {
-    title: "Application",
+    title: "App",
     items: [
       { id: "general", label: "General", icon: Settings },
       { id: "appearance", label: "Appearance", icon: Palette },
@@ -67,7 +76,7 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    title: "Data",
+    title: "Advanced",
     items: [{ id: "history", label: "History", icon: History }],
   },
 ];
@@ -84,12 +93,6 @@ export const PANELS: Record<PanelId, ComponentType> = {
   history: AuditLogPanel,
 };
 
-export const PANEL_LABEL: Record<PanelId, string> = NAV_GROUPS.flatMap(
-  (g) => g.items
-).reduce(
-  (acc, item) => {
-    acc[item.id] = item.label;
-    return acc;
-  },
-  {} as Record<PanelId, string>
-);
+export const PANEL_LABEL = Object.fromEntries(
+  NAV_GROUPS.flatMap((group) => group.items).map((item) => [item.id, item.label])
+) as Record<PanelId, string>;
