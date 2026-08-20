@@ -13,6 +13,7 @@ export { Textarea, type TextareaProps } from "./Textarea";
 export { Field, type FieldControlProps, type FieldProps } from "./Field";
 export { Select, type SelectOption, type SelectProps } from "./Select";
 export { Switch, type SwitchProps } from "./Switch";
+export { Slider, type SliderProps } from "./Slider";
 export { Checkbox, type CheckboxProps } from "./Checkbox";
 export {
   SegmentedControl,

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { Checkbox, Field, Input, SegmentedControl, Select, Switch, Textarea } from "./index";
+import { Checkbox, Field, Input, SegmentedControl, Select, Slider, Switch, Textarea } from "./index";
 
 describe("Input", () => {
   it("is focusable from the keyboard and accepts typing", async () => {
@@ -237,5 +237,69 @@ describe("Textarea", () => {
     await user.type(box, "cd /srv{Enter}ls");
     expect(box).toHaveValue("cd /srv\nls");
     expect(box).toHaveAttribute("aria-invalid", "true");
+  });
+});
+
+function SliderHarness({ disabled = false }: { disabled?: boolean }) {
+  const [value, setValue] = useState(14);
+  return (
+    <Slider
+      aria-label="Font size"
+      value={value}
+      onValueChange={setValue}
+      min={8}
+      max={24}
+      format={(v) => `${v}px`}
+      disabled={disabled}
+    />
+  );
+}
+
+describe("Slider", () => {
+  it("exposes its name, range and formatted value", () => {
+    render(<SliderHarness />);
+    const thumb = screen.getByRole("slider", { name: "Font size" });
+    expect(thumb).toHaveAttribute("aria-valuemin", "8");
+    expect(thumb).toHaveAttribute("aria-valuemax", "24");
+    expect(thumb).toHaveAttribute("aria-valuenow", "14");
+    expect(thumb).toHaveAttribute("aria-valuetext", "14px");
+    expect(screen.getByText("14px")).toBeInTheDocument();
+  });
+
+  it("steps with the arrow keys and jumps with Home and End", async () => {
+    const user = userEvent.setup();
+    render(<SliderHarness />);
+    await user.tab();
+    const thumb = screen.getByRole("slider", { name: "Font size" });
+    expect(thumb).toHaveFocus();
+    await user.keyboard("{ArrowRight}{ArrowRight}");
+    expect(thumb).toHaveAttribute("aria-valuenow", "16");
+    await user.keyboard("{ArrowLeft}");
+    expect(thumb).toHaveAttribute("aria-valuenow", "15");
+    await user.keyboard("{End}");
+    expect(thumb).toHaveAttribute("aria-valuenow", "24");
+    await user.keyboard("{Home}");
+    expect(thumb).toHaveAttribute("aria-valuenow", "8");
+  });
+
+  it("ignores the keyboard while disabled", async () => {
+    const user = userEvent.setup();
+    render(<SliderHarness disabled />);
+    const thumb = screen.getByRole("slider", { name: "Font size" });
+    thumb.focus();
+    await user.keyboard("{ArrowRight}");
+    expect(thumb).toHaveAttribute("aria-valuenow", "14");
+  });
+});
+
+describe("Select description", () => {
+  it("passes aria-describedby to its trigger", () => {
+    render(
+      <>
+        <p id="shell-help">Used for new tabs</p>
+        <Select aria-label="Shell" aria-describedby="shell-help" value="a" onValueChange={vi.fn()} options={[{ value: "a", label: "A" }]} />
+      </>
+    );
+    expect(screen.getByRole("combobox", { name: "Shell" })).toHaveAccessibleDescription("Used for new tabs");
   });
 });
