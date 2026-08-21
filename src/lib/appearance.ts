@@ -47,9 +47,9 @@ export function applyAppearanceToDom(a: AppearanceSettings, theme: ThemeDefiniti
   // Backdrop-blur multiplier consumed by translucent surfaces.
   root.style.setProperty("--blur-intensity", String(a.blurIntensity));
 
-  // Density (settings rows; the kit's comfortable density lands in Phase 5).
-  if (a.compactMode) root.setAttribute("data-compact", "true");
-  else root.removeAttribute("data-compact");
+  // Density: comfortable raises controls and rows from 28px to 32px (styles.css).
+  if (a.density === "comfortable") root.setAttribute("data-density", "comfortable");
+  else root.removeAttribute("data-density");
 
   // Interface zoom scales the whole UI cleanly (layout included), unlike a
   // root font-size change which px-based utilities ignore.

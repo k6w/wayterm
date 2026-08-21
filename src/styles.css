@@ -143,7 +143,7 @@
   --nx-glass-status-bar: var(--nx-status-bar);
 }
 
-/* Comfortable density (setting wired in Phase 5). */
+/* Comfortable density (Settings > Appearance > Density). */
 :root[data-density="comfortable"] {
   --nx-control-h: 32px;
   --nx-row-h: 32px;
@@ -232,12 +232,6 @@ body {
   font-variant-ligatures: normal;
   font-feature-settings: "liga" 1, "calt" 1, "dlig" 1, "zero" 1;
   text-rendering: optimizeLegibility;
-}
-
-/* Compact density: tighten the settings rows. */
-:root[data-compact="true"] .setting-row {
-  padding-top: 0.375rem;
-  padding-bottom: 0.375rem;
 }
 
 /* Motion: honor prefers-reduced-motion everywhere. */

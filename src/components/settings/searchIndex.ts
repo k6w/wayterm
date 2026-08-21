@@ -21,14 +21,14 @@ export const SETTINGS_SEARCH_INDEX: SettingEntry[] = [
 
   // Appearance
   { panel: "appearance", label: "Theme", keywords: "color scheme dark light" },
-  { panel: "appearance", label: "Custom themes", keywords: "import iterm windows terminal" },
+  { panel: "appearance", label: "Custom themes", keywords: "import export iterm windows terminal" },
   { panel: "appearance", label: "Terminal font family", keywords: "typeface monospace" },
   { panel: "appearance", label: "Terminal font size", keywords: "text size" },
   { panel: "appearance", label: "Font weight", keywords: "bold thin" },
   { panel: "appearance", label: "Line height", keywords: "spacing leading" },
   { panel: "appearance", label: "UI font family", keywords: "interface typeface" },
   { panel: "appearance", label: "Accent color", keywords: "highlight tint override" },
-  { panel: "appearance", label: "Compact mode", keywords: "density spacing tight" },
+  { panel: "appearance", label: "Density", keywords: "compact comfortable spacing tight row height" },
   { panel: "appearance", label: "Cursor style", keywords: "block bar underline caret" },
   { panel: "appearance", label: "Cursor blink", keywords: "caret blinking" },
   { panel: "appearance", label: "Vibrancy", keywords: "blur transparency acrylic" },

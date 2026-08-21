@@ -1,9 +1,4 @@
 {
-  "src/components/settings/AppearancePanel.tsx": {
-    "nexterm/no-inline-style": {
-      "count": 2
-    }
-  },
   "src/components/terminal/PaneContextMenu.tsx": {
     "nexterm/no-inline-style": {
       "count": 5

@@ -84,6 +84,10 @@ const STRICT_PATHS = [
   "src/components/settings/GeneralPanel.tsx",
   "src/components/settings/TerminalPanel.tsx",
   "src/lib/pick-file.ts",
+  "src/components/settings/AppearancePanel.tsx",
+  "src/components/settings/ThemePicker.tsx",
+  "src/components/settings/theme-files.ts",
+  "src/lib/font-check.ts",
 ];
 
 const file = "eslint-suppressions.json";

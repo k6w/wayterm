@@ -17,6 +17,7 @@ const css = (name: string) => document.documentElement.style.getPropertyValue(na
 beforeEach(() => {
   document.documentElement.removeAttribute("style");
   document.documentElement.removeAttribute("data-vibrancy");
+  document.documentElement.removeAttribute("data-density");
 });
 
 describe("applyAppearanceToDom", () => {
@@ -71,5 +72,18 @@ describe("applyAppearanceToDom", () => {
     expect(css("--nx-glass-panel")).toBe("rgba(21, 22, 24, 0.8)");
     expect(css("--nx-glass-raised")).toBe("rgba(28, 29, 32, 0.68)");
     expect(document.documentElement.getAttribute("data-vibrancy")).toBe("on");
+  });
+
+  it("sets comfortable density on the root and clears it for compact", () => {
+    applyAppearanceToDom(appearance({ density: "comfortable" }), graphite);
+    expect(document.documentElement.getAttribute("data-density")).toBe("comfortable");
+    applyAppearanceToDom(appearance({ density: "compact" }), graphite);
+    expect(document.documentElement.hasAttribute("data-density")).toBe(false);
+  });
+
+  it("defaults to compact density and no longer applies the old compact mode", () => {
+    applyAppearanceToDom(appearance({ compactMode: true }), graphite);
+    expect(document.documentElement.hasAttribute("data-density")).toBe(false);
+    expect(document.documentElement.hasAttribute("data-compact")).toBe(false);
   });
 });

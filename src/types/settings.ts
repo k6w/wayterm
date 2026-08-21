@@ -3,6 +3,9 @@ export type BellStyle = "none" | "visual" | "audio";
 export type RightClickBehavior = "paste" | "context-menu";
 export type StartupBehavior = "restore" | "new-tab" | "workspace";
 
+/** Control and row height: compact 28px (default) or comfortable 32px. */
+export type Density = "compact" | "comfortable";
+
 export interface GeneralSettings {
   defaultShell: string;
   startupBehavior: StartupBehavior;
@@ -30,7 +33,9 @@ export interface AppearanceSettings {
   windowOpacity: number;
   blurIntensity: number;
   accentColorOverride: string | null;
+  /** @deprecated Replaced by `density` (Phase 5). Still loaded, no longer shown or applied. */
   compactMode: boolean;
+  density: Density;
   tabPosition: "top" | "bottom" | "left" | "right";
   windowDecorations: "custom" | "native";
   /** Side panel hidden (only the activity bar shows). */

@@ -30,6 +30,7 @@ const defaultSettings: AppSettings = {
     blurIntensity: 1.0,
     accentColorOverride: null,
     compactMode: false,
+    density: "compact",
     tabPosition: "top",
     windowDecorations: "custom",
     sidebarCollapsed: true,
