@@ -96,6 +96,7 @@ const STRICT_PATHS = [
   "src/components/settings/ProfilesPanel.tsx",
   "src/components/settings/profile-utils.ts",
   "src/components/settings/AuditLogPanel.tsx",
+  "src/components/welcome/",
 ];
 
 const file = "eslint-suppressions.json";

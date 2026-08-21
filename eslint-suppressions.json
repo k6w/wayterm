@@ -37,10 +37,5 @@
     "nexterm/no-inline-style": {
       "count": 3
     }
-  },
-  "src/components/ui/WelcomeScreen.tsx": {
-    "nexterm/no-inline-style": {
-      "count": 7
-    }
   }
 }

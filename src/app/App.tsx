@@ -16,7 +16,7 @@ import Scratchpad from "../components/terminal/Scratchpad";
 import StatusBar from "../components/terminal/StatusBar";
 import UpdateNotification from "../components/ui/UpdateNotification";
 import { ToastContainer } from "../components/ui/ToastContainer";
-import { WelcomeScreen } from "../components/ui/WelcomeScreen";
+import { WelcomeWizard } from "../components/welcome/WelcomeWizard";
 import { useTerminalStore } from "../stores/terminal";
 import { useSettingsStore } from "../stores/settings";
 import { useThemeStore } from "../stores/theme";
@@ -182,7 +182,7 @@ function AppContent() {
                   </div>
                 ))}
                 {tabs.length === 0 && showWelcome && (
-                  <WelcomeScreen
+                  <WelcomeWizard
                     onDismiss={() => {
                       localStorage.setItem("nexterm-welcomed", "1");
                       setShowWelcome(false);
