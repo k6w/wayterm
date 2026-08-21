@@ -1,71 +1,305 @@
 import { useState } from "react";
-import { Plus, Trash2, Terminal, ChevronDown, ChevronUp, Copy, X } from "lucide-react";
+import { ChevronDown, ChevronRight, Copy, Plus, Terminal, Trash2, X } from "lucide-react";
 import { useSettingsStore } from "../../stores/settings";
 import { useThemeStore } from "../../stores/theme";
 import { getDefaultShells } from "../../lib/shell-detect";
-import Select from "../ui/Select";
-import { Button, IconButton } from "../ui/Button";
-import { EmptyState } from "../ui/EmptyState";
+import { Button, EmptyState, IconButton, Input, Section, Select, cn, focusRing, ICON_MD, ICON_SM } from "../../ui";
 import ConfirmDialog from "../ui/ConfirmDialog";
-import { SettingsSection, SettingRow, TextField, NumberField } from "./ui";
-import type { ShellProfile, CursorStyle } from "../../types/settings";
+import { NumberInput, SettingRow, SettingsCard } from "./SettingRow";
+import { createProfile, duplicateProfile, nextEnvKey, removeEnvKey, renameEnvKey } from "./profile-utils";
+import type { CursorStyle, ShellProfile } from "../../types/settings";
 
 const detectedShells = getDefaultShells();
-const FONT_WEIGHTS = [100, 200, 300, 400, 500, 600, 700, 800, 900];
+
+/** Kit Select values cannot be "" (Radix reserves it): "inherit the global setting" is this sentinel. */
+const DEFAULT = "__default__";
+const CUSTOM_PATH = "__custom__";
+
+const SHELL_OPTIONS = [
+  ...detectedShells.map((s) => ({ value: s.path, label: s.label })),
+  { value: CUSTOM_PATH, label: "Custom path…" },
+];
+
+const FONT_WEIGHT_OPTIONS = [
+  { value: DEFAULT, label: "Default" },
+  ...[100, 200, 300, 400, 500, 600, 700, 800, 900].map((w) => ({ value: String(w), label: String(w) })),
+];
+
+const CURSOR_OPTIONS = [
+  { value: DEFAULT, label: "Default" },
+  { value: "block", label: "Block" },
+  { value: "underline", label: "Underline" },
+  { value: "bar", label: "Bar" },
+];
+
+const LIGATURE_OPTIONS = [
+  { value: DEFAULT, label: "Default" },
+  { value: "true", label: "Enabled" },
+  { value: "false", label: "Disabled" },
+];
+
+const isDetectedPath = (shellPath: string) => detectedShells.some((s) => s.path === shellPath);
+
+interface ProfileEditorProps {
+  profile: ShellProfile;
+  customPath: boolean;
+  onCustomPathChange: (on: boolean) => void;
+  onChange: (changes: Partial<ShellProfile>) => void;
+}
+
+/** The expanded body of one profile. */
+function ProfileEditor({ profile, customPath, onCustomPathChange, onChange }: ProfileEditorProps) {
+  const themes = useThemeStore((s) => s.themes);
+  const themeOptions = [
+    { value: DEFAULT, label: "Default" },
+    ...Object.values(themes).map((t) => ({ value: t.id, label: t.name })),
+  ];
+  const envEntries = Object.entries(profile.env);
+
+  return (
+    <div className="flex flex-col gap-4 border-t border-border p-3">
+      <SettingsCard>
+        <SettingRow label="Name">
+          {(control) => (
+            <Input {...control} value={profile.name} onChange={(e) => onChange({ name: e.target.value })} className="w-56" />
+          )}
+        </SettingRow>
+        <SettingRow label="Shell">
+          {(control) => (
+            <div className="flex w-56 flex-col gap-2">
+              <Select
+                {...control}
+                value={customPath ? CUSTOM_PATH : profile.shellPath || undefined}
+                placeholder="Select shell…"
+                options={SHELL_OPTIONS}
+                onValueChange={(v) => {
+                  if (v === CUSTOM_PATH) {
+                    onCustomPathChange(true);
+                  } else {
+                    onCustomPathChange(false);
+                    onChange({ shellPath: v });
+                  }
+                }}
+              />
+              {customPath && (
+                <Input
+                  aria-label="Shell path"
+                  value={profile.shellPath}
+                  placeholder="/path/to/shell"
+                  onChange={(e) => onChange({ shellPath: e.target.value })}
+                  code
+                />
+              )}
+            </div>
+          )}
+        </SettingRow>
+        <SettingRow label="Working directory">
+          {(control) => (
+            <Input
+              {...control}
+              value={profile.workingDirectory}
+              placeholder="~"
+              onChange={(e) => onChange({ workingDirectory: e.target.value })}
+              code
+              className="w-56"
+            />
+          )}
+        </SettingRow>
+      </SettingsCard>
+
+      <Section
+        title="Arguments"
+        actions={
+          <Button
+            size="xs"
+            variant="ghost"
+            leadingIcon={<Plus {...ICON_SM} />}
+            onClick={() => onChange({ args: [...profile.args, ""] })}
+          >
+            Add argument
+          </Button>
+        }
+      >
+        {profile.args.map((arg, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <Input
+              aria-label={`Argument ${i + 1}`}
+              value={arg}
+              placeholder="--flag=value"
+              onChange={(e) => onChange({ args: profile.args.map((a, idx) => (idx === i ? e.target.value : a)) })}
+              code
+            />
+            <IconButton
+              label={`Remove argument ${i + 1}`}
+              icon={<X {...ICON_SM} />}
+              onClick={() => onChange({ args: profile.args.filter((_, idx) => idx !== i) })}
+            />
+          </div>
+        ))}
+      </Section>
+
+      <Section
+        title="Environment variables"
+        actions={
+          <Button
+            size="xs"
+            variant="ghost"
+            leadingIcon={<Plus {...ICON_SM} />}
+            onClick={() => onChange({ env: { ...profile.env, [nextEnvKey(profile.env)]: "" } })}
+          >
+            Add variable
+          </Button>
+        }
+      >
+        {envEntries.map(([key, value], i) => (
+          // Keyed by position: renaming keeps the row (and its focus) in place.
+          <div key={i} className="flex items-center gap-2">
+            <Input
+              aria-label={`Variable ${i + 1} name`}
+              value={key}
+              placeholder="KEY"
+              onChange={(e) => onChange({ env: renameEnvKey(profile.env, key, e.target.value) })}
+              code
+              className="w-36"
+            />
+            <span aria-hidden className="text-fg-muted">
+              =
+            </span>
+            <Input
+              aria-label={`Variable ${i + 1} value`}
+              value={value}
+              placeholder="value"
+              onChange={(e) => onChange({ env: { ...profile.env, [key]: e.target.value } })}
+              code
+            />
+            <IconButton
+              label={`Remove variable ${key || i + 1}`}
+              icon={<X {...ICON_SM} />}
+              onClick={() => onChange({ env: removeEnvKey(profile.env, key) })}
+            />
+          </div>
+        ))}
+      </Section>
+
+      <Section title="Appearance overrides">
+        <SettingsCard>
+          <SettingRow label="Theme">
+            {(control) => (
+              <Select
+                {...control}
+                value={profile.themeOverride ?? DEFAULT}
+                options={themeOptions}
+                onValueChange={(v) => onChange({ themeOverride: v === DEFAULT ? null : v })}
+                className="w-52"
+              />
+            )}
+          </SettingRow>
+          <SettingRow label="Font family">
+            {(control) => (
+              <Input
+                {...control}
+                value={profile.fontFamilyOverride ?? ""}
+                placeholder="Default"
+                code
+                onChange={(e) => onChange({ fontFamilyOverride: e.target.value || null })}
+                className="w-52"
+              />
+            )}
+          </SettingRow>
+          <SettingRow label="Font size">
+            {(control) => (
+              <NumberInput
+                {...control}
+                value={profile.fontSizeOverride}
+                min={8}
+                max={24}
+                placeholder="Default"
+                onValueChange={(v) => onChange({ fontSizeOverride: v || null })}
+              />
+            )}
+          </SettingRow>
+          <SettingRow label="Font weight">
+            {(control) => (
+              <Select
+                {...control}
+                value={profile.fontWeightOverride ? String(profile.fontWeightOverride) : DEFAULT}
+                options={FONT_WEIGHT_OPTIONS}
+                onValueChange={(v) => onChange({ fontWeightOverride: v === DEFAULT ? null : Number(v) })}
+                className="w-52"
+              />
+            )}
+          </SettingRow>
+          <SettingRow label="Cursor style">
+            {(control) => (
+              <Select
+                {...control}
+                value={profile.cursorStyleOverride ?? DEFAULT}
+                options={CURSOR_OPTIONS}
+                onValueChange={(v) => onChange({ cursorStyleOverride: v === DEFAULT ? null : (v as CursorStyle) })}
+                className="w-52"
+              />
+            )}
+          </SettingRow>
+          <SettingRow label="Scrollback lines">
+            {(control) => (
+              <NumberInput
+                {...control}
+                value={profile.scrollbackOverride}
+                min={0}
+                max={100000}
+                step={1000}
+                placeholder="Default"
+                onValueChange={(v) => onChange({ scrollbackOverride: v || null })}
+                className="w-28"
+              />
+            )}
+          </SettingRow>
+          <SettingRow label="Ligatures">
+            {(control) => (
+              <Select
+                {...control}
+                value={profile.ligaturesOverride === null ? DEFAULT : String(profile.ligaturesOverride)}
+                options={LIGATURE_OPTIONS}
+                onValueChange={(v) => onChange({ ligaturesOverride: v === DEFAULT ? null : v === "true" })}
+                className="w-52"
+              />
+            )}
+          </SettingRow>
+        </SettingsCard>
+      </Section>
+    </div>
+  );
+}
 
 export default function ProfilesPanel() {
   const profiles = useSettingsStore((s) => s.settings.profiles);
   const update = useSettingsStore((s) => s.update);
-  const themes = useThemeStore((s) => s.themes);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [customPathIds, setCustomPathIds] = useState<Set<string>>(new Set());
 
+  const save = (next: ShellProfile[]) => update("profiles", next as never);
+
   const addProfile = () => {
-    const newProfile: ShellProfile = {
-      id: crypto.randomUUID(),
-      name: "New Profile",
-      shellPath: "",
-      args: [],
-      env: {},
-      workingDirectory: "",
-      icon: "terminal",
-      themeOverride: null,
-      fontFamilyOverride: null,
-      fontSizeOverride: null,
-      fontWeightOverride: null,
-      cursorStyleOverride: null,
-      scrollbackOverride: null,
-      ligaturesOverride: null,
-    };
-    update("profiles", [...profiles, newProfile] as never);
-    setExpandedId(newProfile.id);
+    const profile = createProfile(crypto.randomUUID());
+    void save([...profiles, profile]);
+    setExpandedId(profile.id);
   };
 
   const removeProfile = (id: string) => {
-    update("profiles", profiles.filter((p) => p.id !== id) as never);
+    void save(profiles.filter((p) => p.id !== id));
     if (expandedId === id) setExpandedId(null);
   };
 
   const updateProfile = (id: string, changes: Partial<ShellProfile>) => {
-    update(
-      "profiles",
-      profiles.map((p) => (p.id === id ? { ...p, ...changes } : p)) as never
-    );
+    void save(profiles.map((p) => (p.id === id ? { ...p, ...changes } : p)));
   };
 
-  const duplicateProfile = (profile: ShellProfile) => {
-    const newProfile: ShellProfile = {
-      ...profile,
-      id: crypto.randomUUID(),
-      name: `${profile.name} (Copy)`,
-    };
-    update("profiles", [...profiles, newProfile] as never);
-    setExpandedId(newProfile.id);
+  const copyProfile = (profile: ShellProfile) => {
+    const copy = duplicateProfile(profile, crypto.randomUUID());
+    void save([...profiles, copy]);
+    setExpandedId(copy.id);
   };
-
-  const isDetectedPath = (shellPath: string) =>
-    detectedShells.some((s) => s.path === shellPath);
 
   const setCustomMode = (id: string, on: boolean) =>
     setCustomPathIds((prev) => {
@@ -76,423 +310,96 @@ export default function ProfilesPanel() {
     });
 
   const isCustomPath = (profile: ShellProfile) =>
-    customPathIds.has(profile.id) ||
-    (profile.shellPath !== "" && !isDetectedPath(profile.shellPath));
-
-  const shellOptions = [
-    ...detectedShells.map((s) => ({ value: s.path, label: s.label })),
-    { value: "__custom__", label: "Custom path…" },
-  ];
-
-  const themeOptions = [
-    { value: "", label: "Default" },
-    ...Object.values(themes).map((t) => ({ value: t.id, label: t.name })),
-  ];
+    customPathIds.has(profile.id) || (profile.shellPath !== "" && !isDetectedPath(profile.shellPath));
 
   const profileToDelete = profiles.find((p) => p.id === deleteId) ?? null;
+  const addButton = (
+    <Button size="sm" variant="primary" leadingIcon={<Plus {...ICON_SM} />} onClick={addProfile}>
+      Add profile
+    </Button>
+  );
 
   return (
-    <div className="space-y-8">
-      <SettingsSection
-        title="Available Shells"
-        card={false}
-      >
+    <div className="flex flex-col gap-6">
+      <Section title="Available shells">
         {detectedShells.length === 0 ? (
           <EmptyState
-            icon={Terminal}
+            icon={<Terminal {...ICON_MD} />}
             title="No shells detected"
-            hint="Nexterm couldn't find any shells on this system."
+            description="nexterm could not find any shells on this system."
           />
         ) : (
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2">
             {detectedShells.map((shell) => (
-              <div
-                key={shell.path}
-                className="flex items-center gap-3 rounded-lg border border-border bg-bg-tertiary px-4 py-3"
-              >
-                <Terminal size={18} className="shrink-0 text-accent" />
+              <div key={shell.path} className="flex items-center gap-3 rounded-lg border border-border bg-panel px-3 py-2">
+                <Terminal {...ICON_MD} aria-hidden className="shrink-0 text-fg-muted" />
                 <div className="min-w-0">
-                  <div className="text-sm font-medium text-text-primary">
-                    {shell.label}
-                  </div>
-                  <div className="truncate font-mono text-xs text-text-muted">
-                    {shell.path}
-                  </div>
+                  <p className="text-body font-medium text-fg">{shell.label}</p>
+                  <p className="truncate font-mono text-label text-fg-muted">{shell.path}</p>
                 </div>
               </div>
             ))}
           </div>
         )}
-      </SettingsSection>
+      </Section>
 
-      <SettingsSection
-        title="Custom Profiles"
-        description="Reusable shell launch configurations"
-        card={false}
-        action={
-          <Button variant="primary" size="sm" onClick={addProfile}>
-            <Plus size={14} />
-            Add Profile
-          </Button>
-        }
-      >
+      <Section title="Custom profiles" description="Reusable shell launch configurations" actions={addButton}>
         {profiles.length === 0 ? (
           <EmptyState
-            icon={Terminal}
+            icon={<Terminal {...ICON_MD} />}
             title="No custom profiles yet"
-            hint="Add a profile to save a shell, working directory, and appearance overrides."
-            action={{ label: "Add Profile", onClick: addProfile }}
+            description="Add a profile to save a shell, working directory and appearance overrides."
           />
         ) : (
-          <div className="space-y-3">
+          <div className="flex flex-col gap-2">
             {profiles.map((profile) => {
-              const isExpanded = expandedId === profile.id;
-              const customPath = isCustomPath(profile);
-
+              const expanded = expandedId === profile.id;
+              const bodyId = `profile-${profile.id}`;
               return (
-                <div
-                  key={profile.id}
-                  className="overflow-hidden rounded-lg border border-border"
-                >
-                  <div
-                    className="flex cursor-pointer items-center justify-between gap-2 bg-bg-tertiary px-4 py-2.5"
-                    onClick={() =>
-                      setExpandedId(isExpanded ? null : profile.id)
-                    }
-                  >
-                    <div className="flex min-w-0 items-center gap-2">
-                      {isExpanded ? (
-                        <ChevronUp size={14} className="shrink-0 text-text-muted" />
-                      ) : (
-                        <ChevronDown size={14} className="shrink-0 text-text-muted" />
+                <div key={profile.id} className="overflow-hidden rounded-lg border border-border bg-panel">
+                  <div className="flex items-center gap-1 pr-2">
+                    <button
+                      type="button"
+                      aria-expanded={expanded}
+                      aria-controls={bodyId}
+                      onClick={() => setExpandedId(expanded ? null : profile.id)}
+                      className={cn(
+                        "flex min-h-row min-w-0 flex-1 items-center gap-2 rounded-md px-3 py-2 text-left hover:bg-hover",
+                        focusRing
                       )}
-                      <div className="min-w-0">
-                        <div className="text-sm text-text-primary">
-                          {profile.name}
-                        </div>
-                        <div className="truncate text-xs text-text-muted">
-                          {profile.shellPath || "No shell path"}
-                          {profile.workingDirectory
-                            ? ` · ${profile.workingDirectory}`
-                            : ""}
-                        </div>
-                      </div>
-                    </div>
-                    <div
-                      className="flex shrink-0 items-center gap-1"
-                      onClick={(e) => e.stopPropagation()}
                     >
-                      <IconButton
-                        title="Duplicate"
-                        onClick={() => duplicateProfile(profile)}
-                      >
-                        <Copy size={14} />
-                      </IconButton>
-                      <IconButton
-                        title="Delete"
-                        onClick={() => setDeleteId(profile.id)}
-                      >
-                        <Trash2 size={14} />
-                      </IconButton>
-                    </div>
+                      {expanded ? (
+                        <ChevronDown {...ICON_SM} aria-hidden className="shrink-0 text-fg-muted" />
+                      ) : (
+                        <ChevronRight {...ICON_SM} aria-hidden className="shrink-0 text-fg-muted" />
+                      )}
+                      <span className="min-w-0">
+                        <span className="block truncate text-body text-fg">{profile.name}</span>
+                        <span className="block truncate font-mono text-label text-fg-muted">
+                          {profile.shellPath || "No shell path"}
+                          {profile.workingDirectory ? ` · ${profile.workingDirectory}` : ""}
+                        </span>
+                      </span>
+                    </button>
+                    <IconButton
+                      label={`Duplicate ${profile.name}`}
+                      icon={<Copy {...ICON_SM} />}
+                      onClick={() => copyProfile(profile)}
+                    />
+                    <IconButton
+                      label={`Delete ${profile.name}`}
+                      icon={<Trash2 {...ICON_SM} />}
+                      onClick={() => setDeleteId(profile.id)}
+                    />
                   </div>
-
-                  {isExpanded && (
-                    <div className="space-y-5 border-t border-border p-4">
-                      <div className="divide-y divide-border overflow-hidden rounded-lg border border-border">
-                        <SettingRow label="Name" htmlFor={`name-${profile.id}`}>
-                          <TextField
-                            id={`name-${profile.id}`}
-                            value={profile.name}
-                            onChange={(v) => updateProfile(profile.id, { name: v })}
-                            className="w-56"
-                          />
-                        </SettingRow>
-
-                        <SettingRow label="Shell">
-                          <div className="flex w-52 flex-col gap-2">
-                            <Select
-                              value={
-                                customPath ? "__custom__" : profile.shellPath
-                              }
-                              placeholder="Select shell…"
-                              onChange={(v) => {
-                                if (v === "__custom__") {
-                                  setCustomMode(profile.id, true);
-                                } else {
-                                  setCustomMode(profile.id, false);
-                                  updateProfile(profile.id, { shellPath: v });
-                                }
-                              }}
-                              options={shellOptions}
-                              className="w-full"
-                            />
-                            {customPath && (
-                              <TextField
-                                value={profile.shellPath}
-                                onChange={(v) =>
-                                  updateProfile(profile.id, { shellPath: v })
-                                }
-                                placeholder="/path/to/shell"
-                                mono
-                                className="w-full"
-                              />
-                            )}
-                          </div>
-                        </SettingRow>
-
-                        <SettingRow label="Working Directory">
-                          <TextField
-                            value={profile.workingDirectory}
-                            onChange={(v) =>
-                              updateProfile(profile.id, { workingDirectory: v })
-                            }
-                            placeholder="~"
-                            className="w-56"
-                          />
-                        </SettingRow>
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-text-primary">
-                            Arguments
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() =>
-                              updateProfile(profile.id, {
-                                args: [...profile.args, ""],
-                              })
-                            }
-                          >
-                            <Plus size={12} />
-                            Add Argument
-                          </Button>
-                        </div>
-                        {profile.args.length > 0 && (
-                          <div className="space-y-2">
-                            {profile.args.map((arg, i) => (
-                              <div key={i} className="flex items-center gap-2">
-                                <TextField
-                                  value={arg}
-                                  onChange={(v) => {
-                                    const newArgs = [...profile.args];
-                                    newArgs[i] = v;
-                                    updateProfile(profile.id, { args: newArgs });
-                                  }}
-                                  placeholder="--flag=value"
-                                  mono
-                                  className="flex-1"
-                                />
-                                <IconButton
-                                  title="Remove argument"
-                                  onClick={() =>
-                                    updateProfile(profile.id, {
-                                      args: profile.args.filter(
-                                        (_, idx) => idx !== i
-                                      ),
-                                    })
-                                  }
-                                >
-                                  <X size={14} />
-                                </IconButton>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm text-text-primary">
-                            Environment Variables
-                          </span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              const key = `VAR_${Object.keys(profile.env).length + 1}`;
-                              updateProfile(profile.id, {
-                                env: { ...profile.env, [key]: "" },
-                              });
-                            }}
-                          >
-                            <Plus size={12} />
-                            Add Variable
-                          </Button>
-                        </div>
-                        {Object.keys(profile.env).length > 0 && (
-                          <div className="space-y-2">
-                            {Object.entries(profile.env).map(([key, value]) => (
-                              <div key={key} className="flex items-center gap-2">
-                                <TextField
-                                  value={key}
-                                  onChange={(v) => {
-                                    const newEnv = { ...profile.env };
-                                    delete newEnv[key];
-                                    newEnv[v] = value;
-                                    updateProfile(profile.id, { env: newEnv });
-                                  }}
-                                  placeholder="KEY"
-                                  mono
-                                  className="w-32"
-                                />
-                                <span className="text-text-muted">=</span>
-                                <TextField
-                                  value={value}
-                                  onChange={(v) =>
-                                    updateProfile(profile.id, {
-                                      env: { ...profile.env, [key]: v },
-                                    })
-                                  }
-                                  placeholder="value"
-                                  mono
-                                  className="flex-1"
-                                />
-                                <IconButton
-                                  title="Remove variable"
-                                  onClick={() => {
-                                    const newEnv = { ...profile.env };
-                                    delete newEnv[key];
-                                    updateProfile(profile.id, { env: newEnv });
-                                  }}
-                                >
-                                  <X size={14} />
-                                </IconButton>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="space-y-3">
-                        <h4 className="text-sm font-semibold text-text-primary">
-                          Appearance Overrides
-                        </h4>
-                        <div className="divide-y divide-border overflow-hidden rounded-lg border border-border">
-                          <SettingRow label="Theme">
-                            <Select
-                              value={profile.themeOverride || ""}
-                              onChange={(v) =>
-                                updateProfile(profile.id, {
-                                  themeOverride: v || null,
-                                })
-                              }
-                              options={themeOptions}
-                              className="w-52"
-                            />
-                          </SettingRow>
-
-                          <SettingRow label="Font Family">
-                            <TextField
-                              value={profile.fontFamilyOverride || ""}
-                              onChange={(v) =>
-                                updateProfile(profile.id, {
-                                  fontFamilyOverride: v || null,
-                                })
-                              }
-                              placeholder="Default"
-                              className="w-56"
-                            />
-                          </SettingRow>
-
-                          <SettingRow label="Font Size">
-                            <NumberField
-                              value={(profile.fontSizeOverride ?? "") as number}
-                              min={8}
-                              max={24}
-                              onChange={(v) =>
-                                updateProfile(profile.id, {
-                                  fontSizeOverride: v || null,
-                                })
-                              }
-                              className="w-24"
-                            />
-                          </SettingRow>
-
-                          <SettingRow label="Font Weight">
-                            <Select
-                              value={
-                                profile.fontWeightOverride
-                                  ? String(profile.fontWeightOverride)
-                                  : ""
-                              }
-                              onChange={(v) =>
-                                updateProfile(profile.id, {
-                                  fontWeightOverride: v ? Number(v) : null,
-                                })
-                              }
-                              options={[
-                                { value: "", label: "Default" },
-                                ...FONT_WEIGHTS.map((w) => ({
-                                  value: String(w),
-                                  label: String(w),
-                                })),
-                              ]}
-                              className="w-52"
-                            />
-                          </SettingRow>
-
-                          <SettingRow label="Cursor Style">
-                            <Select
-                              value={profile.cursorStyleOverride || ""}
-                              onChange={(v) =>
-                                updateProfile(profile.id, {
-                                  cursorStyleOverride: (v || null) as
-                                    | CursorStyle
-                                    | null,
-                                })
-                              }
-                              options={[
-                                { value: "", label: "Default" },
-                                { value: "block", label: "Block" },
-                                { value: "underline", label: "Underline" },
-                                { value: "bar", label: "Bar" },
-                              ]}
-                              className="w-52"
-                            />
-                          </SettingRow>
-
-                          <SettingRow label="Scrollback Lines">
-                            <NumberField
-                              value={(profile.scrollbackOverride ?? "") as number}
-                              min={0}
-                              max={100000}
-                              step={1000}
-                              onChange={(v) =>
-                                updateProfile(profile.id, {
-                                  scrollbackOverride: v || null,
-                                })
-                              }
-                              className="w-32"
-                            />
-                          </SettingRow>
-
-                          <SettingRow label="Ligatures">
-                            <Select
-                              value={
-                                profile.ligaturesOverride === null
-                                  ? ""
-                                  : String(profile.ligaturesOverride)
-                              }
-                              onChange={(v) =>
-                                updateProfile(profile.id, {
-                                  ligaturesOverride:
-                                    v === "" ? null : v === "true",
-                                })
-                              }
-                              options={[
-                                { value: "", label: "Default" },
-                                { value: "true", label: "Enabled" },
-                                { value: "false", label: "Disabled" },
-                              ]}
-                              className="w-52"
-                            />
-                          </SettingRow>
-                        </div>
-                      </div>
+                  {expanded && (
+                    <div id={bodyId}>
+                      <ProfileEditor
+                        profile={profile}
+                        customPath={isCustomPath(profile)}
+                        onCustomPathChange={(on) => setCustomMode(profile.id, on)}
+                        onChange={(changes) => updateProfile(profile.id, changes)}
+                      />
                     </div>
                   )}
                 </div>
@@ -500,7 +407,7 @@ export default function ProfilesPanel() {
             })}
           </div>
         )}
-      </SettingsSection>
+      </Section>
 
       <ConfirmDialog
         open={deleteId !== null}
