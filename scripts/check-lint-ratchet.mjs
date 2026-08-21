@@ -90,6 +90,9 @@ const STRICT_PATHS = [
   "src/lib/font-check.ts",
   "src/components/settings/KeybindingsPanel.tsx",
   "src/components/settings/keybinding-utils.ts",
+  "src/components/settings/SshPanel.tsx",
+  "src/components/settings/KeysPanel.tsx",
+  "src/components/settings/ssh-import.ts",
 ];
 
 const file = "eslint-suppressions.json";

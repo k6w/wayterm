@@ -1,46 +1,30 @@
-import { useState, useCallback, useEffect } from "react";
-import { KeyRound, Trash2, Upload, Copy, Check, FileKey, Pencil } from "lucide-react";
+import { useEffect, useState } from "react";
+import { Check, Copy, FileKey, KeyRound, Pencil, Trash2, Upload } from "lucide-react";
 import { useSshStore } from "../../stores/ssh";
+import { Button, EmptyState, IconButton, Input, Section, SegmentedControl, Textarea, ICON_MD, ICON_SM } from "../../ui";
 import ConfirmDialog from "../ui/ConfirmDialog";
-import { Button, IconButton } from "../ui/Button";
-import { EmptyState } from "../ui/EmptyState";
-import { SettingsSection, SettingRow, SegmentedControl, TextField, TextArea } from "./ui";
+import { SettingRow, SettingsCard } from "./SettingRow";
 import type { SshKey } from "../../types/ssh";
 
-type ImportMode = "paste" | null;
+type Algorithm = SshKey["algorithm"];
 
-export default function KeysPanel() {
-  const keys = useSshStore((s) => s.keys);
-  const loadKeys = useSshStore((s) => s.loadKeys);
+const ALGORITHM_OPTIONS: { value: Algorithm; label: string }[] = [
+  { value: "ed25519", label: "Ed25519" },
+  { value: "rsa", label: "RSA" },
+];
+
+/** Paste-in form for an existing key pair. Mounted only while open, so it starts empty each time. */
+function ImportKeyForm({ onDone }: { onDone: () => void }) {
   const importKey = useSshStore((s) => s.importKey);
-  const removeKey = useSshStore((s) => s.removeKey);
-  const updateKey = useSshStore((s) => s.updateKey);
-
-  const [importMode, setImportMode] = useState<ImportMode>(null);
-  const [editingKey, setEditingKey] = useState<{ id: string; name: string; publicKey: string } | null>(null);
   const [name, setName] = useState("");
   const [publicKey, setPublicKey] = useState("");
   const [privateKey, setPrivateKey] = useState("");
-  const [algorithm, setAlgorithm] = useState<"ed25519" | "rsa">("ed25519");
+  const [algorithm, setAlgorithm] = useState<Algorithm>("ed25519");
   const [importing, setImporting] = useState(false);
-  const [copiedId, setCopiedId] = useState<string | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const valid = name.trim() !== "" && privateKey.trim() !== "";
 
-  useEffect(() => {
-    loadKeys();
-  }, [loadKeys]);
-
-  const resetForm = useCallback(() => {
-    setName("");
-    setPublicKey("");
-    setPrivateKey("");
-    setAlgorithm("ed25519");
-    setImportMode(null);
-    setImporting(false);
-  }, []);
-
-  const handleImport = useCallback(async () => {
-    if (!name.trim() || !privateKey.trim()) return;
+  const handleImport = async () => {
+    if (!valid) return;
     setImporting(true);
     try {
       await importKey({
@@ -49,213 +33,190 @@ export default function KeysPanel() {
         privateKeyPem: privateKey.trim(),
         algorithm,
       });
-      resetForm();
+      onDone();
     } catch {
       setImporting(false);
     }
-  }, [name, publicKey, privateKey, algorithm, importKey, resetForm]);
+  };
 
-  const handleCopy = useCallback((key: SshKey) => {
+  return (
+    <SettingsCard>
+      <SettingRow label="Key name" stacked>
+        {(control) => (
+          <Input {...control} autoFocus value={name} placeholder="My SSH key" onChange={(e) => setName(e.target.value)} />
+        )}
+      </SettingRow>
+      <SettingRow label="Algorithm" stacked>
+        <SegmentedControl aria-label="Algorithm" value={algorithm} onValueChange={setAlgorithm} options={ALGORITHM_OPTIONS} />
+      </SettingRow>
+      <SettingRow label="Public key" description="Optional" stacked>
+        {(control) => (
+          <Textarea
+            {...control}
+            value={publicKey}
+            placeholder="ssh-ed25519 AAAA..."
+            onChange={(e) => setPublicKey(e.target.value)}
+            code
+          />
+        )}
+      </SettingRow>
+      <SettingRow label="Private key (PEM)" description="Stored encrypted locally" stacked>
+        {(control) => (
+          <Textarea
+            {...control}
+            rows={4}
+            value={privateKey}
+            placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"
+            onChange={(e) => setPrivateKey(e.target.value)}
+            code
+          />
+        )}
+      </SettingRow>
+      <div className="flex justify-end gap-2 px-3 py-2">
+        <Button variant="ghost" onClick={onDone}>
+          Cancel
+        </Button>
+        <Button variant="primary" loading={importing} disabled={!valid} onClick={() => void handleImport()}>
+          Import
+        </Button>
+      </div>
+    </SettingsCard>
+  );
+}
+
+/** Rename a key or replace its public part. */
+function EditKeyForm({ sshKey, onDone }: { sshKey: SshKey; onDone: () => void }) {
+  const updateKey = useSshStore((s) => s.updateKey);
+  const [name, setName] = useState(sshKey.name);
+  const [publicKey, setPublicKey] = useState(sshKey.publicKey);
+  return (
+    <div className="divide-y divide-border">
+      <SettingRow label="Key name" stacked>
+        {(control) => <Input {...control} value={name} onChange={(e) => setName(e.target.value)} />}
+      </SettingRow>
+      <SettingRow label="Public key" stacked>
+        {(control) => (
+          <Textarea
+            {...control}
+            value={publicKey}
+            onChange={(e) => setPublicKey(e.target.value)}
+            code
+          />
+        )}
+      </SettingRow>
+      <div className="flex justify-end gap-2 px-3 py-2">
+        <Button variant="ghost" onClick={onDone}>
+          Cancel
+        </Button>
+        <Button
+          variant="primary"
+          disabled={!name.trim()}
+          onClick={async () => {
+            await updateKey(sshKey.id, name, publicKey);
+            onDone();
+          }}
+        >
+          Save
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+export default function KeysPanel() {
+  const keys = useSshStore((s) => s.keys);
+  const loadKeys = useSshStore((s) => s.loadKeys);
+  const removeKey = useSshStore((s) => s.removeKey);
+  const [importing, setImporting] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+
+  useEffect(() => {
+    void loadKeys();
+  }, [loadKeys]);
+
+  const handleCopy = async (key: SshKey) => {
     if (!key.publicKey) return;
-    navigator.clipboard.writeText(key.publicKey);
+    await navigator.clipboard.writeText(key.publicKey);
     setCopiedId(key.id);
-    setTimeout(() => setCopiedId(null), 2000);
-  }, []);
+    setTimeout(() => setCopiedId((current) => (current === key.id ? null : current)), 2000);
+  };
 
-  const handleConfirmDelete = useCallback(async () => {
+  const handleConfirmDelete = async () => {
     if (!deleteTarget) return;
     await removeKey(deleteTarget.id);
     setDeleteTarget(null);
-  }, [deleteTarget, removeKey]);
+  };
 
   return (
-    <div className="space-y-8">
-      <SettingsSection
-        title="SSH Keys"
-        description={`${keys.length} ${keys.length === 1 ? "key" : "keys"} stored`}
-        card={false}
-        action={
-          !importMode && (
-            <Button variant="ghost" className="border border-border" onClick={() => setImportMode("paste")}>
-              <Upload size={12} />
-              Import Key
+    <Section
+      title="SSH keys"
+      description={`${keys.length} ${keys.length === 1 ? "key" : "keys"} stored`}
+      actions={
+        !importing && (
+          <Button size="sm" leadingIcon={<Upload {...ICON_SM} />} onClick={() => setImporting(true)}>
+            Import key
+          </Button>
+        )
+      }
+    >
+      {importing && <ImportKeyForm onDone={() => setImporting(false)} />}
+
+      {keys.length === 0 && !importing ? (
+        <EmptyState
+          icon={<FileKey {...ICON_MD} />}
+          title="No SSH keys"
+          description="Import an existing key to authenticate your SSH connections."
+          action={
+            <Button size="sm" onClick={() => setImporting(true)}>
+              Import your first key
             </Button>
-          )
-        }
-      >
-        {importMode === "paste" && (
-          <div className="divide-y divide-border overflow-hidden rounded-lg border border-border">
-            <SettingRow label="Key Name" htmlFor="key-name" stacked>
-              <TextField
-                id="key-name"
-                value={name}
-                onChange={setName}
-                placeholder="My SSH Key"
-                className="w-full"
-              />
-            </SettingRow>
-
-            <SettingRow label="Algorithm" stacked>
-              <SegmentedControl
-                value={algorithm}
-                onChange={setAlgorithm}
-                options={[
-                  { value: "ed25519", label: "Ed25519" },
-                  { value: "rsa", label: "RSA" },
-                ]}
-              />
-            </SettingRow>
-
-            <SettingRow label="Public Key" description="Optional" htmlFor="public-key" stacked>
-              <TextArea
-                id="public-key"
-                value={publicKey}
-                onChange={setPublicKey}
-                placeholder="ssh-ed25519 AAAA..."
-                rows={3}
-                mono
-              />
-            </SettingRow>
-
-            <SettingRow
-              label="Private Key (PEM)"
-              description="Stored encrypted locally"
-              htmlFor="private-key"
-              stacked
-            >
-              <TextArea
-                id="private-key"
-                value={privateKey}
-                onChange={setPrivateKey}
-                placeholder="-----BEGIN OPENSSH PRIVATE KEY-----"
-                rows={4}
-                mono
-              />
-            </SettingRow>
-
-            <div className="flex items-center justify-end gap-2 px-4 py-3">
-              <Button variant="ghost" onClick={resetForm}>
-                Cancel
-              </Button>
-              <Button
-                variant="primary"
-                onClick={handleImport}
-                disabled={importing || !name.trim() || !privateKey.trim()}
-              >
-                {importing ? "Importing..." : "Import"}
-              </Button>
-            </div>
-          </div>
-        )}
-
-        {keys.length === 0 && !importMode ? (
-          <EmptyState
-            icon={FileKey}
-            title="No SSH keys"
-            hint="Import an existing key to authenticate your SSH connections."
-            action={{
-              label: "Import your first key",
-              onClick: () => setImportMode("paste"),
-            }}
-          />
-        ) : (
-          <div className="space-y-2">
-            {keys.map((key) => (
-              <div
-                key={key.id}
-                className="overflow-hidden rounded-lg border border-border bg-overlay/[0.02]"
-              >
-                <div className="flex items-center gap-3 px-4 py-3">
-                  <KeyRound size={14} className="shrink-0 text-text-muted" />
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm text-text-primary">
-                      {key.name}
-                    </div>
-                    <div className="truncate font-mono text-xs text-text-muted">
-                      {key.algorithm} &middot; {key.fingerprint.slice(0, 23)}...
-                    </div>
-                  </div>
-                  <IconButton title="Copy public key" onClick={() => handleCopy(key)}>
-                    {copiedId === key.id ? (
-                      <Check size={14} className="text-success" />
-                    ) : (
-                      <Copy size={14} />
-                    )}
-                  </IconButton>
-                  <IconButton
-                    title="Edit key"
-                    active={editingKey?.id === key.id}
-                    onClick={() =>
-                      setEditingKey(
-                        editingKey?.id === key.id
-                          ? null
-                          : { id: key.id, name: key.name, publicKey: key.publicKey }
-                      )
-                    }
-                  >
-                    <Pencil size={14} />
-                  </IconButton>
-                  <IconButton
-                    title="Delete key"
-                    className="hover:!text-error"
-                    onClick={() => setDeleteTarget({ id: key.id, name: key.name })}
-                  >
-                    <Trash2 size={14} />
-                  </IconButton>
+          }
+        />
+      ) : (
+        <div className="flex flex-col gap-2">
+          {keys.map((key) => (
+            <SettingsCard key={key.id}>
+              <div className="flex min-h-row items-center gap-3 px-3 py-2">
+                <KeyRound {...ICON_SM} aria-hidden className="shrink-0 text-fg-muted" />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-body text-fg">{key.name}</p>
+                  <p className="truncate font-mono text-label text-fg-muted">
+                    {key.algorithm} · {key.fingerprint.slice(0, 23)}…
+                  </p>
                 </div>
-                {editingKey?.id === key.id && (
-                  <div className="divide-y divide-border border-t border-border">
-                    <SettingRow label="Key Name" htmlFor={`edit-name-${key.id}`} stacked>
-                      <TextField
-                        id={`edit-name-${key.id}`}
-                        value={editingKey.name}
-                        onChange={(v) => setEditingKey({ ...editingKey, name: v })}
-                        className="w-full"
-                      />
-                    </SettingRow>
-                    <SettingRow label="Public Key" htmlFor={`edit-pub-${key.id}`} stacked>
-                      <TextArea
-                        id={`edit-pub-${key.id}`}
-                        value={editingKey.publicKey}
-                        onChange={(v) => setEditingKey({ ...editingKey, publicKey: v })}
-                        rows={3}
-                        mono
-                      />
-                    </SettingRow>
-                    <div className="flex items-center justify-end gap-2 px-4 py-3">
-                      <Button variant="ghost" onClick={() => setEditingKey(null)}>
-                        Cancel
-                      </Button>
-                      <Button
-                        variant="primary"
-                        disabled={!editingKey.name.trim()}
-                        onClick={async () => {
-                          await updateKey(
-                            editingKey.id,
-                            editingKey.name,
-                            editingKey.publicKey
-                          );
-                          setEditingKey(null);
-                        }}
-                      >
-                        Save
-                      </Button>
-                    </div>
-                  </div>
-                )}
+                <IconButton
+                  label={copiedId === key.id ? "Copied" : `Copy public key of ${key.name}`}
+                  icon={copiedId === key.id ? <Check {...ICON_SM} className="text-success" /> : <Copy {...ICON_SM} />}
+                  disabled={!key.publicKey}
+                  onClick={() => void handleCopy(key)}
+                />
+                <IconButton
+                  label={`Edit ${key.name}`}
+                  icon={<Pencil {...ICON_SM} />}
+                  pressed={editingId === key.id}
+                  onClick={() => setEditingId(editingId === key.id ? null : key.id)}
+                />
+                <IconButton
+                  label={`Delete ${key.name}`}
+                  icon={<Trash2 {...ICON_SM} />}
+                  onClick={() => setDeleteTarget({ id: key.id, name: key.name })}
+                />
               </div>
-            ))}
-          </div>
-        )}
-      </SettingsSection>
+              {editingId === key.id && <EditKeyForm sshKey={key} onDone={() => setEditingId(null)} />}
+            </SettingsCard>
+          ))}
+        </div>
+      )}
 
       <ConfirmDialog
-        open={!!deleteTarget}
-        title="Delete SSH Key"
-        message={`Are you sure you want to delete "${deleteTarget?.name}"? Any connections using this key will no longer be able to authenticate.`}
-        onConfirm={handleConfirmDelete}
+        open={deleteTarget !== null}
+        title="Delete SSH key"
+        message={`Delete "${deleteTarget?.name ?? ""}"? Connections that use this key will no longer be able to authenticate.`}
+        onConfirm={() => void handleConfirmDelete()}
         onCancel={() => setDeleteTarget(null)}
       />
-    </div>
+    </Section>
   );
 }

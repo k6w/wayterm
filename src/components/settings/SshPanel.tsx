@@ -1,27 +1,21 @@
-import { useState, useCallback, useEffect } from "react";
-import { Server, Trash2, Fingerprint, Download, Check } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import { Check, Download, Fingerprint, Server, Trash2 } from "lucide-react";
 import { useSettingsStore } from "../../stores/settings";
 import { useSshStore } from "../../stores/ssh";
+import { sshImportConfig, sshKnownHostsClear, sshKnownHostsList, sshKnownHostsRemove, type KnownHost } from "../../lib/ipc";
+import { Badge, Button, Checkbox, EmptyState, IconButton, Input, Section, ICON_MD, ICON_SM } from "../../ui";
 import ConfirmDialog from "../ui/ConfirmDialog";
-import { Button, IconButton } from "../ui/Button";
-import { EmptyState } from "../ui/EmptyState";
-import { SettingsSection, SettingRow, NumberField, TextField } from "./ui";
-import { sshKnownHostsList, sshKnownHostsRemove, sshKnownHostsClear, sshImportConfig, type KnownHost } from "../../lib/ipc";
+import { NumberInput, SettingRow, SettingsCard } from "./SettingRow";
+import { connectionsFromConfig, type ImportedHost } from "./ssh-import";
 
-interface ImportedHost {
-  name: string;
-  host: string;
-  port: number;
-  username: string;
-  identityFile: string | null;
-  jumpHost: string | null;
-}
+const listRow = "flex min-h-row items-center gap-3 px-3 py-2";
 
 export default function SshPanel() {
   const settings = useSettingsStore((s) => s.settings.ssh);
   const update = useSettingsStore((s) => s.update);
   const connections = useSshStore((s) => s.connections);
   const deleteConnection = useSshStore((s) => s.deleteConnection);
+  const saveConnection = useSshStore((s) => s.saveConnection);
 
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [knownHosts, setKnownHosts] = useState<KnownHost[]>([]);
@@ -31,44 +25,42 @@ export default function SshPanel() {
   const [importLoading, setImportLoading] = useState(false);
   const [importError, setImportError] = useState<string | null>(null);
   const [importSuccess, setImportSuccess] = useState<number | null>(null);
-  const saveConnection = useSshStore((s) => s.saveConnection);
 
   const loadKnownHosts = useCallback(async () => {
     try {
-      const hosts = await sshKnownHostsList();
-      setKnownHosts(hosts);
+      setKnownHosts((await sshKnownHostsList()) ?? []);
     } catch {
       setKnownHosts([]);
     }
   }, []);
 
   useEffect(() => {
-    loadKnownHosts();
+    void loadKnownHosts();
   }, [loadKnownHosts]);
 
-  const handleConfirmDelete = useCallback(async () => {
+  const handleConfirmDelete = async () => {
     if (!deleteTarget) return;
     await deleteConnection(deleteTarget.id);
     setDeleteTarget(null);
-  }, [deleteTarget, deleteConnection]);
+  };
 
-  const handleRemoveHost = useCallback(async (hostname: string) => {
+  const handleRemoveHost = async (hostname: string) => {
     await sshKnownHostsRemove(hostname);
     await loadKnownHosts();
-  }, [loadKnownHosts]);
+  };
 
-  const handleClearAll = useCallback(async () => {
+  const handleClearAll = async () => {
     await sshKnownHostsClear();
     setClearAllConfirm(false);
     await loadKnownHosts();
-  }, [loadKnownHosts]);
+  };
 
-  const handleOpenImport = useCallback(async () => {
+  const handleOpenImport = async () => {
     setImportError(null);
     setImportSuccess(null);
     setImportLoading(true);
     try {
-      const hosts = await sshImportConfig();
+      const hosts = (await sshImportConfig()) ?? [];
       setImportedHosts(hosts);
       setSelectedHosts(new Set(hosts.map((_, i) => i)));
     } catch (err) {
@@ -76,180 +68,150 @@ export default function SshPanel() {
     } finally {
       setImportLoading(false);
     }
-  }, []);
+  };
 
-  const handleImportSelected = useCallback(async () => {
+  const handleImportSelected = async () => {
     if (!importedHosts) return;
-    const existing = useSshStore.getState().connections;
-    let count = 0;
-    for (const idx of selectedHosts) {
-      const h = importedHosts[idx];
-      if (!h) continue;
-      const alreadyExists = existing.some(
-        (c) => c.host === h.host && c.username === h.username && c.port === h.port
-      );
-      if (alreadyExists) continue;
-      const now = new Date().toISOString();
-      const conn: import("../../types/ssh").SshConnection = {
-        id: crypto.randomUUID(),
-        name: h.name,
-        host: h.host,
-        port: h.port,
-        username: h.username,
-        authMethod: h.identityFile ? "key" : "password",
-        privateKeyId: null,
-        sortOrder: 0,
-        startupCommands: null,
-        jumpHostId: null,
-        colorTag: null,
-        folderPath: "",
-        createdAt: now,
-        updatedAt: now,
-        themeOverride: null,
-        agentForwarding: false,
-        envVars: {},
-      };
-      await saveConnection(conn);
-      count++;
-    }
+    const added = connectionsFromConfig(
+      importedHosts,
+      selectedHosts,
+      useSshStore.getState().connections,
+      new Date().toISOString(),
+      () => crypto.randomUUID()
+    );
+    for (const connection of added) await saveConnection(connection);
     setImportedHosts(null);
     setSelectedHosts(new Set());
-    setImportSuccess(count);
-  }, [importedHosts, selectedHosts, saveConnection]);
+    setImportSuccess(added.length);
+  };
+
+  const toggleHost = (index: number, checked: boolean) =>
+    setSelectedHosts((prev) => {
+      const next = new Set(prev);
+      if (checked) next.add(index);
+      else next.delete(index);
+      return next;
+    });
 
   return (
-    <div className="space-y-8">
-      <SettingsSection title="Connection Defaults">
-        <SettingRow
-          label="Default port"
-          htmlFor="ssh-default-port"
-        >
-          <NumberField
-            id="ssh-default-port"
-            value={settings.defaultPort}
-            min={1}
-            max={65535}
-            onChange={(v) => update("ssh", { defaultPort: v })}
-          />
-        </SettingRow>
-        <SettingRow
-          label="Default username"
-          htmlFor="ssh-default-username"
-        >
-          <TextField
-            id="ssh-default-username"
-            value={settings.defaultUsername}
-            onChange={(v) => update("ssh", { defaultUsername: v })}
-            placeholder="root"
-            className="w-44"
-          />
-        </SettingRow>
-      </SettingsSection>
+    <div className="flex flex-col gap-6">
+      <Section title="Connection defaults">
+        <SettingsCard>
+          <SettingRow label="Default port">
+            {(control) => (
+              <NumberInput
+                {...control}
+                value={settings.defaultPort}
+                min={1}
+                max={65535}
+                onValueChange={(v) => update("ssh", { defaultPort: v })}
+              />
+            )}
+          </SettingRow>
+          <SettingRow label="Default username">
+            {(control) => (
+              <Input
+                {...control}
+                value={settings.defaultUsername}
+                placeholder="root"
+                code
+                onChange={(e) => update("ssh", { defaultUsername: e.target.value })}
+                className="w-44"
+              />
+            )}
+          </SettingRow>
+        </SettingsCard>
+      </Section>
 
-      <SettingsSection title="Timeouts">
-        <SettingRow
-          label="Keepalive interval"
-          description="0 to disable"
-          htmlFor="ssh-keepalive"
-        >
-          <NumberField
-            id="ssh-keepalive"
-            value={settings.keepaliveInterval}
-            min={0}
-            max={300}
-            unit="s"
-            onChange={(v) => update("ssh", { keepaliveInterval: v })}
-          />
-        </SettingRow>
-        <SettingRow
-          label="Connection timeout"
-          htmlFor="ssh-timeout"
-        >
-          <NumberField
-            id="ssh-timeout"
-            value={settings.connectionTimeout}
-            min={1}
-            max={120}
-            unit="s"
-            onChange={(v) => update("ssh", { connectionTimeout: v })}
-          />
-        </SettingRow>
-      </SettingsSection>
+      <Section title="Timeouts">
+        <SettingsCard>
+          <SettingRow label="Keepalive interval" description="0 to disable">
+            {(control) => (
+              <NumberInput
+                {...control}
+                value={settings.keepaliveInterval}
+                min={0}
+                max={300}
+                unit="s"
+                onValueChange={(v) => update("ssh", { keepaliveInterval: v })}
+              />
+            )}
+          </SettingRow>
+          <SettingRow label="Connection timeout">
+            {(control) => (
+              <NumberInput
+                {...control}
+                value={settings.connectionTimeout}
+                min={1}
+                max={120}
+                unit="s"
+                onValueChange={(v) => update("ssh", { connectionTimeout: v })}
+              />
+            )}
+          </SettingRow>
+        </SettingsCard>
+      </Section>
 
-      <SettingsSection
-        title="Import from SSH Config"
+      <Section
+        title="Import from SSH config"
         description="Reads Host entries from ~/.ssh/config"
-        card={false}
-        action={
+        actions={
           <Button
-            variant="ghost"
-            className="border border-border"
-            onClick={handleOpenImport}
-            disabled={importLoading}
+            size="sm"
+            leadingIcon={<Download {...ICON_SM} />}
+            loading={importLoading}
+            onClick={() => void handleOpenImport()}
           >
-            <Download size={13} />
-            {importLoading ? "Reading…" : "Import ~/.ssh/config"}
+            Import ~/.ssh/config
           </Button>
         }
       >
         {importError && (
-          <div className="rounded-md border border-error/30 bg-error/10 px-3 py-2 text-xs text-error">
+          <p role="alert" className="rounded-md border border-danger bg-danger-subtle px-3 py-2 text-label text-danger">
             {importError}
-          </div>
+          </p>
         )}
         {importSuccess !== null && (
-          <div className="flex items-center gap-1.5 rounded-md border border-success/30 bg-success/10 px-3 py-2 text-xs text-success">
-            <Check size={12} />
-            Imported {importSuccess} connection{importSuccess !== 1 ? "s" : ""}
-          </div>
+          <p
+            role="status"
+            className="flex items-center gap-1.5 rounded-md bg-success-subtle px-3 py-2 text-label text-success"
+          >
+            <Check {...ICON_SM} aria-hidden />
+            Imported {importSuccess} connection{importSuccess === 1 ? "" : "s"}
+          </p>
         )}
         {importedHosts && (
-          <div className="space-y-2">
-            <p className="text-xs text-text-muted">Select hosts to import:</p>
-            <div className="max-h-48 space-y-1.5 overflow-y-auto">
+          <div className="flex flex-col gap-2">
+            <p className="text-label text-fg-muted">Select hosts to import:</p>
+            <SettingsCard className="max-h-48 overflow-y-auto">
               {importedHosts.map((h, i) => (
-                <label
-                  key={i}
-                  className="flex cursor-pointer items-center gap-3 rounded-lg border border-border bg-overlay/[0.03] px-3 py-2 transition-colors hover:border-accent/40"
-                >
-                  <input
-                    type="checkbox"
+                <div key={i} className={listRow}>
+                  <Checkbox
                     checked={selectedHosts.has(i)}
-                    onChange={(e) => {
-                      setSelectedHosts((prev) => {
-                        const next = new Set(prev);
-                        if (e.target.checked) next.add(i);
-                        else next.delete(i);
-                        return next;
-                      });
-                    }}
-                    className="accent-accent"
+                    onCheckedChange={(checked) => toggleHost(i, checked === true)}
+                    label={
+                      <span className="flex flex-col">
+                        <span className="text-body text-fg">{h.name}</span>
+                        <span className="font-mono text-label text-fg-muted">
+                          {h.username}@{h.host}:{h.port}
+                        </span>
+                      </span>
+                    }
                   />
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-sm text-text-primary">{h.name}</div>
-                    <div className="text-xs text-text-muted">
-                      {h.username}@{h.host}:{h.port}
-                    </div>
-                  </div>
-                  {h.jumpHost && (
-                    <span className="rounded bg-accent/15 px-1.5 py-0.5 text-[10px] text-accent">
-                      via {h.jumpHost}
-                    </span>
-                  )}
-                </label>
+                  {h.jumpHost && <Badge className="ml-auto">via {h.jumpHost}</Badge>}
+                </div>
               ))}
-            </div>
-            <div className="flex gap-2 pt-1">
+            </SettingsCard>
+            <div className="flex gap-2">
               <Button
                 variant="primary"
-                onClick={handleImportSelected}
                 disabled={selectedHosts.size === 0}
+                onClick={() => void handleImportSelected()}
               >
                 Import {selectedHosts.size} selected
               </Button>
               <Button
                 variant="ghost"
-                className="border border-border"
                 onClick={() => {
                   setImportedHosts(null);
                   setSelectedHosts(new Set());
@@ -260,95 +222,86 @@ export default function SshPanel() {
             </div>
           </div>
         )}
-      </SettingsSection>
+      </Section>
 
-      <SettingsSection title={`Saved Connections (${connections.length})`} card={false}>
+      <Section title={`Saved connections (${connections.length})`}>
         {connections.length === 0 ? (
           <EmptyState
-            icon={Server}
+            icon={<Server {...ICON_MD} />}
             title="No saved connections"
-            hint="Use the sidebar to add connections."
+            description="Add connections from the Connections panel."
           />
         ) : (
-          <div className="divide-y divide-border overflow-hidden rounded-lg border border-border">
+          <SettingsCard>
             {connections.map((conn) => (
-              <div key={conn.id} className="flex items-center gap-3 px-4 py-2.5">
-                <Server size={14} className="shrink-0 text-text-muted" />
+              <div key={conn.id} className={listRow}>
+                <Server {...ICON_SM} aria-hidden className="shrink-0 text-fg-muted" />
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm text-text-primary">{conn.name}</div>
-                  <div className="truncate text-xs text-text-muted">
+                  <p className="truncate text-body text-fg">{conn.name}</p>
+                  <p className="truncate font-mono text-label text-fg-muted">
                     {conn.username}@{conn.host}:{conn.port} ({conn.authMethod})
-                  </div>
+                  </p>
                 </div>
                 <IconButton
-                  title="Delete connection"
+                  label={`Delete ${conn.name}`}
+                  icon={<Trash2 {...ICON_SM} />}
                   onClick={() => setDeleteTarget({ id: conn.id, name: conn.name })}
-                >
-                  <Trash2 size={14} />
-                </IconButton>
+                />
               </div>
             ))}
-          </div>
+          </SettingsCard>
         )}
-      </SettingsSection>
+      </Section>
 
-      <SettingsSection
-        title={`Known Hosts (${knownHosts.length})`}
-        card={false}
-        action={
+      <Section
+        title={`Known hosts (${knownHosts.length})`}
+        actions={
           knownHosts.length > 0 ? (
-            <Button variant="danger" onClick={() => setClearAllConfirm(true)}>
-              Clear All
+            <Button size="sm" variant="danger" onClick={() => setClearAllConfirm(true)}>
+              Clear all
             </Button>
           ) : undefined
         }
       >
         {knownHosts.length === 0 ? (
-          <EmptyState icon={Fingerprint} title="No known hosts found" />
+          <EmptyState icon={<Fingerprint {...ICON_MD} />} title="No known hosts found" />
         ) : (
-          <div className="divide-y divide-border overflow-hidden rounded-lg border border-border">
+          <SettingsCard>
             {knownHosts.map((host) => (
-              <div
-                key={`${host.hostname}-${host.lineNumber}`}
-                className="flex items-center gap-3 px-4 py-2.5"
-              >
-                <Fingerprint size={14} className="shrink-0 text-text-muted" />
+              <div key={`${host.hostname}-${host.lineNumber}`} className={listRow}>
+                <Fingerprint {...ICON_SM} aria-hidden className="shrink-0 text-fg-muted" />
                 <div className="min-w-0 flex-1">
-                  <div className="truncate text-sm text-text-primary">{host.hostname}</div>
-                  <div className="flex items-center gap-2 truncate text-xs text-text-muted">
-                    <span className="inline-block rounded bg-overlay/[0.08] px-1.5 py-0.5 text-[10px] font-medium text-text-muted">
-                      {host.keyType}
-                    </span>
-                    <span className="truncate">{host.fingerprintPreview}</span>
-                  </div>
+                  <p className="truncate font-mono text-body text-fg">{host.hostname}</p>
+                  <p className="flex items-center gap-2 text-label text-fg-muted">
+                    <Badge>{host.keyType}</Badge>
+                    <span className="truncate font-mono">{host.fingerprintPreview}</span>
+                  </p>
                 </div>
                 <IconButton
-                  title="Remove host"
-                  onClick={() => handleRemoveHost(host.hostname)}
-                >
-                  <Trash2 size={14} />
-                </IconButton>
+                  label={`Remove ${host.hostname}`}
+                  icon={<Trash2 {...ICON_SM} />}
+                  onClick={() => void handleRemoveHost(host.hostname)}
+                />
               </div>
             ))}
-          </div>
+          </SettingsCard>
         )}
-      </SettingsSection>
+      </Section>
 
       <ConfirmDialog
-        open={!!deleteTarget}
-        title="Delete Connection"
-        message={`Are you sure you want to delete "${deleteTarget?.name}"? This cannot be undone.`}
-        onConfirm={handleConfirmDelete}
+        open={deleteTarget !== null}
+        title="Delete connection"
+        message={`Delete "${deleteTarget?.name ?? ""}"? This cannot be undone.`}
+        onConfirm={() => void handleConfirmDelete()}
         onCancel={() => setDeleteTarget(null)}
       />
-
       <ConfirmDialog
         open={clearAllConfirm}
-        title="Clear All Known Hosts"
-        message="Are you sure you want to remove all entries from your known_hosts file? You will be prompted to verify host keys again on next connection."
-        confirmLabel="Clear All"
+        title="Clear all known hosts"
+        message="Remove every entry from your known_hosts file? You will be asked to verify host keys again on the next connection."
+        confirmLabel="Clear all"
         variant="danger"
-        onConfirm={handleClearAll}
+        onConfirm={() => void handleClearAll()}
         onCancel={() => setClearAllConfirm(false)}
       />
     </div>
