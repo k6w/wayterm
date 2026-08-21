@@ -88,6 +88,8 @@ const STRICT_PATHS = [
   "src/components/settings/ThemePicker.tsx",
   "src/components/settings/theme-files.ts",
   "src/lib/font-check.ts",
+  "src/components/settings/KeybindingsPanel.tsx",
+  "src/components/settings/keybinding-utils.ts",
 ];
 
 const file = "eslint-suppressions.json";

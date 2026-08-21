@@ -1,134 +1,120 @@
-import { useState, useEffect, useCallback } from "react";
+import { useEffect, useState } from "react";
 import { Pencil } from "lucide-react";
 import { getDefaultKeybindings } from "../../lib/keybindings";
 import { useSettingsStore } from "../../stores/settings";
-import { IconButton } from "../ui/Button";
-import { SettingsSection } from "./ui";
+import { Badge, IconButton, Input, Kbd, Section, shortcutLabel, ICON_SM } from "../../ui";
+import { comboFromEvent, findConflicts, type BindingRow } from "./keybinding-utils";
+
+const headerCell = "h-8 px-3 text-left text-caption font-medium uppercase tracking-wide text-fg-muted";
 
 export default function KeybindingsPanel() {
   const keybindings = useSettingsStore((s) => s.settings.keybindings);
   const updateKeybinding = useSettingsStore((s) => s.updateKeybinding);
-  const [recordingAction, setRecordingAction] = useState<string | null>(null);
-  const defaults = getDefaultKeybindings();
+  const [recording, setRecording] = useState<string | null>(null);
+  const [query, setQuery] = useState("");
 
-  const handleKeyDown = useCallback(
-    (e: KeyboardEvent) => {
-      if (!recordingAction) return;
+  const rows: BindingRow[] = getDefaultKeybindings().map((binding) => ({
+    id: binding.id,
+    label: binding.label,
+    keys: keybindings[binding.id] || binding.keys,
+  }));
+  const conflicts = findConflicts(rows);
+  const q = query.trim().toLowerCase();
+  const visible = q
+    ? rows.filter(
+        (row) =>
+          row.label.toLowerCase().includes(q) ||
+          shortcutLabel(row.keys).toLowerCase().includes(q) ||
+          row.keys.toLowerCase().includes(q)
+      )
+    : rows;
 
-      e.preventDefault();
-      e.stopPropagation();
-
-      if (e.key === "Escape") {
-        setRecordingAction(null);
+  // While recording, the next key press (in the capture phase, before the
+  // terminal or a button sees it) becomes the shortcut. Escape cancels.
+  useEffect(() => {
+    if (!recording) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      event.preventDefault();
+      event.stopPropagation();
+      if (event.key === "Escape") {
+        setRecording(null);
         return;
       }
-
-      const ignore = ["Control", "Shift", "Alt", "Meta"];
-      if (ignore.includes(e.key)) return;
-
-      const parts: string[] = [];
-      if (e.ctrlKey) parts.push("Control");
-      if (e.metaKey) parts.push("Meta");
-      if (e.altKey) parts.push("Alt");
-      if (e.shiftKey) parts.push("Shift");
-
-      let key = e.key;
-      if (key === " ") key = "Space";
-      if (key.length === 1) key = key.toLowerCase();
-      parts.push(key);
-
-      const combo = parts.join("+");
-      updateKeybinding(recordingAction, combo);
-      setRecordingAction(null);
-    },
-    [recordingAction, updateKeybinding]
-  );
-
-  useEffect(() => {
-    if (recordingAction) {
-      window.addEventListener("keydown", handleKeyDown, true);
-      return () => window.removeEventListener("keydown", handleKeyDown, true);
-    }
-  }, [recordingAction, handleKeyDown]);
-
-  const getDisplayKeys = (actionId: string, defaultKeys: string): string => {
-    return keybindings[actionId] || defaultKeys;
-  };
-
-  const formatKeys = (keys: string): string => {
-    return keys
-      .split("+")
-      .map((part) => {
-        switch (part) {
-          case "Control":
-            return "Ctrl";
-          case "Meta":
-            return "Cmd";
-          case "Shift":
-            return "Shift";
-          case "Alt":
-            return "Alt";
-          default:
-            return part.length === 1 ? part.toUpperCase() : part;
-        }
-      })
-      .join(" + ");
-  };
+      const combo = comboFromEvent(event);
+      if (!combo) return;
+      void updateKeybinding(recording, combo);
+      setRecording(null);
+    };
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
+  }, [recording, updateKeybinding]);
 
   return (
-    <div className="space-y-8">
-      <SettingsSection
-        title="Keyboard shortcuts"
-        description="Click the pencil to record; Escape cancels"
-        card={false}
-      >
-        <div className="overflow-hidden rounded-lg border border-border">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-overlay/[0.03]">
-                <th className="px-4 py-2 text-left text-xs font-medium text-text-secondary">
-                  Action
-                </th>
-                <th className="px-4 py-2 text-left text-xs font-medium text-text-secondary">
-                  Shortcut
-                </th>
-                <th className="w-16 px-4 py-2 text-right text-xs font-medium text-text-secondary">
-                  Edit
-                </th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              {defaults.map((binding) => (
-                <tr key={binding.id}>
-                  <td className="px-4 py-2.5 text-sm text-text-primary">{binding.label}</td>
-                  <td className="px-4 py-2.5">
-                    {recordingAction === binding.id ? (
-                      <span className="inline-block animate-pulse rounded-md border border-accent px-3 py-1 text-sm text-accent">
-                        Press keys...
-                      </span>
+    <Section title="Keyboard shortcuts" description="Select the pencil, then press the new keys. Escape cancels.">
+      <Input
+        type="search"
+        aria-label="Search shortcuts"
+        placeholder="Search shortcuts"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+      />
+      <div className="overflow-hidden rounded-lg border border-border bg-panel">
+        <table className="w-full border-collapse text-body">
+          <thead>
+            <tr className="border-b border-border">
+              <th scope="col" className={headerCell}>
+                Action
+              </th>
+              <th scope="col" className={headerCell}>
+                Shortcut
+              </th>
+              <th scope="col" className="w-12 px-3">
+                <span className="sr-only">Change</span>
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {visible.map((row) => {
+              const isRecording = recording === row.id;
+              const others = conflicts.get(row.id);
+              return (
+                <tr key={row.id} className="border-b border-border last:border-b-0">
+                  <th scope="row" className="h-row px-3 text-left font-normal text-fg">
+                    {row.label}
+                  </th>
+                  <td className="px-3 py-1">
+                    {isRecording ? (
+                      <Badge tone="accent" size="md" role="status">
+                        Press keys…
+                      </Badge>
                     ) : (
-                      <kbd className="inline-flex items-center gap-1 rounded border border-border bg-overlay/[0.03] px-2 py-0.5 font-mono text-xs text-text-secondary">
-                        {formatKeys(getDisplayKeys(binding.id, binding.keys))}
-                      </kbd>
+                      <span className="flex flex-wrap items-center gap-2">
+                        <Kbd shortcut={row.keys} />
+                        {others && <Badge tone="warning">Conflicts with {others.join(", ")}</Badge>}
+                      </span>
                     )}
                   </td>
-                  <td className="px-4 py-2.5 text-right">
+                  <td className="px-3 py-1 text-right">
                     <IconButton
-                      title="Edit"
-                      active={recordingAction === binding.id}
-                      onClick={() =>
-                        setRecordingAction(recordingAction === binding.id ? null : binding.id)
-                      }
-                    >
-                      <Pencil size={14} />
-                    </IconButton>
+                      label={isRecording ? `Cancel recording for ${row.label}` : `Change shortcut for ${row.label}`}
+                      icon={<Pencil {...ICON_SM} />}
+                      pressed={isRecording}
+                      onClick={() => setRecording(isRecording ? null : row.id)}
+                    />
                   </td>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </SettingsSection>
-    </div>
+              );
+            })}
+            {visible.length === 0 && (
+              <tr>
+                <td colSpan={3} className="px-3 py-6 text-center text-label text-fg-muted">
+                  No shortcuts match "{query.trim()}"
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </Section>
   );
 }
