@@ -81,6 +81,9 @@ const STRICT_PATHS = [
   "src/components/settings/SettingsView.tsx",
   "src/components/settings/nav.tsx",
   "src/components/settings/searchIndex.ts",
+  "src/components/settings/GeneralPanel.tsx",
+  "src/components/settings/TerminalPanel.tsx",
+  "src/lib/pick-file.ts",
 ];
 
 const file = "eslint-suppressions.json";

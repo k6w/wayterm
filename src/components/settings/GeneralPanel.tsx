@@ -1,42 +1,66 @@
+import { Download, Upload } from "lucide-react";
+import { enable as enableAutostart, disable as disableAutostart } from "@tauri-apps/plugin-autostart";
 import { useSettingsStore } from "../../stores/settings";
 import { useSshStore } from "../../stores/ssh";
 import { useWorkspaceStore } from "../../stores/workspace";
 import { getDefaultShells } from "../../lib/shell-detect";
-import {
-  enable as enableAutostart,
-  disable as disableAutostart,
-} from "@tauri-apps/plugin-autostart";
-import Select from "../ui/Select";
-import { Button } from "../ui/Button";
-import { SettingsSection, SettingRow, Toggle, SegmentedControl, SliderField } from "./ui";
-import type { StartupBehavior, AppSettings } from "../../types/settings";
+import { downloadTextFile } from "../../lib/download-file";
+import { pickFile } from "../../lib/pick-file";
+import { Button, Section, SegmentedControl, Select, Slider, Switch, ICON_SM } from "../../ui";
+import { SettingRow, SettingsCard } from "./SettingRow";
+import type { AppSettings, StartupBehavior } from "../../types/settings";
+
+/** Kit Select values cannot be "" (Radix reserves it), so "system default" and "no workspace" use sentinels. */
+const SYSTEM_SHELL = "__system__";
+const NO_WORKSPACE = "__none__";
+
+const STARTUP_OPTIONS: { value: StartupBehavior; label: string }[] = [
+  { value: "new-tab", label: "New tab" },
+  { value: "restore", label: "Restore" },
+  { value: "workspace", label: "Workspace" },
+];
+
+/** Applies a settings file written by "Export settings". Unknown or malformed input changes nothing. */
+export async function applySettingsFile(text: string): Promise<boolean> {
+  let data: unknown;
+  try {
+    data = JSON.parse(text);
+  } catch {
+    return false;
+  }
+  if (!data || typeof data !== "object") return false;
+  const { version, settings } = data as { version?: unknown; settings?: unknown };
+  if (!version || !settings || typeof settings !== "object") return false;
+  const store = useSettingsStore.getState();
+  for (const [section, values] of Object.entries(settings) as [keyof AppSettings, unknown][]) {
+    if (typeof values === "object" && values && !Array.isArray(values)) {
+      await store.update(section, values as never);
+    }
+  }
+  return true;
+}
 
 export default function GeneralPanel() {
   const settings = useSettingsStore((s) => s.settings.general);
   const update = useSettingsStore((s) => s.update);
-  const workspaces = useWorkspaceStore((s) => s.workspaces).filter(
-    (w) => w.id !== "__session__"
-  );
+  const workspaces = useWorkspaceStore((s) => s.workspaces).filter((w) => w.id !== "__session__");
   const shells = getDefaultShells();
 
   const shellOptions = [
-    { value: "", label: "System Default" },
+    { value: SYSTEM_SHELL, label: "System default" },
     ...shells.map((shell) => ({ value: shell.path, label: shell.label })),
   ];
-
-  const startupOptions: { value: StartupBehavior; label: string }[] = [
-    { value: "new-tab", label: "New tab" },
-    { value: "restore", label: "Restore" },
-    { value: "workspace", label: "Workspace" },
-  ];
+  const workspaceOptions = workspaces.length
+    ? workspaces.map((w) => ({ value: w.id, label: w.name }))
+    : [{ value: NO_WORKSPACE, label: "No saved workspaces", disabled: true }];
 
   const handleAutostart = async (next: boolean) => {
     try {
       if (next) await enableAutostart();
       else await disableAutostart();
-      update("general", { launchOnStartup: next });
+      await update("general", { launchOnStartup: next });
     } catch {
-      /* autostart unavailable, leave the toggle unchanged */
+      /* autostart unavailable: leave the switch unchanged */
     }
   };
 
@@ -46,152 +70,139 @@ export default function GeneralPanel() {
       settings: useSettingsStore.getState().settings,
       connections: useSshStore.getState().connections,
     };
-    const blob = new Blob([JSON.stringify(data, null, 2)], {
-      type: "application/json",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `nexterm-settings-${new Date().toISOString().slice(0, 10)}.json`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadTextFile(
+      `nexterm-settings-${new Date().toISOString().slice(0, 10)}.json`,
+      JSON.stringify(data, null, 2),
+      "application/json"
+    );
   };
 
-  const importSettings = () => {
-    const input = document.createElement("input");
-    input.type = "file";
-    input.accept = ".json";
-    input.onchange = async (e) => {
-      const file = (e.target as HTMLInputElement).files?.[0];
-      if (!file) return;
-      try {
-        const data = JSON.parse(await file.text());
-        if (data.version && data.settings) {
-          const store = useSettingsStore.getState();
-          for (const [section, values] of Object.entries(data.settings) as [
-            keyof AppSettings,
-            unknown,
-          ][]) {
-            if (typeof values === "object" && values && !Array.isArray(values)) {
-              await store.update(section, values as never);
-            }
-          }
-        }
-      } catch {
-        /* invalid file */
-      }
-    };
-    input.click();
+  const importSettings = async () => {
+    const file = await pickFile(".json");
+    if (file) await applySettingsFile(await file.text());
   };
 
   return (
-    <div className="space-y-8">
-      <SettingsSection title="Shell">
-        <SettingRow
-          label="Default shell"
-          description="For new local terminals"
-        >
-          <Select
-            value={settings.defaultShell}
-            onChange={(v) => update("general", { defaultShell: v })}
-            options={shellOptions}
-            className="w-52"
-          />
-        </SettingRow>
-      </SettingsSection>
+    <div className="flex flex-col gap-6">
+      <Section title="Shell">
+        <SettingsCard>
+          <SettingRow label="Default shell" description="For new local terminals">
+            {(control) => (
+              <Select
+                {...control}
+                value={settings.defaultShell || SYSTEM_SHELL}
+                onValueChange={(v) => update("general", { defaultShell: v === SYSTEM_SHELL ? "" : v })}
+                options={shellOptions}
+                className="w-52"
+              />
+            )}
+          </SettingRow>
+        </SettingsCard>
+      </Section>
 
-      <SettingsSection title="Startup">
-        <SettingRow label="On launch">
-          <SegmentedControl
-            value={settings.startupBehavior}
-            onChange={(v) => update("general", { startupBehavior: v })}
-            options={startupOptions}
-          />
-        </SettingRow>
-        {settings.startupBehavior === "workspace" && (
-          <SettingRow
-            label="Workspace"
-            description="Restored on launch"
-          >
-            <Select
-              value={settings.startupWorkspaceId ?? ""}
-              onChange={(v) =>
-                update("general", { startupWorkspaceId: v || null })
-              }
-              options={
-                workspaces.length
-                  ? workspaces.map((w) => ({ value: w.id, label: w.name }))
-                  : [{ value: "", label: "No saved workspaces" }]
-              }
-              className="w-52"
+      <Section title="Startup">
+        <SettingsCard>
+          <SettingRow label="On launch">
+            <SegmentedControl
+              aria-label="On launch"
+              value={settings.startupBehavior}
+              onValueChange={(v) => update("general", { startupBehavior: v })}
+              options={STARTUP_OPTIONS}
             />
           </SettingRow>
-        )}
-      </SettingsSection>
+          {settings.startupBehavior === "workspace" && (
+            <SettingRow label="Workspace" description="Restored on launch">
+              {(control) => (
+                <Select
+                  {...control}
+                  value={settings.startupWorkspaceId ?? (workspaces.length ? undefined : NO_WORKSPACE)}
+                  placeholder="Choose a workspace"
+                  onValueChange={(v) => update("general", { startupWorkspaceId: v === NO_WORKSPACE ? null : v })}
+                  options={workspaceOptions}
+                  className="w-52"
+                />
+              )}
+            </SettingRow>
+          )}
+        </SettingsCard>
+      </Section>
 
-      <SettingsSection title="Behavior">
-        <SettingRow label="Check for updates">
-          <Toggle
-            checked={settings.checkForUpdates}
-            onChange={(v) => update("general", { checkForUpdates: v })}
-          />
-        </SettingRow>
-        <SettingRow label="Confirm on close" description="Ask before quitting with open sessions">
-          <Toggle
-            checked={settings.confirmOnClose}
-            onChange={(v) => update("general", { confirmOnClose: v })}
-          />
-        </SettingRow>
-        <SettingRow
-          label="Close to tray"
-          description="Minimize to tray instead of quitting"
-        >
-          <Toggle
-            checked={settings.closeToTray}
-            onChange={(v) => update("general", { closeToTray: v })}
-          />
-        </SettingRow>
-        <SettingRow label="Launch on startup">
-          <Toggle checked={settings.launchOnStartup} onChange={handleAutostart} />
-        </SettingRow>
-      </SettingsSection>
+      <Section title="Behavior">
+        <SettingsCard>
+          <SettingRow label="Check for updates">
+            {(control) => (
+              <Switch
+                {...control}
+                checked={settings.checkForUpdates}
+                onCheckedChange={(v) => update("general", { checkForUpdates: v })}
+              />
+            )}
+          </SettingRow>
+          <SettingRow label="Confirm on close" description="Ask before quitting with open sessions">
+            {(control) => (
+              <Switch
+                {...control}
+                checked={settings.confirmOnClose}
+                onCheckedChange={(v) => update("general", { confirmOnClose: v })}
+              />
+            )}
+          </SettingRow>
+          <SettingRow label="Close to tray" description="Minimize to tray instead of quitting">
+            {(control) => (
+              <Switch
+                {...control}
+                checked={settings.closeToTray}
+                onCheckedChange={(v) => update("general", { closeToTray: v })}
+              />
+            )}
+          </SettingRow>
+          <SettingRow label="Launch on startup">
+            {(control) => (
+              <Switch {...control} checked={settings.launchOnStartup} onCheckedChange={handleAutostart} />
+            )}
+          </SettingRow>
+        </SettingsCard>
+      </Section>
 
-      <SettingsSection title="Notifications">
-        <SettingRow label="Notify on long commands">
-          <Toggle
-            checked={settings.notifyOnLongCommands}
-            onChange={(v) => update("general", { notifyOnLongCommands: v })}
-          />
-        </SettingRow>
-        <SettingRow label="Threshold" description="Minimum command duration">
-          <SliderField
-            value={settings.longCommandThresholdSeconds}
-            min={5}
-            max={120}
-            step={5}
-            disabled={!settings.notifyOnLongCommands}
-            format={(v) => `${v}s`}
-            onChange={(v) =>
-              update("general", { longCommandThresholdSeconds: v })
-            }
-          />
-        </SettingRow>
-      </SettingsSection>
+      <Section title="Notifications">
+        <SettingsCard>
+          <SettingRow label="Notify on long commands">
+            {(control) => (
+              <Switch
+                {...control}
+                checked={settings.notifyOnLongCommands}
+                onCheckedChange={(v) => update("general", { notifyOnLongCommands: v })}
+              />
+            )}
+          </SettingRow>
+          <SettingRow label="Threshold" description="Minimum command duration">
+            {(control) => (
+              <Slider
+                aria-label="Threshold"
+                aria-describedby={control["aria-describedby"]}
+                value={settings.longCommandThresholdSeconds}
+                min={5}
+                max={120}
+                step={5}
+                disabled={!settings.notifyOnLongCommands}
+                format={(v) => `${v}s`}
+                onValueChange={(v) => update("general", { longCommandThresholdSeconds: v })}
+              />
+            )}
+          </SettingRow>
+        </SettingsCard>
+      </Section>
 
-      <SettingsSection
-        title="Data"
-        description="Back up or restore settings and connections"
-        card={false}
-      >
+      <Section title="Data" description="Back up or restore settings and connections">
         <div className="flex gap-2">
-          <Button variant="ghost" className="border border-border" onClick={exportSettings}>
+          <Button leadingIcon={<Download {...ICON_SM} />} onClick={exportSettings}>
             Export settings…
           </Button>
-          <Button variant="ghost" className="border border-border" onClick={importSettings}>
+          <Button leadingIcon={<Upload {...ICON_SM} />} onClick={() => void importSettings()}>
             Import settings…
           </Button>
         </div>
-      </SettingsSection>
+      </Section>
     </div>
   );
 }
