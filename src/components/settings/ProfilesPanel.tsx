@@ -2,20 +2,18 @@ import { useState } from "react";
 import { ChevronDown, ChevronRight, Copy, Plus, Terminal, Trash2, X } from "lucide-react";
 import { useSettingsStore } from "../../stores/settings";
 import { useThemeStore } from "../../stores/theme";
-import { getDefaultShells } from "../../lib/shell-detect";
+import { getDefaultShells, type DetectedShell } from "../../lib/shell-detect";
 import { Button, EmptyState, IconButton, Input, Section, Select, cn, focusRing, ICON_MD, ICON_SM, ConfirmDialog } from "../../ui";
 import { NumberInput, SettingRow, SettingsCard } from "./SettingRow";
 import { createProfile, duplicateProfile, nextEnvKey, removeEnvKey, renameEnvKey } from "./profile-utils";
 import type { CursorStyle, ShellProfile } from "../../types/settings";
 
-const detectedShells = getDefaultShells();
-
 /** Kit Select values cannot be "" (Radix reserves it): "inherit the global setting" is this sentinel. */
 const DEFAULT = "__default__";
 const CUSTOM_PATH = "__custom__";
 
-const SHELL_OPTIONS = [
-  ...detectedShells.map((s) => ({ value: s.path, label: s.label })),
+const shellOptions = (shells: DetectedShell[]) => [
+  ...shells.map((s) => ({ value: s.path, label: s.label })),
   { value: CUSTOM_PATH, label: "Custom path…" },
 ];
 
@@ -37,7 +35,7 @@ const LIGATURE_OPTIONS = [
   { value: "false", label: "Disabled" },
 ];
 
-const isDetectedPath = (shellPath: string) => detectedShells.some((s) => s.path === shellPath);
+const isDetectedPath = (shells: DetectedShell[], shellPath: string) => shells.some((s) => s.path === shellPath);
 
 interface ProfileEditorProps {
   profile: ShellProfile;
@@ -70,7 +68,7 @@ function ProfileEditor({ profile, customPath, onCustomPathChange, onChange }: Pr
                 {...control}
                 value={customPath ? CUSTOM_PATH : profile.shellPath || undefined}
                 placeholder="Select shell…"
-                options={SHELL_OPTIONS}
+                options={shellOptions(getDefaultShells())}
                 onValueChange={(v) => {
                   if (v === CUSTOM_PATH) {
                     onCustomPathChange(true);
@@ -271,6 +269,7 @@ function ProfileEditor({ profile, customPath, onCustomPathChange, onChange }: Pr
 }
 
 export default function ProfilesPanel() {
+  const detectedShells = getDefaultShells();
   const profiles = useSettingsStore((s) => s.settings.profiles);
   const update = useSettingsStore((s) => s.update);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -309,7 +308,7 @@ export default function ProfilesPanel() {
     });
 
   const isCustomPath = (profile: ShellProfile) =>
-    customPathIds.has(profile.id) || (profile.shellPath !== "" && !isDetectedPath(profile.shellPath));
+    customPathIds.has(profile.id) || (profile.shellPath !== "" && !isDetectedPath(detectedShells, profile.shellPath));
 
   const profileToDelete = profiles.find((p) => p.id === deleteId) ?? null;
   const addButton = (

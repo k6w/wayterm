@@ -49,6 +49,9 @@ export default function GeneralPanel() {
   const shellOptions = [
     { value: SYSTEM_SHELL, label: "System default" },
     ...shells.map((shell) => ({ value: shell.path, label: shell.label })),
+    ...(settings.defaultShell && !shells.some((shell) => shell.path === settings.defaultShell)
+      ? [{ value: settings.defaultShell, label: settings.defaultShell }]
+      : []),
   ];
   const workspaceOptions = workspaces.length
     ? workspaces.map((w) => ({ value: w.id, label: w.name }))

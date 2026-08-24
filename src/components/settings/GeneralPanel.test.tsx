@@ -42,6 +42,12 @@ describe("GeneralPanel", () => {
     expect(general().defaultShell).toBe("");
   });
 
+  it("shows a configured shell that is not in the detected list", () => {
+    useSettingsStore.setState((s) => ({ settings: { ...s.settings, general: { ...s.settings.general, defaultShell: "/opt/homebrew/bin/zsh" } } }));
+    render(<GeneralPanel />);
+    expect(screen.getByRole("combobox", { name: "Default shell" })).toHaveTextContent("/opt/homebrew/bin/zsh");
+  });
+
   it("shows the workspace picker only for the workspace startup mode", async () => {
     const user = userEvent.setup();
     render(<GeneralPanel />);
