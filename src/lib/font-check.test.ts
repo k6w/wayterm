@@ -16,6 +16,11 @@ describe("primaryFontFamily", () => {
 });
 
 describe("missingFontWarning", () => {
+  it("treats the bundled fonts as installed even when they measure like the fallback", () => {
+    expect(missingFontWarning("JetBrains Mono, monospace", () => 100)).toBeNull();
+    expect(missingFontWarning('"Inter", sans-serif', () => 100)).toBeNull();
+  });
+
   const widths = (installed: Record<string, number>) => (font: string) => {
     const match = /"(.+)"/.exec(font);
     return match ? (installed[match[1]] ?? 100) : 100;

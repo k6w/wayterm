@@ -1,3 +1,8 @@
+import { TERMINAL_FONT_FAMILY, UI_FONT_FAMILY } from "./fonts";
+
+/** Bundled via @fontsource: always available, though not necessarily loaded when measured. */
+const BUNDLED_FAMILIES = new Set([TERMINAL_FONT_FAMILY.toLowerCase(), UI_FONT_FAMILY.toLowerCase()]);
+
 const GENERIC_FAMILIES = new Set([
   "monospace",
   "ui-monospace",
@@ -43,7 +48,7 @@ function canvasMeasurer(): TextMeasurer {
  */
 export function missingFontWarning(fontFamily: string, measure: TextMeasurer = canvasMeasurer()): string | null {
   const family = primaryFontFamily(fontFamily);
-  if (!family) return null;
+  if (!family || BUNDLED_FAMILIES.has(family.toLowerCase())) return null;
   const fallback = measure("16px monospace");
   const candidate = measure(`16px "${family}", monospace`);
   if (fallback === null || candidate === null) return null;
