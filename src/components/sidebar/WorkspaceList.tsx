@@ -1,8 +1,7 @@
 import { useCallback, useMemo, useState, type FormEvent } from "react";
 import { Layout, RefreshCw, Save, Trash2 } from "lucide-react";
 import { useWorkspaceStore } from "../../stores/workspace";
-import { Button, EmptyState, ICON_MD, ICON_SM, IconButton, Input, ListRow } from "../../ui";
-import ConfirmDialog from "../ui/ConfirmDialog";
+import { Button, EmptyState, ICON_MD, ICON_SM, IconButton, Input, ListRow, ConfirmDialog } from "../../ui";
 import { PanelGroup } from "./PanelChrome";
 
 /** "Today", "Yesterday", "3d ago", then a short date. */

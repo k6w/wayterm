@@ -1,8 +1,7 @@
 import { useEffect, useState } from "react";
 import { Check, Copy, FileKey, KeyRound, Pencil, Trash2, Upload } from "lucide-react";
 import { useSshStore } from "../../stores/ssh";
-import { Button, EmptyState, IconButton, Input, Section, SegmentedControl, Textarea, ICON_MD, ICON_SM } from "../../ui";
-import ConfirmDialog from "../ui/ConfirmDialog";
+import { Button, EmptyState, IconButton, Input, Section, SegmentedControl, Textarea, ICON_MD, ICON_SM, ConfirmDialog } from "../../ui";
 import { SettingRow, SettingsCard } from "./SettingRow";
 import type { SshKey } from "../../types/ssh";
 

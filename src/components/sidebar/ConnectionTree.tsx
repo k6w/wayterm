@@ -3,22 +3,7 @@ import { ChevronRight, Folder, FolderOpen, Pencil, PlayCircle, Plug, Plus, Serve
 import { useSshStore } from "../../stores/ssh";
 import { useTerminalStore, getFirstPaneId } from "../../stores/terminal";
 import { CONNECTION_TAG_COLORS } from "../../themes/connection-tags";
-import {
-  Badge,
-  Button,
-  ContextMenu,
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuSeparator,
-  ContextMenuTrigger,
-  EmptyState,
-  ICON_MD,
-  ICON_SM,
-  IconButton,
-  ListRow,
-  cn,
-} from "../../ui";
-import ConfirmDialog from "../ui/ConfirmDialog";
+import { Badge, Button, ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger, EmptyState, ICON_MD, ICON_SM, IconButton, ListRow, cn, ConfirmDialog } from "../../ui";
 import { buildTreeRows, treeKeyAction, type TreeRow } from "./connection-tree";
 import type { SshConnection } from "../../types/ssh";
 

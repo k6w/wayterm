@@ -57,8 +57,7 @@ export function Toast({ tone = "info", title, message, className, ...rest }: Toa
 
 /**
  * Renders the app toast store (src/stores/toast.ts) with the kit. The store
- * owns the timers, so Radix's own auto-dismiss is disabled. Phase 2 mounts this
- * in place of components/ui/ToastContainer.
+ * owns the timers, so Radix's own auto-dismiss is disabled. Mounted once by App.tsx.
  */
 export function Toaster() {
   const toasts = useToastStore((s) => s.toasts);

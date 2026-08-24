@@ -14,8 +14,7 @@ import ConnectionDialog from "../components/ssh/ConnectionDialog";
 import SerialDialog from "../components/serial/SerialDialog";
 import Scratchpad from "../components/terminal/Scratchpad";
 import StatusBar from "../components/terminal/StatusBar";
-import UpdateNotification from "../components/ui/UpdateNotification";
-import { ToastContainer } from "../components/ui/ToastContainer";
+import UpdateNotification from "./UpdateNotification";
 import { WelcomeWizard } from "../components/welcome/WelcomeWizard";
 import { useTerminalStore } from "../stores/terminal";
 import { useSettingsStore } from "../stores/settings";
@@ -29,7 +28,7 @@ import { getPreferredShell } from "../lib/shell-detect";
 import { isMac } from "../lib/platform";
 import { applyAppearanceToDom } from "../lib/appearance";
 import { startBufferAutoSave, stopBufferAutoSave, saveAllBuffers } from "../lib/buffer-persistence";
-import { Button, SplitPane, cn } from "../ui";
+import { Button, SplitPane, Toaster, cn } from "../ui";
 import type { SshConnection } from "../types/ssh";
 import type { SerialConfig } from "../types/terminal";
 
@@ -215,7 +214,7 @@ function AppContent() {
         onConnect={handleSerialConnect}
       />
       <Scratchpad />
-      <ToastContainer />
+      <Toaster />
     </div>
   );
 }

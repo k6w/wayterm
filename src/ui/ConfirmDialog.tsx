@@ -1,7 +1,8 @@
 import { useRef } from "react";
-import { Button, Dialog, DialogContent } from "../../ui";
+import { Button } from "./Button";
+import { Dialog, DialogContent } from "./Dialog";
 
-interface ConfirmDialogProps {
+export interface ConfirmDialogProps {
   open: boolean;
   title: string;
   message: string;
@@ -18,7 +19,7 @@ interface ConfirmDialogProps {
  * one starts on the confirm button. Escape, the close button and a click
  * outside all cancel.
  */
-export default function ConfirmDialog({
+export function ConfirmDialog({
   open,
   title,
   message,

@@ -3,8 +3,7 @@ import { ChevronDown, ChevronRight, Copy, Plus, Terminal, Trash2, X } from "luci
 import { useSettingsStore } from "../../stores/settings";
 import { useThemeStore } from "../../stores/theme";
 import { getDefaultShells } from "../../lib/shell-detect";
-import { Button, EmptyState, IconButton, Input, Section, Select, cn, focusRing, ICON_MD, ICON_SM } from "../../ui";
-import ConfirmDialog from "../ui/ConfirmDialog";
+import { Button, EmptyState, IconButton, Input, Section, Select, cn, focusRing, ICON_MD, ICON_SM, ConfirmDialog } from "../../ui";
 import { NumberInput, SettingRow, SettingsCard } from "./SettingRow";
 import { createProfile, duplicateProfile, nextEnvKey, removeEnvKey, renameEnvKey } from "./profile-utils";
 import type { CursorStyle, ShellProfile } from "../../types/settings";

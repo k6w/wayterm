@@ -27,6 +27,8 @@ export {
   DialogTrigger,
   type DialogContentProps,
 } from "./Dialog";
+export { ConfirmDialog, type ConfirmDialogProps } from "./ConfirmDialog";
+export { InputDialog, type InputDialogProps } from "./InputDialog";
 export {
   Popover,
   PopoverAnchor,

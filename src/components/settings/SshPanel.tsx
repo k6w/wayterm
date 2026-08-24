@@ -3,8 +3,7 @@ import { Check, Download, Fingerprint, Server, Trash2 } from "lucide-react";
 import { useSettingsStore } from "../../stores/settings";
 import { useSshStore } from "../../stores/ssh";
 import { sshImportConfig, sshKnownHostsClear, sshKnownHostsList, sshKnownHostsRemove, type KnownHost } from "../../lib/ipc";
-import { Badge, Button, Checkbox, EmptyState, IconButton, Input, Section, ICON_MD, ICON_SM } from "../../ui";
-import ConfirmDialog from "../ui/ConfirmDialog";
+import { Badge, Button, Checkbox, EmptyState, IconButton, Input, Section, ICON_MD, ICON_SM, ConfirmDialog } from "../../ui";
 import { NumberInput, SettingRow, SettingsCard } from "./SettingRow";
 import { connectionsFromConfig, type ImportedHost } from "./ssh-import";
 

@@ -265,6 +265,18 @@ describe("Toast", () => {
     await user.click(screen.getByRole("button", { name: "Dismiss" }));
     await waitFor(() => expect(useToastStore.getState().toasts).toHaveLength(0));
   });
+
+  it("Toaster shows toasts raised before it mounted (e.g. the theme-migration notice)", async () => {
+    useToastStore.setState({ toasts: [] });
+    act(() => {
+      toast.info("Your theme was retired. Switched to Graphite.");
+      toast.error("Push failed");
+    });
+    render(<Toaster />);
+    expect((await screen.findAllByText("Your theme was retired. Switched to Graphite.")).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText("Push failed")).length).toBeGreaterThan(0);
+    act(() => useToastStore.setState({ toasts: [] }));
+  });
 });
 
 describe("Dialog layout options", () => {

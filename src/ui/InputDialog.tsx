@@ -1,7 +1,10 @@
 import { useId, useRef, useState, type FormEvent } from "react";
-import { Button, Dialog, DialogContent, Field, Input } from "../../ui";
+import { Button } from "./Button";
+import { Dialog, DialogContent } from "./Dialog";
+import { Field } from "./Field";
+import { Input } from "./Input";
 
-interface InputDialogProps {
+export interface InputDialogProps {
   open: boolean;
   title: string;
   label: string;
@@ -14,7 +17,7 @@ interface InputDialogProps {
 }
 
 /** Asks for one line of text (rename, new folder). The field starts from `defaultValue` on every open. */
-export default function InputDialog({ open, onCancel, ...props }: InputDialogProps) {
+export function InputDialog({ open, onCancel, ...props }: InputDialogProps) {
   return (
     <Dialog
       open={open}

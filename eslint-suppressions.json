@@ -32,10 +32,5 @@
     "nexterm/no-inline-style": {
       "count": 2
     }
-  },
-  "src/components/ui/Select.tsx": {
-    "nexterm/no-inline-style": {
-      "count": 3
-    }
   }
 }

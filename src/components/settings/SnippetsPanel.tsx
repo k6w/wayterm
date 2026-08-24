@@ -6,19 +6,7 @@ import { useSshStore } from "../../stores/ssh";
 import { getCachedTerminal } from "../../lib/terminal-registry";
 import { resolveSnippetVars } from "../../lib/snippet-utils";
 import { downloadTextFile } from "../../lib/download-file";
-import {
-  Button,
-  EmptyState,
-  ICON_MD,
-  ICON_SM,
-  IconButton,
-  ListRow,
-  Section,
-  Toolbar,
-  ToolbarButton,
-  cn,
-} from "../../ui";
-import ConfirmDialog from "../ui/ConfirmDialog";
+import { Button, EmptyState, ICON_MD, ICON_SM, IconButton, ListRow, Section, Toolbar, ToolbarButton, cn, ConfirmDialog } from "../../ui";
 import { PanelGroup } from "../sidebar/PanelChrome";
 import SnippetDialog from "./SnippetDialog";
 import { groupSnippets, mergeImportedSnippets, saveSnippet, type SnippetDraft } from "./snippets";
