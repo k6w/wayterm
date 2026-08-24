@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebglAddon } from "@xterm/addon-webgl";
@@ -195,16 +195,15 @@ export default function SerialPane({ paneId }: SerialPaneProps) {
   // Focus is shown by the PaneFrame around this pane, so no border here.
   return (
     <div
-      className="relative flex h-full w-full flex-col overflow-hidden"
-      style={{ backgroundColor: bgColor }}
+      className="relative flex h-full w-full flex-col overflow-hidden bg-(--nx-dyn-bg)"
+      style={{ "--nx-dyn-bg": bgColor } as CSSProperties}
       onMouseDown={() => setActivePane(paneId)}
     >
       {/* Header bar */}
       <div
-        className="flex h-7 shrink-0 items-center gap-2 border-b px-3"
-        style={{ borderColor: theme.ui.border, backgroundColor: hexToRgba(theme.ui.bgSecondary, 0.6) }}
+        className="flex h-7 shrink-0 items-center gap-2 border-b border-border bg-panel/60 px-3"
       >
-        <span className="text-xs font-mono" style={{ color: theme.ui.textMuted }}>
+        <span className="text-xs font-mono text-fg-muted">
           {config?.portName ?? "Serial"} — {config?.baudRate ?? ""} baud
         </span>
       </div>
@@ -213,13 +212,11 @@ export default function SerialPane({ paneId }: SerialPaneProps) {
 
       {exited && config && (
         <div
-          className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 rounded-lg border text-xs"
-          style={{ backgroundColor: hexToRgba(theme.ui.bgSecondary, 0.9), borderColor: theme.ui.border, color: theme.ui.textSecondary }}
+          className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 px-4 py-2 rounded-lg border border-border bg-panel/90 text-fg-secondary text-xs"
         >
           <span>Port closed</span>
           <button
-            className="px-2 py-0.5 rounded text-xs"
-            style={{ backgroundColor: theme.ui.accent, color: "#fff" }}
+            className="px-2 py-0.5 rounded text-xs bg-accent text-fg-on-accent"
             onClick={() => reconnect(config)}
           >
             Reconnect

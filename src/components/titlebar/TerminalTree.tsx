@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import { Terminal, Columns2, Rows2 } from "lucide-react";
 import type { SplitNode, TerminalPane } from "../../types/terminal";
 
@@ -35,8 +36,8 @@ function TreeNode({
 
     return (
       <div
-        className="flex items-center gap-1.5 py-0.5 text-text-primary"
-        style={{ paddingLeft: `${depth * 12}px` }}
+        className="flex items-center gap-1.5 py-0.5 pl-[calc(var(--nx-dyn-depth)*12px)] text-text-primary"
+        style={{ "--nx-dyn-depth": depth } as CSSProperties}
       >
         <Terminal className="size-3 shrink-0 text-text-muted" />
         <span className="truncate text-xs">{label}</span>
@@ -51,8 +52,8 @@ function TreeNode({
   return (
     <div>
       <div
-        className="flex items-center gap-1.5 py-0.5 text-text-muted"
-        style={{ paddingLeft: `${depth * 12}px` }}
+        className="flex items-center gap-1.5 py-0.5 pl-[calc(var(--nx-dyn-depth)*12px)] text-text-muted"
+        style={{ "--nx-dyn-depth": depth } as CSSProperties}
       >
         <DirectionIcon className="size-3 shrink-0" />
         <span className="truncate text-xs">{directionLabel}</span>

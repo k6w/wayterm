@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, type CSSProperties } from "react";
 import { X, GripHorizontal } from "lucide-react";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
@@ -23,7 +23,6 @@ export default function Scratchpad() {
   const scratchpadOpen = useTerminalStore((s) => s.scratchpadOpen);
   const toggleScratchpad = useTerminalStore((s) => s.toggleScratchpad);
   const theme = useThemeStore((s) => s.active);
-  const settings = useSettingsStore((s) => s.settings);
 
   const containerRef = useRef<HTMLDivElement>(null);
   const termRef = useRef<Terminal | null>(null);
@@ -100,6 +99,9 @@ export default function Scratchpad() {
   // Init/destroy terminal based on open state
   useEffect(() => {
     if (!scratchpadOpen) return;
+    // Read at open time: the terminal is created once per open, not on every theme change.
+    const theme = useThemeStore.getState().active;
+    const settings = useSettingsStore.getState().settings;
     const el = containerRef.current;
     if (!el) return;
 
@@ -127,7 +129,7 @@ export default function Scratchpad() {
         allowTransparency: true,
         theme: {
           foreground: theme.terminal.foreground,
-          background: vibrancy ? "rgba(0,0,0,0)" : theme.terminal.background,
+          background: vibrancy ? hexToRgba(theme.terminal.background, 0) : theme.terminal.background,
           cursor: theme.terminal.cursor,
           selectionBackground: theme.terminal.selection,
           black: theme.terminal.ansi[0],
@@ -259,21 +261,22 @@ export default function Scratchpad() {
         while (el.firstChild) el.removeChild(el.firstChild);
       }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [scratchpadOpen]);
 
   if (!scratchpadOpen) return null;
 
   return (
     <div
-      className="fixed z-[300] flex flex-col rounded-xl border border-border shadow-2xl overflow-hidden"
-      style={{
-        top: pos.y,
-        left: pos.x,
-        width: size.w,
-        height: size.h,
-        backgroundColor: hexToRgba(theme.ui.bgPrimary, 0.97),
-      }}
+      className="fixed z-[300] flex flex-col rounded-xl border border-border shadow-2xl overflow-hidden bg-(--nx-dyn-bg)"
+      style={
+        {
+          top: pos.y,
+          left: pos.x,
+          width: size.w,
+          height: size.h,
+          "--nx-dyn-bg": hexToRgba(theme.ui.bgPrimary, 0.97),
+        } as CSSProperties
+      }
     >
       {/* Title bar / drag handle */}
       <div
@@ -294,21 +297,14 @@ export default function Scratchpad() {
       {/* Terminal area */}
       <div
         ref={containerRef}
-        className="flex-1 min-h-0"
-        style={{
-          padding: "4px 4px 0 6px",
-          backgroundColor: hexToRgba(theme.terminal.background, 0.85),
-        }}
+        className="flex-1 min-h-0 bg-(--nx-dyn-bg) pt-1 pr-1 pl-1.5"
+        style={{ "--nx-dyn-bg": hexToRgba(theme.terminal.background, 0.85) } as CSSProperties}
       />
 
       {/* Resize handle */}
       <div
-        className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize"
+        className="absolute bottom-0 right-0 w-4 h-4 cursor-se-resize bg-[linear-gradient(135deg,transparent_50%,color-mix(in_srgb,var(--color-overlay)_15%,transparent)_50%)]"
         onMouseDown={handleResizeMouseDown}
-        style={{
-          background:
-            "linear-gradient(135deg, transparent 50%, rgba(255,255,255,0.15) 50%)",
-        }}
       />
     </div>
   );

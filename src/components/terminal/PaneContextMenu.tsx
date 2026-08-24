@@ -1,4 +1,3 @@
-import { useEffect, useRef } from "react";
 import {
   ExternalLink,
   Columns2,
@@ -14,10 +13,6 @@ import {
   StopCircle,
 } from "lucide-react";
 import { useTerminalStore } from "../../stores/terminal";
-import { useThemeStore } from "../../stores/theme";
-import { useSettingsStore } from "../../stores/settings";
-import { hexToRgba } from "../../lib/color";
-import { vibrancyAlpha } from "../../lib/platform";
 import { splitActivePane } from "../../lib/keybindings";
 import {
   copySelection,
@@ -27,229 +22,133 @@ import {
   resetTerminal,
   hasSelection,
 } from "../../lib/terminal-registry";
+import { ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ICON_SM } from "../../ui";
 
 interface PaneContextMenuProps {
   paneId: string;
   paneCount: number;
-  x: number;
-  y: number;
-  onClose: () => void;
   isLogging?: boolean;
   onStartLog?: () => void;
   onStopLog?: () => void;
+  /** Called when the menu closes, to hand focus back to the terminal. */
+  onRestoreFocus?: () => void;
 }
 
-type MenuItem =
-  | { type: "item"; label: string; icon: React.ReactNode; shortcut?: string; action: () => void; disabled?: boolean }
-  | { type: "separator" };
-
+/** Items of a pane's right-click menu. Rendered inside <ContextMenu> by TerminalPane. */
 export default function PaneContextMenu({
   paneId,
   paneCount,
-  x,
-  y,
-  onClose,
   isLogging = false,
   onStartLog,
   onStopLog,
+  onRestoreFocus,
 }: PaneContextMenuProps) {
-  const menuRef = useRef<HTMLDivElement>(null);
-  const themeObj = useThemeStore((s) => s.active);
-  const vibrancy = useSettingsStore((s) => s.settings.appearance.vibrancyEnabled);
-  const windowOpacity = useSettingsStore((s) => s.settings.appearance.windowOpacity);
-  const menuBg = vibrancy
-    ? hexToRgba(themeObj.ui.bgSecondary, vibrancyAlpha(windowOpacity) * 0.85)
-    : themeObj.ui.bgSecondary;
   const detachPaneToTab = useTerminalStore((s) => s.detachPaneToTab);
   const closePaneInTab = useTerminalStore((s) => s.closePaneInTab);
   const setActivePane = useTerminalStore((s) => s.setActivePane);
   const pane = useTerminalStore((s) => s.panes[paneId]);
 
-  const isMac = navigator.platform.toLowerCase().includes("mac");
-  const mod = isMac ? "\u2318" : "Ctrl";
-
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        onClose();
-      }
-    };
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
-    };
-    document.addEventListener("mousedown", handleClick);
-    document.addEventListener("keydown", handleKey);
-    return () => {
-      document.removeEventListener("mousedown", handleClick);
-      document.removeEventListener("keydown", handleKey);
-    };
-  }, [onClose]);
-
-  
-  useEffect(() => {
-    if (!menuRef.current) return;
-    const rect = menuRef.current.getBoundingClientRect();
-    if (rect.right > window.innerWidth) {
-      menuRef.current.style.left = `${window.innerWidth - rect.width - 8}px`;
-    }
-    if (rect.bottom > window.innerHeight) {
-      menuRef.current.style.top = `${window.innerHeight - rect.height - 8}px`;
-    }
-  }, []);
-
   const hasSel = hasSelection(paneId);
 
-  const items: MenuItem[] = [
-    {
-      type: "item",
-      label: "Copy",
-      icon: <Copy size={14} />,
-      shortcut: `${mod}+C`,
-      action: () => copySelection(paneId),
-      disabled: !hasSel,
-    },
-    {
-      type: "item",
-      label: "Paste",
-      icon: <ClipboardPaste size={14} />,
-      shortcut: `${mod}+V`,
-      action: () => { pasteToTerminal(paneId); },
-    },
-    {
-      type: "item",
-      label: "Select All",
-      icon: <TextSelect size={14} />,
-      shortcut: `${mod}+A`,
-      action: () => selectAll(paneId),
-    },
-    { type: "separator" },
-    {
-      type: "item",
-      label: "Clear Buffer",
-      icon: <Eraser size={14} />,
-      shortcut: `${mod}+K`,
-      action: () => clearBuffer(paneId),
-    },
-    {
-      type: "item",
-      label: "Reset Terminal",
-      icon: <RotateCcw size={14} />,
-      action: () => resetTerminal(paneId),
-    },
-    { type: "separator" },
-    {
-      type: "item",
-      label: "Split Right",
-      icon: <Columns2 size={14} />,
-      shortcut: `${mod}+\u21e7+D`,
-      action: () => {
-        setActivePane(paneId);
-        splitActivePane("horizontal");
-      },
-    },
-    {
-      type: "item",
-      label: "Split Down",
-      icon: <Rows2 size={14} />,
-      shortcut: `${mod}+\u21e7+E`,
-      action: () => {
-        setActivePane(paneId);
-        splitActivePane("vertical");
-      },
-    },
-    { type: "separator" },
-    ...(paneCount > 1
-      ? [
-          {
-            type: "item" as const,
-            label: "Detach to Tab",
-            icon: <ExternalLink size={14} />,
-            shortcut: `${mod}+\u21e7+T`,
-            action: () => {
-              setActivePane(paneId);
-              detachPaneToTab(paneId);
-            },
-          },
-          {
-            type: "item" as const,
-            label: "Close Pane",
-            icon: <X size={14} />,
-            shortcut: `${mod}+\u21e7+W`,
-            action: () => closePaneInTab(paneId),
-          },
-          { type: "separator" as const },
-        ]
-      : []),
-    {
-      type: "item",
-      label: "Copy Path",
-      icon: <FolderOpen size={14} />,
-      action: () => {
-        const path = pane?.cwd || "~";
-        navigator.clipboard.writeText(path);
-      },
-    },
-    { type: "separator" },
-    ...(isLogging
-      ? [
-          {
-            type: "item" as const,
-            label: "Stop Session Log",
-            icon: <StopCircle size={14} />,
-            action: () => { onStopLog?.(); },
-          },
-        ]
-      : [
-          {
-            type: "item" as const,
-            label: "Start Session Log",
-            icon: <FileText size={14} />,
-            action: () => { onStartLog?.(); },
-          },
-        ]),
-  ];
-
   return (
-    <div
-      ref={menuRef}
-      style={{ position: "fixed", top: y, left: x, zIndex: 200 }}
+    <ContextMenuContent
+      className="min-w-52"
+      // The pane wrapper re-focuses the terminal on mousedown; the portal bubbles React events to it.
+      onMouseDown={(event) => event.stopPropagation()}
+      onCloseAutoFocus={(event) => {
+        event.preventDefault();
+        onRestoreFocus?.();
+      }}
     >
-      <div
-        className="min-w-[200px] rounded-lg border border-border py-1 shadow-xl"
-        style={{
-          backgroundColor: menuBg,
-          backdropFilter: vibrancy ? "blur(20px) saturate(1.3)" : undefined,
-          WebkitBackdropFilter: vibrancy ? "blur(20px) saturate(1.3)" : undefined,
+      <ContextMenuItem
+        icon={<Copy {...ICON_SM} />}
+        shortcut="Mod+c"
+        disabled={!hasSel}
+        onSelect={() => copySelection(paneId)}
+      >
+        Copy
+      </ContextMenuItem>
+      <ContextMenuItem
+        icon={<ClipboardPaste {...ICON_SM} />}
+        shortcut="Mod+v"
+        onSelect={() => {
+          void pasteToTerminal(paneId);
         }}
       >
-        {items.map((item, i) =>
-          item.type === "separator" ? (
-            <div key={i} className="my-1 h-px bg-border mx-2" />
-          ) : (
-            <button
-              key={i}
-              className={`flex w-full items-center gap-2 px-3 py-1.5 text-xs transition-colors ${
-                item.disabled
-                  ? "text-text-muted/40 cursor-default"
-                  : "text-text-primary hover:bg-overlay/[0.06]"
-              }`}
-              disabled={item.disabled}
-              onClick={() => {
-                if (!item.disabled) {
-                  item.action();
-                  onClose();
-                }
-              }}
-            >
-              <span className="text-text-muted">{item.icon}</span>
-              <span className="flex-1 text-left">{item.label}</span>
-              {item.shortcut && (
-                <span className="text-[10px] text-text-muted/60 ml-4">{item.shortcut}</span>
-              )}
-            </button>
-          )
-        )}
-      </div>
-    </div>
+        Paste
+      </ContextMenuItem>
+      <ContextMenuItem icon={<TextSelect {...ICON_SM} />} shortcut="Mod+a" onSelect={() => selectAll(paneId)}>
+        Select All
+      </ContextMenuItem>
+      <ContextMenuSeparator />
+      <ContextMenuItem icon={<Eraser {...ICON_SM} />} shortcut="Mod+k" onSelect={() => clearBuffer(paneId)}>
+        Clear Buffer
+      </ContextMenuItem>
+      <ContextMenuItem icon={<RotateCcw {...ICON_SM} />} onSelect={() => resetTerminal(paneId)}>
+        Reset Terminal
+      </ContextMenuItem>
+      <ContextMenuSeparator />
+      <ContextMenuItem
+        icon={<Columns2 {...ICON_SM} />}
+        shortcut="Mod+Shift+d"
+        onSelect={() => {
+          setActivePane(paneId);
+          splitActivePane("horizontal");
+        }}
+      >
+        Split Right
+      </ContextMenuItem>
+      <ContextMenuItem
+        icon={<Rows2 {...ICON_SM} />}
+        shortcut="Mod+Shift+e"
+        onSelect={() => {
+          setActivePane(paneId);
+          splitActivePane("vertical");
+        }}
+      >
+        Split Down
+      </ContextMenuItem>
+      <ContextMenuSeparator />
+      {paneCount > 1 && (
+        <>
+          <ContextMenuItem
+            icon={<ExternalLink {...ICON_SM} />}
+            shortcut="Mod+Shift+t"
+            onSelect={() => {
+              setActivePane(paneId);
+              detachPaneToTab(paneId);
+            }}
+          >
+            Detach to Tab
+          </ContextMenuItem>
+          <ContextMenuItem
+            icon={<X {...ICON_SM} />}
+            shortcut="Mod+Shift+w"
+            onSelect={() => closePaneInTab(paneId)}
+          >
+            Close Pane
+          </ContextMenuItem>
+          <ContextMenuSeparator />
+        </>
+      )}
+      <ContextMenuItem
+        icon={<FolderOpen {...ICON_SM} />}
+        onSelect={() => {
+          void navigator.clipboard.writeText(pane?.cwd || "~");
+        }}
+      >
+        Copy Path
+      </ContextMenuItem>
+      <ContextMenuSeparator />
+      {isLogging ? (
+        <ContextMenuItem icon={<StopCircle {...ICON_SM} />} onSelect={() => onStopLog?.()}>
+          Stop Session Log
+        </ContextMenuItem>
+      ) : (
+        <ContextMenuItem icon={<FileText {...ICON_SM} />} onSelect={() => onStartLog?.()}>
+          Start Session Log
+        </ContextMenuItem>
+      )}
+    </ContextMenuContent>
   );
 }

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, type CSSProperties } from "react";
 import { Terminal } from "@xterm/xterm";
 import { WebglAddon } from "@xterm/addon-webgl";
 import { FitAddon } from "@xterm/addon-fit";
@@ -9,6 +9,7 @@ import { useSettingsStore } from "../../stores/settings";
 import { useTerminalStore, collectPaneIds } from "../../stores/terminal";
 import DropZoneOverlay from "./DropZoneOverlay";
 import PaneContextMenu from "./PaneContextMenu";
+import { ContextMenu, ContextMenuTrigger } from "../../ui";
 import PaneControls from "./PaneControls";
 import { SearchBar } from "../search/SearchBar";
 import {
@@ -875,16 +876,20 @@ export default function TerminalPane({
   const [sshStep, setSshStep] = useState<string>(() => sshInfo && !getCachedTerminal(paneId) ? "Resolving host..." : "");
 
   const [hovered, setHovered] = useState(false);
-  const [ctxMenu, setCtxMenu] = useState<{ x: number; y: number } | null>(
-    null
-  );
 
   const showDropZone = draggingTabId !== null && dragOverPaneId === paneId;
   const showCloseBtn = paneCount > 1 && (isActive || hovered);
 
   // Focus is shown by the PaneFrame around this pane (unfocused panes are
   // dimmed), so the pane itself has no border.
+  // Theme-derived terminal tint, handed to CSS as a --nx-dyn-* property.
+  const terminalTint = settings.appearance.vibrancyEnabled
+    ? hexToRgba(theme.terminal.background, vibrancyAlpha(settings.appearance.windowOpacity) * 0.7)
+    : hexToRgba(theme.terminal.background, 0.85);
+
   return (
+    <ContextMenu>
+    <ContextMenuTrigger asChild>
     <div
       ref={wrapperRef}
       data-pane-id={paneId}
@@ -898,10 +903,6 @@ export default function TerminalPane({
       }}
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      onContextMenu={(e) => {
-        e.preventDefault();
-        setCtxMenu({ x: e.clientX, y: e.clientY });
-      }}
     >
       {showSearch && searchAddonRef.current && (
         <SearchBar
@@ -913,43 +914,33 @@ export default function TerminalPane({
 
       <div
         ref={containerRef}
-        className="h-full w-full"
-        style={{
-          padding: "6px 4px 0 6px",
-          backgroundColor: settings.appearance.vibrancyEnabled
-            ? hexToRgba(theme.terminal.background, vibrancyAlpha(settings.appearance.windowOpacity) * 0.7)
-            : hexToRgba(theme.terminal.background, 0.85),
-        }}
+        className="h-full w-full bg-(--nx-dyn-bg) pt-1.5 pr-1 pl-1.5"
+        style={{ "--nx-dyn-bg": terminalTint } as CSSProperties}
       />
 
       {sshOverlay && (
         <div
-          className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-4"
-          style={{
-            backgroundColor: settings.appearance.vibrancyEnabled
-              ? hexToRgba(theme.terminal.background, vibrancyAlpha(settings.appearance.windowOpacity) * 0.7)
-              : hexToRgba(theme.terminal.background, 0.85),
-            borderRadius: showSearch ? '0 0 8px 8px' : '8px',
-          }}
+          className={`absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 bg-(--nx-dyn-bg) ${
+            showSearch ? "rounded-b-lg" : "rounded-lg"
+          }`}
+          style={
+            {
+              "--nx-dyn-bg": terminalTint,
+              "--nx-dyn-fg-strong": theme.terminal.foreground + "b0",
+              "--nx-dyn-fg-faint": theme.terminal.foreground + "50",
+            } as CSSProperties
+          }
         >
-          <div
-            className="h-8 w-8 animate-spin rounded-full border-[2.5px]"
-            style={{
-              borderColor: theme.ui.accent + "25",
-              borderTopColor: theme.ui.accent,
-            }}
-          />
+          <div className="h-8 w-8 animate-spin rounded-full border-[2.5px] border-accent/15 border-t-accent" />
           <div className="flex flex-col items-center gap-1.5">
             <span
-              className="text-xs tracking-wide"
-              style={{ color: theme.terminal.foreground + "b0" }}
+              className="text-xs tracking-wide text-(--nx-dyn-fg-strong)"
             >
               Connecting to {sshInfo?.hostLabel ?? "remote host"}
             </span>
             {sshStep && (
               <span
-                className="text-[11px] tracking-wide"
-                style={{ color: theme.terminal.foreground + "50" }}
+                className="text-[11px] tracking-wide text-(--nx-dyn-fg-faint)"
               >
                 {sshStep}
               </span>
@@ -992,11 +983,7 @@ export default function TerminalPane({
                 }
               }
             }}
-            className="px-4 py-1.5 text-xs rounded-md transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            style={{
-              backgroundColor: theme.ui.accent,
-              color: "#fff",
-            }}
+            className="px-4 py-1.5 text-xs rounded-md transition-colors bg-accent text-fg-on-accent disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {reconnectCooldown > 0 ? `Reconnect in ${reconnectCooldown}s` : "Reconnect"}
           </button>
@@ -1013,19 +1000,17 @@ export default function TerminalPane({
 
       {showDropZone && <DropZoneOverlay activeZone={dragOverZone} />}
 
-      {ctxMenu && (
-        <PaneContextMenu
-          paneId={paneId}
-          paneCount={paneCount}
-          x={ctxMenu.x}
-          y={ctxMenu.y}
-          onClose={() => setCtxMenu(null)}
-          isLogging={isLogging}
-          onStartLog={handleStartLog}
-          onStopLog={handleStopLog}
-        />
-      )}
     </div>
+    </ContextMenuTrigger>
+    <PaneContextMenu
+      paneId={paneId}
+      paneCount={paneCount}
+      isLogging={isLogging}
+      onStartLog={handleStartLog}
+      onStopLog={handleStopLog}
+      onRestoreFocus={() => termRef.current?.focus()}
+    />
+    </ContextMenu>
   );
 }
 
@@ -1039,7 +1024,7 @@ function makeXtermTheme(
     // When vibrancy is on, xterm itself is fully transparent — the container
     // div behind it provides the rgba-tinted background.
     background: vibrancyEnabled
-      ? "rgba(0, 0, 0, 0)"
+      ? hexToRgba(theme.terminal.background, 0)
       : theme.terminal.background,
     cursor: theme.terminal.cursor,
     cursorAccent: theme.terminal.cursorAccent,
