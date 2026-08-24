@@ -2,7 +2,7 @@ import { useTerminalStore } from "../stores/terminal";
 import { useSidebarStore } from "../stores/sidebar";
 import { useSettingsStore } from "../stores/settings";
 import type { TerminalPane } from "../types/terminal";
-import { getDefaultShell } from "./shell-detect";
+import { getDefaultShell, getPreferredShell } from "./shell-detect";
 import { isMac } from "./platform";
 import { copySelection, pasteToTerminal } from "./terminal-registry";
 
@@ -34,14 +34,16 @@ export function splitActivePane(direction: "horizontal" | "vertical") {
 
 export function getDefaultKeybindings(): KeyAction[] {
   const store = useTerminalStore.getState();
-  const shell = getDefaultShell();
 
   return [
     {
       id: "new-tab",
       label: "New Tab",
       keys: `${mod}+t`,
-      handler: () => store.addTab(shell.type, shell.path),
+      handler: () => {
+        const shell = getPreferredShell(useSettingsStore.getState().settings.general.defaultShell);
+        store.addTab(shell.type, shell.path);
+      },
     },
     {
       id: "close-tab",

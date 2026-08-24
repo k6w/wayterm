@@ -127,7 +127,35 @@ export async function getDefaultShellsVerified(): Promise<DetectedShell[]> {
   return shells.length > 0 ? shells : getDefaultShells();
 }
 
-export function getDefaultShells(): DetectedShell[] {
+interface ShellInfo {
+  loginShell: string | null;
+  shells: string[];
+}
+
+let shellInfo: ShellInfo | null = null;
+
+export function resetShellInfo(): void {
+  shellInfo = null;
+}
+
+/** Ask the backend for the login shell and /etc/shells; keeps the static list when unavailable. */
+export async function loadShellInfo(): Promise<void> {
+  try {
+    const info = await invoke<ShellInfo | null>("shell_info");
+    if (info && Array.isArray(info.shells) && info.shells.length > 0) shellInfo = info;
+  } catch {
+    shellInfo = null;
+  }
+}
+
+function shellFromPath(path: string): DetectedShell {
+  const type = inferShellType(path);
+  const base = path.split(/[\\/]/).pop() ?? path;
+  const known = ["bash", "zsh", "fish", "sh"].includes(base);
+  return { type, path, label: known || IS_WIN ? labelForType(type) : base };
+}
+
+function staticShells(): DetectedShell[] {
   if (IS_WIN) {
     return [
       { type: "powershell", path: WIN_PS_V1, label: "Windows PowerShell" },
@@ -140,7 +168,21 @@ export function getDefaultShells(): DetectedShell[] {
   ];
 }
 
+export function getDefaultShells(): DetectedShell[] {
+  if (IS_WIN || !shellInfo) return staticShells();
+  const paths = shellInfo.shells.slice();
+  const login = shellInfo.loginShell;
+  if (login) {
+    const at = paths.indexOf(login);
+    if (at > 0) paths.splice(at, 1);
+    if (at !== 0) paths.unshift(login);
+  }
+  return paths.map(shellFromPath);
+}
+
+/** The user's login shell ($SHELL from the backend), else the first known shell. */
 export function getDefaultShell(): DetectedShell {
+  if (!IS_WIN && shellInfo?.loginShell) return shellFromPath(shellInfo.loginShell);
   return getDefaultShells()[0];
 }
 

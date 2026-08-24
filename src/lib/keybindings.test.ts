@@ -1,3 +1,5 @@
+import { invoke } from "@tauri-apps/api/core";
+import { loadShellInfo, resetShellInfo } from "./shell-detect";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getDefaultKeybindings, setupKeybindings } from "./keybindings";
 import { useTerminalStore } from "../stores/terminal";
@@ -88,5 +90,30 @@ describe("setupKeybindings", () => {
     press("1", { ctrlKey: false, altKey: true });
     expect(setActiveTab).toHaveBeenCalledWith("a");
     teardown();
+  });
+});
+
+describe("new-tab shell", () => {
+  const addTab = vi.fn();
+  beforeEach(() => {
+    addTab.mockClear();
+    resetShellInfo();
+    useTerminalStore.setState({ addTab });
+  });
+
+  it("uses the login shell when no default shell is configured", async () => {
+    vi.mocked(invoke).mockResolvedValueOnce({ loginShell: "/bin/zsh", shells: ["/bin/bash", "/bin/zsh"] });
+    await loadShellInfo();
+    getDefaultKeybindings().find((b) => b.id === "new-tab")!.handler();
+    expect(addTab).toHaveBeenCalledWith("zsh", "/bin/zsh");
+  });
+
+  it("uses the configured default shell", async () => {
+    vi.mocked(invoke).mockResolvedValueOnce({ loginShell: "/bin/zsh", shells: ["/bin/bash", "/bin/zsh"] });
+    await loadShellInfo();
+    const s = useSettingsStore.getState().settings;
+    useSettingsStore.setState({ settings: { ...s, general: { ...s.general, defaultShell: "/bin/bash" } } });
+    getDefaultKeybindings().find((b) => b.id === "new-tab")!.handler();
+    expect(addTab).toHaveBeenCalledWith("bash", "/bin/bash");
   });
 });

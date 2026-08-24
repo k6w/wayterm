@@ -25,9 +25,14 @@ pub async fn terminal_spawn(
     app: AppHandle,
 ) -> Result<String, String> {
     let session_id = Uuid::new_v4().to_string();
+    let shell = if request.shell.trim().is_empty() {
+        select_login_shell(std::env::var("SHELL").ok().as_deref(), cfg!(target_os = "macos"))
+    } else {
+        request.shell.clone()
+    };
     pty_manager.spawn(
         session_id.clone(),
-        &request.shell,
+        &shell,
         &request.args,
         &request.cwd,
         &request.env,
@@ -182,4 +187,71 @@ pub async fn terminal_log_write(session_id: String, data: Vec<u8>) -> Result<(),
         }
     }
     Ok(())
+}
+
+/// Pick the user's login shell: `$SHELL` when set, else the platform default.
+pub(crate) fn select_login_shell(env_shell: Option<&str>, is_macos: bool) -> String {
+    match env_shell.map(str::trim) {
+        Some(s) if !s.is_empty() => s.to_string(),
+        _ if is_macos => "/bin/zsh".to_string(),
+        _ => "/bin/bash".to_string(),
+    }
+}
+
+/// Parse /etc/shells content: absolute paths only, comments and blanks skipped, deduplicated in order.
+pub(crate) fn parse_etc_shells(content: &str) -> Vec<String> {
+    let mut out: Vec<String> = Vec::new();
+    for line in content.lines() {
+        let line = line.split('#').next().unwrap_or("").trim();
+        if line.starts_with('/') && !out.iter().any(|s| s == line) {
+            out.push(line.to_string());
+        }
+    }
+    out
+}
+
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ShellInfo {
+    pub login_shell: Option<String>,
+    pub shells: Vec<String>,
+}
+
+#[tauri::command]
+pub async fn shell_info() -> Result<ShellInfo, String> {
+    #[cfg(target_os = "windows")]
+    {
+        Ok(ShellInfo { login_shell: None, shells: Vec::new() })
+    }
+    #[cfg(not(target_os = "windows"))]
+    {
+        let env_shell = std::env::var("SHELL").ok();
+        let login = select_login_shell(env_shell.as_deref(), cfg!(target_os = "macos"));
+        let content = std::fs::read_to_string("/etc/shells").unwrap_or_default();
+        let mut shells = parse_etc_shells(&content);
+        if !shells.contains(&login) {
+            shells.push(login.clone());
+        }
+        shells.retain(|s| std::path::Path::new(s).exists());
+        Ok(ShellInfo { login_shell: Some(login), shells })
+    }
+}
+
+#[cfg(test)]
+mod shell_tests {
+    use super::*;
+
+    #[test]
+    fn login_shell_prefers_env() {
+        assert_eq!(select_login_shell(Some("/usr/bin/fish"), true), "/usr/bin/fish");
+        assert_eq!(select_login_shell(Some("  "), true), "/bin/zsh");
+        assert_eq!(select_login_shell(None, true), "/bin/zsh");
+        assert_eq!(select_login_shell(None, false), "/bin/bash");
+    }
+
+    #[test]
+    fn parses_etc_shells() {
+        let content = "# comment\n/bin/sh\n\n/bin/zsh # trailing\n/bin/sh\nnologin\n  /bin/bash  \n";
+        assert_eq!(parse_etc_shells(content), vec!["/bin/sh", "/bin/zsh", "/bin/bash"]);
+    }
 }

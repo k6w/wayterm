@@ -137,6 +137,7 @@ pub fn run() {
             commands::terminal::terminal_history_add,
             commands::terminal::path_exists,
             commands::terminal::find_executable,
+            commands::terminal::shell_info,
             commands::settings::settings_get,
             commands::settings::settings_set,
             commands::settings::settings_get_all,

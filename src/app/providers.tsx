@@ -10,7 +10,7 @@ import { setVibrancy, getLaunchCwd, setWindowTitle } from "../lib/ipc";
 import { createTitleSync, windowTitleFor } from "../lib/window-title";
 import { hexToRgb } from "../lib/color";
 import { initHomePath } from "../lib/format";
-import { getPreferredShell } from "../lib/shell-detect";
+import { getPreferredShell, loadShellInfo } from "../lib/shell-detect";
 import { applyStartupTheme } from "../lib/theme-migration";
 
 
@@ -41,6 +41,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       useThemeStore.getState().loadCustomThemes(),
       useSettingsStore.getState().load(),
       getLaunchCwd().catch(() => null),
+      loadShellInfo(),
     ]).then(async ([, , , , , launchCwd]) => {
       // Settings and custom themes are loaded: activate the saved theme,
       // migrating users on a removed built-in to Graphite (one-time notice).

@@ -15,7 +15,7 @@ import {
   onTerminalOutput,
   onTerminalExit,
 } from "../../lib/ipc";
-import { getDefaultShell } from "../../lib/shell-detect";
+import { getPreferredShell } from "../../lib/shell-detect";
 import { hexToRgba } from "../../lib/color";
 import "@xterm/xterm/css/xterm.css";
 
@@ -172,7 +172,7 @@ export default function Scratchpad() {
         return;
       }
 
-      const shell = getDefaultShell();
+      const shell = getPreferredShell(useSettingsStore.getState().settings.general.defaultShell);
       let sessionId: string;
       try {
         sessionId = await terminalSpawn({
