@@ -235,6 +235,15 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+/* Settings search: flash the row a result points at. The reduced-motion rule below shortens it to nothing. */
+@keyframes nx-row-highlight {
+  from { background-color: var(--color-accent-subtle); }
+  to { background-color: transparent; }
+}
+[data-setting][data-highlight] {
+  animation: nx-row-highlight 1.6s ease-out;
+}
+
 /* Motion: honor prefers-reduced-motion everywhere. */
 @media (prefers-reduced-motion: reduce) {
   *,

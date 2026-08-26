@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import SettingsView from "./SettingsView";
@@ -13,6 +13,45 @@ beforeEach(() => {
 function openSettings() {
   act(() => useTerminalStore.setState({ settingsOpen: true }));
 }
+
+describe("SettingsView scrolling", () => {
+  it("resets the content scroll to the top when switching panels", async () => {
+    const user = userEvent.setup();
+    render(<SettingsView />);
+    openSettings();
+    const scroller = document.querySelector<HTMLElement>("[data-settings-scroll]")!;
+    scroller.scrollTop = 120;
+    await user.click(screen.getByRole("button", { name: "Appearance" }));
+    expect(scroller.scrollTop).toBe(0);
+  });
+
+  it("scrolls a clicked search result's row into view and highlights it", async () => {
+    const user = userEvent.setup();
+    const spy = vi.spyOn(Element.prototype, "scrollIntoView");
+    render(<SettingsView />);
+    openSettings();
+    await user.click(screen.getByRole("button", { name: "Appearance" }));
+    spy.mockClear();
+    await user.type(screen.getByRole("searchbox", { name: "Search settings" }), "default shell");
+    await user.click(screen.getByRole("button", { name: /Default shell/ }));
+    const row = document.querySelector("[data-setting='Default shell']")!;
+    expect(row).toBeInTheDocument();
+    expect(spy).toHaveBeenCalled();
+    expect(spy.mock.contexts).toContain(row);
+    expect(row).toHaveAttribute("data-highlight");
+    spy.mockRestore();
+  });
+
+  it("turns off autocomplete and autocorrect in the search box", () => {
+    render(<SettingsView />);
+    openSettings();
+    const box = screen.getByRole("searchbox", { name: "Search settings" });
+    expect(box).toHaveAttribute("autocomplete", "off");
+    expect(box).toHaveAttribute("autocorrect", "off");
+    expect(box).toHaveAttribute("spellcheck", "false");
+    expect(box).not.toHaveClass("font-mono");
+  });
+});
 
 describe("SettingsView", () => {
   it("renders nothing while closed", () => {

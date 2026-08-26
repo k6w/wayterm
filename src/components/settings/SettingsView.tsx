@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Search, X } from "lucide-react";
 import { useTerminalStore } from "../../stores/terminal";
 import { EmptyState, IconButton, Input, ListRow, ICON_MD, ICON_SM, cn } from "../../ui";
@@ -37,6 +37,8 @@ interface SettingsSurfaceProps {
 /** Mounted only while settings is open, so the search starts empty on every open. */
 function SettingsSurface({ activePanel, onSelectPanel, onClose }: SettingsSurfaceProps) {
   const [query, setQuery] = useState("");
+  const [target, setTarget] = useState<{ label: string; nonce: number } | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const results = searchSettings(query);
   const ActivePanel = PANELS[activePanel];
 
@@ -49,9 +51,32 @@ function SettingsSurface({ activePanel, onSelectPanel, onClose }: SettingsSurfac
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [onClose]);
 
-  const pick = (panel: PanelId) => {
+  // A new panel always opens at the top.
+  useEffect(() => {
+    if (scrollRef.current) scrollRef.current.scrollTop = 0;
+  }, [activePanel]);
+
+  // A clicked search result scrolls its row into view and flashes it (the flash is an
+  // animation, so prefers-reduced-motion switches it off).
+  useEffect(() => {
+    if (!target) return;
+    const row = Array.from(scrollRef.current?.querySelectorAll<HTMLElement>("[data-setting]") ?? []).find(
+      (el) => el.dataset.setting === target.label
+    );
+    if (!row) return;
+    row.scrollIntoView({ block: "center" });
+    row.setAttribute("data-highlight", "");
+    const timer = setTimeout(() => row.removeAttribute("data-highlight"), 1600);
+    return () => {
+      clearTimeout(timer);
+      row.removeAttribute("data-highlight");
+    };
+  }, [target]);
+
+  const pick = (panel: PanelId, label?: string) => {
     onSelectPanel(panel);
     setQuery("");
+    if (label) setTarget({ label, nonce: Date.now() });
   };
 
   return (
@@ -81,7 +106,7 @@ function SettingsSurface({ activePanel, onSelectPanel, onClose }: SettingsSurfac
               onKeyDown={(event) => {
                 if (event.key === "Enter" && results && results.length > 0) {
                   event.preventDefault();
-                  pick(results[0].panel);
+                  pick(results[0].panel, results[0].label);
                 }
               }}
             />
@@ -98,7 +123,7 @@ function SettingsSurface({ activePanel, onSelectPanel, onClose }: SettingsSurfac
                     key={`${entry.panel}:${entry.label}`}
                     label={entry.label}
                     description={PANEL_LABEL[entry.panel]}
-                    onSelect={() => pick(entry.panel)}
+                    onSelect={() => pick(entry.panel, entry.label)}
                   />
                 ))}
               </div>
@@ -132,7 +157,7 @@ function SettingsSurface({ activePanel, onSelectPanel, onClose }: SettingsSurfac
           <h2 className="text-title font-semibold text-fg">{PANEL_LABEL[activePanel]}</h2>
           <IconButton label="Close settings" shortcut="Escape" icon={<X {...ICON_MD} />} onClick={onClose} />
         </header>
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div ref={scrollRef} data-settings-scroll className="min-h-0 flex-1 overflow-y-auto">
           <div key={activePanel} className="mx-auto max-w-[720px] animate-nx-fade-in px-6 py-6">
             <ActivePanel />
           </div>
