@@ -98,6 +98,7 @@ function SettingsSurface({ activePanel, onSelectPanel, onClose }: SettingsSurfac
               variant="plain"
               size="sm"
               type="search"
+              plainText
               autoFocus
               aria-label="Search settings"
               placeholder="Search settings"
