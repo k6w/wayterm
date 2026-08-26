@@ -7,7 +7,7 @@ import { Badge, Button, Checkbox, EmptyState, IconButton, Input, Section, ICON_M
 import { NumberInput, SettingRow, SettingsCard } from "./SettingRow";
 import { connectionsFromConfig, type ImportedHost } from "./ssh-import";
 
-const listRow = "flex min-h-row items-center gap-3 px-3 py-2";
+const listRow = "flex min-h-row items-center gap-3 px-row-x py-row-y";
 
 export default function SshPanel() {
   const settings = useSettingsStore((s) => s.settings.ssh);

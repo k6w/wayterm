@@ -177,7 +177,7 @@ export default function KeysPanel() {
         <div className="flex flex-col gap-2">
           {keys.map((key) => (
             <SettingsCard key={key.id}>
-              <div className="flex min-h-row items-center gap-3 px-3 py-2">
+              <div className="flex min-h-row items-center gap-3 px-row-x py-row-y">
                 <KeyRound {...ICON_SM} aria-hidden className="shrink-0 text-fg-muted" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-body text-fg">{key.name}</p>

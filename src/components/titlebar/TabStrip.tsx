@@ -160,7 +160,7 @@ export default function TabStrip() {
       data-tauri-drag-region
       className={cn(
         "flex min-w-0 items-center",
-        isVertical ? "w-full flex-1 flex-col overflow-y-auto" : "h-full flex-1 overflow-x-auto"
+        isVertical ? "w-full flex-1 flex-col overflow-y-auto" : "scrollbar-none h-full flex-1 overflow-x-auto overflow-y-hidden"
       )}
     >
       <TabsList

@@ -147,6 +147,7 @@
 :root[data-density="comfortable"] {
   --nx-control-h: 32px;
   --nx-row-h: 32px;
+  --spacing-row-y: 12px;
 }
 
 /* Z-index layering scale: consume via z-[var(--z-*)] */

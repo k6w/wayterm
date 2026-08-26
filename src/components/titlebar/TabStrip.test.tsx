@@ -28,6 +28,12 @@ beforeEach(() => {
 });
 
 describe("TabStrip", () => {
+  it("never scrolls vertically or shows a scrollbar along the top", () => {
+    render(<TabStrip />);
+    const strip = screen.getByRole("tablist", { name: "Terminal tabs" }).parentElement!;
+    expect(strip).toHaveClass("overflow-y-hidden", "scrollbar-none");
+  });
+
   it("renders one tab per terminal tab with the active one selected", () => {
     render(<TabStrip />);
     const list = screen.getByRole("tablist", { name: "Terminal tabs" });

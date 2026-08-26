@@ -33,7 +33,7 @@ export function SettingRow({ label, description, children, stacked = false, clas
     <div
       data-setting={label}
       className={cn(
-        "flex min-h-row gap-4 px-3 py-2",
+        "flex min-h-row gap-4 px-row-x py-row-y",
         stacked ? "flex-col gap-2" : "items-center justify-between",
         className
       )}

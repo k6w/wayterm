@@ -6,6 +6,11 @@ import { Input, SegmentedControl, Switch } from "../../ui";
 import { NumberInput, SettingRow, SettingsCard } from "./SettingRow";
 
 describe("SettingRow", () => {
+  it("pads from the density row tokens", () => {
+    render(<SettingRow label="Density row">{() => <span />}</SettingRow>);
+    expect(document.querySelector("[data-setting='Density row']")).toHaveClass("py-row-y", "px-row-x");
+  });
+
   it("names its control by the label and describes it", () => {
     render(
       <SettingsCard>
