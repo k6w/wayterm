@@ -35,14 +35,16 @@ export interface InputProps
   invalid?: boolean;
   /** Code, command, path or host text: mono font, and no spell check, autocorrect, smart punctuation or autocapitalize. */
   code?: boolean;
+  /** Like `code` without the mono font: search boxes and filters that must not be autocompleted or autocorrected. */
+  plainText?: boolean;
 }
 
 /** Single-line text field. Label it with <label htmlFor> or aria-label. */
-export function Input({ variant, size, invalid, code, className, ...rest }: InputProps) {
+export function Input({ variant, size, invalid, code, plainText, className, ...rest }: InputProps) {
   return (
     <input
       aria-invalid={invalid || undefined}
-      {...(code ? CODE_TEXT_ATTRS : undefined)}
+      {...(code || plainText ? CODE_TEXT_ATTRS : undefined)}
       className={cn(inputVariants({ variant, size }), code && "font-mono", className)}
       {...rest}
     />

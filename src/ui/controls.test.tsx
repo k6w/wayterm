@@ -221,6 +221,13 @@ describe("code fields", () => {
     expect(area).toHaveClass("font-mono");
   });
 
+  it("Input plainText turns off text rewriting but keeps the UI font", () => {
+    render(<Input aria-label="Filter" plainText />);
+    const input = screen.getByRole("textbox", { name: "Filter" });
+    for (const [name, value] of Object.entries(CODE_ATTRS)) expect(input).toHaveAttribute(name, value);
+    expect(input).not.toHaveClass("font-mono");
+  });
+
   it("leaves prose fields alone by default", () => {
     render(<Input aria-label="Notes" />);
     const input = screen.getByRole("textbox", { name: "Notes" });
