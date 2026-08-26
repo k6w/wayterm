@@ -15,6 +15,12 @@ function openSettings() {
 }
 
 describe("SettingsView scrolling", () => {
+  it("reserves the scrollbar gutter so short and long panels share one left edge", () => {
+    render(<SettingsView />);
+    openSettings();
+    expect(document.querySelector("[data-settings-scroll]")).toHaveClass("[scrollbar-gutter:stable]");
+  });
+
   it("resets the content scroll to the top when switching panels", async () => {
     const user = userEvent.setup();
     render(<SettingsView />);

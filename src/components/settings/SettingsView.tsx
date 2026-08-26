@@ -158,7 +158,7 @@ function SettingsSurface({ activePanel, onSelectPanel, onClose }: SettingsSurfac
           <h2 className="text-title font-semibold text-fg">{PANEL_LABEL[activePanel]}</h2>
           <IconButton label="Close settings" shortcut="Escape" icon={<X {...ICON_MD} />} onClick={onClose} />
         </header>
-        <div ref={scrollRef} data-settings-scroll className="min-h-0 flex-1 overflow-y-auto">
+        <div ref={scrollRef} data-settings-scroll className="min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
           <div key={activePanel} className="mx-auto max-w-[720px] animate-nx-fade-in px-6 py-6">
             <ActivePanel />
           </div>
