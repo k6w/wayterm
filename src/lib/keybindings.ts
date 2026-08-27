@@ -4,6 +4,7 @@ import { useSettingsStore } from "../stores/settings";
 import type { TerminalPane } from "../types/terminal";
 import { getDefaultShell, getPreferredShell } from "./shell-detect";
 import { isMac } from "./platform";
+import { isOverlayOpen } from "./overlays";
 import { copySelection, pasteToTerminal } from "./terminal-registry";
 
 interface KeyAction {
@@ -259,6 +260,8 @@ export function setupKeybindings(): () => void {
     const overrides = useTerminalStore.getState();
     if (overrides.settingsOpen || overrides.commandPaletteOpen) {
       if (e.key === "Escape") {
+        // An open select/menu/popover/dialog closes first; Radix handles that Escape.
+        if (isOverlayOpen()) return;
         if (overrides.settingsOpen) useTerminalStore.getState().toggleSettings();
         if (overrides.commandPaletteOpen)
           useTerminalStore.getState().toggleCommandPalette();

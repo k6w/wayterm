@@ -1,3 +1,4 @@
+import { isOverlayOpen } from "../../lib/overlays";
 import { useEffect, useRef, useState } from "react";
 import { Search, X } from "lucide-react";
 import { useTerminalStore } from "../../stores/terminal";
@@ -45,7 +46,7 @@ function SettingsSurface({ activePanel, onSelectPanel, onClose }: SettingsSurfac
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
       // Open selects, menus and confirm dialogs handle Escape first and mark it handled.
-      if (event.key === "Escape" && !event.defaultPrevented) onClose();
+      if (event.key === "Escape" && !event.defaultPrevented && !isOverlayOpen()) onClose();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);

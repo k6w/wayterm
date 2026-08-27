@@ -36,6 +36,7 @@ import {
 import { useWorkspaceStore } from "../../stores/workspace";
 import { hexToRgba } from "../../lib/color";
 import { vibrancyAlpha } from "../../lib/platform";
+import { isOverlayOpen } from "../../lib/overlays";
 import "@xterm/xterm/css/xterm.css";
 
 interface TerminalPaneProps {
@@ -789,7 +790,7 @@ export default function TerminalPane({
         e.stopPropagation();
         setShowSearch(true);
       }
-      if (e.key === 'Escape' && showSearch) {
+      if (e.key === 'Escape' && showSearch && !isOverlayOpen()) {
         e.preventDefault();
         e.stopPropagation();
         setShowSearch(false);

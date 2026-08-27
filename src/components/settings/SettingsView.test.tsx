@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import SettingsView from "./SettingsView";
 import { useTerminalStore } from "../../stores/terminal";
 import { useSettingsStore } from "../../stores/settings";
+import { setupKeybindings } from "../../lib/keybindings";
 
 beforeEach(() => {
   useTerminalStore.setState(useTerminalStore.getInitialState(), true);
@@ -155,5 +156,22 @@ describe("SettingsView", () => {
     act(() => useTerminalStore.getState().openSettings("nope"));
     expect(screen.getByRole("heading", { level: 2, name: "Keybindings" })).toBeInTheDocument();
     expect(useTerminalStore.getState().settingsPanel).toBeNull();
+  });
+});
+
+describe("SettingsView Escape layering", () => {
+  it("closes an open select first, then settings on the next Escape", async () => {
+    const teardown = setupKeybindings();
+    const user = userEvent.setup();
+    render(<SettingsView />);
+    openSettings();
+    await user.click(screen.getAllByRole("combobox")[0]);
+    expect(screen.getByRole("listbox")).toBeInTheDocument();
+    await user.keyboard("{Escape}");
+    expect(screen.queryByRole("listbox")).not.toBeInTheDocument();
+    expect(useTerminalStore.getState().settingsOpen).toBe(true);
+    await user.keyboard("{Escape}");
+    expect(useTerminalStore.getState().settingsOpen).toBe(false);
+    teardown();
   });
 });
