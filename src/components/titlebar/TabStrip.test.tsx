@@ -34,6 +34,13 @@ describe("TabStrip", () => {
     expect(strip).toHaveClass("overflow-y-hidden", "scrollbar-none");
   });
 
+  it("anchors the active indicator to the bar bottom whatever the control height", () => {
+    const { container } = render(<TabStrip />);
+    const indicator = container.querySelector("span.bg-accent.h-0\\.5")!;
+    expect(indicator.className).toContain("bottom-[calc((var(--nx-control-h)-35px)/2)]");
+    expect(indicator.className).not.toContain("-bottom-[3px]");
+  });
+
   it("renders one tab per terminal tab with the active one selected", () => {
     render(<TabStrip />);
     const list = screen.getByRole("tablist", { name: "Terminal tabs" });
