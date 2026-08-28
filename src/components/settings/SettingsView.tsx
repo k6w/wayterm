@@ -1,5 +1,5 @@
 import { isOverlayOpen } from "../../lib/overlays";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Search, X } from "lucide-react";
 import { useTerminalStore } from "../../stores/terminal";
 import { EmptyState, IconButton, Input, ListRow, ICON_MD, ICON_SM, cn } from "../../ui";
@@ -33,6 +33,19 @@ interface SettingsSurfaceProps {
   activePanel: PanelId;
   onSelectPanel: (panel: PanelId) => void;
   onClose: () => void;
+}
+
+/**
+ * The one content frame every panel renders in: same width, centering and padding, so
+ * all panels share a left edge. The scroller above always reserves its track
+ * (overflow-y-scroll) so panels that do not overflow are not centered 6px wider.
+ */
+function SettingsPanelFrame({ children }: { children: ReactNode }) {
+  return (
+    <div data-settings-frame className="mx-auto max-w-[720px] animate-nx-fade-in px-6 py-6">
+      {children}
+    </div>
+  );
 }
 
 /** Mounted only while settings is open, so the search starts empty on every open. */
@@ -159,10 +172,10 @@ function SettingsSurface({ activePanel, onSelectPanel, onClose }: SettingsSurfac
           <h2 className="text-title font-semibold text-fg">{PANEL_LABEL[activePanel]}</h2>
           <IconButton label="Close settings" shortcut="Escape" icon={<X {...ICON_MD} />} onClick={onClose} />
         </header>
-        <div ref={scrollRef} data-settings-scroll className="min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
-          <div key={activePanel} className="mx-auto max-w-[720px] animate-nx-fade-in px-6 py-6">
+        <div ref={scrollRef} data-settings-scroll className="min-h-0 flex-1 overflow-y-scroll [scrollbar-gutter:stable]">
+          <SettingsPanelFrame key={activePanel}>
             <ActivePanel />
-          </div>
+          </SettingsPanelFrame>
         </div>
       </div>
     </section>

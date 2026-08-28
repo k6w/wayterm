@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import SettingsView from "./SettingsView";
+import { useSshStore } from "../../stores/ssh";
+import { NAV_GROUPS } from "./nav";
 import { useTerminalStore } from "../../stores/terminal";
 import { useSettingsStore } from "../../stores/settings";
 import { setupKeybindings } from "../../lib/keybindings";
@@ -20,6 +22,30 @@ describe("SettingsView scrolling", () => {
     render(<SettingsView />);
     openSettings();
     expect(document.querySelector("[data-settings-scroll]")).toHaveClass("[scrollbar-gutter:stable]");
+  });
+
+  it("always shows the scroll track so short and long panels share one left edge", () => {
+    render(<SettingsView />);
+    openSettings();
+    expect(document.querySelector("[data-settings-scroll]")).toHaveClass("overflow-y-scroll");
+  });
+
+  it("renders every panel inside the one shared content frame", async () => {
+    useSshStore.setState({ keys: [], loadKeys: vi.fn(async () => {}) });
+    const user = userEvent.setup();
+    render(<SettingsView />);
+    openSettings();
+    const classes = new Set<string>();
+    for (const group of NAV_GROUPS) {
+      for (const item of group.items) {
+        await user.click(screen.getByRole("button", { name: item.label }));
+        const frames = document.querySelectorAll("[data-settings-scroll] > [data-settings-frame]");
+        expect(frames, item.label).toHaveLength(1);
+        expect(frames[0].children).toHaveLength(1);
+        classes.add(frames[0].className);
+      }
+    }
+    expect(classes.size).toBe(1);
   });
 
   it("resets the content scroll to the top when switching panels", async () => {
