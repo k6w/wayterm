@@ -345,7 +345,7 @@ export default function AppearancePanel() {
               onValueChange={(v) => update("appearance", { windowOpacity: v })}
             />
           </SettingRow>
-          <SettingRow label="Blur intensity">
+          <SettingRow label="Blur intensity" description="How frosted the translucent window looks">
             <Slider
               aria-label="Blur intensity"
               value={settings.blurIntensity}
@@ -353,7 +353,7 @@ export default function AppearancePanel() {
               max={1}
               step={0.05}
               disabled={!settings.vibrancyEnabled}
-              format={(v) => v.toFixed(2)}
+              format={(v) => `${Math.round(v * 100)}%`}
               onValueChange={(v) => update("appearance", { blurIntensity: v })}
             />
           </SettingRow>

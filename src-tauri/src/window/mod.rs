@@ -186,17 +186,41 @@ fn macos_setup(window: &WebviewWindow) {
     });
 }
 
+/// Strength of the native backdrop blur. The OS exposes no blur radius, so the
+/// 0..1 "Blur intensity" setting picks one of a few materials (macOS) or, at the
+/// bottom, no native blur at all (plain translucency).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum BlurLevel {
+    None,
+    Light,
+    Medium,
+    Heavy,
+}
+
+pub fn blur_level(intensity: f64) -> BlurLevel {
+    if intensity.is_nan() {
+        return BlurLevel::Heavy;
+    }
+    match intensity.clamp(0.0, 1.0) {
+        i if i < 0.05 => BlurLevel::None,
+        i if i < 0.34 => BlurLevel::Light,
+        i if i < 0.67 => BlurLevel::Medium,
+        _ => BlurLevel::Heavy,
+    }
+}
+
 #[tauri::command]
-pub fn set_vibrancy(window: WebviewWindow, enabled: bool, r: u8, g: u8, b: u8, a: u8) {
-    if enabled {
-        apply_effects(&window, r, g, b, a);
+pub fn set_vibrancy(window: WebviewWindow, enabled: bool, r: u8, g: u8, b: u8, a: u8, blur: Option<f64>) {
+    let level = blur_level(blur.unwrap_or(1.0));
+    if enabled && level != BlurLevel::None {
+        apply_effects(&window, r, g, b, a, level);
     } else {
         clear_effects(&window);
     }
 }
 
 #[cfg(target_os = "windows")]
-fn apply_effects(window: &WebviewWindow, r: u8, g: u8, b: u8, a: u8) {
+fn apply_effects(window: &WebviewWindow, r: u8, g: u8, b: u8, a: u8, _level: BlurLevel) {
     let _ = window_vibrancy::apply_acrylic(window, Some((r, g, b, a)));
 }
 
@@ -227,7 +251,7 @@ fn remove_vibrancy_views(content_view: cocoa::base::id) {
 
 #[cfg(target_os = "macos")]
 #[allow(deprecated)]
-fn apply_effects(window: &WebviewWindow, _r: u8, _g: u8, _b: u8, _a: u8) {
+fn apply_effects(window: &WebviewWindow, _r: u8, _g: u8, _b: u8, _a: u8, level: BlurLevel) {
     use cocoa::appkit::{NSColor, NSWindow};
     use cocoa::base::{id, nil};
     use cocoa::foundation::NSRect;
@@ -246,7 +270,12 @@ fn apply_effects(window: &WebviewWindow, _r: u8, _g: u8, _b: u8, _a: u8) {
         let cls = class!(NSVisualEffectView);
         let effect_view: id = msg_send![cls, alloc];
         let effect_view: id = msg_send![effect_view, initWithFrame: bounds];
-        let _: () = msg_send![effect_view, setMaterial: 13_i64];
+        let material: i64 = match level {
+            BlurLevel::Light => 12,  // WindowBackground
+            BlurLevel::Medium => 7,  // Sidebar
+            _ => 13,                 // HUDWindow
+        };
+        let _: () = msg_send![effect_view, setMaterial: material];
         let _: () = msg_send![effect_view, setState: 1_i64];
         let _: () = msg_send![effect_view, setBlendingMode: 0_i64];
         let _: () = msg_send![effect_view, setAutoresizingMask: 18_u64];
@@ -277,7 +306,7 @@ fn clear_effects(window: &WebviewWindow) {
 }
 
 #[cfg(target_os = "linux")]
-fn apply_effects(window: &WebviewWindow, r: u8, g: u8, b: u8, a: u8) {
+fn apply_effects(window: &WebviewWindow, r: u8, g: u8, b: u8, a: u8, _level: BlurLevel) {
     let _ = window_vibrancy::apply_blur(window, Some((r, g, b, a)));
 }
 
@@ -287,7 +316,7 @@ fn clear_effects(window: &WebviewWindow) {
 }
 
 #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
-fn apply_effects(_window: &WebviewWindow, _r: u8, _g: u8, _b: u8, _a: u8) {}
+fn apply_effects(_window: &WebviewWindow, _r: u8, _g: u8, _b: u8, _a: u8, _level: BlurLevel) {}
 
 #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
 fn clear_effects(_window: &WebviewWindow) {}
@@ -295,6 +324,23 @@ fn clear_effects(_window: &WebviewWindow) {}
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn blur_intensity_maps_to_native_levels() {
+        assert_eq!(blur_level(0.0), BlurLevel::None);
+        assert_eq!(blur_level(0.04), BlurLevel::None);
+        assert_eq!(blur_level(0.2), BlurLevel::Light);
+        assert_eq!(blur_level(0.5), BlurLevel::Medium);
+        assert_eq!(blur_level(0.9), BlurLevel::Heavy);
+        assert_eq!(blur_level(1.0), BlurLevel::Heavy);
+    }
+
+    #[test]
+    fn blur_intensity_out_of_range_is_clamped() {
+        assert_eq!(blur_level(-3.0), BlurLevel::None);
+        assert_eq!(blur_level(9.0), BlurLevel::Heavy);
+        assert_eq!(blur_level(f64::NAN), BlurLevel::Heavy);
+    }
 
     #[test]
     fn centres_the_buttons_on_the_36px_title_bar() {

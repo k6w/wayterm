@@ -1,6 +1,7 @@
 import type { AppearanceSettings } from "../types/settings";
 import type { ThemeDefinition } from "../types/theme";
 import { hexToRgba } from "./color";
+import { clamp01 } from "./vibrancy";
 import { vibrancyAlpha } from "./platform";
 
 const HEX6 = /^#[0-9a-fA-F]{6}$/;
@@ -45,7 +46,7 @@ export function applyAppearanceToDom(a: AppearanceSettings, theme: ThemeDefiniti
   else root.removeAttribute("data-vibrancy");
 
   // Backdrop-blur multiplier consumed by translucent surfaces.
-  root.style.setProperty("--blur-intensity", String(a.blurIntensity));
+  root.style.setProperty("--blur-intensity", String(clamp01(a.blurIntensity)));
 
   // Density: comfortable raises controls and rows from 28px to 32px (styles.css).
   if (a.density === "comfortable") root.setAttribute("data-density", "comfortable");

@@ -74,6 +74,15 @@ describe("applyAppearanceToDom", () => {
     expect(document.documentElement.getAttribute("data-vibrancy")).toBe("on");
   });
 
+  it("applies the blur intensity to --blur-intensity, clamped to 0..1", () => {
+    applyAppearanceToDom(appearance({ blurIntensity: 0.35 }), graphite);
+    expect(css("--blur-intensity")).toBe("0.35");
+    applyAppearanceToDom(appearance({ blurIntensity: 4 }), graphite);
+    expect(css("--blur-intensity")).toBe("1");
+    applyAppearanceToDom(appearance({ blurIntensity: -1 }), graphite);
+    expect(css("--blur-intensity")).toBe("0");
+  });
+
   it("sets comfortable density on the root and clears it for compact", () => {
     applyAppearanceToDom(appearance({ density: "comfortable" }), graphite);
     expect(document.documentElement.getAttribute("data-density")).toBe("comfortable");

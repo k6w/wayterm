@@ -137,3 +137,21 @@ describe("AppearancePanel", () => {
     expect(screen.getByRole("button", { name: "Reset" })).toBeDisabled();
   });
 });
+
+describe("AppearancePanel blur intensity", () => {
+  it("shows a percentage, updates live and persists the value", async () => {
+    const user = userEvent.setup();
+    render(<AppearancePanel />);
+    await user.click(screen.getByRole("switch", { name: "Vibrancy" }));
+    const slider = screen.getByRole("slider", { name: "Blur intensity" });
+    expect(slider).toHaveAttribute("aria-valuetext", "100%");
+    slider.focus();
+    await user.keyboard("{ArrowLeft}");
+    await waitFor(() => expect(appearance().blurIntensity).toBeCloseTo(0.95));
+    expect(slider).toHaveAttribute("aria-valuetext", "95%");
+    expect(invoke).toHaveBeenCalledWith(
+      "settings_set",
+      expect.objectContaining({ key: "appearance.blurIntensity" })
+    );
+  });
+});

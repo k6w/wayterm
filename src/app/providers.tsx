@@ -6,21 +6,14 @@ import { useSshStore } from "../stores/ssh";
 import { useTerminalStore } from "../stores/terminal";
 import { useSidebarStore } from "../stores/sidebar";
 import { setupKeybindings } from "../lib/keybindings";
-import { setVibrancy, getLaunchCwd, setWindowTitle } from "../lib/ipc";
+import { syncVibrancy } from "../lib/vibrancy";
+import { getLaunchCwd, setWindowTitle } from "../lib/ipc";
 import { startCwdTracking } from "../lib/cwd-tracker";
 import { createTitleSync, windowTitleFor } from "../lib/window-title";
-import { hexToRgb } from "../lib/color";
 import { initHomePath } from "../lib/format";
 import { getPreferredShell, loadShellInfo } from "../lib/shell-detect";
 import { applyStartupTheme } from "../lib/theme-migration";
 
-
-function syncVibrancy(enabled: boolean, opacity: number) {
-  const theme = useThemeStore.getState().active;
-  const [r, g, b] = hexToRgb(theme.ui.bgPrimary);
-  const a = Math.round(opacity * 255);
-  setVibrancy(enabled, r, g, b, a).catch(() => {});
-}
 
 let startupDone = false;
 
@@ -28,6 +21,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
   const theme = useThemeStore((s) => s.active);
   const vibrancyEnabled = useSettingsStore((s) => s.settings.appearance.vibrancyEnabled);
   const windowOpacity = useSettingsStore((s) => s.settings.appearance.windowOpacity);
+  const blurIntensity = useSettingsStore((s) => s.settings.appearance.blurIntensity);
 
   
   useEffect(() => {
@@ -48,9 +42,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       // migrating users on a removed built-in to Graphite (one-time notice).
       await applyStartupTheme();
       useSidebarStore.getState().hydrate(useSettingsStore.getState().settings.appearance);
-      const { vibrancyEnabled: v, windowOpacity: o } =
-        useSettingsStore.getState().settings.appearance;
-      syncVibrancy(v, o);
+      syncVibrancy(useSettingsStore.getState().settings.appearance);
 
       
       const startupBehavior = useSettingsStore.getState().settings.general.startupBehavior;
@@ -94,9 +86,9 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
   const settingsLoaded = useSettingsStore((s) => s.loaded);
   useEffect(() => {
     if (settingsLoaded) {
-      syncVibrancy(vibrancyEnabled, windowOpacity);
+      syncVibrancy({ vibrancyEnabled, windowOpacity, blurIntensity });
     }
-  }, [settingsLoaded, vibrancyEnabled, windowOpacity, theme]);
+  }, [settingsLoaded, vibrancyEnabled, windowOpacity, blurIntensity, theme]);
 
   useEffect(() => {
     return setupKeybindings();
