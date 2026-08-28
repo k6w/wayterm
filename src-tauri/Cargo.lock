@@ -2805,6 +2805,7 @@ dependencies = [
  "async-trait",
  "cocoa",
  "dirs 6.0.0",
+ "libc",
  "objc",
  "parking_lot",
  "portable-pty",

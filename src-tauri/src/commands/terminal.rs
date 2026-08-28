@@ -62,6 +62,15 @@ pub async fn terminal_resize(
     pty_manager.resize(&session_id, rows, cols)
 }
 
+/// Current directory of the session's foreground process; `None` if unknown.
+#[tauri::command]
+pub async fn terminal_cwd(
+    session_id: String,
+    pty_manager: State<'_, PtyManager>,
+) -> Result<Option<String>, String> {
+    Ok(pty_manager.cwd(&session_id))
+}
+
 #[tauri::command]
 pub async fn terminal_kill(
     session_id: String,

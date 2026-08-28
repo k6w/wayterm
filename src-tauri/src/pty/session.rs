@@ -93,6 +93,18 @@ impl PtySession {
             .map_err(|e| e.to_string())
     }
 
+    /// Working directory of the PTY's foreground process (falling back to the
+    /// shell itself), independent of which shell is running.
+    pub fn cwd(&self) -> Option<String> {
+        let foreground = self.master.lock().process_group_leader();
+        foreground
+            .and_then(super::cwd::cwd_of_pid)
+            .or_else(|| {
+                let pid = self.child.lock().process_id()?;
+                super::cwd::cwd_of_pid(pid as i32)
+            })
+    }
+
     pub fn kill(&self) -> Result<(), String> {
         self.child.lock().kill().map_err(|e| e.to_string())
     }
@@ -129,5 +141,19 @@ mod tests {
         cmd.env_remove("TERM");
         apply_env(&mut cmd, &[], "1");
         assert_eq!(get(&cmd, "TERM").as_deref(), Some("xterm-256color"));
+    }
+
+    #[cfg(unix)]
+    #[test]
+    fn session_cwd_follows_foreground_process() {
+        let dir = std::env::temp_dir().canonicalize().unwrap();
+        let (session, _reader) =
+            PtySession::spawn("/bin/sh", &[], dir.to_str().unwrap(), &[], 24, 80).unwrap();
+        let got = (0..20).find_map(|_| {
+            std::thread::sleep(std::time::Duration::from_millis(50));
+            session.cwd()
+        });
+        let _ = session.kill();
+        assert_eq!(std::path::Path::new(&got.unwrap()).canonicalize().unwrap(), dir);
     }
 }

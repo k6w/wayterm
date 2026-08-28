@@ -74,6 +74,10 @@ impl PtyManager {
         session.resize(rows, cols)
     }
 
+    pub fn cwd(&self, session_id: &str) -> Option<String> {
+        self.sessions.lock().get(session_id)?.cwd()
+    }
+
     pub fn kill(&self, session_id: &str) -> Result<(), String> {
         let mut sessions = self.sessions.lock();
         if let Some(session) = sessions.remove(session_id) {

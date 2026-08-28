@@ -32,6 +32,11 @@ export async function terminalKill(sessionId: string): Promise<void> {
   return invoke("terminal_kill", { sessionId });
 }
 
+/** Cwd of the session's foreground process (shell-independent), or null if unknown. */
+export async function terminalCwd(sessionId: string): Promise<string | null> {
+  return invoke("terminal_cwd", { sessionId });
+}
+
 export async function setVibrancy(
   enabled: boolean,
   r = 0,

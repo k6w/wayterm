@@ -7,6 +7,7 @@ import { useTerminalStore } from "../stores/terminal";
 import { useSidebarStore } from "../stores/sidebar";
 import { setupKeybindings } from "../lib/keybindings";
 import { setVibrancy, getLaunchCwd, setWindowTitle } from "../lib/ipc";
+import { startCwdTracking } from "../lib/cwd-tracker";
 import { createTitleSync, windowTitleFor } from "../lib/window-title";
 import { hexToRgb } from "../lib/color";
 import { initHomePath } from "../lib/format";
@@ -107,6 +108,9 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
     const sync = createTitleSync(setWindowTitle);
     return useTerminalStore.subscribe((state) => sync(windowTitleFor(state.tabs, state.activeTabId)));
   }, []);
+
+  // Shell-independent cwd for the active pane (zsh has no PROMPT_COMMAND)
+  useEffect(() => startCwdTracking(), []);
 
   // Workspace auto-save safety net (60s interval)
   useEffect(() => {

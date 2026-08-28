@@ -132,6 +132,7 @@ pub fn run() {
             commands::terminal::terminal_write,
             commands::terminal::terminal_resize,
             commands::terminal::terminal_kill,
+            commands::terminal::terminal_cwd,
             commands::terminal::terminal_history_search,
             commands::terminal::terminal_history_recent,
             commands::terminal::terminal_history_add,
