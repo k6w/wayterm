@@ -3,6 +3,29 @@ use portable_pty::{native_pty_system, CommandBuilder, MasterPty, PtySize};
 use std::io::{Read, Write};
 use std::sync::Arc;
 
+/// Terminal.app variables that make macOS zsh start its session save/restore
+/// ("Restored session...") and touch ~/.zsh_sessions.
+const APPLE_TERMINAL_VARS: &[&str] = &["TERM_SESSION_ID"];
+
+/// Builds the child environment: caller vars, our own terminal identity (never the
+/// launcher's Apple_Terminal one) and a default TERM.
+fn apply_env(cmd: &mut CommandBuilder, env: &[(String, String)], version: &str) {
+    for (key, value) in env {
+        cmd.env(key, value);
+    }
+    if cmd.get_env("TERM").is_none() {
+        cmd.env("TERM", "xterm-256color");
+    }
+    for key in APPLE_TERMINAL_VARS {
+        cmd.env_remove(key);
+    }
+    if cmd.get_env("__CFBundleIdentifier").is_some_and(|v| v == "com.apple.Terminal") {
+        cmd.env_remove("__CFBundleIdentifier");
+    }
+    cmd.env("TERM_PROGRAM", "nexterm");
+    cmd.env("TERM_PROGRAM_VERSION", version);
+}
+
 pub struct PtySession {
     master: Arc<Mutex<Box<dyn MasterPty + Send>>>,
     child: Arc<Mutex<Box<dyn portable_pty::Child + Send + Sync>>>,
@@ -35,18 +58,7 @@ impl PtySession {
         cmd.cwd(cwd);
         
         
-        let mut has_term = false;
-        for (key, value) in env {
-            cmd.env(key, value);
-            if key == "TERM" {
-                has_term = true;
-            }
-        }
-        
-        
-        if !has_term {
-            cmd.env("TERM", "xterm-256color");
-        }
+        apply_env(&mut cmd, env, env!("CARGO_PKG_VERSION"));
 
         let child = pair.slave.spawn_command(cmd).map_err(|e| e.to_string())?;
         let reader = pair.master.try_clone_reader().map_err(|e| e.to_string())?;
@@ -83,5 +95,39 @@ impl PtySession {
 
     pub fn kill(&self) -> Result<(), String> {
         self.child.lock().kill().map_err(|e| e.to_string())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn get(cmd: &CommandBuilder, key: &str) -> Option<String> {
+        cmd.get_env(key).map(|v| v.to_string_lossy().into_owned())
+    }
+
+    #[test]
+    fn replaces_apple_terminal_identity() {
+        let mut cmd = CommandBuilder::new("/bin/zsh");
+        cmd.env("TERM_PROGRAM", "Apple_Terminal");
+        cmd.env("TERM_PROGRAM_VERSION", "455");
+        cmd.env("TERM_SESSION_ID", "ABC-123");
+        cmd.env("__CFBundleIdentifier", "com.apple.Terminal");
+        apply_env(&mut cmd, &[], "1.2.3");
+        assert_eq!(get(&cmd, "TERM_PROGRAM").as_deref(), Some("nexterm"));
+        assert_eq!(get(&cmd, "TERM_PROGRAM_VERSION").as_deref(), Some("1.2.3"));
+        assert_eq!(get(&cmd, "TERM_SESSION_ID"), None);
+        assert_eq!(get(&cmd, "__CFBundleIdentifier"), None);
+    }
+
+    #[test]
+    fn keeps_explicit_term_and_defaults_otherwise() {
+        let mut cmd = CommandBuilder::new("/bin/zsh");
+        apply_env(&mut cmd, &[("TERM".into(), "screen".into())], "1");
+        assert_eq!(get(&cmd, "TERM").as_deref(), Some("screen"));
+        let mut cmd = CommandBuilder::new("/bin/zsh");
+        cmd.env_remove("TERM");
+        apply_env(&mut cmd, &[], "1");
+        assert_eq!(get(&cmd, "TERM").as_deref(), Some("xterm-256color"));
     }
 }
