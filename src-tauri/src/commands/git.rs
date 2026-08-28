@@ -219,7 +219,7 @@ pub async fn git_get_status(path: String, connection_id: Option<String>, pool: S
         return git_get_status_ssh(&pool, &conn_id, &path).await;
     }
 
-    if !Path::new(&path).join(".git").exists() {
+    if !is_work_tree(&path)? {
         return Err("Not a git repository".to_string());
     }
 
@@ -545,20 +545,23 @@ pub async fn git_get_diff(path: String, file: Option<String>, staged: Option<boo
     collect_diff(&path, file.as_deref(), staged.unwrap_or(false))
 }
 
+/// Whether `path` is inside a git work tree. `Err` means git itself could not run
+/// (not installed, folder missing); a plain folder is `Ok(false)`.
+fn is_work_tree(path: &str) -> Result<bool, String> {
+    let output = configure_silent_command(Command::new("git").args(["rev-parse", "--is-inside-work-tree"]).current_dir(path))
+        .output()
+        .map_err(|e| format!("Failed to execute git: {}", e))?;
+    Ok(output.status.success() && String::from_utf8_lossy(&output.stdout).trim() == "true")
+}
+
+/// `git init` in `path`. The folder is only ever the working directory, never an argument.
+fn init_repo(path: &str) -> Result<(), String> {
+    run_git(path, &["init"], &[]).map(|_| ()).map_err(|e| format!("git init failed: {}", e))
+}
+
 #[tauri::command]
 pub async fn git_init(path: String) -> Result<(), String> {
-    let output = configure_silent_command(Command::new("git")
-        .args(["init"])
-        .current_dir(&path))
-        .output()
-        .map_err(|e| format!("Failed to run git init: {}", e))?;
-
-    if !output.status.success() {
-        let error = String::from_utf8_lossy(&output.stderr);
-        return Err(format!("git init failed: {}", error.trim()));
-    }
-
-    Ok(())
+    init_repo(&path)
 }
 
 #[tauri::command]
@@ -900,6 +903,46 @@ mod tests {
         repo.git(&["add", "a.txt"]);
         repo.git(&["commit", "-q", "-m", "init"]);
         repo
+    }
+
+    fn plain_dir(name: &str) -> std::path::PathBuf {
+        let dir = std::env::temp_dir().join(format!("nexterm_git_{}_{}", name, std::process::id()));
+        let _ = std::fs::remove_dir_all(&dir);
+        std::fs::create_dir_all(&dir).unwrap();
+        dir
+    }
+
+    #[test]
+    fn init_repo_creates_a_repository_in_a_plain_folder() {
+        let dir = plain_dir("init");
+        assert_eq!(is_work_tree(dir.to_str().unwrap()), Ok(false));
+        init_repo(dir.to_str().unwrap()).unwrap();
+        assert!(dir.join(".git").exists());
+        assert_eq!(is_work_tree(dir.to_str().unwrap()), Ok(true));
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn init_repo_handles_paths_that_look_like_flags() {
+        let base = plain_dir("flagpath");
+        let odd = base.join("--bare");
+        std::fs::create_dir_all(&odd).unwrap();
+        init_repo(odd.to_str().unwrap()).unwrap();
+        assert!(odd.join(".git").exists());
+        assert!(!odd.join("HEAD").exists());
+        let _ = std::fs::remove_dir_all(&base);
+    }
+
+    #[test]
+    fn init_repo_rejects_a_missing_folder() {
+        assert!(init_repo("/definitely/not/here/nexterm").is_err());
+    }
+
+    #[test]
+    fn subfolders_of_a_repo_count_as_work_tree() {
+        let repo = TempRepo::new("subdir");
+        std::fs::create_dir_all(repo.0.join("src/deep")).unwrap();
+        assert_eq!(is_work_tree(repo.0.join("src/deep").to_str().unwrap()), Ok(true));
     }
 
     #[test]
