@@ -53,3 +53,15 @@ export function changeGroups(status: GitStatus): { staged: ChangeRow[]; unstaged
 export function isRepoPath(cwd: string): boolean {
   return cwd.length > 0 && cwd !== "~";
 }
+
+/** The backend's message for a folder that is not inside a work tree. */
+export const NOT_A_REPO = "Not a git repository";
+
+/** Shorten `text` to at most `max` characters, keeping both ends ("/Users/me/…/name"). */
+export function truncateMiddle(text: string, max = 36): string {
+  if (text.length <= max) return text;
+  const keep = max - 1;
+  const tail = Math.ceil(keep * 0.6);
+  const head = keep - tail;
+  return `${text.slice(0, head)}…${text.slice(text.length - tail)}`;
+}

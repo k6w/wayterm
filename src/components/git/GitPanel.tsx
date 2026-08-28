@@ -10,6 +10,7 @@ import {
   IconButton,
   SegmentedControl,
   Spinner,
+  Tooltip,
   Toolbar,
   ToolbarButton,
   ToolbarSpacer,
@@ -18,7 +19,7 @@ import { PanelContent, PanelToolbar } from "../sidebar/PanelChrome";
 import DiffViewer from "./DiffViewer";
 import GitChanges from "./GitChanges";
 import { GitBranches, GitCommits, GitStashes } from "./GitHistory";
-import { isRepoPath } from "./git-changes";
+import { isRepoPath, NOT_A_REPO, truncateMiddle } from "./git-changes";
 import type { GitDiff } from "../../types/git";
 
 type GitView = "status" | "branches" | "commits" | "stash";
@@ -102,8 +103,8 @@ export function GitPanel() {
       <PanelContent>
         <EmptyState
           icon={<FolderSearch {...ICON_MD} />}
-          title="No folder to inspect"
-          description="Change to a directory in the active terminal to see its Git status here."
+          title="No folder selected"
+          description="Open a terminal and cd into a folder to see its Git status here."
         />
       </PanelContent>
     );
@@ -111,16 +112,47 @@ export function GitPanel() {
 
   // A local folder without .git: offer to initialize one. (Over SSH, git's own
   // error shows in the banner instead.)
-  if (error === "Not a git repository" && !isSSH) {
+  if (error === NOT_A_REPO && !isSSH) {
     return (
       <PanelContent>
         <EmptyState
           icon={<FolderGit2 {...ICON_MD} />}
           title="Not a Git repository"
-          description="Initialize one to track changes, view history and manage branches from here."
+          description={
+            <>
+              <Tooltip content={cwd}>
+                <span
+                  data-testid="git-folder-path"
+                  tabIndex={0}
+                  className="mb-2 block rounded-sm font-mono text-caption text-fg-secondary"
+                >
+                  {truncateMiddle(cwd)}
+                </span>
+              </Tooltip>
+              Initialize one to track changes, view history and manage branches from here.
+            </>
+          }
           action={
             <Button size="sm" variant="primary" onClick={() => void initRepo(cwd)}>
               Initialize repository
+            </Button>
+          }
+        />
+      </PanelContent>
+    );
+  }
+
+  // Git could not run or failed before we had any status: stay calm and offer a retry.
+  if (error && error !== NOT_A_REPO && !status && !isLoading) {
+    return (
+      <PanelContent>
+        <EmptyState
+          icon={<FolderSearch {...ICON_MD} />}
+          title="Couldn't read Git status"
+          description={`Git may not be installed, or this folder isn't accessible. ${error}`}
+          action={
+            <Button size="sm" variant="secondary" onClick={() => void loadRepo(cwd)}>
+              Retry
             </Button>
           }
         />

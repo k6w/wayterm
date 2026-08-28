@@ -103,7 +103,16 @@ export default function GitChanges({
       </Toolbar>
 
       {staged.length === 0 && unstaged.length === 0 ? (
-        <EmptyState icon={<Check {...ICON_MD} />} title="No changes" description="Your working tree is clean." />
+        <EmptyState
+          icon={<Check {...ICON_MD} />}
+          title="Working tree clean"
+          description={
+            <Badge data-testid="git-clean-branch" tone="neutral" size="md">
+              <GitBranch {...ICON_SM} aria-hidden />
+              {branch || "main"}
+            </Badge>
+          }
+        />
       ) : (
         <>
           {staged.length > 0 && (

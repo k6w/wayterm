@@ -116,17 +116,62 @@ describe("GitPanel", () => {
     expect(actions.checkout).toHaveBeenCalledWith("/repo", "feature");
   });
 
-  it("shows top-aligned empty states for a missing folder and a non-repo", async () => {
-    const user = userEvent.setup();
-    setPane("~");
-    const { unmount } = render(<GitPanel />);
-    expect(screen.getByText("No folder to inspect").closest("div")).not.toHaveClass("h-full");
-    unmount();
-
-    setPane("/tmp");
-    useGitStore.setState({ error: "Not a git repository", status: null, fetchStatus: vi.fn(async () => false) });
+  it("says No folder selected, calmly, when the pane has no known folder", () => {
+    setPane("");
     render(<GitPanel />);
-    await user.click(screen.getByRole("button", { name: "Initialize repository" }));
-    expect(actions.initRepo).toHaveBeenCalledWith("/tmp");
+    const title = screen.getByText("No folder selected");
+    expect(title.closest("div")).not.toHaveClass("h-full");
+    expect(screen.getByText(/open a terminal|change to a folder|cd into/i)).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.queryByText(/error|fail/i)).not.toBeInTheDocument();
+  });
+
+  describe("outside a repository", () => {
+    beforeEach(() => {
+      setPane("/Users/me/projects/some/long/nested/folder/name");
+      useGitStore.setState({ error: "Not a git repository", status: null, fetchStatus: vi.fn(async () => false) });
+    });
+
+    it("explains it, shows the middle-truncated folder with the full path on hover, and offers git init", async () => {
+      const user = userEvent.setup();
+      render(<GitPanel />);
+      expect(screen.getByText("Not a Git repository")).toBeInTheDocument();
+      const path = screen.getByTestId("git-folder-path");
+      expect(path).toHaveClass("font-mono");
+      expect(path.textContent).toContain("…");
+      expect(path.textContent!.length).toBeLessThan("/Users/me/projects/some/long/nested/folder/name".length);
+      expect(path.textContent!.endsWith("name")).toBe(true);
+      await user.hover(path);
+      expect((await screen.findAllByText("/Users/me/projects/some/long/nested/folder/name")).length).toBeGreaterThan(0);
+      await user.click(screen.getByRole("button", { name: "Initialize repository" }));
+      expect(actions.initRepo).toHaveBeenCalledWith("/Users/me/projects/some/long/nested/folder/name");
+    });
+
+    it("shows a short path whole", () => {
+      setPane("/tmp/x");
+      render(<GitPanel />);
+      expect(screen.getByTestId("git-folder-path")).toHaveTextContent("/tmp/x");
+    });
+  });
+
+  it("shows a calm message with Retry, not a red alert, when git cannot run", async () => {
+    const user = userEvent.setup();
+    const fetchStatus = vi.fn(async () => false);
+    useGitStore.setState({ status: null, error: "Failed to execute git: No such file or directory", fetchStatus });
+    render(<GitPanel />);
+    expect(screen.getByText("Couldn't read Git status")).toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    fetchStatus.mockClear();
+    await user.click(screen.getByRole("button", { name: "Retry" }));
+    expect(fetchStatus).toHaveBeenCalledWith("/repo", undefined);
+  });
+
+  it("shows Working tree clean with the branch badge when nothing changed", () => {
+    useGitStore.setState({
+      status: { ...STATUS, staged: [], modified: [], deleted: [], stashes: 0 },
+    });
+    render(<GitPanel />);
+    expect(screen.getByText("Working tree clean")).toBeInTheDocument();
+    expect(screen.getByTestId("git-clean-branch")).toHaveTextContent("main");
   });
 });
