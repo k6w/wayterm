@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { Terminal } from "lucide-react";
 import type { PaletteAction } from "./actions";
-import { displayOrder, filterActions, filterThemes, groupActions, wrapIndex } from "./filter";
+import { displayOrder, filterActions, filterThemes, groupActions, matchRanges, wrapIndex } from "./filter";
 
 function action(id: string, label: string, category: string): PaletteAction {
   return { id, label, category, icon: Terminal, handler: () => {} };
@@ -67,5 +67,20 @@ describe("wrapIndex", () => {
   it("returns 0 for an empty list", () => {
     expect(wrapIndex(0, 1, 0)).toBe(0);
     expect(wrapIndex(3, -1, 0)).toBe(0);
+  });
+});
+
+describe("matchRanges", () => {
+  it("returns the case-insensitive substring range", () => {
+    expect(matchRanges("Toggle Scratchpad", "SCRATCH")).toEqual([[7, 14]]);
+  });
+
+  it("returns nothing for a blank query or a miss", () => {
+    expect(matchRanges("New Tab", "  ")).toEqual([]);
+    expect(matchRanges("New Tab", "zzz")).toEqual([]);
+  });
+
+  it("trims the query before matching", () => {
+    expect(matchRanges("New Tab", " tab ")).toEqual([[4, 7]]);
   });
 });

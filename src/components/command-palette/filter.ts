@@ -51,3 +51,18 @@ export function wrapIndex(index: number, delta: number, length: number): number 
   if (length <= 0) return 0;
   return (((index + delta) % length) + length) % length;
 }
+
+/** Half-open [start, end) character range inside a label. */
+export type MatchRange = readonly [start: number, end: number];
+
+/**
+ * Where the query matched inside `text`: the same case-insensitive substring
+ * rule the filters use, so every filtered title has its match highlighted.
+ * Returns no ranges for a blank query or when only the category matched.
+ */
+export function matchRanges(text: string, query: string): MatchRange[] {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return [];
+  const start = text.toLowerCase().indexOf(needle);
+  return start < 0 ? [] : [[start, start + needle.length]];
+}
