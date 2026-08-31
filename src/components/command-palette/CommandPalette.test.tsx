@@ -6,6 +6,7 @@ import CommandPalette from "./CommandPalette";
 import { useTerminalStore } from "../../stores/terminal";
 import { useSettingsStore } from "../../stores/settings";
 import { useThemeStore } from "../../stores/theme";
+import { clearRecents } from "./recents";
 
 vi.mock("../../lib/terminal-registry", () => ({
   clearBuffer: vi.fn(),
@@ -17,6 +18,7 @@ vi.mock("../../lib/terminal-registry", () => ({
 }));
 
 beforeEach(() => {
+  clearRecents();
   useThemeStore.setState(useThemeStore.getInitialState(), true);
   useSettingsStore.setState(useSettingsStore.getInitialState(), true);
   useTerminalStore.setState({ commandPaletteOpen: true, activePaneId: "p1" });
@@ -101,6 +103,62 @@ describe("CommandPalette", () => {
     window.removeEventListener("nexterm:open-serial", opened);
   });
 
+  it("highlights the matched characters of a title", async () => {
+    const { user, input } = await openPalette();
+    await user.type(input, "scratch");
+    const marks = document.querySelectorAll("[data-match]");
+    expect(marks.length).toBeGreaterThan(0);
+    for (const mark of marks) {
+      expect(mark.textContent?.toLowerCase()).toBe("scratch");
+      expect(mark).toHaveClass("font-semibold", "text-fg-strong");
+    }
+  });
+
+  it("marks the selected row with aria-selected, data-selected and an accent bar", async () => {
+    const { user } = await openPalette();
+    const options = screen.getAllByRole("option");
+    expect(options[0]).toHaveAttribute("data-selected", "true");
+    expect(options[0].querySelector("[data-accent-bar]")).not.toBeNull();
+    await user.keyboard("{ArrowDown}");
+    expect(options[0]).not.toHaveAttribute("data-selected");
+    expect(options[0].querySelector("[data-accent-bar]")).toBeNull();
+    expect(options[1]).toHaveAttribute("aria-selected", "true");
+    expect(options[1].querySelector("[data-accent-bar]")).not.toBeNull();
+  });
+
+  it("shows footer hints, and a Back hint only in the theme view", async () => {
+    const { user, input } = await openPalette();
+    const hints = screen.getByTestId("palette-hints");
+    expect(hints).toHaveTextContent("Navigate");
+    expect(hints).toHaveTextContent("Run");
+    expect(hints).toHaveTextContent("Close");
+    expect(hints).not.toHaveTextContent("Back");
+    await user.type(input, "change theme");
+    await user.keyboard("{Enter}");
+    expect(screen.getByTestId("palette-hints")).toHaveTextContent("Back");
+  });
+
+  it("lists recently run commands under Suggested when the query is empty", async () => {
+    const opened = vi.fn();
+    window.addEventListener("nexterm:open-serial", opened);
+    const first = await openPalette();
+    expect(screen.queryByRole("group", { name: "Suggested" })).not.toBeInTheDocument();
+    await first.user.type(first.input, "serial");
+    await first.user.keyboard("{Enter}");
+    await waitFor(() => expect(opened).toHaveBeenCalledTimes(1));
+    window.removeEventListener("nexterm:open-serial", opened);
+
+    act(() => useTerminalStore.setState({ commandPaletteOpen: false }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+    act(() => useTerminalStore.setState({ commandPaletteOpen: true }));
+    const suggested = await screen.findByRole("group", { name: "Suggested" });
+    const options = within(suggested).getAllByRole("option");
+    expect(options).toHaveLength(1);
+    expect(options[0]).toHaveTextContent(/New Serial/);
+    // The first listed option is the suggestion, and it is not repeated below.
+    expect(screen.getAllByRole("option", { name: /New Serial/ })).toHaveLength(1);
+  });
+
   it("closes on Escape", async () => {
     const { user } = await openPalette();
     await user.keyboard("{Escape}");
@@ -155,9 +213,23 @@ describe("CommandPalette", () => {
       expect(useThemeStore.getState().previewThemeId).toBeNull();
     });
 
+    it("shows a four-colour swatch for each theme instead of an icon", async () => {
+      await openThemes();
+      const options = screen.getAllByRole("option");
+      for (const option of options) {
+        expect(option.querySelectorAll("svg rect")).toHaveLength(4);
+      }
+    });
+
+    it("previews a theme on hover", async () => {
+      const { user } = await openThemes();
+      await user.hover(screen.getByRole("option", { name: /Frost/ }));
+      expect(useThemeStore.getState().previewThemeId).toBe("frost");
+    });
+
     it("marks the current theme", async () => {
       await openThemes();
-      expect(screen.getByRole("option", { name: /Graphite \(current\)/ })).toBeInTheDocument();
+      expect(screen.getByRole("option", { name: /Graphite.*\(current\)/ })).toBeInTheDocument();
     });
   });
 

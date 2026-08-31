@@ -1,16 +1,41 @@
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { ArrowLeft, Check, ChevronRight, Moon, Search, SearchX, Sun } from "lucide-react";
-import { Dialog, DialogContent, EmptyState, IconButton, Input, ICON_MD, ICON_SM } from "../../ui";
+import { ArrowLeft, Check, ChevronRight, Search, SquareTerminal } from "lucide-react";
+import { Dialog, DialogContent, Input, ICON_MD, ICON_SM } from "../../ui";
+import type { ThemeDefinition } from "../../types/theme";
 import { useTerminalStore } from "../../stores/terminal";
 import { useThemeStore } from "../../stores/theme";
 import { historyRecent } from "../../lib/ipc";
 import { selectTheme } from "../../lib/theme-selection";
 import { buildPaletteActions, historyActions, type PaletteAction } from "./actions";
-import { displayOrder, filterActions, filterThemes, groupActions, wrapIndex } from "./filter";
+import { displayOrder, filterActions, filterThemes, groupActions, matchRanges, wrapIndex } from "./filter";
+import { getRecents, recordRecent } from "./recents";
 import { restoreFocusAfterPalette } from "./restore-focus";
-import { PaletteList, type PaletteSection } from "./PaletteList";
+import { PaletteList, type PaletteItem, type PaletteSection } from "./PaletteList";
 
 type View = "commands" | "themes";
+
+/** Four-colour preview of a theme: canvas, accent, text and a terminal green. */
+function ThemeSwatch({ theme }: { theme: ThemeDefinition }) {
+  const colors = [theme.chrome.canvas, theme.chrome.accent, theme.terminal.foreground, theme.terminal.ansi[2]];
+  return (
+    <svg width={20} height={20} viewBox="0 0 20 20" aria-hidden className="overflow-hidden rounded-sm">
+      {colors.map((fill, i) => (
+        <rect key={i} x={(i % 2) * 10} y={Math.floor(i / 2) * 10} width={10} height={10} fill={fill} />
+      ))}
+    </svg>
+  );
+}
+
+function FooterHint({ keys, label }: { keys: string; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5">
+      <kbd className="inline-flex h-4 min-w-4 items-center justify-center rounded-sm border border-border bg-kbd px-1 font-sans text-caption leading-none text-kbd-fg">
+        {keys}
+      </kbd>
+      <span>{label}</span>
+    </span>
+  );
+}
 
 function closePalette(): void {
   const { commandPaletteOpen, toggleCommandPalette } = useTerminalStore.getState();
@@ -74,11 +99,22 @@ function PaletteBody() {
     []
   );
 
-  const commandGroups = useMemo(
-    () => groupActions(filterActions([...actions, ...history], query)),
-    [actions, history, query]
+  const [recentIds] = useState(getRecents);
+  const suggested = useMemo(
+    () =>
+      query.trim()
+        ? []
+        : recentIds.flatMap((id) => {
+            const found = actions.find((action) => action.id === id);
+            return found ? [found] : [];
+          }),
+    [actions, recentIds, query]
   );
-  const commandItems = useMemo(() => displayOrder(commandGroups), [commandGroups]);
+  const commandGroups = useMemo(() => {
+    const skip = new Set(suggested.map((action) => action.id));
+    return groupActions(filterActions([...actions, ...history], query).filter((action) => !skip.has(action.id)));
+  }, [actions, history, query, suggested]);
+  const commandItems = useMemo(() => [...suggested, ...displayOrder(commandGroups)], [suggested, commandGroups]);
   const themeItems = useMemo(() => filterThemes(Object.values(themes), query), [themes, query]);
 
   const count = view === "themes" ? themeItems.length : commandItems.length;
@@ -120,6 +156,7 @@ function PaletteBody() {
       showThemes();
       return;
     }
+    recordRecent(action.id);
     closePalette();
     requestAnimationFrame(() => action.handler());
   };
@@ -154,43 +191,49 @@ function PaletteBody() {
     }
   };
 
+  const commandItem = (action: PaletteAction, keyPrefix = "", showCategory = false): PaletteItem => {
+    const Icon = action.icon;
+    return {
+      key: keyPrefix + action.id,
+      label: action.label,
+      ranges: matchRanges(action.label, query),
+      icon: <Icon {...ICON_MD} />,
+      subtitle: showCategory ? action.category : undefined,
+      shortcut: action.subView ? undefined : action.keys,
+      trailing: action.subView ? <ChevronRight {...ICON_SM} aria-hidden className="shrink-0 text-fg-muted" /> : undefined,
+    };
+  };
+
   const sections: PaletteSection[] =
     view === "themes"
       ? [
           {
             heading: "Themes",
-            items: themeItems.map((theme) => {
-              const Icon = theme.variant === "light" ? Sun : Moon;
-              return {
-                key: theme.id,
-                label: theme.name,
-                icon: <Icon {...ICON_MD} />,
-                trailing:
-                  theme.id === activeThemeId ? (
-                    <span className="inline-flex shrink-0 text-accent-fg">
-                      <Check {...ICON_SM} aria-hidden />
-                      <span className="sr-only">(current)</span>
-                    </span>
-                  ) : undefined,
-              };
-            }),
+            items: themeItems.map((theme) => ({
+              key: theme.id,
+              label: theme.name,
+              ranges: matchRanges(theme.name, query),
+              icon: <ThemeSwatch theme={theme} />,
+              subtitle: theme.variant === "light" ? "Light" : "Dark",
+              trailing:
+                theme.id === activeThemeId ? (
+                  <span className="inline-flex shrink-0 text-accent-fg">
+                    <Check {...ICON_SM} aria-hidden />
+                    <span className="sr-only">(current)</span>
+                  </span>
+                ) : undefined,
+            })),
           },
         ]
-      : commandGroups.map((group) => ({
-          heading: group.category,
-          items: group.actions.map((action) => {
-            const Icon = action.icon;
-            return {
-              key: action.id,
-              label: action.label,
-              icon: <Icon {...ICON_MD} />,
-              shortcut: action.subView ? undefined : action.keys,
-              trailing: action.subView ? (
-                <ChevronRight {...ICON_SM} aria-hidden className="shrink-0 text-fg-muted" />
-              ) : undefined,
-            };
-          }),
-        }));
+      : [
+          ...(suggested.length > 0
+            ? [{ heading: "Suggested", items: suggested.map((action) => commandItem(action, "suggested-", true)) }]
+            : []),
+          ...commandGroups.map((group) => ({
+            heading: group.category,
+            items: group.actions.map((action) => commandItem(action)),
+          })),
+        ];
 
   const trimmed = query.trim();
   const listLabel = view === "themes" ? "Themes" : "Commands";
@@ -199,7 +242,8 @@ function PaletteBody() {
     <DialogContent
       title="Command palette"
       hideHeader
-      placement="top"
+      placement="palette"
+      surface="glass"
       flush
       size="lg"
       onOpenAutoFocus={(event) => {
@@ -211,27 +255,36 @@ function PaletteBody() {
         restoreFocusAfterPalette(previousFocus);
       }}
     >
-      <div className="flex h-11 shrink-0 items-center gap-2 border-b border-border px-3">
-        {view === "themes" ? (
-          <IconButton label="Back to commands" icon={<ArrowLeft {...ICON_MD} />} onClick={showCommands} />
-        ) : (
-          <Search {...ICON_MD} aria-hidden className="shrink-0 text-fg-muted" />
-        )}
+      <div className="flex h-13 shrink-0 items-center gap-3 border-b border-border px-4">
+        <Search {...ICON_MD} aria-hidden className="shrink-0 text-fg-muted" />
         <Input
           ref={inputRef}
           variant="plain"
+          size="lg"
           role="combobox"
           aria-label={view === "themes" ? "Search themes" : "Search commands"}
           aria-expanded={count > 0}
           aria-controls={listId}
           aria-autocomplete="list"
           aria-activedescendant={activeId}
-          code
-          placeholder={view === "themes" ? "Search themes..." : "Type a command..."}
+          plainText
+          placeholder={view === "themes" ? "Search themes…" : "Search commands, connections, themes…"}
           value={query}
           onChange={(event) => changeQuery(event.target.value)}
           onKeyDown={onKeyDown}
         />
+        {view === "themes" && (
+          <button
+            type="button"
+            aria-label="Back to commands"
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={showCommands}
+            className="inline-flex h-6 shrink-0 items-center gap-1.5 rounded-md border border-border bg-raised pl-1.5 pr-2 text-label text-fg-secondary transition-colors duration-100 hover:bg-hover"
+          >
+            <ArrowLeft {...ICON_SM} aria-hidden />
+            Themes
+          </button>
+        )}
       </div>
       {count > 0 ? (
         <PaletteList
@@ -240,26 +293,38 @@ function PaletteBody() {
           sections={sections}
           activeIndex={active}
           optionId={optionId}
-          onHover={setSelected}
+          onHover={(index) => {
+            setSelected(index);
+            if (view === "themes") previewTheme(themeItems[index]?.id ?? null);
+          }}
           onChoose={choose}
         />
       ) : (
-        <div role="status">
-          <EmptyState
-            icon={<SearchX {...ICON_MD} />}
-            title={
-              trimmed
-                ? view === "themes"
-                  ? "No matching themes"
-                  : "No matching commands"
-                : view === "themes"
-                  ? "No themes"
-                  : "No commands"
-            }
-            description={trimmed ? `Nothing matches "${trimmed}".` : undefined}
-          />
+        <div role="status" className="flex flex-col items-center gap-1 px-6 py-10 text-center">
+          <p className="text-body font-medium text-fg">
+            {trimmed
+              ? view === "themes"
+                ? "No matching themes"
+                : "No matching commands"
+              : view === "themes"
+                ? "No themes"
+                : "No commands"}
+          </p>
+          {trimmed && <p className="max-w-full truncate text-label text-fg-muted">{`Nothing matches "${trimmed}".`}</p>}
         </div>
       )}
+      <div className="flex h-8 shrink-0 items-center justify-between border-t border-border px-4 text-label text-fg-muted">
+        <span className="inline-flex items-center gap-1.5">
+          <SquareTerminal {...ICON_SM} aria-hidden />
+          nexterm
+        </span>
+        <span className="inline-flex items-center gap-4" data-testid="palette-hints">
+          <FooterHint keys="↑↓" label="Navigate" />
+          <FooterHint keys="↵" label="Run" />
+          {view === "themes" ? <FooterHint keys="⌫" label="Back" /> : null}
+          <FooterHint keys="esc" label="Close" />
+        </span>
+      </div>
     </DialogContent>
   );
 }
