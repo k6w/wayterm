@@ -34,6 +34,7 @@
 
   /* Text */
   --color-fg: var(--nx-text);
+  --color-fg-strong: var(--nx-text);
   --color-fg-secondary: var(--nx-text-secondary);
   --color-fg-muted: var(--nx-text-muted);
   --color-fg-disabled: var(--nx-text-disabled);
@@ -98,6 +99,8 @@
   --text-heading--line-height: 28px;
   /* Legacy micro size absorbing old text-[10px] escapes; not for src/ui */
   --text-2xs: 10px;
+  --text-palette: 16px;
+  --text-palette--line-height: 24px;
 
   /* Density: 4px grid; rows and controls are 28px (compact default) */
   --spacing-control: var(--nx-control-h);
@@ -111,12 +114,26 @@
   --radius-sm: 4px;
   --radius-md: 6px;
   --radius-lg: 8px;
+  --radius-xl: 12px;
 
   /* Elevation: hairline borders separate surfaces; only floating overlays cast a shadow */
   --shadow-popover: 0 8px 24px var(--nx-shadow);
+  --shadow-palette: 0 24px 64px var(--nx-shadow), 0 4px 12px var(--nx-shadow);
 
   /* Motion: 120-180ms ease-out, no bounce */
   --animate-nx-fade-in: nx-fade-in 120ms ease-out;
+  --animate-nx-palette-in: nx-palette-in 150ms ease-out;
+
+  @keyframes nx-palette-in {
+    from {
+      opacity: 0;
+      scale: 0.98;
+    }
+    to {
+      opacity: 1;
+      scale: 1;
+    }
+  }
 
   @keyframes nx-fade-in {
     from {

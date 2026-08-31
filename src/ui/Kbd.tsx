@@ -7,10 +7,12 @@ export interface KbdProps extends Omit<ComponentPropsWithRef<"kbd">, "children">
   shortcut: string;
   /** Force the macOS (true) or Windows/Linux (false) glyphs. Defaults to the host platform. */
   mac?: boolean;
+  /** "ghost" drops the chip border and fill: compact glyphs for dense lists. */
+  variant?: "chip" | "ghost";
 }
 
 /** Keyboard shortcut hint chip. */
-export function Kbd({ shortcut, mac, className, ...rest }: KbdProps) {
+export function Kbd({ shortcut, mac, variant = "chip", className, ...rest }: KbdProps) {
   const parts = formatShortcut(shortcut, mac);
   return (
     <kbd
@@ -22,7 +24,10 @@ export function Kbd({ shortcut, mac, className, ...rest }: KbdProps) {
         <span
           key={i}
           aria-hidden
-          className="inline-flex h-4 min-w-4 items-center justify-center rounded-sm border border-border bg-kbd px-1 leading-none"
+          className={cn(
+            "inline-flex h-4 min-w-4 items-center justify-center rounded-sm px-1 leading-none",
+            variant === "chip" ? "border border-border bg-kbd" : "text-fg-muted"
+          )}
         >
           {part}
         </span>

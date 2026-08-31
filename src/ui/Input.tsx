@@ -22,6 +22,8 @@ export const inputVariants = cva(
       size: {
         sm: "h-6 text-label",
         md: "h-control text-body",
+        /** Command palette search row: 52px tall, 16px. */
+        lg: "h-13 text-palette",
       },
     },
     defaultVariants: { variant: "default", size: "md" },

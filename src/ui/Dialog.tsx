@@ -17,6 +17,12 @@ const SIZE = {
 const PLACEMENT = {
   center: "top-1/2 max-h-[85vh] -translate-y-1/2",
   top: "top-[16vh] max-h-[68vh]",
+  palette: "top-[18vh] max-h-[72vh]",
+} as const;
+
+const SURFACE = {
+  solid: "animate-nx-fade-in rounded-lg bg-panel shadow-popover",
+  glass: "animate-nx-palette-in rounded-xl bg-panel-glass nx-blur shadow-palette",
 } as const;
 
 export interface DialogContentProps
@@ -34,6 +40,8 @@ export interface DialogContentProps
   placement?: keyof typeof PLACEMENT;
   /** Body without padding or its own scrolling; the children lay themselves out. */
   flush?: boolean;
+  /** "glass" is the translucent, blurred, larger-radius surface of the command palette. */
+  surface?: keyof typeof SURFACE;
 }
 
 /**
@@ -62,6 +70,7 @@ export function DialogContent({
   hideHeader = false,
   placement = "center",
   flush = false,
+  surface = "solid",
   className,
   children,
   onOpenAutoFocus,
@@ -75,7 +84,8 @@ export function DialogContent({
         {...(description ? {} : { "aria-describedby": undefined })}
         className={cn(
           "fixed left-1/2 z-[var(--z-modal)] flex max-w-[calc(100vw-32px)] -translate-x-1/2 flex-col",
-          "animate-nx-fade-in overflow-hidden rounded-lg border border-border bg-panel shadow-popover outline-none",
+          "overflow-hidden border border-border outline-none",
+          SURFACE[surface],
           PLACEMENT[placement],
           SIZE[size],
           className
