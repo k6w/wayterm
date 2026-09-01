@@ -1,6 +1,19 @@
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from "react";
-import { RefreshCw } from "lucide-react";
-import { Button, Dialog, DialogContent, Field, IconButton, Input, Select, ICON_SM, cn } from "../../ui";
+import { Cable, RefreshCw } from "lucide-react";
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  FormGroup,
+  FormRow,
+  IconButton,
+  Input,
+  PreviewChip,
+  Select,
+  ICON_MD,
+  ICON_SM,
+  cn,
+} from "../../ui";
 import { serialListPorts, type SerialPortInfo } from "../../lib/ipc";
 import type { SerialConfig } from "../../types/terminal";
 
@@ -17,6 +30,11 @@ const numberOptions = (values: readonly number[]) => values.map((v) => ({ value:
 const BAUD_OPTIONS = numberOptions(BAUD_RATES);
 const DATA_BITS_OPTIONS = numberOptions([5, 6, 7, 8]);
 const STOP_BITS_OPTIONS = numberOptions([1, 2]);
+/** "115200 8N1" style frame summary. */
+export function serialSummary(baudRate: number, dataBits: number, parity: string, stopBits: number): string {
+  return `${baudRate} ${dataBits}${parity.charAt(0).toUpperCase()}${stopBits}`;
+}
+
 const PARITY_OPTIONS = [
   { value: "none", label: "None" },
   { value: "even", label: "Even" },
@@ -83,8 +101,14 @@ export default function SerialDialog({ open, onClose, onConnect }: SerialDialogP
       }}
     >
       <DialogContent
-        size="sm"
+        size="md"
         title="New serial connection"
+        description="Open a terminal on a serial port."
+        icon={<Cable {...ICON_MD} />}
+        hints={[
+          { shortcut: "Escape", label: "Cancel" },
+          { shortcut: "Enter", label: "Connect" },
+        ]}
         onOpenAutoFocus={(event) => {
           event.preventDefault();
           formRef.current?.querySelector<HTMLElement>("input, button")?.focus();
@@ -100,58 +124,63 @@ export default function SerialDialog({ open, onClose, onConnect }: SerialDialogP
           </>
         }
       >
-        <form ref={formRef} id={formId} onSubmit={handleSubmit} className="flex flex-col gap-3 py-1">
-          <Field
-            label="Port"
-            hint={ports.length === 0 && !loading ? "No ports detected. Enter one manually." : undefined}
-          >
-            {(control) => (
-              <div className="flex items-center gap-2">
-                {ports.length > 0 ? (
-                  <Select
-                    id={control.id}
-                    value={portName || undefined}
-                    onValueChange={setPortName}
-                    options={portOptions}
-                    placeholder="Choose a port"
-                  />
-                ) : (
-                  <Input
-                    {...control}
-                    code
-                    value={portName}
-                    onChange={(e) => setPortName(e.target.value)}
-                    placeholder="e.g. COM3 or /dev/ttyUSB0"
-                  />
-                )}
-                <IconButton
-                  size="md"
-                  label="Refresh ports"
-                  icon={
-                    <RefreshCw
-                      {...ICON_SM}
-                      className={cn(loading && "animate-spin motion-reduce:animate-none")}
+        <form ref={formRef} id={formId} onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <PreviewChip label="Serial preview">
+            {portName || "no port"} {serialSummary(baudRate, dataBits, parity, stopBits)}
+          </PreviewChip>
+          <FormGroup title="Port">
+            <FormRow
+              label="Port"
+              hint={ports.length === 0 && !loading ? "No ports detected. Enter one manually." : undefined}
+            >
+              {(control) => (
+                <div className="flex w-full items-center gap-2">
+                  {ports.length > 0 ? (
+                    <Select
+                      id={control.id}
+                      value={portName || undefined}
+                      onValueChange={setPortName}
+                      options={portOptions}
+                      placeholder="Choose a port"
                     />
-                  }
-                  disabled={loading}
-                  aria-busy={loading || undefined}
-                  onClick={() => void loadPorts()}
+                  ) : (
+                    <Input
+                      {...control}
+                      code
+                      value={portName}
+                      onChange={(e) => setPortName(e.target.value)}
+                      placeholder="e.g. COM3 or /dev/ttyUSB0"
+                    />
+                  )}
+                  <IconButton
+                    size="md"
+                    label="Refresh ports"
+                    icon={
+                      <RefreshCw
+                        {...ICON_SM}
+                        className={cn(loading && "animate-spin motion-reduce:animate-none")}
+                      />
+                    }
+                    disabled={loading}
+                    aria-busy={loading || undefined}
+                    onClick={() => void loadPorts()}
+                  />
+                </div>
+              )}
+            </FormRow>
+            <FormRow label="Baud rate">
+              {({ id }) => (
+                <Select
+                  id={id}
+                  value={String(baudRate)}
+                  onValueChange={(v) => setBaudRate(Number(v))}
+                  options={BAUD_OPTIONS}
                 />
-              </div>
-            )}
-          </Field>
-          <Field label="Baud rate">
-            {({ id }) => (
-              <Select
-                id={id}
-                value={String(baudRate)}
-                onValueChange={(v) => setBaudRate(Number(v))}
-                options={BAUD_OPTIONS}
-              />
-            )}
-          </Field>
-          <div className="grid grid-cols-3 gap-2">
-            <Field label="Data bits">
+              )}
+            </FormRow>
+          </FormGroup>
+          <FormGroup title="Frame format">
+            <FormRow label="Data bits">
               {({ id }) => (
                 <Select
                   id={id}
@@ -160,8 +189,8 @@ export default function SerialDialog({ open, onClose, onConnect }: SerialDialogP
                   options={DATA_BITS_OPTIONS}
                 />
               )}
-            </Field>
-            <Field label="Stop bits">
+            </FormRow>
+            <FormRow label="Stop bits">
               {({ id }) => (
                 <Select
                   id={id}
@@ -170,16 +199,14 @@ export default function SerialDialog({ open, onClose, onConnect }: SerialDialogP
                   options={STOP_BITS_OPTIONS}
                 />
               )}
-            </Field>
-            <Field label="Parity">
+            </FormRow>
+            <FormRow label="Parity">
               {({ id }) => <Select id={id} value={parity} onValueChange={setParity} options={PARITY_OPTIONS} />}
-            </Field>
-          </div>
-          <Field label="Flow control">
-            {({ id }) => (
-              <Select id={id} value={flowControl} onValueChange={setFlowControl} options={FLOW_OPTIONS} />
-            )}
-          </Field>
+            </FormRow>
+            <FormRow label="Flow control">
+              {({ id }) => <Select id={id} value={flowControl} onValueChange={setFlowControl} options={FLOW_OPTIONS} />}
+            </FormRow>
+          </FormGroup>
         </form>
       </DialogContent>
     </Dialog>

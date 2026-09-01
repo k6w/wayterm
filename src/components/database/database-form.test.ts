@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   EMPTY_DATABASE_FORM,
   changeDatabaseType,
+  connectionString,
   DEFAULT_PORTS,
   cellText,
   historyStep,
@@ -116,5 +117,22 @@ describe("per-driver form", () => {
       password: "",
       ssl: false,
     });
+  });
+});
+
+describe("connectionString", () => {
+  it("builds a server URL without the password", () => {
+    const form = { ...EMPTY_DATABASE_FORM, username: "me", password: "secret", database: "app" };
+    expect(connectionString(form)).toBe("postgresql://me@localhost:5432/app");
+    expect(connectionString({ ...form, ssl: true })).toBe("postgresql://me@localhost:5432/app?ssl=true");
+    expect(connectionString(form)).not.toContain("secret");
+  });
+
+  it("leaves out the parts that are still empty", () => {
+    expect(connectionString(EMPTY_DATABASE_FORM)).toBe("postgresql://localhost:5432");
+  });
+
+  it("shows a file for SQLite", () => {
+    expect(connectionString({ ...EMPTY_DATABASE_FORM, type: "sqlite", database: "/tmp/app.db" })).toBe("sqlite:/tmp/app.db");
   });
 });

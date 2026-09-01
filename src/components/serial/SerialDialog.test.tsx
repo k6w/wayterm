@@ -34,6 +34,13 @@ describe("SerialDialog", () => {
     ]);
   });
 
+  it("previews the chosen port and frame format", async () => {
+    vi.mocked(invoke).mockImplementation(async (cmd) => (cmd === "serial_list_ports" ? PORTS : null));
+    renderDialog();
+    const preview = await screen.findByRole("group", { name: "Serial preview" });
+    await waitFor(() => expect(preview).toHaveTextContent("/dev/ttyUSB0 115200 8N1"));
+  });
+
   it("falls back to a text field when no port is detected", async () => {
     renderDialog();
     const input = await screen.findByRole("textbox", { name: "Port" });

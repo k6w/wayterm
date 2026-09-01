@@ -112,6 +112,17 @@ describe("DatabasePanel", () => {
     expect(within(dialog).getByRole("checkbox", { name: "Use SSL" })).toBeInTheDocument();
   });
 
+  it("previews the connection string without the password as you type", async () => {
+    const { user, dialog } = await openNewConnection();
+    const preview = within(dialog).getByRole("group", { name: "Connection string preview" });
+    expect(preview).toHaveTextContent("postgresql://localhost:5432");
+    await user.type(within(dialog).getByRole("textbox", { name: "Username" }), "me");
+    await user.type(within(dialog).getByRole("textbox", { name: "Database" }), "app");
+    await user.type(within(dialog).getByLabelText("Password"), "hunter2");
+    expect(preview).toHaveTextContent("postgresql://me@localhost:5432/app");
+    expect(preview).not.toHaveTextContent("hunter2");
+  });
+
   it("says 1 row in history, not 1 rows", () => {
     connected([{ query: "select 1" }]);
     render(<DatabasePanel />);

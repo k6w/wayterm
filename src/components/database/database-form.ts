@@ -71,6 +71,17 @@ export function validateDatabaseForm(form: DatabaseFormState): DatabaseFormError
   return errors;
 }
 
+/** The connection string the form describes, never including the password: "postgresql://me@localhost:5432/app". */
+export function connectionString(form: DatabaseFormState): string {
+  if (isFileDatabase(form.type)) return `sqlite:${form.database.trim() || "/path/to/file"}`;
+  const user = form.username.trim();
+  const port = form.port.trim();
+  const host = form.host.trim() || "host";
+  const database = form.database.trim();
+  const ssl = form.ssl ? "?ssl=true" : "";
+  return `${form.type}://${user ? `${user}@` : ""}${host}${port ? `:${port}` : ""}${database ? `/${database}` : ""}${ssl}`;
+}
+
 /**
  * The connection to save. The backend stores the id as the primary key and
  * requires it, so a new connection gets one here. Call only on a valid form.

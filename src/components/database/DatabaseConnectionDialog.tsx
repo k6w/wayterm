@@ -1,8 +1,21 @@
 import { useId, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import { Button, Checkbox, Dialog, DialogContent, Field, Input, Select } from "../../ui";
+import { Database } from "lucide-react";
+import {
+  Button,
+  Checkbox,
+  Dialog,
+  DialogContent,
+  FormGroup,
+  FormRow,
+  ICON_MD,
+  Input,
+  PreviewChip,
+  Select,
+} from "../../ui";
 import {
   DATABASE_TYPES,
   changeDatabaseType,
+  connectionString,
   isFileDatabase,
   EMPTY_DATABASE_FORM,
   toDatabaseConnection,
@@ -77,8 +90,8 @@ function ConnectionForm({ onSave, onClose }: Omit<DatabaseConnectionDialogProps,
     }
   };
 
-  const text = (key: TextKey, label: string, extra = {}) => (
-    <Field label={label} error={key === "password" ? undefined : errors[key]}>
+  const text = (key: TextKey, label: string, extra = {}, width: "sm" | "md" = "md") => (
+    <FormRow label={label} error={key === "password" ? undefined : errors[key]} width={width}>
       {(control) => (
         <Input
           {...control}
@@ -91,46 +104,62 @@ function ConnectionForm({ onSave, onClose }: Omit<DatabaseConnectionDialogProps,
           {...extra}
         />
       )}
-    </Field>
+    </FormRow>
   );
 
   return (
     <DialogContent
-      size="sm"
+      size="md"
       title="New database connection"
+      description="Query a database from a tab next to your terminals."
+      icon={<Database {...ICON_MD} />}
       footer={
         <>
-          <Button onClick={onClose}>Cancel</Button>
+          <Button variant="ghost" onClick={onClose}>
+            Cancel
+          </Button>
           <Button variant="primary" type="submit" form={formId} loading={saving}>
             Save connection
           </Button>
         </>
       }
     >
-      <form id={formId} noValidate className="flex flex-col gap-3" onSubmit={handleSubmit} onKeyDown={handleKeyDown}>
-        {text("name", "Name", { autoFocus: true, placeholder: "App database" })}
-        <Field label="Type">
-          {(control) => (
-            <Select
-              id={control.id}
-              value={form.type}
-              onValueChange={(value) => setForm((prev) => changeDatabaseType(prev, value as DatabaseFormState["type"]))}
-              options={DATABASE_TYPES}
-            />
-          )}
-        </Field>
-        {isFileDatabase(form.type) ? (
-          text("database", "File path", { placeholder: "/path/to/data.db" })
-        ) : (
+      <form id={formId} noValidate className="flex flex-col gap-4" onSubmit={handleSubmit} onKeyDown={handleKeyDown}>
+        <PreviewChip label="Connection string preview">{connectionString(form)}</PreviewChip>
+        <FormGroup title="Connection">
+          {text("name", "Name", { autoFocus: true, placeholder: "App database" })}
+          <FormRow label="Type">
+            {(control) => (
+              <Select
+                id={control.id}
+                value={form.type}
+                onValueChange={(value) => setForm((prev) => changeDatabaseType(prev, value as DatabaseFormState["type"]))}
+                options={DATABASE_TYPES}
+              />
+            )}
+          </FormRow>
+          {isFileDatabase(form.type) && text("database", "File path", { placeholder: "/path/to/data.db" })}
+        </FormGroup>
+        {!isFileDatabase(form.type) && (
           <>
-            <div className="grid grid-cols-[2fr_1fr] gap-2">
+            <FormGroup title="Server">
               {text("host", "Host")}
-              {text("port", "Port", { inputMode: "numeric" })}
-            </div>
-            {text("database", "Database")}
-            {text("username", "Username", { autoComplete: "off" })}
-            {text("password", "Password", { type: "password", autoComplete: "off" })}
-            <Checkbox label="Use SSL" checked={form.ssl} onCheckedChange={(checked) => set("ssl", checked === true)} />
+              {text("port", "Port", { inputMode: "numeric" }, "sm")}
+              {text("database", "Database")}
+              <FormRow label="Use SSL" width="auto">
+                {(control) => (
+                  <Checkbox
+                    id={control.id}
+                    checked={form.ssl}
+                    onCheckedChange={(checked) => set("ssl", checked === true)}
+                  />
+                )}
+              </FormRow>
+            </FormGroup>
+            <FormGroup title="Credentials">
+              {text("username", "Username", { autoComplete: "off" })}
+              {text("password", "Password", { type: "password", autoComplete: "off" })}
+            </FormGroup>
           </>
         )}
         {saveError && (
