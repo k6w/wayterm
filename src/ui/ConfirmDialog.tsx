@@ -1,6 +1,8 @@
-import { useRef } from "react";
+import { useRef, type ReactNode } from "react";
+import { CircleHelp, TriangleAlert } from "lucide-react";
 import { Button } from "./Button";
 import { Dialog, DialogContent } from "./Dialog";
+import { ICON_MD } from "./utils";
 
 export interface ConfirmDialogProps {
   open: boolean;
@@ -9,6 +11,8 @@ export interface ConfirmDialogProps {
   confirmLabel?: string;
   cancelLabel?: string;
   variant?: "danger" | "default";
+  /** Header tile icon; defaults to a warning triangle (danger) or a question mark. */
+  icon?: ReactNode;
   onConfirm: () => void;
   onCancel: () => void;
 }
@@ -26,6 +30,7 @@ export function ConfirmDialog({
   confirmLabel = "Delete",
   cancelLabel = "Cancel",
   variant = "danger",
+  icon,
   onConfirm,
   onCancel,
 }: ConfirmDialogProps) {
@@ -42,6 +47,9 @@ export function ConfirmDialog({
         size="sm"
         title={title}
         description={message}
+        descriptionPlacement="body"
+        icon={icon ?? (variant === "danger" ? <TriangleAlert {...ICON_MD} /> : <CircleHelp {...ICON_MD} />)}
+        tone={variant === "danger" ? "danger" : "accent"}
         onOpenAutoFocus={(event) => {
           event.preventDefault();
           (variant === "danger" ? cancelRef : confirmRef).current?.focus();
@@ -53,7 +61,7 @@ export function ConfirmDialog({
             </Button>
             <Button
               ref={confirmRef}
-              variant={variant === "danger" ? "danger" : "primary"}
+              variant={variant === "danger" ? "destructive" : "primary"}
               onClick={onConfirm}
             >
               {confirmLabel}

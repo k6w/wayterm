@@ -16,6 +16,8 @@ export const buttonVariants = cva(
         primary: "bg-accent text-fg-on-accent hover:bg-accent-hover active:bg-accent-active",
         secondary: "border border-border-strong bg-raised text-fg hover:bg-hover active:bg-active",
         ghost: "text-fg-secondary hover:bg-hover hover:text-fg active:bg-active",
+        /** Filled red: the confirm button of a destructive dialog. */
+        destructive: "bg-danger text-fg-on-accent hover:opacity-90 active:opacity-80",
         danger: "text-danger hover:bg-danger-subtle active:bg-danger-subtle",
       },
       size: {

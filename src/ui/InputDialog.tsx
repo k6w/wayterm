@@ -1,8 +1,10 @@
 import { useId, useRef, useState, type FormEvent } from "react";
 import { Button } from "./Button";
 import { Dialog, DialogContent } from "./Dialog";
-import { Field } from "./Field";
+import { Pencil } from "lucide-react";
+import { FormCard, FormRow } from "./FormRow";
 import { Input } from "./Input";
+import { ICON_MD } from "./utils";
 
 export interface InputDialogProps {
   open: boolean;
@@ -54,6 +56,11 @@ function InputDialogContent({
     <DialogContent
       size="sm"
       title={title}
+      icon={<Pencil {...ICON_MD} />}
+      hints={[
+        { shortcut: "Escape", label: "Cancel" },
+        { shortcut: "Enter", label: confirmLabel },
+      ]}
       onOpenAutoFocus={(event) => {
         event.preventDefault();
         inputRef.current?.focus();
@@ -64,24 +71,31 @@ function InputDialogContent({
           <Button variant="ghost" onClick={onCancel}>
             {cancelLabel}
           </Button>
-          <Button type="submit" form={formId} variant="primary" disabled={!trimmed}>
+          <Button
+            type="submit"
+            form={formId}
+            variant="primary"
+            disabled={!trimmed}
+          >
             {confirmLabel}
           </Button>
         </>
       }
     >
-      <form id={formId} onSubmit={handleSubmit} className="py-1">
-        <Field label={label}>
-          {(control) => (
-            <Input
-              {...control}
-              ref={inputRef}
-              value={value}
-              onChange={(e) => setValue(e.target.value)}
-              placeholder={placeholder}
-            />
-          )}
-        </Field>
+      <form id={formId} onSubmit={handleSubmit}>
+        <FormCard>
+          <FormRow label={label} width="full">
+            {(control) => (
+              <Input
+                {...control}
+                ref={inputRef}
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                placeholder={placeholder}
+              />
+            )}
+          </FormRow>
+        </FormCard>
       </form>
     </DialogContent>
   );
