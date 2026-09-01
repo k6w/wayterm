@@ -58,3 +58,11 @@ export function forwardRoute(
   if (forward.portForwardType === "dynamic") return `SOCKS :${forward.localPort}`;
   return `${forward.localPort} → ${forward.remoteHost}:${forward.remotePort}`;
 }
+
+/** "localhost:8080 → db.internal:5432" for the form as typed so far, with placeholders for empty parts. */
+export function forwardPreview(form: PortForwardFormState): string {
+  const local = form.localPort.trim() || "port";
+  const host = form.remoteHost.trim() || "host";
+  const remote = form.remotePort.trim() || "port";
+  return `localhost:${local} → ${host}:${remote}`;
+}

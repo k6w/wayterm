@@ -84,4 +84,17 @@ describe("QuickPortForwardDialog", () => {
     await user.keyboard("{Escape}");
     expect(onClose).toHaveBeenCalledTimes(1);
   });
+
+  it("previews local:port → remote:port as you type in the add form", async () => {
+    const user = userEvent.setup();
+    render(<QuickPortForwardDialog isOpen onClose={() => {}} connectionId="c1" />);
+    await user.click(await screen.findByRole("button", { name: "Add port forward" }));
+    const preview = screen.getByRole("group", { name: "Forward preview" });
+    expect(preview).toHaveTextContent("localhost:8080 → localhost:8000");
+    await user.clear(screen.getByRole("textbox", { name: "Remote host" }));
+    await user.type(screen.getByRole("textbox", { name: "Remote host" }), "db.internal");
+    await user.clear(screen.getByRole("textbox", { name: "Remote port" }));
+    await user.type(screen.getByRole("textbox", { name: "Remote port" }), "5432");
+    expect(preview).toHaveTextContent("localhost:8080 → db.internal:5432");
+  });
 });

@@ -1,10 +1,25 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { ArrowLeftRight, Plus, Trash2 } from "lucide-react";
 import { useSshStore } from "../../stores/ssh";
-import { Button, Dialog, DialogContent, Field, ICON_SM, IconButton, Input, Switch, Tooltip } from "../../ui";
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  FormCard,
+  FormGroup,
+  FormRow,
+  ICON_MD,
+  ICON_SM,
+  IconButton,
+  Input,
+  PreviewChip,
+  Switch,
+  Tooltip,
+} from "../../ui";
 import type { PortForward } from "../../lib/ipc";
 import {
   EMPTY_PORT_FORWARD_FORM,
+  forwardPreview,
   forwardRoute,
   toPortForward,
   validatePortForward,
@@ -88,28 +103,33 @@ function PortForwardsBody({ connectionId, sessionId }: { connectionId: string; s
   };
 
   return (
-    <DialogContent size="md" title="Port forwards" description="Forward a local port to a host the server can reach.">
-      <div className="flex flex-col gap-3">
+    <DialogContent
+      size="md"
+      title="Port forwards"
+      description="Forward a local port to a host the server can reach."
+      icon={<ArrowLeftRight {...ICON_MD} />}
+    >
+      <div className="flex flex-col gap-4">
         {adding ? (
-          <form aria-label="New port forward" className="flex flex-col gap-3 rounded-md border border-border bg-raised p-3" onSubmit={handleAdd}>
-            <div className="grid grid-cols-[1fr_2fr_1fr] gap-2">
-              <Field label="Local port" error={errors.localPort}>
+          <form aria-label="New port forward" className="flex flex-col gap-4" onSubmit={handleAdd}>
+            <PreviewChip label="Forward preview">{forwardPreview(form)}</PreviewChip>
+            <FormGroup title="New forward">
+              <FormRow label="Local port" error={errors.localPort} width="sm">
                 {(control) => (
                   <Input {...control} code inputMode="numeric" autoFocus value={form.localPort} onChange={(e) => set("localPort")(e.target.value)} />
                 )}
-              </Field>
-              <Field label="Remote host" error={errors.remoteHost}>
+              </FormRow>
+              <FormRow label="Remote host" error={errors.remoteHost}>
                 {(control) => <Input {...control} code value={form.remoteHost} onChange={(e) => set("remoteHost")(e.target.value)} />}
-              </Field>
-              <Field label="Remote port" error={errors.remotePort}>
+              </FormRow>
+              <FormRow label="Remote port" error={errors.remotePort} width="sm">
                 {(control) => (
                   <Input {...control} code inputMode="numeric" value={form.remotePort} onChange={(e) => set("remotePort")(e.target.value)} />
                 )}
-              </Field>
-            </div>
+              </FormRow>
+            </FormGroup>
             <div className="flex justify-end gap-2">
               <Button
-                size="sm"
                 variant="ghost"
                 onClick={() => {
                   setAdding(false);
@@ -119,7 +139,7 @@ function PortForwardsBody({ connectionId, sessionId }: { connectionId: string; s
               >
                 Cancel
               </Button>
-              <Button size="sm" variant="primary" type="submit">
+              <Button variant="primary" type="submit">
                 Add
               </Button>
             </div>
@@ -137,28 +157,34 @@ function PortForwardsBody({ connectionId, sessionId }: { connectionId: string; s
         )}
 
         {forwards.length === 0 ? (
-          !adding && <p className="py-4 text-center text-label text-fg-muted">No port forwards for this connection yet.</p>
+          !adding && (
+            <p className="rounded-lg border border-dashed border-border py-6 text-center text-label text-fg-muted">
+              No port forwards for this connection yet.
+            </p>
+          )
         ) : (
-          <ul aria-label="Port forwards for this connection" className="flex flex-col gap-1">
-            {forwards.map((forward) => (
-              <li key={forward.id} className="flex min-h-row items-center gap-2 rounded-md px-2 hover:bg-hover">
-                <Tooltip content={route(forward)}>
-                  <span className="min-w-0 flex-1 truncate font-mono text-body text-fg">{route(forward)}</span>
-                </Tooltip>
-                <Switch
-                  label={`Forward ${forward.localPort} active`}
-                  checked={forward.isActive}
-                  onCheckedChange={(checked) => void handleToggle(forward.id, checked)}
-                />
-                <IconButton
-                  size="xs"
-                  label={`Remove forward ${forward.localPort}`}
-                  icon={<Trash2 {...ICON_SM} />}
-                  onClick={() => void deletePortForward(forward.id)}
-                />
-              </li>
-            ))}
-          </ul>
+          <FormCard>
+            <ul aria-label="Port forwards for this connection" className="divide-y divide-border">
+              {forwards.map((forward) => (
+                <li key={forward.id} className="flex min-h-row items-center gap-3 px-row-x py-row-y hover:bg-hover">
+                  <Tooltip content={route(forward)}>
+                    <span className="min-w-0 flex-1 truncate font-mono text-body text-fg">{route(forward)}</span>
+                  </Tooltip>
+                  <Switch
+                    label={`Forward ${forward.localPort} active`}
+                    checked={forward.isActive}
+                    onCheckedChange={(checked) => void handleToggle(forward.id, checked)}
+                  />
+                  <IconButton
+                    size="xs"
+                    label={`Remove forward ${forward.localPort}`}
+                    icon={<Trash2 {...ICON_SM} />}
+                    onClick={() => void deletePortForward(forward.id)}
+                  />
+                </li>
+              ))}
+            </ul>
+          </FormCard>
         )}
       </div>
     </DialogContent>

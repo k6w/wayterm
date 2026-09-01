@@ -1,6 +1,7 @@
 import { useRef } from "react";
 import { ShieldAlert, ShieldCheck, ShieldQuestion } from "lucide-react";
-import { Button, Dialog, DialogContent, ICON_MD, ICON_SM } from "../../ui";
+import type { ReactNode } from "react";
+import { Button, Dialog, DialogContent, FormCard, ICON_MD, ICON_SM } from "../../ui";
 import type { PendingHostKey } from "../../lib/ipc";
 import { fingerprintParts, hostLabel } from "./host-key";
 
@@ -62,6 +63,9 @@ function UnknownHost({
       size="md"
       title="Unknown host"
       description={`This is the first connection to ${host}. Compare the fingerprint with the one from your server administrator before you trust it.`}
+      descriptionPlacement="body"
+      icon={<ShieldQuestion {...ICON_MD} />}
+      tone="warning"
       onOpenAutoFocus={(event) => {
         event.preventDefault();
         cancelRef.current?.focus();
@@ -77,29 +81,22 @@ function UnknownHost({
         </>
       }
     >
-      <div className="flex gap-3">
-        <span aria-hidden className="mt-0.5 inline-flex shrink-0 text-warning">
-          <ShieldQuestion {...ICON_MD} />
-        </span>
-        <dl className="grid min-w-0 flex-1 grid-cols-[88px_1fr] gap-x-3 gap-y-2 rounded-md border border-border bg-raised p-3 text-label">
-          <dt className="text-fg-muted">Host</dt>
-          <dd className="min-w-0 break-all font-mono text-fg">{host}</dd>
-          <dt className="text-fg-muted">Key type</dt>
-          <dd className="font-mono text-fg">{pendingKey.keyType}</dd>
-          <dt className="text-fg-muted">Fingerprint</dt>
-          <dd className="min-w-0">
-            {algorithm && <span className="mb-1 block text-caption text-fg-muted">{algorithm}</span>}
-            <span
-              data-testid="fingerprint"
-              className="flex flex-wrap gap-x-1.5 gap-y-0.5 font-mono text-body text-fg"
-            >
-              {groups.map((group, i) => (
-                <span key={i}>{group}</span>
-              ))}
-            </span>
-          </dd>
-        </dl>
-      </div>
+      <FormCard>
+        <DetailRow label="Host">
+          <span className="break-all font-mono text-fg">{host}</span>
+        </DetailRow>
+        <DetailRow label="Key type">
+          <span className="font-mono text-fg">{pendingKey.keyType}</span>
+        </DetailRow>
+        <DetailRow label="Fingerprint">
+          {algorithm && <span className="mb-1 block text-caption text-fg-muted">{algorithm}</span>}
+          <span data-testid="fingerprint" className="flex flex-wrap gap-x-1.5 gap-y-0.5 font-mono text-body text-fg">
+            {groups.map((group, i) => (
+              <span key={i}>{group}</span>
+            ))}
+          </span>
+        </DetailRow>
+      </FormCard>
     </DialogContent>
   );
 }
@@ -123,6 +120,8 @@ function ChangedKey({
       title="Host key changed"
       hideClose
       description={`The key ${label} sent differs from the one saved in ~/.ssh/known_hosts.`}
+      icon={<ShieldAlert {...ICON_MD} />}
+      tone="danger"
       onOpenAutoFocus={(event) => {
         event.preventDefault();
         closeRef.current?.focus();
@@ -147,15 +146,26 @@ function ChangedKey({
             key changed.
           </p>
         </div>
-        <dl className="grid min-w-0 grid-cols-[88px_1fr] gap-x-3 gap-y-2 rounded-md border border-border bg-raised p-3 text-label">
-          <dt className="text-fg-muted">Host</dt>
-          <dd className="min-w-0 break-all font-mono text-fg">{label}</dd>
-        </dl>
+        <FormCard>
+          <DetailRow label="Host">
+            <span className="break-all font-mono text-fg">{label}</span>
+          </DetailRow>
+        </FormCard>
         <p className="text-label text-fg-muted">
           To use this server again, review its saved key in SSH settings under known hosts. Nothing is changed from
           this dialog.
         </p>
       </div>
     </DialogContent>
+  );
+}
+
+/** One labelled fact inside a FormCard: muted label left, value right. */
+function DetailRow({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="grid grid-cols-[88px_1fr] gap-3 px-row-x py-row-y text-label">
+      <span className="text-fg-muted">{label}</span>
+      <div className="min-w-0">{children}</div>
+    </div>
   );
 }
