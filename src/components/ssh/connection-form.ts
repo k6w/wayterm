@@ -94,3 +94,21 @@ export function toConnection(
     updatedAt: now,
   };
 }
+
+/** `user@host:port` as typed so far, with placeholders for what is still empty. */
+export function connectionPreview(form: ConnectionFormState): string {
+  const user = form.username.trim() || "user";
+  const host = form.host.trim() || "host";
+  const port = form.port.trim() || "22";
+  return `${user}@${host}:${port}`;
+}
+
+/** How many Advanced settings differ from their defaults (environment variables count once). */
+export function advancedChangeCount(form: ConnectionFormState): number {
+  return [
+    form.jumpHostId !== null,
+    form.themeOverride !== null,
+    form.agentForwarding,
+    Object.keys(form.envVars).length > 0,
+  ].filter(Boolean).length;
+}

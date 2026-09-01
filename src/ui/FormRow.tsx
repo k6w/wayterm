@@ -33,7 +33,8 @@ export interface FormRowProps {
 /**
  * One row of a FormCard: label (13px) and optional hint on the left, a compact
  * control on the right. Multi-line fields use width="full" and span the card.
- * Controls get id, aria-describedby and invalid so the label, hint and error
+ * Pass a function child to wire the label to the control (an element label);
+ * a plain child is self-labelled and the row title is a span. Controls get id, aria-describedby and invalid so the label, hint and error
  * stay wired up.
  */
 export function FormRow({ label, hint, error, width = "md", className, children }: FormRowProps) {
@@ -41,6 +42,8 @@ export function FormRow({ label, hint, error, width = "md", className, children 
   const messageId = `${id}-message`;
   const message = error || hint;
   const full = width === "full";
+  // Self-labelled controls (SegmentedControl, a group of buttons) carry their own aria-label.
+  const labelled = typeof children === "function";
   const control: FormRowControlProps = {
     id,
     "aria-describedby": message ? messageId : undefined,
@@ -49,9 +52,13 @@ export function FormRow({ label, hint, error, width = "md", className, children 
   return (
     <div className={cn("flex min-h-row gap-4 px-row-x py-row-y", full ? "flex-col gap-2" : "items-center justify-between", className)}>
       <div className="min-w-0">
-        <label htmlFor={id} className="block text-body text-fg">
-          {label}
-        </label>
+        {labelled ? (
+          <label htmlFor={id} className="block text-body text-fg">
+            {label}
+          </label>
+        ) : (
+          <span className="block text-body text-fg">{label}</span>
+        )}
         {message && (
           <p id={messageId} className={cn("mt-0.5 text-label", error ? "text-danger" : "text-fg-muted")}>
             {message}

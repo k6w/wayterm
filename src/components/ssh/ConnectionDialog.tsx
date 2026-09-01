@@ -1,19 +1,22 @@
 import { useId, useRef, useState, type CSSProperties, type FormEvent, type KeyboardEvent } from "react";
-import { ChevronRight, KeyRound, Lock, Plus, Shield, Trash2, X } from "lucide-react";
+import { KeyRound, Lock, Plus, Server, Shield, Trash2, X } from "lucide-react";
 import {
   Button,
   Dialog,
   DialogContent,
-  Field,
+  FormDisclosure,
+  FormGroup,
+  FormRow,
   IconButton,
   Input,
-  Section,
+  PreviewChip,
   SegmentedControl,
   Select,
   Switch,
   Textarea,
   cn,
   focusRing,
+  ICON_MD,
   ICON_SM,
   type SegmentedOption,
 } from "../../ui";
@@ -24,6 +27,8 @@ import { isMac } from "../../lib/platform";
 import { CONNECTION_TAG_COLORS } from "../../themes/connection-tags";
 import type { AuthMethod, SshConnection } from "../../types/ssh";
 import {
+  advancedChangeCount,
+  connectionPreview,
   createFormState,
   toConnection,
   validateConnectionForm,
@@ -81,7 +86,6 @@ function ConnectionForm({ onClose, onSave, editConnection }: ConnectionFormProps
   const [form, setForm] = useState<ConnectionFormState>(() => createFormState(editConnection));
   const [submitted, setSubmitted] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
-  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [newEnvKey, setNewEnvKey] = useState("");
   const [newEnvVal, setNewEnvVal] = useState("");
   const storedKeys = useSshStore((s) => s.keys);
@@ -92,8 +96,6 @@ function ConnectionForm({ onClose, onSave, editConnection }: ConnectionFormProps
   const intentRef = useRef<"save" | "connect">("save");
   const nameRef = useRef<HTMLInputElement>(null);
   const formId = useId();
-  const advancedId = useId();
-  const agentForwardingId = useId();
 
   const errors = submitted ? validateConnectionForm(form) : NO_ERRORS;
 
@@ -178,9 +180,18 @@ function ConnectionForm({ onClose, onSave, editConnection }: ConnectionFormProps
     ...Object.values(themes).map((t) => ({ value: t.id, label: t.name })),
   ];
 
+  const tag = CONNECTION_TAG_COLORS.find((color) => color.name === form.colorTag);
+  const changed = advancedChangeCount(form);
+
   return (
     <DialogContent
       title={editConnection ? "Edit connection" : "New connection"}
+      description={editConnection ? "Change how nexterm reaches this host." : "Save a host you can open in one click."}
+      icon={<Server {...ICON_MD} />}
+      hints={[
+        { shortcut: "Escape", label: "Cancel" },
+        { shortcut: "Mod+Enter", label: "Save & connect" },
+      ]}
       onOpenAutoFocus={(event) => {
         event.preventDefault();
         nameRef.current?.focus();
@@ -193,13 +204,7 @@ function ConnectionForm({ onClose, onSave, editConnection }: ConnectionFormProps
           <Button type="submit" form={formId} onClick={() => (intentRef.current = "save")}>
             Save
           </Button>
-          <Button
-            type="submit"
-            form={formId}
-            variant="primary"
-            shortcut="Mod+Enter"
-            onClick={() => (intentRef.current = "connect")}
-          >
+          <Button type="submit" form={formId} variant="primary" onClick={() => (intentRef.current = "connect")}>
             Save & Connect
           </Button>
         </>
@@ -208,7 +213,7 @@ function ConnectionForm({ onClose, onSave, editConnection }: ConnectionFormProps
       {saveError && (
         <p
           role="alert"
-          className="mb-3 rounded-md border border-danger bg-raised px-3 py-2 text-label text-danger"
+          className="mb-3 rounded-md border border-danger bg-danger-subtle px-3 py-2 text-label text-danger"
         >
           Could not save this connection: {saveError}
         </p>
@@ -219,10 +224,14 @@ function ConnectionForm({ onClose, onSave, editConnection }: ConnectionFormProps
         noValidate
         onSubmit={handleSubmit}
         onKeyDown={handleKeyDown}
-        className="flex flex-col gap-6 py-1"
+        className="flex flex-col gap-4"
       >
-        <Section title="Connection">
-          <Field label="Name" error={errors.name}>
+        <PreviewChip label="Connection preview" dot={tag?.value}>
+          {connectionPreview(form)}
+        </PreviewChip>
+
+        <FormGroup title="Connection">
+          <FormRow label="Name" error={errors.name}>
             {(control) => (
               <Input
                 {...control}
@@ -232,32 +241,30 @@ function ConnectionForm({ onClose, onSave, editConnection }: ConnectionFormProps
                 placeholder="My Server"
               />
             )}
-          </Field>
-          <div className="grid grid-cols-[1fr_96px] items-start gap-3">
-            <Field label="Host" error={errors.host}>
-              {(control) => (
-                <Input
-                  {...control}
-                  value={form.host}
-                  onChange={(e) => update("host", e.target.value)}
-                  placeholder="hostname or IP"
-                  code
-                />
-              )}
-            </Field>
-            <Field label="Port" error={errors.port}>
-              {(control) => (
-                <Input
-                  {...control}
-                  code
-                  inputMode="numeric"
-                  value={form.port}
-                  onChange={(e) => update("port", e.target.value)}
-                />
-              )}
-            </Field>
-          </div>
-          <Field label="Username" error={errors.username}>
+          </FormRow>
+          <FormRow label="Host" error={errors.host}>
+            {(control) => (
+              <Input
+                {...control}
+                value={form.host}
+                onChange={(e) => update("host", e.target.value)}
+                placeholder="hostname or IP"
+                code
+              />
+            )}
+          </FormRow>
+          <FormRow label="Port" error={errors.port} width="sm">
+            {(control) => (
+              <Input
+                {...control}
+                code
+                inputMode="numeric"
+                value={form.port}
+                onChange={(e) => update("port", e.target.value)}
+              />
+            )}
+          </FormRow>
+          <FormRow label="Username" error={errors.username}>
             {(control) => (
               <Input
                 {...control}
@@ -267,9 +274,11 @@ function ConnectionForm({ onClose, onSave, editConnection }: ConnectionFormProps
                 code
               />
             )}
-          </Field>
-          <ColorTagPicker value={form.colorTag} onChange={(tag) => update("colorTag", tag)} />
-          <Field label="Startup commands" hint="Run after the connection opens (optional)">
+          </FormRow>
+          <FormRow label="Color tag" width="auto">
+            <ColorTagPicker value={form.colorTag} onChange={(next) => update("colorTag", next)} />
+          </FormRow>
+          <FormRow label="Startup commands" hint="Run after the connection opens (optional)" width="full">
             {(control) => (
               <Textarea
                 {...control}
@@ -279,19 +288,20 @@ function ConnectionForm({ onClose, onSave, editConnection }: ConnectionFormProps
                 placeholder="cd /srv/app"
               />
             )}
-          </Field>
-        </Section>
+          </FormRow>
+        </FormGroup>
 
-        <Section title="Authentication">
-          <SegmentedControl
-            aria-label="Authentication method"
-            value={form.authMethod}
-            onValueChange={(method) => update("authMethod", method)}
-            options={AUTH_OPTIONS}
-            className="self-start"
-          />
+        <FormGroup title="Authentication">
+          <FormRow label="Method" width="auto">
+            <SegmentedControl
+              aria-label="Authentication method"
+              value={form.authMethod}
+              onValueChange={(method) => update("authMethod", method)}
+              options={AUTH_OPTIONS}
+            />
+          </FormRow>
           {form.authMethod === "password" && (
-            <Field label="Password" hint="Not saved. SSH asks for the password each time you connect.">
+            <FormRow label="Password" hint="Not saved. SSH asks for the password each time you connect.">
               {(control) => (
                 <Input
                   {...control}
@@ -302,12 +312,12 @@ function ConnectionForm({ onClose, onSave, editConnection }: ConnectionFormProps
                   placeholder="Enter password"
                 />
               )}
-            </Field>
+            </FormRow>
           )}
           {form.authMethod === "key" && (
             <>
               {storedKeys.length > 0 && (
-                <Field label="Stored key">
+                <FormRow label="Stored key">
                   {({ id }) => (
                     <Select
                       id={id}
@@ -316,10 +326,10 @@ function ConnectionForm({ onClose, onSave, editConnection }: ConnectionFormProps
                       options={keyOptions}
                     />
                   )}
-                </Field>
+                </FormRow>
               )}
               {!form.selectedKeyId && (
-                <Field label="Private key path">
+                <FormRow label="Private key path">
                   {(control) => (
                     <Input
                       {...control}
@@ -329,9 +339,9 @@ function ConnectionForm({ onClose, onSave, editConnection }: ConnectionFormProps
                       placeholder="~/.ssh/id_ed25519"
                     />
                   )}
-                </Field>
+                </FormRow>
               )}
-              <Field label="Passphrase (optional)">
+              <FormRow label="Passphrase (optional)">
                 {(control) => (
                   <Input
                     {...control}
@@ -342,115 +352,89 @@ function ConnectionForm({ onClose, onSave, editConnection }: ConnectionFormProps
                     placeholder="Key passphrase"
                   />
                 )}
-              </Field>
+              </FormRow>
             </>
           )}
           {form.authMethod === "agent" && (
-            <p className="rounded-md border border-border bg-raised px-3 py-2 text-label text-fg-secondary">
+            <p className="px-row-x py-row-y text-label text-fg-muted">
               SSH agent forwarding will be used. Make sure your SSH agent is running and has the appropriate keys
               loaded.
             </p>
           )}
-        </Section>
+        </FormGroup>
 
-        <section aria-labelledby={`${advancedId}-heading`} className="flex flex-col gap-3">
-          <h3 id={`${advancedId}-heading`}>
-            <button
-              type="button"
-              aria-expanded={advancedOpen}
-              aria-controls={advancedId}
-              onClick={() => setAdvancedOpen((open) => !open)}
-              className={cn(
-                "flex items-center gap-1 rounded-sm text-caption font-semibold uppercase tracking-wide text-fg-muted hover:text-fg",
-                focusRing
-              )}
-            >
-              <ChevronRight
-                {...ICON_SM}
-                aria-hidden
-                className={cn("transition-transform duration-150 ease-out", advancedOpen && "rotate-90")}
+        <FormDisclosure title="Advanced" count={changed}>
+          <FormRow label="Jump host (ProxyJump)" hint="Connect through this host as a bastion/jump server">
+            {({ id }) => (
+              <Select
+                id={id}
+                value={form.jumpHostId ?? NO_JUMP_HOST}
+                onValueChange={(v) => update("jumpHostId", v === NO_JUMP_HOST ? null : v)}
+                options={jumpHostOptions}
               />
-              Advanced
-            </button>
-          </h3>
-          {advancedOpen && (
-            <div id={advancedId} className="flex flex-col gap-3">
-              <Field label="Jump host (ProxyJump)" hint="Connect through this host as a bastion/jump server">
-                {({ id }) => (
-                  <Select
-                    id={id}
-                    value={form.jumpHostId ?? NO_JUMP_HOST}
-                    onValueChange={(v) => update("jumpHostId", v === NO_JUMP_HOST ? null : v)}
-                    options={jumpHostOptions}
+            )}
+          </FormRow>
+          <FormRow label="Terminal theme override">
+            {({ id }) => (
+              <Select
+                id={id}
+                value={form.themeOverride ?? INHERIT_THEME}
+                onValueChange={(v) => update("themeOverride", v === INHERIT_THEME ? null : v)}
+                options={themeOptions}
+              />
+            )}
+          </FormRow>
+          <FormRow label="Agent forwarding" hint="Forward your SSH agent to the remote host" width="auto">
+            {({ id }) => (
+              <Switch
+                id={id}
+                checked={form.agentForwarding}
+                onCheckedChange={(checked) => update("agentForwarding", checked)}
+              />
+            )}
+          </FormRow>
+          <FormRow label="Environment variables" width="full">
+            <div className="flex flex-col gap-1.5">
+              {Object.entries(form.envVars).map(([key, value]) => (
+                <div key={key} className="flex items-center gap-2">
+                  <code className="min-w-0 flex-1 truncate rounded-md border border-border bg-raised px-2 py-1 font-mono text-label text-fg">
+                    {key}={value}
+                  </code>
+                  <IconButton
+                    label={`Remove ${key}`}
+                    icon={<Trash2 {...ICON_SM} />}
+                    onClick={() => removeEnvVar(key)}
                   />
-                )}
-              </Field>
-              <Field label="Terminal theme override">
-                {({ id }) => (
-                  <Select
-                    id={id}
-                    value={form.themeOverride ?? INHERIT_THEME}
-                    onValueChange={(v) => update("themeOverride", v === INHERIT_THEME ? null : v)}
-                    options={themeOptions}
-                  />
-                )}
-              </Field>
-              <div className="flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <label htmlFor={agentForwardingId} className="text-body text-fg">
-                    Agent forwarding
-                  </label>
-                  <p className="text-label text-fg-muted">Forward your SSH agent to the remote host</p>
                 </div>
-                <Switch
-                  id={agentForwardingId}
-                  checked={form.agentForwarding}
-                  onCheckedChange={(checked) => update("agentForwarding", checked)}
+              ))}
+              <div className="flex items-center gap-2">
+                <Input
+                  aria-label="Variable name"
+                  code
+                  value={newEnvKey}
+                  onChange={(e) => setNewEnvKey(e.target.value)}
+                  onKeyDown={onEnvKeyDown}
+                  placeholder="KEY"
+                />
+                <Input
+                  aria-label="Variable value"
+                  code
+                  value={newEnvVal}
+                  onChange={(e) => setNewEnvVal(e.target.value)}
+                  onKeyDown={onEnvKeyDown}
+                  placeholder="value"
+                />
+                <IconButton
+                  label="Add variable"
+                  size="md"
+                  icon={<Plus {...ICON_SM} />}
+                  disabled={!newEnvKey.trim()}
+                  onClick={addEnvVar}
                 />
               </div>
-              <div className="flex flex-col gap-1.5">
-                <span className="text-label font-medium text-fg-secondary">Environment variables</span>
-                {Object.entries(form.envVars).map(([key, value]) => (
-                  <div key={key} className="flex items-center gap-2">
-                    <code className="min-w-0 flex-1 truncate rounded-md border border-border bg-raised px-2 py-1 font-mono text-label text-fg">
-                      {key}={value}
-                    </code>
-                    <IconButton
-                      label={`Remove ${key}`}
-                      icon={<Trash2 {...ICON_SM} />}
-                      onClick={() => removeEnvVar(key)}
-                    />
-                  </div>
-                ))}
-                <div className="flex items-center gap-2">
-                  <Input
-                    aria-label="Variable name"
-                    code
-                    value={newEnvKey}
-                    onChange={(e) => setNewEnvKey(e.target.value)}
-                    onKeyDown={onEnvKeyDown}
-                    placeholder="KEY"
-                  />
-                  <Input
-                    aria-label="Variable value"
-                    code
-                    value={newEnvVal}
-                    onChange={(e) => setNewEnvVal(e.target.value)}
-                    onKeyDown={onEnvKeyDown}
-                    placeholder="value"
-                  />
-                  <IconButton
-                    label="Add variable"
-                    size="md"
-                    icon={<Plus {...ICON_SM} />}
-                    disabled={!newEnvKey.trim()}
-                    onClick={addEnvVar}
-                  />
-                </div>
-              </div>
             </div>
-          )}
-        </section>
+          </FormRow>
+        </FormDisclosure>
       </form>
     </DialogContent>
   );
@@ -462,43 +446,39 @@ interface ColorTagPickerProps {
 }
 
 function ColorTagPicker({ value, onChange }: ColorTagPickerProps) {
-  const labelId = useId();
-  const swatch = cn(
-    "inline-flex size-6 items-center justify-center rounded-full border border-border transition-colors duration-150 ease-out",
+  const dot = cn(
+    "inline-flex size-5 items-center justify-center rounded-full transition-shadow duration-150 ease-out",
     focusRing
   );
+  const selected = "ring-2 ring-fg";
   return (
-    <div className="flex flex-col gap-1">
-      <span id={labelId} className="text-label font-medium text-fg-secondary">
-        Color tag
-      </span>
-      <div role="group" aria-labelledby={labelId} className="flex items-center gap-2">
+    <div role="group" aria-label="Color tag" className="flex items-center gap-1.5">
+      <button
+        type="button"
+        aria-label="No color"
+        aria-pressed={value === null}
+        onClick={() => onChange(null)}
+        className={cn(dot, value === null && selected)}
+      >
+        <span className="inline-flex size-4 items-center justify-center rounded-full border border-border-strong bg-raised text-fg-muted">
+          <X size={10} aria-hidden />
+        </span>
+      </button>
+      {CONNECTION_TAG_COLORS.map((color) => (
         <button
+          key={color.name}
           type="button"
-          aria-label="No color"
-          aria-pressed={value === null}
-          onClick={() => onChange(null)}
-          className={cn(swatch, "bg-raised text-fg-muted", value === null && "outline-solid outline-2 outline-offset-1 outline-fg")}
+          aria-label={color.label}
+          aria-pressed={value === color.name}
+          onClick={() => onChange(color.name)}
+          className={cn(dot, value === color.name && selected)}
         >
-          <X {...ICON_SM} aria-hidden />
-        </button>
-        {CONNECTION_TAG_COLORS.map((color) => (
-          <button
-            key={color.name}
-            type="button"
-            aria-label={color.label}
-            aria-pressed={value === color.name}
-            onClick={() => onChange(color.name)}
+          <span
             style={{ "--nx-dyn-tag": color.value } as CSSProperties}
-            className={cn(
-              swatch,
-              "bg-(--nx-dyn-tag)",
-              value === color.name && "outline-solid outline-2 outline-offset-1 outline-fg"
-            )}
+            className="size-4 rounded-full bg-(--nx-dyn-tag)"
           />
-        ))}
-      </div>
+        </button>
+      ))}
     </div>
   );
 }
-

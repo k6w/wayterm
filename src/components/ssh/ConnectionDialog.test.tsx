@@ -55,7 +55,7 @@ describe("ConnectionDialog", () => {
 
   it("uses the standard input size for the environment variable fields", async () => {
     const { user } = renderDialog();
-    await user.click(await screen.findByRole("button", { name: "Advanced" }));
+    await user.click(await screen.findByRole("button", { name: /Advanced/ }));
     const standard = screen.getByRole("textbox", { name: "Name" });
     for (const name of ["Variable name", "Variable value"]) {
       const field = screen.getByRole("textbox", { name });
@@ -67,7 +67,7 @@ describe("ConnectionDialog", () => {
 
   it("keeps Advanced collapsed until it is expanded", async () => {
     const { user } = renderDialog();
-    const toggle = await screen.findByRole("button", { name: "Advanced" });
+    const toggle = await screen.findByRole("button", { name: /Advanced/ });
     expect(toggle).toHaveAttribute("aria-expanded", "false");
     expect(screen.queryByText("Agent forwarding")).not.toBeInTheDocument();
     await user.click(toggle);
@@ -100,10 +100,30 @@ describe("ConnectionDialog", () => {
     expect(onSave.mock.calls[0][0]).toMatchObject({ name: "dev", host: "dev.local", port: 22, username: "me" });
   });
 
-  it("shows the Mod+Enter hint on the primary button", async () => {
+  it("shows the Esc and Mod+Enter hints in the footer", async () => {
     renderDialog();
-    const primary = await screen.findByRole("button", { name: /Save & Connect/ });
-    expect(within(primary).getByLabelText("Ctrl+↵")).toBeInTheDocument();
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByLabelText("Esc")).toBeInTheDocument();
+    expect(within(dialog).getByLabelText("Ctrl+↵")).toBeInTheDocument();
+  });
+
+  it("previews user@host:port as you type, with placeholders until filled", async () => {
+    const { user } = renderDialog();
+    const preview = await screen.findByRole("group", { name: "Connection preview" });
+    expect(preview).toHaveTextContent("user@host:22");
+    await fillRequired(user);
+    await user.clear(screen.getByRole("textbox", { name: "Port" }));
+    await user.type(screen.getByRole("textbox", { name: "Port" }), "2200");
+    expect(preview).toHaveTextContent("me@dev.local:2200");
+  });
+
+  it("counts the Advanced settings that differ from their defaults", async () => {
+    const { user } = renderDialog({ ...EXISTING, agentForwarding: true, envVars: { A: "1" } });
+    await screen.findByRole("dialog");
+    expect(screen.getByTestId("disclosure-count")).toHaveTextContent("2");
+    await user.click(screen.getByRole("button", { name: /Advanced/ }));
+    await user.click(screen.getByRole("switch", { name: "Agent forwarding" }));
+    expect(screen.getByTestId("disclosure-count")).toHaveTextContent("1");
   });
 
   it("cancels with Escape without saving", async () => {
@@ -133,7 +153,7 @@ describe("ConnectionDialog", () => {
     const { user, onSave } = renderDialog(EXISTING);
     await screen.findByRole("dialog", { name: "Edit connection" });
     expect(screen.getByRole("button", { name: "Blue" })).toHaveAttribute("aria-pressed", "true");
-    await user.click(screen.getByRole("button", { name: "Advanced" }));
+    await user.click(screen.getByRole("button", { name: /Advanced/ }));
     await user.click(screen.getByRole("switch", { name: "Agent forwarding" }));
     await user.type(screen.getByRole("textbox", { name: "Variable name" }), "LANG");
     await user.type(screen.getByRole("textbox", { name: "Variable value" }), "C{Enter}");
@@ -154,7 +174,7 @@ describe("ConnectionDialog", () => {
   it("lists other connections as jump hosts, but not the one being edited", async () => {
     useSshStore.setState({ connections: [EXISTING, { ...EXISTING, id: "c2", name: "bastion", host: "b.example" }] });
     const { user } = renderDialog(EXISTING);
-    await user.click(await screen.findByRole("button", { name: "Advanced" }));
+    await user.click(await screen.findByRole("button", { name: /Advanced/ }));
     await user.click(screen.getByRole("combobox", { name: "Jump host (ProxyJump)" }));
     const listbox = await screen.findByRole("listbox");
     expect(within(listbox).getByRole("option", { name: "bastion (b.example:2222)" })).toBeInTheDocument();

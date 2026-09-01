@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { createFormState, parsePort, toConnection, validateConnectionForm } from "./connection-form";
+import {
+  advancedChangeCount,
+  connectionPreview,
+  createFormState,
+  parsePort,
+  toConnection,
+  validateConnectionForm,
+} from "./connection-form";
 import type { SshConnection } from "../../types/ssh";
 
 const EXISTING: SshConnection = {
@@ -95,5 +102,23 @@ describe("toConnection", () => {
       createdAt: NOW,
       updatedAt: NOW,
     });
+  });
+});
+
+describe("connectionPreview", () => {
+  it("shows placeholders for empty parts and the typed values otherwise", () => {
+    const empty = createFormState();
+    expect(connectionPreview(empty)).toBe("user@host:22");
+    expect(connectionPreview({ ...empty, username: " me ", host: "dev.local", port: "2200" })).toBe("me@dev.local:2200");
+  });
+});
+
+describe("advancedChangeCount", () => {
+  it("counts each non-default advanced setting once", () => {
+    const form = createFormState();
+    expect(advancedChangeCount(form)).toBe(0);
+    expect(
+      advancedChangeCount({ ...form, jumpHostId: "j", themeOverride: "t", agentForwarding: true, envVars: { A: "1", B: "2" } })
+    ).toBe(4);
   });
 });
