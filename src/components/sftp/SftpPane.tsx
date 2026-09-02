@@ -202,7 +202,7 @@ export default function SftpPane({ paneId, isActive, paneCount = 1 }: SftpPanePr
 
       <InputDialog
         open={browser.creatingFolder}
-        title="New Folder"
+        title="New folder"
         label="Enter a name for the new folder."
         placeholder="Folder name"
         confirmLabel="Create"

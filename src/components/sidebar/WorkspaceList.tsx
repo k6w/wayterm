@@ -99,7 +99,7 @@ export default function WorkspaceList() {
 
       <ConfirmDialog
         open={!!deleteTarget}
-        title="Delete Workspace"
+        title="Delete workspace"
         message={`Are you sure you want to delete "${deleteTarget?.name}"? This cannot be undone.`}
         onConfirm={handleConfirmDelete}
         onCancel={() => setDeleteTarget(null)}

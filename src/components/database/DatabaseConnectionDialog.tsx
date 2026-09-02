@@ -2,7 +2,6 @@ import { useId, useRef, useState, type FormEvent, type KeyboardEvent } from "rea
 import { Database } from "lucide-react";
 import {
   Button,
-  Checkbox,
   Dialog,
   DialogContent,
   FormGroup,
@@ -11,6 +10,7 @@ import {
   Input,
   PreviewChip,
   Select,
+  Switch,
 } from "../../ui";
 import {
   DATABASE_TYPES,
@@ -81,10 +81,11 @@ function ConnectionForm({ onSave, onClose }: Omit<DatabaseConnectionDialogProps,
   };
 
   // The Save button sits in the dialog footer, outside the <form>, so Enter in
-  // a field submits explicitly (and only once: preventDefault stops the
+  // a field (or Mod+Enter anywhere) submits explicitly (and only once: preventDefault stops the
   // browser's own implicit submission).
   const handleKeyDown = (event: KeyboardEvent<HTMLFormElement>) => {
-    if (event.key === "Enter" && (event.target as HTMLElement).tagName === "INPUT") {
+    const inField = (event.target as HTMLElement).tagName === "INPUT";
+    if (event.key === "Enter" && (inField || event.metaKey || event.ctrlKey)) {
       event.preventDefault();
       event.currentTarget.requestSubmit();
     }
@@ -113,6 +114,10 @@ function ConnectionForm({ onSave, onClose }: Omit<DatabaseConnectionDialogProps,
       title="New database connection"
       description="Query a database from a tab next to your terminals."
       icon={<Database {...ICON_MD} />}
+      hints={[
+        { shortcut: "Escape", label: "Cancel" },
+        { shortcut: "Mod+Enter", label: "Save" },
+      ]}
       footer={
         <>
           <Button variant="ghost" onClick={onClose}>
@@ -148,11 +153,7 @@ function ConnectionForm({ onSave, onClose }: Omit<DatabaseConnectionDialogProps,
               {text("database", "Database")}
               <FormRow label="Use SSL" width="auto">
                 {(control) => (
-                  <Checkbox
-                    id={control.id}
-                    checked={form.ssl}
-                    onCheckedChange={(checked) => set("ssl", checked === true)}
-                  />
+                  <Switch id={control.id} checked={form.ssl} onCheckedChange={(checked) => set("ssl", checked)} />
                 )}
               </FormRow>
             </FormGroup>

@@ -86,7 +86,7 @@ describe("DatabasePanel", () => {
     for (const hidden of ["Host", "Port", "Username", "Password"]) {
       expect(within(dialog).queryByLabelText(hidden)).not.toBeInTheDocument();
     }
-    expect(within(dialog).queryByRole("checkbox", { name: "Use SSL" })).not.toBeInTheDocument();
+    expect(within(dialog).queryByRole("switch", { name: "Use SSL" })).not.toBeInTheDocument();
     await user.type(within(dialog).getByRole("textbox", { name: "Name" }), "local");
     await user.type(within(dialog).getByRole("textbox", { name: "File path" }), "/tmp/app.db{Enter}");
     await waitFor(() =>
@@ -94,6 +94,16 @@ describe("DatabasePanel", () => {
         expect.objectContaining({ type: "sqlite", name: "local", database: "/tmp/app.db", username: "", ssl: false })
       )
     );
+  });
+
+  it("uses a switch for SSL and shows the save shortcut hint in the footer", async () => {
+    const { user, dialog } = await openNewConnection();
+    const ssl = within(dialog).getByRole("switch", { name: "Use SSL" });
+    expect(within(dialog).queryByRole("checkbox")).not.toBeInTheDocument();
+    await user.click(ssl);
+    expect(ssl).toBeChecked();
+    expect(within(dialog).getByLabelText("Ctrl+↵")).toBeInTheDocument();
+    expect(within(dialog).getByText("Save")).toBeInTheDocument();
   });
 
   it.each([
@@ -109,7 +119,7 @@ describe("DatabasePanel", () => {
       expect(within(dialog).getByRole("textbox", { name: shown })).toBeInTheDocument();
     }
     expect(within(dialog).getByLabelText("Password")).toBeInTheDocument();
-    expect(within(dialog).getByRole("checkbox", { name: "Use SSL" })).toBeInTheDocument();
+    expect(within(dialog).getByRole("switch", { name: "Use SSL" })).toBeInTheDocument();
   });
 
   it("previews the connection string without the password as you type", async () => {

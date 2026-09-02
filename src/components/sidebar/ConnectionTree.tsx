@@ -295,7 +295,7 @@ export default function ConnectionTree({ onAddConnection, onEditConnection }: Co
       </div>
       <ConfirmDialog
         open={!!deleteTarget}
-        title="Delete Connection"
+        title="Delete connection"
         message={`Are you sure you want to delete "${deleteTarget?.name}"? This cannot be undone.`}
         onConfirm={handleConfirmDelete}
         onCancel={() => setDeleteTarget(null)}
