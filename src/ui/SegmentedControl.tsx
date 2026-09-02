@@ -16,6 +16,12 @@ export interface SegmentedControlProps<T extends string> {
   size?: "sm" | "md";
   disabled?: boolean;
   className?: string;
+  /**
+   * Extra classes for the option labels. With icons, "sr-only @[340px]:not-sr-only"
+   * collapses the control to icons (labels stay the accessible names and
+   * native tooltips) until the nearest @container is wide enough.
+   */
+  labelClassName?: string;
 }
 
 /**
@@ -29,6 +35,7 @@ export function SegmentedControl<T extends string>({
   size = "md",
   disabled,
   className,
+  labelClassName,
   "aria-label": ariaLabel,
 }: SegmentedControlProps<T>) {
   return (
@@ -46,6 +53,7 @@ export function SegmentedControl<T extends string>({
         <ToggleGroup.Item
           key={option.value}
           value={option.value}
+          title={option.label}
           className={cn(
             "inline-flex items-center justify-center gap-1.5 rounded-sm px-2.5 font-medium text-fg-muted",
             "transition-colors duration-150 ease-out hover:text-fg disabled:opacity-50",
@@ -59,7 +67,7 @@ export function SegmentedControl<T extends string>({
               {option.icon}
             </span>
           )}
-          {option.label}
+          <span className={labelClassName}>{option.label}</span>
         </ToggleGroup.Item>
       ))}
     </ToggleGroup.Root>

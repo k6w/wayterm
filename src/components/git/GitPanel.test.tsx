@@ -108,6 +108,14 @@ describe("GitPanel", () => {
     expect(actions.fetchDiff).toHaveBeenCalledWith("/repo", "src/a.ts", true);
   });
 
+  it("collapses the view tabs to icons at narrow widths, keeping names and tooltips", () => {
+    render(<GitPanel />);
+    const tab = screen.getByRole("radio", { name: "Stash" });
+    expect(tab).toHaveAttribute("title", "Stash");
+    expect(within(tab).getByText("Stash")).toHaveClass("sr-only", "@[340px]:not-sr-only");
+    expect(tab.querySelector("svg")).not.toBeNull();
+  });
+
   it("switches views and checks out another branch", async () => {
     const user = userEvent.setup();
     render(<GitPanel />);

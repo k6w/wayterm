@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { ArrowLeft, FolderGit2, FolderSearch, RefreshCw } from "lucide-react";
+import { Archive, ArrowLeft, FileDiff, FolderGit2, FolderSearch, GitBranch, GitCommitHorizontal, RefreshCw } from "lucide-react";
 import { useGitStore } from "../../stores/git";
 import { useTerminalStore } from "../../stores/terminal";
 import {
@@ -25,10 +25,10 @@ import type { GitDiff } from "../../types/git";
 type GitView = "status" | "branches" | "commits" | "stash";
 
 const VIEWS = [
-  { value: "status", label: "Status" },
-  { value: "branches", label: "Branches" },
-  { value: "commits", label: "Commits" },
-  { value: "stash", label: "Stash" },
+  { value: "status", label: "Status", icon: <FileDiff {...ICON_SM} /> },
+  { value: "branches", label: "Branches", icon: <GitBranch {...ICON_SM} /> },
+  { value: "commits", label: "Commits", icon: <GitCommitHorizontal {...ICON_SM} /> },
+  { value: "stash", label: "Stash", icon: <Archive {...ICON_SM} /> },
 ] as const;
 
 /** Git for the active pane's working directory (local, or over SSH for status and history). */
@@ -178,8 +178,16 @@ export function GitPanel() {
 
   return (
     <>
-      <PanelToolbar aria-label="Git actions">
-        <SegmentedControl size="sm" aria-label="Git view" value={view} onValueChange={setView} options={VIEWS} />
+      <PanelToolbar aria-label="Git actions" className="@container">
+        {/* Icons only at the default sidebar width; labels return when it is wide enough to fit them. */}
+        <SegmentedControl
+          size="sm"
+          aria-label="Git view"
+          value={view}
+          onValueChange={setView}
+          options={VIEWS}
+          labelClassName="sr-only @[340px]:not-sr-only"
+        />
         <ToolbarSpacer />
         <ToolbarButton>
           <IconButton

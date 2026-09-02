@@ -9,6 +9,7 @@ import {
   ICON_SM,
   IconButton,
   ListRow,
+  MiddleTruncate,
   Textarea,
   Toolbar,
   ToolbarButton,
@@ -86,7 +87,7 @@ export default function GitChanges({
     <div className="flex flex-col gap-2">
       <Toolbar aria-label="Repository actions" className="h-7 gap-1 pl-2">
         <GitBranch {...ICON_SM} aria-hidden className="shrink-0 text-fg-muted" />
-        <span className="min-w-0 truncate text-label font-medium text-fg">{branch || "main"}</span>
+        <MiddleTruncate text={branch || "main"} className="text-label font-medium text-fg" />
         <ToolbarSpacer />
         <ToolbarButton>
           <IconButton label="View diff" icon={<FileDiff {...ICON_SM} />} onClick={() => onShowDiff()} />
@@ -109,7 +110,7 @@ export default function GitChanges({
           description={
             <Badge data-testid="git-clean-branch" tone="neutral" size="md">
               <GitBranch {...ICON_SM} aria-hidden />
-              {branch || "main"}
+              <MiddleTruncate text={branch || "main"} />
             </Badge>
           }
         />
