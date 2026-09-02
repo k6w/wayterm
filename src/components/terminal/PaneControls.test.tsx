@@ -18,6 +18,13 @@ describe("PaneControls", () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it("is hidden until the pane is hovered or focused, on a solid chip", () => {
+    render(<PaneControls searchOpen={false} onDetach={vi.fn()} onClose={vi.fn()} />);
+    const group = screen.getByTestId("pane-controls");
+    expect(group).toHaveClass("opacity-0", "group-hover/pane:opacity-100", "group-focus-within/pane:opacity-100");
+    expect(group).toHaveClass("focus-within:opacity-100", "bg-raised", "absolute");
+  });
+
   it("sits at the top edge when search is closed and below the search bar when open", () => {
     const { rerender } = render(<PaneControls searchOpen={false} onDetach={vi.fn()} onClose={vi.fn()} />);
     const group = screen.getByTestId("pane-controls");

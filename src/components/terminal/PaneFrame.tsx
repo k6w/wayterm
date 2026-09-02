@@ -16,7 +16,7 @@ interface PaneFrameProps {
 export default function PaneFrame({ active, split, children }: PaneFrameProps) {
   const dimmed = split && !active;
   return (
-    <div data-pane-frame data-active={active || undefined} className="relative h-full w-full">
+    <div data-pane-frame data-active={active || undefined} className="group/pane relative h-full w-full">
       {children}
       <div
         aria-hidden
