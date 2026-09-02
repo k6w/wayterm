@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { AlertTriangle, Copy, Replace } from "lucide-react";
+import { Copy, FileWarning, Replace } from "lucide-react";
 import { Button, Dialog, DialogContent, ICON_MD, ICON_SM } from "../../ui";
 import { joinRemote } from "./sftp-paths";
 
@@ -48,6 +48,9 @@ export default function FileConflictDialog({
       <DialogContent
         size="sm"
         title="File already exists"
+        icon={<FileWarning {...ICON_MD} />}
+        tone="warning"
+        hints={[{ shortcut: "Escape", label: "Skip" }]}
         onOpenAutoFocus={(event) => {
           event.preventDefault();
           skipRef.current?.focus();
@@ -69,13 +72,10 @@ export default function FileConflictDialog({
           </>
         }
       >
-        <div className="flex gap-3">
-          <AlertTriangle {...ICON_MD} aria-hidden className="mt-0.5 shrink-0 text-warning" />
-          <p className="text-body text-fg-secondary">
-            <span className="font-medium text-fg">{fileName}</span> already exists in{" "}
-            <span className="font-mono text-fg">{remoteDir}</span>. Replace it, keep both, or skip this file?
-          </p>
-        </div>
+        <p className="text-body text-fg-secondary">
+          <span className="font-medium text-fg">{fileName}</span> already exists in{" "}
+          <span className="font-mono text-fg">{remoteDir}</span>. Replace it, keep both, or skip this file?
+        </p>
       </DialogContent>
     </Dialog>
   );

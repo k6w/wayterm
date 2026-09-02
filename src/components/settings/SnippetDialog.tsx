@@ -1,7 +1,8 @@
 import { useId, useState, type FormEvent, type KeyboardEvent } from "react";
 import { SNIPPET_VARIABLE_HINTS } from "../../lib/snippet-utils";
 import { isMac } from "../../lib/platform";
-import { Button, Dialog, DialogContent, Field, Input, Textarea, Tooltip } from "../../ui";
+import { SquareTerminal } from "lucide-react";
+import { Button, Dialog, DialogContent, FormGroup, FormRow, ICON_MD, Input, Textarea, Tooltip } from "../../ui";
 import { isDraftValid, type SnippetDraft } from "./snippets";
 
 interface SnippetDialogProps {
@@ -66,50 +67,61 @@ function SnippetForm({
       size="md"
       title={editing ? "Edit snippet" : "New snippet"}
       description="Saved commands run in the active terminal."
+      icon={<SquareTerminal {...ICON_MD} />}
+      hints={[
+        { shortcut: "Escape", label: "Cancel" },
+        { shortcut: "Mod+Enter", label: "Save" },
+      ]}
       footer={
         <>
-          <Button onClick={onCancel}>Cancel</Button>
-          <Button variant="primary" type="submit" form={formId} disabled={!valid} shortcut="Mod+Enter">
+          <Button variant="ghost" onClick={onCancel}>
+            Cancel
+          </Button>
+          <Button variant="primary" type="submit" form={formId} disabled={!valid}>
             Save
           </Button>
         </>
       }
     >
-      <form id={formId} className="flex flex-col gap-3" onSubmit={submit} onKeyDown={handleKeyDown}>
-        <Field label="Name">
-          {(control) => (
-            <Input {...control} autoFocus placeholder="Tail the app log" value={draft.name} onChange={(e) => set("name")(e.target.value)} />
-          )}
-        </Field>
-        <Field label="Category" hint="Optional. Snippets with the same category are listed together.">
-          {(control) => <Input {...control} placeholder="ops" value={draft.category} onChange={(e) => set("category")(e.target.value)} />}
-        </Field>
-        <Field label="Command">
-          {(control) => (
-            <Textarea
-              {...control}
-              rows={4}
-              code
-              placeholder="tail -f /var/log/app.log"
-              value={draft.command}
-              onChange={(e) => set("command")(e.target.value)}
-            />
-          )}
-        </Field>
-        <div className="flex flex-wrap gap-1" aria-label="Insert a variable" role="group">
-          {SNIPPET_VARIABLE_HINTS.map((hint) => (
-            <Tooltip key={hint.variable} content={hint.description}>
-              <Button
-                size="xs"
-                variant="secondary"
-                className="font-mono"
-                onClick={() => set("command")(draft.command + hint.variable)}
-              >
-                {hint.variable}
-              </Button>
-            </Tooltip>
-          ))}
-        </div>
+      <form id={formId} className="flex flex-col gap-4" onSubmit={submit} onKeyDown={handleKeyDown}>
+        <FormGroup title="Snippet">
+          <FormRow label="Name">
+            {(control) => (
+              <Input {...control} autoFocus placeholder="Tail the app log" value={draft.name} onChange={(e) => set("name")(e.target.value)} />
+            )}
+          </FormRow>
+          <FormRow label="Category" hint="Optional. Snippets with the same category are listed together.">
+            {(control) => <Input {...control} placeholder="ops" value={draft.category} onChange={(e) => set("category")(e.target.value)} />}
+          </FormRow>
+          <FormRow label="Command" width="full">
+            {(control) => (
+              <Textarea
+                {...control}
+                rows={4}
+                code
+                placeholder="tail -f /var/log/app.log"
+                value={draft.command}
+                onChange={(e) => set("command")(e.target.value)}
+              />
+            )}
+          </FormRow>
+          <FormRow label="Insert variable" width="full">
+            <div className="flex flex-wrap gap-1" aria-label="Insert a variable" role="group">
+              {SNIPPET_VARIABLE_HINTS.map((hint) => (
+                <Tooltip key={hint.variable} content={hint.description}>
+                  <Button
+                    size="xs"
+                    variant="secondary"
+                    className="font-mono"
+                    onClick={() => set("command")(draft.command + hint.variable)}
+                  >
+                    {hint.variable}
+                  </Button>
+                </Tooltip>
+              ))}
+            </div>
+          </FormRow>
+        </FormGroup>
       </form>
     </DialogContent>
   );
