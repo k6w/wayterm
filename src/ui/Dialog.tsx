@@ -23,7 +23,7 @@ const PLACEMENT = {
 
 const SURFACE = {
   solid: "animate-nx-fade-in rounded-lg bg-panel shadow-popover",
-  glass: "animate-nx-palette-in rounded-xl bg-panel-glass nx-blur shadow-palette",
+  glass: "animate-nx-palette-in rounded-xl bg-dialog-glass nx-blur shadow-palette",
 } as const;
 
 /** Tint of the header icon tile: the dialog's purpose. */

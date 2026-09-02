@@ -69,8 +69,9 @@ describe("applyAppearanceToDom", () => {
     // jsdom is not macOS, so vibrancyAlpha(0.8) is 0.8 and overlays get 0.8 * 0.85.
     applyAppearanceToDom(appearance({ vibrancyEnabled: true, windowOpacity: 0.8 }), graphite);
     expect(css("--nx-glass-canvas")).toBe("rgba(15, 16, 18, 0.8)");
-    expect(css("--nx-glass-panel")).toBe("rgba(21, 22, 24, 0.8)");
-    expect(css("--nx-glass-raised")).toBe("rgba(28, 29, 32, 0.68)");
+    // chrome is floored for readability, so it is at least as opaque as the slider
+    expect(css("--nx-glass-panel")).toMatch(/^rgba\(21, 22, 24, 0\.(8|9\d*)\)$/);
+    expect(css("--nx-glass-raised")).toMatch(/^rgba\(28, 29, 32, 0\.\d+\)$/);
     expect(document.documentElement.getAttribute("data-vibrancy")).toBe("on");
   });
 
@@ -94,5 +95,19 @@ describe("applyAppearanceToDom", () => {
     applyAppearanceToDom(appearance({ compactMode: true }), graphite);
     expect(document.documentElement.hasAttribute("data-density")).toBe(false);
     expect(document.documentElement.hasAttribute("data-compact")).toBe(false);
+  });
+});
+
+describe("glass floors", () => {
+  it("keeps chrome and overlays readable at very low window opacity", () => {
+    applyAppearanceToDom(appearance({ vibrancyEnabled: true, windowOpacity: 0.1 }), paper);
+    const alpha = (name: string) => Number(/,\s*([\d.]+)\)$/.exec(css(name))?.[1] ?? 1);
+    expect(alpha("--nx-glass-panel")).toBeGreaterThanOrEqual(0.72);
+    expect(alpha("--nx-glass-tab-bar")).toBeGreaterThanOrEqual(0.72);
+    expect(alpha("--nx-glass-status-bar")).toBeGreaterThanOrEqual(0.72);
+    expect(alpha("--nx-glass-raised")).toBeGreaterThanOrEqual(0.85);
+    expect(alpha("--nx-glass-dialog")).toBeGreaterThanOrEqual(0.85);
+    // the canvas behind the terminal still follows the slider
+    expect(alpha("--nx-glass-canvas")).toBeCloseTo(0.1, 5);
   });
 });

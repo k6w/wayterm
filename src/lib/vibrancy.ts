@@ -5,13 +5,15 @@ import { setVibrancy } from "./ipc";
 
 export const clamp01 = (n: number) => (Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : 1);
 
-/** Pushes the vibrancy toggle, tint opacity and blur strength to the native window. */
+/** Pushes the vibrancy toggle, tint opacity, blur strength and
+ * whether the theme is dark (light themes get a light native material) to the native window. */
 export function syncVibrancy({
   vibrancyEnabled,
   windowOpacity,
   blurIntensity,
 }: Pick<AppearanceSettings, "vibrancyEnabled" | "windowOpacity" | "blurIntensity">) {
-  const [r, g, b] = hexToRgb(useThemeStore.getState().active.ui.bgPrimary);
+  const active = useThemeStore.getState().active;
+  const [r, g, b] = hexToRgb(active.ui.bgPrimary);
   const a = Math.round(windowOpacity * 255);
-  setVibrancy(vibrancyEnabled, r, g, b, a, clamp01(blurIntensity)).catch(() => {});
+  setVibrancy(vibrancyEnabled, r, g, b, a, clamp01(blurIntensity), active.variant === "dark").catch(() => {});
 }

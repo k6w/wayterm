@@ -17,6 +17,17 @@ function openSettings() {
   act(() => useTerminalStore.setState({ settingsOpen: true }));
 }
 
+describe("SettingsView surface", () => {
+  it("is opaque and unblurred so content behind never shows through at any blur setting", () => {
+    render(<SettingsView />);
+    openSettings();
+    const root = screen.getByRole("region", { name: "Settings" });
+    expect(root).toHaveClass("bg-canvas");
+    expect(root).not.toHaveClass("nx-blur");
+    expect(root.className).not.toMatch(/glass/);
+  });
+});
+
 describe("SettingsView scrolling", () => {
   it("reserves the scrollbar gutter so short and long panels share one left edge", () => {
     render(<SettingsView />);

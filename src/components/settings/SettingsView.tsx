@@ -96,9 +96,9 @@ function SettingsSurface({ activePanel, onSelectPanel, onClose }: SettingsSurfac
   return (
     <section
       aria-label="Settings"
-      className="absolute inset-0 z-[var(--z-modal)] flex animate-nx-fade-in bg-canvas-glass nx-blur"
+      className="absolute inset-0 z-[var(--z-modal)] flex animate-nx-fade-in bg-canvas"
     >
-      <div className="flex w-[232px] shrink-0 flex-col border-r border-border bg-panel-glass">
+      <div className="flex w-[232px] shrink-0 flex-col border-r border-border bg-panel">
         <div className="flex flex-col gap-3 px-3 pb-2 pt-3">
           <h1 className="px-1 text-title font-semibold text-fg">Settings</h1>
           <div

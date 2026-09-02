@@ -44,8 +44,9 @@ export async function setVibrancy(
   b = 0,
   a = 0,
   blur = 1,
+  dark = true,
 ): Promise<void> {
-  return invoke("set_vibrancy", { enabled, r, g, b, a, blur });
+  return invoke("set_vibrancy", { enabled, r, g, b, a, blur, dark });
 }
 
 export async function setTrafficLightScale(scale: number): Promise<void> {

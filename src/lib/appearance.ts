@@ -3,6 +3,7 @@ import type { ThemeDefinition } from "../types/theme";
 import { hexToRgba } from "./color";
 import { clamp01 } from "./vibrancy";
 import { vibrancyAlpha } from "./platform";
+import { chromeAlpha, overlayAlpha } from "./glass";
 
 const HEX6 = /^#[0-9a-fA-F]{6}$/;
 
@@ -34,14 +35,19 @@ export function applyAppearanceToDom(a: AppearanceSettings, theme: ThemeDefiniti
 
   // Glass surfaces: translucent only while vibrancy is on. Backdrop blur is
   // keyed off data-vibrancy (see .nx-blur in styles.css).
-  const surfaceAlpha = a.vibrancyEnabled ? vibrancyAlpha(a.windowOpacity) : 1;
-  const overlayAlpha = a.vibrancyEnabled ? vibrancyAlpha(a.windowOpacity) * 0.85 : 1;
+  // The canvas sits behind the terminal, so it follows the window opacity
+  // freely. Surfaces that carry text never drop below a readable floor
+  // (src/lib/glass.ts), whatever the opacity slider says.
+  const userAlpha = a.vibrancyEnabled ? vibrancyAlpha(a.windowOpacity) : 1;
+  const chrome = a.vibrancyEnabled ? chromeAlpha(theme, userAlpha) : 1;
+  const overlay = a.vibrancyEnabled ? overlayAlpha(theme, userAlpha) : 1;
   const glass = (color: string, alpha: number) => (alpha >= 1 ? color : hexToRgba(color, alpha));
-  root.style.setProperty("--nx-glass-canvas", glass(c.canvas, surfaceAlpha));
-  root.style.setProperty("--nx-glass-panel", glass(c.panel, surfaceAlpha));
-  root.style.setProperty("--nx-glass-tab-bar", glass(c.tabBar, surfaceAlpha));
-  root.style.setProperty("--nx-glass-status-bar", glass(c.statusBar, surfaceAlpha));
-  root.style.setProperty("--nx-glass-raised", glass(c.raised, overlayAlpha));
+  root.style.setProperty("--nx-glass-canvas", glass(c.canvas, userAlpha));
+  root.style.setProperty("--nx-glass-panel", glass(c.panel, chrome));
+  root.style.setProperty("--nx-glass-tab-bar", glass(c.tabBar, chrome));
+  root.style.setProperty("--nx-glass-status-bar", glass(c.statusBar, chrome));
+  root.style.setProperty("--nx-glass-raised", glass(c.raised, overlay));
+  root.style.setProperty("--nx-glass-dialog", glass(c.panel, overlay));
   if (a.vibrancyEnabled) root.setAttribute("data-vibrancy", "on");
   else root.removeAttribute("data-vibrancy");
 

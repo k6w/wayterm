@@ -209,18 +209,43 @@ pub fn blur_level(intensity: f64) -> BlurLevel {
     }
 }
 
+/// NSVisualEffectView material for a blur level. HUDWindow is dark whatever the
+/// appearance, so light themes use Popover for the heaviest tier; the other
+/// materials follow the view's (light or dark) appearance.
+#[cfg_attr(not(target_os = "macos"), allow(dead_code))]
+pub fn material_for(level: BlurLevel, dark: bool) -> i64 {
+    match (level, dark) {
+        (BlurLevel::Light, _) => 12,      // WindowBackground
+        (BlurLevel::Medium, _) => 7,      // Sidebar
+        (_, true) => 13,                  // HUDWindow
+        (_, false) => 6,                  // Popover
+    }
+}
+
+/// `dark` is the active theme's variant: the native material must follow it, or
+/// light-theme text ends up on dark glass.
 #[tauri::command]
-pub fn set_vibrancy(window: WebviewWindow, enabled: bool, r: u8, g: u8, b: u8, a: u8, blur: Option<f64>) {
+#[allow(clippy::too_many_arguments)] // Tauri command args mirror the JS payload
+pub fn set_vibrancy(
+    window: WebviewWindow,
+    enabled: bool,
+    r: u8,
+    g: u8,
+    b: u8,
+    a: u8,
+    blur: Option<f64>,
+    dark: Option<bool>,
+) {
     let level = blur_level(blur.unwrap_or(1.0));
     if enabled && level != BlurLevel::None {
-        apply_effects(&window, r, g, b, a, level);
+        apply_effects(&window, r, g, b, a, level, dark.unwrap_or(true));
     } else {
         clear_effects(&window);
     }
 }
 
 #[cfg(target_os = "windows")]
-fn apply_effects(window: &WebviewWindow, r: u8, g: u8, b: u8, a: u8, _level: BlurLevel) {
+fn apply_effects(window: &WebviewWindow, r: u8, g: u8, b: u8, a: u8, _level: BlurLevel, _dark: bool) {
     let _ = window_vibrancy::apply_acrylic(window, Some((r, g, b, a)));
 }
 
@@ -251,10 +276,10 @@ fn remove_vibrancy_views(content_view: cocoa::base::id) {
 
 #[cfg(target_os = "macos")]
 #[allow(deprecated)]
-fn apply_effects(window: &WebviewWindow, _r: u8, _g: u8, _b: u8, _a: u8, level: BlurLevel) {
+fn apply_effects(window: &WebviewWindow, _r: u8, _g: u8, _b: u8, _a: u8, level: BlurLevel, dark: bool) {
     use cocoa::appkit::{NSColor, NSWindow};
     use cocoa::base::{id, nil};
-    use cocoa::foundation::NSRect;
+    use cocoa::foundation::{NSRect, NSString};
     use objc::runtime::NO;
     use objc::{class, msg_send, sel, sel_impl};
 
@@ -270,11 +295,16 @@ fn apply_effects(window: &WebviewWindow, _r: u8, _g: u8, _b: u8, _a: u8, level: 
         let cls = class!(NSVisualEffectView);
         let effect_view: id = msg_send![cls, alloc];
         let effect_view: id = msg_send![effect_view, initWithFrame: bounds];
-        let material: i64 = match level {
-            BlurLevel::Light => 12,  // WindowBackground
-            BlurLevel::Medium => 7,  // Sidebar
-            _ => 13,                 // HUDWindow
-        };
+        let material = material_for(level, dark);
+        // Pin the view's appearance to the theme so the material is light for
+        // light themes whatever the system appearance is.
+        let name = NSString::alloc(nil).init_str(if dark {
+            "NSAppearanceNameDarkAqua"
+        } else {
+            "NSAppearanceNameAqua"
+        });
+        let appearance: id = msg_send![class!(NSAppearance), appearanceNamed: name];
+        let _: () = msg_send![effect_view, setAppearance: appearance];
         let _: () = msg_send![effect_view, setMaterial: material];
         let _: () = msg_send![effect_view, setState: 1_i64];
         let _: () = msg_send![effect_view, setBlendingMode: 0_i64];
@@ -306,7 +336,7 @@ fn clear_effects(window: &WebviewWindow) {
 }
 
 #[cfg(target_os = "linux")]
-fn apply_effects(window: &WebviewWindow, r: u8, g: u8, b: u8, a: u8, _level: BlurLevel) {
+fn apply_effects(window: &WebviewWindow, r: u8, g: u8, b: u8, a: u8, _level: BlurLevel, _dark: bool) {
     let _ = window_vibrancy::apply_blur(window, Some((r, g, b, a)));
 }
 
@@ -316,7 +346,16 @@ fn clear_effects(window: &WebviewWindow) {
 }
 
 #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
-fn apply_effects(_window: &WebviewWindow, _r: u8, _g: u8, _b: u8, _a: u8, _level: BlurLevel) {}
+fn apply_effects(
+    _window: &WebviewWindow,
+    _r: u8,
+    _g: u8,
+    _b: u8,
+    _a: u8,
+    _level: BlurLevel,
+    _dark: bool,
+) {
+}
 
 #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
 fn clear_effects(_window: &WebviewWindow) {}
@@ -333,6 +372,15 @@ mod tests {
         assert_eq!(blur_level(0.5), BlurLevel::Medium);
         assert_eq!(blur_level(0.9), BlurLevel::Heavy);
         assert_eq!(blur_level(1.0), BlurLevel::Heavy);
+    }
+
+    #[test]
+    fn light_themes_never_get_the_always_dark_hud_material() {
+        for level in [BlurLevel::Light, BlurLevel::Medium, BlurLevel::Heavy] {
+            assert_ne!(material_for(level, false), 13);
+        }
+        assert_eq!(material_for(BlurLevel::Heavy, true), 13);
+        assert_eq!(material_for(BlurLevel::Heavy, false), 6);
     }
 
     #[test]

@@ -24,6 +24,7 @@
   --color-canvas-glass: var(--nx-glass-canvas);
   --color-panel-glass: var(--nx-glass-panel);
   --color-raised-glass: var(--nx-glass-raised);
+  --color-dialog-glass: var(--nx-glass-dialog);
   --color-tabbar-glass: var(--nx-glass-tab-bar);
   --color-statusbar-glass: var(--nx-glass-status-bar);
 
@@ -156,6 +157,7 @@
   --nx-glass-canvas: var(--nx-canvas);
   --nx-glass-panel: var(--nx-panel);
   --nx-glass-raised: var(--nx-raised);
+  --nx-glass-dialog: var(--nx-panel);
   --nx-glass-tab-bar: var(--nx-tab-bar);
   --nx-glass-status-bar: var(--nx-status-bar);
 }
