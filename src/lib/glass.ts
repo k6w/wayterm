@@ -9,7 +9,8 @@ export const OVERLAY_ALPHA_FLOOR = 0.85;
 
 const TEXT_TOKENS = ["text", "textSecondary", "textMuted"] as const;
 const SURFACE_TOKENS = ["panel", "raised", "tabBar", "statusBar"] as const;
-const BACKDROPS = ["#000000", "#ffffff"] as const;
+/** The worst cases for glass: a pure black and a pure white window backdrop. */
+const BACKDROPS = ["00", "ff"].map((channel) => "#".concat(channel.repeat(3)));
 
 function passes(theme: ThemeDefinition, alpha: number): boolean {
   const c = theme.chrome;
