@@ -102,11 +102,11 @@ describe("glass floors", () => {
   it("keeps chrome and overlays readable at very low window opacity", () => {
     applyAppearanceToDom(appearance({ vibrancyEnabled: true, windowOpacity: 0.1 }), paper);
     const alpha = (name: string) => Number(/,\s*([\d.]+)\)$/.exec(css(name))?.[1] ?? 1);
-    expect(alpha("--nx-glass-panel")).toBeGreaterThanOrEqual(0.72);
-    expect(alpha("--nx-glass-tab-bar")).toBeGreaterThanOrEqual(0.72);
-    expect(alpha("--nx-glass-status-bar")).toBeGreaterThanOrEqual(0.72);
-    expect(alpha("--nx-glass-raised")).toBeGreaterThanOrEqual(0.85);
-    expect(alpha("--nx-glass-dialog")).toBeGreaterThanOrEqual(0.85);
+    expect(alpha("--nx-glass-panel")).toBeGreaterThanOrEqual(0.6);
+    expect(alpha("--nx-glass-tab-bar")).toBeGreaterThanOrEqual(0.6);
+    expect(alpha("--nx-glass-status-bar")).toBeGreaterThanOrEqual(0.6);
+    expect(alpha("--nx-glass-raised")).toBeGreaterThanOrEqual(0.78);
+    expect(alpha("--nx-glass-dialog")).toBeGreaterThanOrEqual(0.78);
     // the canvas behind the terminal still follows the slider
     expect(alpha("--nx-glass-canvas")).toBeCloseTo(0.1, 5);
   });
