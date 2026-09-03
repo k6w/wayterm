@@ -9,16 +9,19 @@ interface PaneControlsProps {
 }
 
 /**
- * Detach / close buttons in the top-right corner of a split pane. Hidden until
- * the pane (PaneFrame's group/pane) is hovered or focused, on a solid chip so
- * they stay legible over terminal text. They reserve no layout.
+ * Detach / close buttons in the top-right corner of a split pane, floating in
+ * the strip TerminalPane reserves above the first terminal row (so no text is
+ * ever under them). Shown only while the pane (PaneFrame's group/pane) is
+ * hovered or keyboard focus is inside the controls themselves. Pane focus must
+ * not latch them: terminal focus stays in the pane after the pointer leaves.
  */
 export default function PaneControls({ searchOpen, onDetach, onClose }: PaneControlsProps) {
+  // The search bar covers the top edge while open; nothing to show over it.
+  if (searchOpen) return null;
   return (
     <div
       data-testid="pane-controls"
-      data-below-search={searchOpen || undefined}
-      className={`absolute right-5 z-10 flex items-center gap-0.5 rounded-md border border-border bg-raised p-0.5 opacity-0 shadow-popover transition-opacity duration-150 focus-within:opacity-100 group-focus-within/pane:opacity-100 group-hover/pane:opacity-100 ${searchOpen ? "top-11" : "top-2"}`}
+      className="absolute right-5 z-10 flex items-center gap-0.5 rounded-md border border-border bg-raised p-0.5 opacity-0 shadow-popover transition-opacity duration-150 focus-within:opacity-100 group-hover/pane:opacity-100 top-0.5"
       onMouseDown={(e) => e.stopPropagation()}
     >
       <IconButton

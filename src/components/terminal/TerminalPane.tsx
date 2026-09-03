@@ -876,10 +876,9 @@ export default function TerminalPane({
   const [sshOverlay, setSshOverlay] = useState(() => !!sshInfo && !getCachedTerminal(paneId));
   const [sshStep, setSshStep] = useState<string>(() => sshInfo && !getCachedTerminal(paneId) ? "Resolving host..." : "");
 
-  const [hovered, setHovered] = useState(false);
 
   const showDropZone = draggingTabId !== null && dragOverPaneId === paneId;
-  const showCloseBtn = paneCount > 1 && (isActive || hovered);
+  const showCloseBtn = paneCount > 1;
 
   // Focus is shown by the PaneFrame around this pane (unfocused panes are
   // dimmed), so the pane itself has no border.
@@ -902,8 +901,6 @@ export default function TerminalPane({
           termRef.current?.focus();
         });
       }}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
     >
       {showSearch && searchAddonRef.current && (
         <SearchBar
@@ -915,7 +912,7 @@ export default function TerminalPane({
 
       <div
         ref={containerRef}
-        className="h-full w-full bg-(--nx-dyn-bg) pt-1.5 pr-1 pl-1.5"
+        className={`h-full w-full bg-(--nx-dyn-bg) pr-1 pl-1.5 ${showCloseBtn ? "pt-7" : "pt-1.5"}`}
         style={{ "--nx-dyn-bg": terminalTint } as CSSProperties}
       />
 

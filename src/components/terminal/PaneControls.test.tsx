@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import PaneControls from "./PaneControls";
-import { SearchBar } from "../search/SearchBar";
 
 describe("PaneControls", () => {
   it("renders detach then close, both clickable", async () => {
@@ -18,33 +17,24 @@ describe("PaneControls", () => {
     expect(onClose).toHaveBeenCalled();
   });
 
-  it("is hidden until the pane is hovered or focused, on a solid chip", () => {
+  it("is hidden until the pane is hovered, on a solid chip, and never latched by pane focus", () => {
     render(<PaneControls searchOpen={false} onDetach={vi.fn()} onClose={vi.fn()} />);
     const group = screen.getByTestId("pane-controls");
-    expect(group).toHaveClass("opacity-0", "group-hover/pane:opacity-100", "group-focus-within/pane:opacity-100");
-    expect(group).toHaveClass("focus-within:opacity-100", "bg-raised", "absolute");
+    expect(group).toHaveClass("opacity-0", "group-hover/pane:opacity-100", "focus-within:opacity-100");
+    expect(group).toHaveClass("bg-raised", "absolute");
+    // Terminal focus stays in the pane after the pointer leaves; it must not keep the chip shown.
+    expect(group.className).not.toContain("group-focus-within/pane");
   });
 
-  it("sits at the top edge when search is closed and below the search bar when open", () => {
-    const { rerender } = render(<PaneControls searchOpen={false} onDetach={vi.fn()} onClose={vi.fn()} />);
+  it("sits in the reserved top strip, clear of the first terminal row", () => {
+    render(<PaneControls searchOpen={false} onDetach={vi.fn()} onClose={vi.fn()} />);
     const group = screen.getByTestId("pane-controls");
-    expect(group).toHaveClass("top-2");
-    expect(group).not.toHaveAttribute("data-below-search");
-    rerender(<PaneControls searchOpen onDetach={vi.fn()} onClose={vi.fn()} />);
-    expect(group).toHaveClass("top-11");
+    expect(group).toHaveClass("top-0.5");
     expect(group).not.toHaveClass("top-2");
-    expect(group).toHaveAttribute("data-below-search");
   });
 
-  it("is offset by at least the search bar height (h-9)", () => {
-    render(
-      <>
-        <SearchBar terminalId="p" searchAddon={null} onClose={vi.fn()} />
-        <PaneControls searchOpen onDetach={vi.fn()} onClose={vi.fn()} />
-      </>
-    );
-    expect(screen.getByRole("search")).toHaveClass("h-9");
-    // top-11 (44px) clears h-9 (36px) plus a gap.
-    expect(screen.getByTestId("pane-controls")).toHaveClass("top-11");
+  it("is not rendered while the search bar covers the top edge", () => {
+    render(<PaneControls searchOpen onDetach={vi.fn()} onClose={vi.fn()} />);
+    expect(screen.queryByTestId("pane-controls")).toBeNull();
   });
 });
