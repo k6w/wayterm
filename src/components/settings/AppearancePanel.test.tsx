@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { invoke } from "@tauri-apps/api/core";
 import AppearancePanel from "./AppearancePanel";
@@ -102,18 +102,35 @@ describe("AppearancePanel", () => {
     expect(invoke).toHaveBeenCalledWith("settings_set", { key: "appearance.density", value: "comfortable" });
   });
 
-  it("applies the UI scale only on Apply", async () => {
+  it("applies the UI scale only on Apply, with one percent readout and no number box", async () => {
     const user = userEvent.setup();
     render(<AppearancePanel />);
-    const value = screen.getByRole("spinbutton", { name: "UI scale value" });
-    fireEvent.change(value, { target: { value: "1.25" } });
+    expect(screen.queryByRole("spinbutton", { name: "UI scale value" })).not.toBeInTheDocument();
+    const slider = screen.getByRole("slider", { name: "UI scale" });
+    expect(slider).toHaveAttribute("aria-valuetext", "100%");
+    slider.focus();
+    await user.keyboard("{ArrowRight}");
+    expect(slider).toHaveAttribute("aria-valuetext", "105%");
     expect(appearance().uiScale).toBe(1);
     await user.click(screen.getByRole("button", { name: "Revert" }));
-    expect(value).toHaveValue(1);
-    fireEvent.change(value, { target: { value: "3" } });
+    expect(slider).toHaveAttribute("aria-valuetext", "100%");
+    slider.focus();
+    await user.keyboard("{End}");
     await user.click(screen.getByRole("button", { name: "Apply" }));
     expect(appearance().uiScale).toBe(2);
     expect(screen.queryByRole("button", { name: "Apply" })).not.toBeInTheDocument();
+  });
+
+  it("shows window opacity as a percent like blur intensity", () => {
+    render(<AppearancePanel />);
+    expect(screen.getByRole("slider", { name: "Window opacity" })).toHaveAttribute("aria-valuetext", "100%");
+  });
+
+  it("gives long font values the full row", () => {
+    render(<AppearancePanel />);
+    const input = screen.getByRole("textbox", { name: "Terminal font family" });
+    expect(input.className).not.toMatch(/\bw-56\b/);
+    expect(input.closest("[data-setting]")).toHaveClass("flex-col");
   });
 
   it("keeps the opacity and blur sliders disabled until vibrancy is on", async () => {

@@ -407,7 +407,7 @@ function ConnectionForm({ onClose, onSave, editConnection }: ConnectionFormProps
                   />
                 </div>
               ))}
-              <div className="flex items-center gap-2">
+              <div data-testid="env-add" className="grid grid-cols-2 gap-2">
                 <Input
                   aria-label="Variable name"
                   code
@@ -424,14 +424,17 @@ function ConnectionForm({ onClose, onSave, editConnection }: ConnectionFormProps
                   onKeyDown={onEnvKeyDown}
                   placeholder="value"
                 />
-                <IconButton
-                  label="Add variable"
-                  size="md"
-                  icon={<Plus {...ICON_SM} />}
-                  disabled={!newEnvKey.trim()}
-                  onClick={addEnvVar}
-                />
               </div>
+              <Button
+                size="sm"
+                variant="secondary"
+                className="self-end"
+                disabled={!newEnvKey.trim()}
+                onClick={addEnvVar}
+              >
+                <Plus {...ICON_SM} aria-hidden />
+                Add variable
+              </Button>
             </div>
           </FormRow>
         </FormDisclosure>

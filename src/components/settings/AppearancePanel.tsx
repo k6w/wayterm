@@ -56,37 +56,27 @@ const FONT_WEIGHT_OPTIONS = [100, 200, 300, 400, 500, 600, 700, 800, 900].map((w
 
 const clampScale = (v: number) => Math.min(2, Math.max(0.5, Math.round(v * 100) / 100));
 
+const percent = (v: number) => `${Math.round(v * 100)}%`;
+
 /**
  * UI scale is applied on demand (like a game's video settings) rather than
- * live while dragging, and accepts a typed value. Remount it with
- * key={value} so the pending value follows outside changes.
+ * live while dragging. Remount it with key={value} so the pending value
+ * follows outside changes.
  */
 function UiScaleControl({ value, onApply }: { value: number; onApply: (v: number) => void }) {
   const [pending, setPending] = useState(value);
   const dirty = Math.abs(pending - value) > 0.001;
   return (
     <div className="flex flex-col items-end gap-2">
-      <div className="flex items-center gap-2">
-        <Slider
-          aria-label="UI scale"
-          value={pending}
-          min={0.5}
-          max={2}
-          step={0.05}
-          format={(v) => `${v.toFixed(2)}x`}
-          onValueChange={setPending}
-        />
-        <Input
-          type="number"
-          aria-label="UI scale value"
-          min={0.5}
-          max={2}
-          step={0.05}
-          value={pending}
-          onChange={(e) => setPending(clampScale(Number(e.target.value)))}
-          className="w-20 tabular-nums"
-        />
-      </div>
+      <Slider
+        aria-label="UI scale"
+        value={pending}
+        min={0.5}
+        max={2}
+        step={0.05}
+        format={percent}
+        onValueChange={(v) => setPending(clampScale(v))}
+      />
       {dirty && (
         <div className="flex items-center gap-2">
           <Button size="sm" variant="ghost" onClick={() => setPending(value)}>
@@ -203,14 +193,14 @@ export default function AppearancePanel() {
 
       <Section title="Font">
         <SettingsCard>
-          <SettingRow label="Terminal font family" description={fontWarning ?? "Use a monospace font"}>
+          <SettingRow label="Terminal font family" description={fontWarning ?? "Use a monospace font"} stacked>
             {(control) => (
               <Input
                 {...control}
                 value={settings.terminalFontFamily}
                 invalid={fontWarning !== null}
                 onChange={(e) => update("appearance", { terminalFontFamily: e.target.value })}
-                className="w-56 font-mono"
+                className="font-mono"
               />
             )}
           </SettingRow>
@@ -251,13 +241,12 @@ export default function AppearancePanel() {
 
       <Section title="Interface">
         <SettingsCard>
-          <SettingRow label="UI font family">
+          <SettingRow label="UI font family" stacked>
             {(control) => (
               <Input
                 {...control}
                 value={settings.uiFontFamily}
                 onChange={(e) => update("appearance", { uiFontFamily: e.target.value })}
-                className="w-56"
               />
             )}
           </SettingRow>
@@ -341,7 +330,7 @@ export default function AppearancePanel() {
               max={1}
               step={0.01}
               disabled={!settings.vibrancyEnabled}
-              format={(v) => v.toFixed(2)}
+              format={percent}
               onValueChange={(v) => update("appearance", { windowOpacity: v })}
             />
           </SettingRow>
@@ -353,7 +342,7 @@ export default function AppearancePanel() {
               max={1}
               step={0.05}
               disabled={!settings.vibrancyEnabled}
-              format={(v) => `${Math.round(v * 100)}%`}
+              format={percent}
               onValueChange={(v) => update("appearance", { blurIntensity: v })}
             />
           </SettingRow>

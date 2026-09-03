@@ -65,6 +65,16 @@ describe("ConnectionDialog", () => {
     expect(standard).toHaveClass("h-control");
   });
 
+  it("lets the environment variable fields span the full row, with Add below", async () => {
+    const { user } = renderDialog();
+    await user.click(await screen.findByRole("button", { name: /Advanced/ }));
+    const row = screen.getByTestId("env-add");
+    expect(row).toHaveClass("grid", "grid-cols-2");
+    expect(row).toContainElement(screen.getByRole("textbox", { name: "Variable name" }));
+    expect(row).toContainElement(screen.getByRole("textbox", { name: "Variable value" }));
+    expect(row).not.toContainElement(screen.getByRole("button", { name: "Add variable" }));
+  });
+
   it("keeps Advanced collapsed until it is expanded", async () => {
     const { user } = renderDialog();
     const toggle = await screen.findByRole("button", { name: /Advanced/ });
