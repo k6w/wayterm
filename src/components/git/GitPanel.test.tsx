@@ -182,4 +182,12 @@ describe("GitPanel", () => {
     expect(screen.getByText("Working tree clean")).toBeInTheDocument();
     expect(screen.getByTestId("git-clean-branch")).toHaveTextContent("main");
   });
+
+  it("gives the header branch the remaining width instead of a spacer", () => {
+    useGitStore.setState({ currentBranch: "redesign/phase-5-settings", status: { ...STATUS, branch: "redesign/phase-5-settings" } });
+    render(<GitPanel />);
+    const toolbar = screen.getByRole("toolbar", { name: "Repository actions" });
+    const branch = within(toolbar).getByText("redesign/phase-5-settings").parentElement as HTMLElement;
+    expect(branch).toHaveClass("flex-1", "min-w-0", "whitespace-nowrap");
+  });
 });

@@ -13,7 +13,6 @@ import {
   Textarea,
   Toolbar,
   ToolbarButton,
-  ToolbarSpacer,
 } from "../../ui";
 import { PanelGroup } from "../sidebar/PanelChrome";
 import { CHANGE_CODES, changeGroups, type ChangeRow } from "./git-changes";
@@ -87,8 +86,7 @@ export default function GitChanges({
     <div className="flex flex-col gap-2">
       <Toolbar aria-label="Repository actions" className="h-7 gap-1 pl-2">
         <GitBranch {...ICON_SM} aria-hidden className="shrink-0 text-fg-muted" />
-        <MiddleTruncate text={branch || "main"} className="text-label font-medium text-fg" />
-        <ToolbarSpacer />
+        <MiddleTruncate text={branch || "main"} className="flex-1 text-label font-medium text-fg" />
         <ToolbarButton>
           <IconButton label="View diff" icon={<FileDiff {...ICON_SM} />} onClick={() => onShowDiff()} />
         </ToolbarButton>
