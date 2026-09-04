@@ -122,3 +122,21 @@ describe("StatusBar theme picker", () => {
     expect(invoke).toHaveBeenCalledWith("settings_set", { key: "appearance.themeId", value: "ember" });
   });
 });
+
+describe("StatusBar git branch", () => {
+  it("renders a long branch on one line, middle-truncated, capped in width", async () => {
+    const { useGitStore } = await import("../../stores/git");
+    useTerminalStore.setState({
+      panes: { p1: { id: "p1", sessionId: "s1", isActive: true, cwd: "/repo", shellType: "zsh", shellPath: "/bin/zsh" } },
+    });
+    useGitStore.setState({
+      status: { branch: "x", ahead: 0, behind: 0, staged: [], modified: [], added: [], deleted: [], untracked: [], conflicted: 0, stashes: 0 },
+      currentBranch: "redesign/phase-5-settings",
+      fetchStatus: vi.fn(async () => true),
+    });
+    render(<StatusBar />);
+    const label = screen.getByText("redesign/phase-5-settings");
+    expect(label.parentElement).toHaveClass("whitespace-nowrap", "min-w-0", "max-w-48");
+    expect(label.closest("[data-git-branch]")).toHaveClass("whitespace-nowrap", "shrink-0");
+  });
+});
