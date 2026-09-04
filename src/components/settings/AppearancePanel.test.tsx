@@ -156,19 +156,50 @@ describe("AppearancePanel", () => {
 });
 
 describe("AppearancePanel blur intensity", () => {
-  it("shows a percentage, updates live and persists the value", async () => {
+  const blurWrites = () =>
+    vi.mocked(invoke).mock.calls.filter(
+      ([cmd, args]) => cmd === "settings_set" && (args as { key: string }).key === "appearance.blurIntensity"
+    );
+
+  it("keeps one 0..1 scale: slider bounds, store value and a single percent readout", async () => {
     const user = userEvent.setup();
     render(<AppearancePanel />);
     await user.click(screen.getByRole("switch", { name: "Vibrancy" }));
     const slider = screen.getByRole("slider", { name: "Blur intensity" });
+    expect(slider).toHaveAttribute("aria-valuemin", "0");
+    expect(slider).toHaveAttribute("aria-valuemax", "1");
+    expect(slider).toHaveAttribute("aria-valuenow", "1");
     expect(slider).toHaveAttribute("aria-valuetext", "100%");
+    expect(screen.getAllByText("100%").length).toBeGreaterThan(0);
+  });
+
+  it("arrow keys step 5% and the readout follows every step", async () => {
+    const user = userEvent.setup();
+    render(<AppearancePanel />);
+    await user.click(screen.getByRole("switch", { name: "Vibrancy" }));
+    const slider = screen.getByRole("slider", { name: "Blur intensity" });
     slider.focus();
-    await user.keyboard("{ArrowLeft}");
-    await waitFor(() => expect(appearance().blurIntensity).toBeCloseTo(0.95));
-    expect(slider).toHaveAttribute("aria-valuetext", "95%");
-    expect(invoke).toHaveBeenCalledWith(
-      "settings_set",
-      expect.objectContaining({ key: "appearance.blurIntensity" })
-    );
+    for (const expected of [95, 90, 85]) {
+      await user.keyboard("{ArrowLeft}");
+      expect(appearance().blurIntensity).toBeCloseTo(expected / 100);
+      expect(slider).toHaveAttribute("aria-valuetext", `${expected}%`);
+      expect(screen.getByText(`${expected}%`)).toBeInTheDocument();
+    }
+    await user.keyboard("{ArrowRight}");
+    expect(slider).toHaveAttribute("aria-valuetext", "90%");
+  });
+
+  it("updates the store live but persists once, after the value settles", async () => {
+    const user = userEvent.setup();
+    render(<AppearancePanel />);
+    await user.click(screen.getByRole("switch", { name: "Vibrancy" }));
+    vi.mocked(invoke).mockClear();
+    const slider = screen.getByRole("slider", { name: "Blur intensity" });
+    slider.focus();
+    await user.keyboard("{ArrowLeft}{ArrowLeft}{ArrowLeft}{ArrowLeft}");
+    expect(appearance().blurIntensity).toBeCloseTo(0.8);
+    expect(blurWrites()).toHaveLength(0);
+    await waitFor(() => expect(blurWrites()).toHaveLength(1));
+    expect(blurWrites()[0][1]).toEqual({ key: "appearance.blurIntensity", value: 0.8 });
   });
 });

@@ -67,8 +67,31 @@ interface SettingsState {
     section: K,
     values: Partial<AppSettings[K]> | AppSettings[K]
   ) => Promise<void>;
+  /**
+   * Applies a change to the store at once (so the UI follows a dragged slider
+   * live) but persists it only once the value has settled for
+   * SETTLE_PERSIST_MS. Use for continuous controls.
+   */
+  updateLive: <K extends keyof AppSettings>(section: K, values: Partial<AppSettings[K]>) => void;
+  /** Writes any settled-but-unsaved live changes now (e.g. before unload). */
+  flushPending: () => Promise<void>;
   updateKeybinding: (action: string, keys: string) => Promise<void>;
   setSftpBookmarks: (bookmarks: SftpBookmark[]) => void;
+}
+
+/** Quiet time after the last live change (e.g. a slider drag) before it is persisted. */
+export const SETTLE_PERSIST_MS = 200;
+
+// Live changes waiting to be persisted, keyed by "section.field".
+const pendingWrites = new Map<string, unknown>();
+let pendingTimer: ReturnType<typeof setTimeout> | null = null;
+
+async function writePending() {
+  if (pendingTimer) clearTimeout(pendingTimer);
+  pendingTimer = null;
+  const writes = [...pendingWrites];
+  pendingWrites.clear();
+  for (const [key, value] of writes) await settingsSet(key, value);
 }
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
@@ -118,6 +141,10 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
           : values,
     };
     set({ settings: updated });
+    if (!isArraySection) {
+      // An explicit save supersedes a pending live write of the same field.
+      for (const field of Object.keys(values as object)) pendingWrites.delete(`${String(section)}.${field}`);
+    }
     if (isArraySection) {
       // Persist the whole array under the section key so it round-trips.
       await settingsSet(String(section), values);
@@ -129,6 +156,18 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       }
     }
   },
+
+  updateLive: (section, values) => {
+    const current = get().settings;
+    set({ settings: { ...current, [section]: { ...current[section], ...values } } });
+    for (const [field, value] of Object.entries(values as Record<string, unknown>)) {
+      pendingWrites.set(`${String(section)}.${field}`, value);
+    }
+    if (pendingTimer) clearTimeout(pendingTimer);
+    pendingTimer = setTimeout(() => void writePending().catch(() => {}), SETTLE_PERSIST_MS);
+  },
+
+  flushPending: () => writePending(),
 
   updateKeybinding: async (action: string, keys: string) => {
     const current = get().settings;

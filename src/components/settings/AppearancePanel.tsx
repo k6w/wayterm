@@ -94,6 +94,8 @@ function UiScaleControl({ value, onApply }: { value: number; onApply: (v: number
 export default function AppearancePanel() {
   const settings = useSettingsStore((s) => s.settings.appearance);
   const update = useSettingsStore((s) => s.update);
+  // Continuous controls: the window follows the drag live, the value is saved once it settles.
+  const updateLive = useSettingsStore((s) => s.updateLive);
   const themes = useThemeStore((s) => s.themes);
   const activeTheme = useThemeStore((s) => s.active);
   const activeThemeId = useThemeStore((s) => s.activeThemeId);
@@ -331,7 +333,7 @@ export default function AppearancePanel() {
               step={0.01}
               disabled={!settings.vibrancyEnabled}
               format={percent}
-              onValueChange={(v) => update("appearance", { windowOpacity: v })}
+              onValueChange={(v) => updateLive("appearance", { windowOpacity: v })}
             />
           </SettingRow>
           <SettingRow label="Blur intensity" description="How frosted the translucent window looks">
@@ -343,7 +345,7 @@ export default function AppearancePanel() {
               step={0.05}
               disabled={!settings.vibrancyEnabled}
               format={percent}
-              onValueChange={(v) => update("appearance", { blurIntensity: v })}
+              onValueChange={(v) => updateLive("appearance", { blurIntensity: v })}
             />
           </SettingRow>
         </SettingsCard>

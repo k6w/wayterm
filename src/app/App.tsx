@@ -65,6 +65,7 @@ function AppContent() {
     });
 
     const handleUnload = () => {
+      void useSettingsStore.getState().flushPending();
       useWorkspaceStore.getState().autoSave();
       if (useSettingsStore.getState().settings.terminal.bufferPersistence) {
         saveAllBuffers();
