@@ -186,44 +186,33 @@ fn macos_setup(window: &WebviewWindow) {
     });
 }
 
-/// Strength of the native backdrop blur. The OS exposes no blur radius, so the
-/// 0..1 "Blur intensity" setting picks one of a few materials (macOS) or, at the
-/// bottom, no native blur at all (plain translucency).
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum BlurLevel {
-    None,
-    Light,
-    Medium,
-    Heavy,
-}
-
-pub fn blur_level(intensity: f64) -> BlurLevel {
+/// Opacity of the native frosting for the 0..1 "Blur intensity" setting.
+/// NSVisualEffectView exposes no blur radius, so intensity fades one material
+/// in and out: 0 leaves the desktop sharp behind the tinted window, 1 is full
+/// frosting. Out-of-range values clamp; a missing or NaN value means full.
+pub fn effect_alpha(intensity: f64) -> f64 {
     if intensity.is_nan() {
-        return BlurLevel::Heavy;
-    }
-    match intensity.clamp(0.0, 1.0) {
-        i if i < 0.05 => BlurLevel::None,
-        i if i < 0.34 => BlurLevel::Light,
-        i if i < 0.67 => BlurLevel::Medium,
-        _ => BlurLevel::Heavy,
+        1.0
+    } else {
+        intensity.clamp(0.0, 1.0)
     }
 }
 
-/// NSVisualEffectView material for a blur level. HUDWindow is dark whatever the
-/// appearance, so light themes use Popover for the heaviest tier; the other
-/// materials follow the view's (light or dark) appearance.
+/// NSVisualEffectView material matching the theme. HUDWindow is dark whatever
+/// the appearance, so light themes use Popover, which follows the view's
+/// (pinned Aqua) appearance.
 #[cfg_attr(not(target_os = "macos"), allow(dead_code))]
-pub fn material_for(level: BlurLevel, dark: bool) -> i64 {
-    match (level, dark) {
-        (BlurLevel::Light, _) => 12,      // WindowBackground
-        (BlurLevel::Medium, _) => 7,      // Sidebar
-        (_, true) => 13,                  // HUDWindow
-        (_, false) => 6,                  // Popover
+pub fn material_for(dark: bool) -> i64 {
+    if dark {
+        13 // HUDWindow
+    } else {
+        6 // Popover
     }
 }
 
 /// `dark` is the active theme's variant: the native material must follow it, or
-/// light-theme text ends up on dark glass.
+/// light-theme text ends up on dark glass. `blur` is the 0..1 intensity; only
+/// macOS can vary it; Windows and Linux treat vibrancy as on/off.
 #[tauri::command]
 #[allow(clippy::too_many_arguments)] // Tauri command args mirror the JS payload
 pub fn set_vibrancy(
@@ -236,16 +225,16 @@ pub fn set_vibrancy(
     blur: Option<f64>,
     dark: Option<bool>,
 ) {
-    let level = blur_level(blur.unwrap_or(1.0));
-    if enabled && level != BlurLevel::None {
-        apply_effects(&window, r, g, b, a, level, dark.unwrap_or(true));
+    if enabled {
+        let alpha = effect_alpha(blur.unwrap_or(1.0));
+        apply_effects(&window, r, g, b, a, alpha, dark.unwrap_or(true));
     } else {
         clear_effects(&window);
     }
 }
 
 #[cfg(target_os = "windows")]
-fn apply_effects(window: &WebviewWindow, r: u8, g: u8, b: u8, a: u8, _level: BlurLevel, _dark: bool) {
+fn apply_effects(window: &WebviewWindow, r: u8, g: u8, b: u8, a: u8, _alpha: f64, _dark: bool) {
     let _ = window_vibrancy::apply_acrylic(window, Some((r, g, b, a)));
 }
 
@@ -254,29 +243,31 @@ fn clear_effects(window: &WebviewWindow) {
     let _ = window_vibrancy::clear_acrylic(window);
 }
 
+/// The window's NSVisualEffectView subviews, back to front.
 #[cfg(target_os = "macos")]
 #[allow(deprecated)]
-fn remove_vibrancy_views(content_view: cocoa::base::id) {
+unsafe fn vibrancy_views(content_view: cocoa::base::id) -> Vec<cocoa::base::id> {
     use cocoa::base::id;
     use objc::{class, msg_send, sel, sel_impl};
 
-    unsafe {
-        let subviews: id = msg_send![content_view, subviews];
-        let count: usize = msg_send![subviews, count];
-        let effect_cls = class!(NSVisualEffectView);
-        for i in (0..count).rev() {
-            let subview: id = msg_send![subviews, objectAtIndex: i];
-            let is_effect: bool = msg_send![subview, isKindOfClass: effect_cls];
-            if is_effect {
-                let _: () = msg_send![subview, removeFromSuperview];
-            }
-        }
-    }
+    let subviews: id = msg_send![content_view, subviews];
+    let count: usize = msg_send![subviews, count];
+    let effect_cls = class!(NSVisualEffectView);
+    (0..count)
+        .map(|i| -> id { msg_send![subviews, objectAtIndex: i] })
+        .filter(|view| {
+            let is_effect: bool = msg_send![*view, isKindOfClass: effect_cls];
+            is_effect
+        })
+        .collect()
 }
 
+/// Updates the one effect view in place (creating it on first use) instead of
+/// rebuilding it: a rebuilt view re-samples the backdrop and flashes, and this
+/// runs on every animation frame while the blur slider is dragged.
 #[cfg(target_os = "macos")]
 #[allow(deprecated)]
-fn apply_effects(window: &WebviewWindow, _r: u8, _g: u8, _b: u8, _a: u8, level: BlurLevel, dark: bool) {
+fn apply_effects(window: &WebviewWindow, _r: u8, _g: u8, _b: u8, _a: u8, alpha: f64, dark: bool) {
     use cocoa::appkit::{NSColor, NSWindow};
     use cocoa::base::{id, nil};
     use cocoa::foundation::{NSRect, NSString};
@@ -284,18 +275,29 @@ fn apply_effects(window: &WebviewWindow, _r: u8, _g: u8, _b: u8, _a: u8, level: 
     use objc::{class, msg_send, sel, sel_impl};
 
     let ns_win: id = window.ns_window().unwrap() as id;
-    unsafe {
+    let created = unsafe {
         ns_win.setOpaque_(NO);
         ns_win.setBackgroundColor_(NSColor::clearColor(nil));
 
         let content_view: id = ns_win.contentView();
-        remove_vibrancy_views(content_view);
-
-        let bounds: NSRect = msg_send![content_view, bounds];
-        let cls = class!(NSVisualEffectView);
-        let effect_view: id = msg_send![cls, alloc];
-        let effect_view: id = msg_send![effect_view, initWithFrame: bounds];
-        let material = material_for(level, dark);
+        let mut views = vibrancy_views(content_view);
+        // Keep the backmost view; drop any strays.
+        for extra in views.drain(1.min(views.len())..) {
+            let _: () = msg_send![extra, removeFromSuperview];
+        }
+        let (effect_view, created) = match views.first() {
+            Some(view) => (*view, false),
+            None => {
+                let bounds: NSRect = msg_send![content_view, bounds];
+                let view: id = msg_send![class!(NSVisualEffectView), alloc];
+                let view: id = msg_send![view, initWithFrame: bounds];
+                let _: () = msg_send![view, setState: 1_i64];
+                let _: () = msg_send![view, setBlendingMode: 0_i64];
+                let _: () = msg_send![view, setAutoresizingMask: 18_u64];
+                let _: () = msg_send![content_view, addSubview: view positioned: -1_i64 relativeTo: nil];
+                (view, true)
+            }
+        };
         // Pin the view's appearance to the theme so the material is light for
         // light themes whatever the system appearance is.
         let name = NSString::alloc(nil).init_str(if dark {
@@ -305,21 +307,21 @@ fn apply_effects(window: &WebviewWindow, _r: u8, _g: u8, _b: u8, _a: u8, level: 
         });
         let appearance: id = msg_send![class!(NSAppearance), appearanceNamed: name];
         let _: () = msg_send![effect_view, setAppearance: appearance];
-        let _: () = msg_send![effect_view, setMaterial: material];
-        let _: () = msg_send![effect_view, setState: 1_i64];
-        let _: () = msg_send![effect_view, setBlendingMode: 0_i64];
-        let _: () = msg_send![effect_view, setAutoresizingMask: 18_u64];
-        let _: () = msg_send![content_view, addSubview: effect_view positioned: -1_i64 relativeTo: nil];
-    }
+        let _: () = msg_send![effect_view, setMaterial: material_for(dark)];
+        let _: () = msg_send![effect_view, setAlphaValue: alpha];
+        created
+    };
 
-    let _ = window.with_webview(|webview| {
-        #[allow(deprecated)]
-        unsafe {
-            use objc::{sel, sel_impl};
-            let wk_webview: cocoa::base::id = webview.inner() as cocoa::base::id;
-            let _: () = objc::msg_send![wk_webview, _setDrawsBackground: objc::runtime::NO];
-        }
-    });
+    if created {
+        let _ = window.with_webview(|webview| {
+            #[allow(deprecated)]
+            unsafe {
+                use objc::{sel, sel_impl};
+                let wk_webview: cocoa::base::id = webview.inner() as cocoa::base::id;
+                let _: () = objc::msg_send![wk_webview, _setDrawsBackground: objc::runtime::NO];
+            }
+        });
+    }
 }
 
 #[cfg(target_os = "macos")]
@@ -327,16 +329,18 @@ fn apply_effects(window: &WebviewWindow, _r: u8, _g: u8, _b: u8, _a: u8, level: 
 fn clear_effects(window: &WebviewWindow) {
     use cocoa::appkit::NSWindow;
     use cocoa::base::id;
+    use objc::{msg_send, sel, sel_impl};
 
     let ns_win: id = window.ns_window().unwrap() as id;
     unsafe {
-        let content_view: id = ns_win.contentView();
-        remove_vibrancy_views(content_view);
+        for view in vibrancy_views(ns_win.contentView()) {
+            let _: () = msg_send![view, removeFromSuperview];
+        }
     }
 }
 
 #[cfg(target_os = "linux")]
-fn apply_effects(window: &WebviewWindow, r: u8, g: u8, b: u8, a: u8, _level: BlurLevel, _dark: bool) {
+fn apply_effects(window: &WebviewWindow, r: u8, g: u8, b: u8, a: u8, _alpha: f64, _dark: bool) {
     let _ = window_vibrancy::apply_blur(window, Some((r, g, b, a)));
 }
 
@@ -346,16 +350,7 @@ fn clear_effects(window: &WebviewWindow) {
 }
 
 #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
-fn apply_effects(
-    _window: &WebviewWindow,
-    _r: u8,
-    _g: u8,
-    _b: u8,
-    _a: u8,
-    _level: BlurLevel,
-    _dark: bool,
-) {
-}
+fn apply_effects(_window: &WebviewWindow, _r: u8, _g: u8, _b: u8, _a: u8, _alpha: f64, _dark: bool) {}
 
 #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
 fn clear_effects(_window: &WebviewWindow) {}
@@ -365,29 +360,30 @@ mod tests {
     use super::*;
 
     #[test]
-    fn blur_intensity_maps_to_native_levels() {
-        assert_eq!(blur_level(0.0), BlurLevel::None);
-        assert_eq!(blur_level(0.04), BlurLevel::None);
-        assert_eq!(blur_level(0.2), BlurLevel::Light);
-        assert_eq!(blur_level(0.5), BlurLevel::Medium);
-        assert_eq!(blur_level(0.9), BlurLevel::Heavy);
-        assert_eq!(blur_level(1.0), BlurLevel::Heavy);
+    fn blur_intensity_is_the_effect_view_opacity() {
+        assert_eq!(effect_alpha(0.0), 0.0);
+        assert_eq!(effect_alpha(0.25), 0.25);
+        assert_eq!(effect_alpha(0.5), 0.5);
+        assert_eq!(effect_alpha(1.0), 1.0);
     }
 
     #[test]
-    fn light_themes_never_get_the_always_dark_hud_material() {
-        for level in [BlurLevel::Light, BlurLevel::Medium, BlurLevel::Heavy] {
-            assert_ne!(material_for(level, false), 13);
-        }
-        assert_eq!(material_for(BlurLevel::Heavy, true), 13);
-        assert_eq!(material_for(BlurLevel::Heavy, false), 6);
+    fn blur_intensity_is_continuous_and_monotonic() {
+        let samples: Vec<f64> = (0..=100).map(|i| effect_alpha(i as f64 / 100.0)).collect();
+        assert!(samples.windows(2).all(|w| w[1] > w[0] && w[1] - w[0] <= 0.010_001));
     }
 
     #[test]
     fn blur_intensity_out_of_range_is_clamped() {
-        assert_eq!(blur_level(-3.0), BlurLevel::None);
-        assert_eq!(blur_level(9.0), BlurLevel::Heavy);
-        assert_eq!(blur_level(f64::NAN), BlurLevel::Heavy);
+        assert_eq!(effect_alpha(-3.0), 0.0);
+        assert_eq!(effect_alpha(9.0), 1.0);
+        assert_eq!(effect_alpha(f64::NAN), 1.0);
+    }
+
+    #[test]
+    fn one_material_per_theme_and_light_themes_never_get_the_always_dark_hud() {
+        assert_eq!(material_for(true), 13);
+        assert_eq!(material_for(false), 6);
     }
 
     #[test]
