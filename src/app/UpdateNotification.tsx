@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { check, type Update } from "@tauri-apps/plugin-updater";
 import { relaunch } from "@tauri-apps/plugin-process";
-import { Download, X } from "lucide-react";
+import { Icon } from "../ui/icons";
 import { useSettingsStore } from "../stores/settings";
-import { Button, IconButton, Spinner, ICON_SM } from "../ui";
+import { Button, IconButton, Spinner } from "../ui";
 
 /** How long after launch the update check runs, so it never competes with startup. */
 export const UPDATE_CHECK_DELAY_MS = 5000;
@@ -58,7 +58,7 @@ export default function UpdateNotification() {
       className="flex h-8 shrink-0 items-center justify-between gap-3 border-b border-border bg-accent-subtle px-3 text-label text-fg"
     >
       <span className="flex items-center gap-2">
-        <Download {...ICON_SM} aria-hidden className="text-accent-fg" />
+        <Icon name="download" size="sm" aria-hidden className="text-accent-fg" />
         <span>
           nexterm <strong className="font-semibold">v{update.version}</strong> is available
         </span>
@@ -73,7 +73,7 @@ export default function UpdateNotification() {
           <Button size="xs" variant="primary" onClick={() => void handleInstall()}>
             Update and restart
           </Button>
-          <IconButton label="Dismiss update" size="xs" icon={<X {...ICON_SM} />} onClick={() => setDismissed(true)} />
+          <IconButton label="Dismiss update" size="xs" icon={<Icon name="dismiss" size="sm" />} onClick={() => setDismissed(true)} />
         </span>
       )}
     </div>

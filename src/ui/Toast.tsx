@@ -1,6 +1,6 @@
 import type { ComponentPropsWithRef, ReactNode } from "react";
 import { Toast as ToastPrimitive } from "radix-ui";
-import { AlertCircle, CheckCircle2, Info, X } from "lucide-react";
+import { Icon, Icons } from "./icons";
 import { useToastStore } from "../stores/toast";
 import { IconButton } from "./IconButton";
 import { cn, ICON_SM } from "./utils";
@@ -21,7 +21,7 @@ export function ToastViewport({ className, ...rest }: ComponentPropsWithRef<type
 
 export type ToastTone = "info" | "success" | "error";
 
-const ICON = { info: Info, success: CheckCircle2, error: AlertCircle } as const;
+const ICON = { info: Icons.info, success: Icons.success, error: Icons.error } as const;
 const TONE = { info: "text-info", success: "text-success", error: "text-danger" } as const;
 
 export interface ToastProps extends Omit<ComponentPropsWithRef<typeof ToastPrimitive.Root>, "title"> {
@@ -32,7 +32,7 @@ export interface ToastProps extends Omit<ComponentPropsWithRef<typeof ToastPrimi
 
 /** One notification. Render inside ToastProvider with a ToastViewport. */
 export function Toast({ tone = "info", title, message, className, ...rest }: ToastProps) {
-  const Icon = ICON[tone];
+  const Glyph = ICON[tone];
   return (
     <ToastPrimitive.Root
       className={cn(
@@ -41,7 +41,7 @@ export function Toast({ tone = "info", title, message, className, ...rest }: Toa
       )}
       {...rest}
     >
-      <Icon {...ICON_SM} aria-hidden className={cn("mt-0.5 shrink-0", TONE[tone])} />
+      <Glyph {...ICON_SM} aria-hidden className={cn("mt-0.5 shrink-0", TONE[tone])} />
       <div className="min-w-0 flex-1">
         {title && <ToastPrimitive.Title className="text-label font-medium text-fg">{title}</ToastPrimitive.Title>}
         <ToastPrimitive.Description className="break-words text-label text-fg-secondary">
@@ -49,7 +49,7 @@ export function Toast({ tone = "info", title, message, className, ...rest }: Toa
         </ToastPrimitive.Description>
       </div>
       <ToastPrimitive.Close asChild>
-        <IconButton label="Dismiss" icon={<X {...ICON_SM} />} size="xs" tooltip={false} />
+        <IconButton label="Dismiss" icon={<Icon name="close" size="sm" />} size="xs" tooltip={false} />
       </ToastPrimitive.Close>
     </ToastPrimitive.Root>
   );

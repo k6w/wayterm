@@ -1,21 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { ArrowLeftRight, Plus, Trash2 } from "lucide-react";
+import { Icon } from "../../ui/icons";
 import { useSshStore } from "../../stores/ssh";
-import {
-  Button,
-  Dialog,
-  DialogContent,
-  FormCard,
-  FormGroup,
-  FormRow,
-  ICON_MD,
-  ICON_SM,
-  IconButton,
-  Input,
-  PreviewChip,
-  Switch,
-  Tooltip,
-} from "../../ui";
+import { Button, Dialog, DialogContent, FormCard, FormGroup, FormRow, IconButton, Input, PreviewChip, Switch, Tooltip } from "../../ui";
 import type { PortForward } from "../../lib/ipc";
 import {
   EMPTY_PORT_FORWARD_FORM,
@@ -107,7 +93,7 @@ function PortForwardsBody({ connectionId, sessionId }: { connectionId: string; s
       size="md"
       title="Port forwards"
       description="Forward a local port to a host the server can reach."
-      icon={<ArrowLeftRight {...ICON_MD} />}
+      icon={<Icon name="portForwardDialog" size="md" />}
     >
       <div className="flex flex-col gap-4">
         {adding ? (
@@ -145,7 +131,7 @@ function PortForwardsBody({ connectionId, sessionId }: { connectionId: string; s
             </div>
           </form>
         ) : (
-          <Button leadingIcon={<Plus {...ICON_SM} />} onClick={() => setAdding(true)}>
+          <Button leadingIcon={<Icon name="add" size="sm" />} onClick={() => setAdding(true)}>
             Add port forward
           </Button>
         )}
@@ -178,7 +164,7 @@ function PortForwardsBody({ connectionId, sessionId }: { connectionId: string; s
                   <IconButton
                     size="xs"
                     label={`Remove forward ${forward.localPort}`}
-                    icon={<Trash2 {...ICON_SM} />}
+                    icon={<Icon name="delete" size="sm" />}
                     onClick={() => void deletePortForward(forward.id)}
                   />
                 </li>

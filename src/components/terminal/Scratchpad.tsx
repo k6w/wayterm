@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useCallback, type CSSProperties } from "react";
-import { X, GripHorizontal } from "lucide-react";
+import { Icon } from "../../ui/icons";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebLinksAddon } from "@xterm/addon-web-links";
@@ -283,14 +283,14 @@ export default function Scratchpad() {
         className="flex items-center gap-2 px-3 py-2 bg-bg-secondary border-b border-border select-none cursor-grab active:cursor-grabbing shrink-0"
         onMouseDown={handleDragMouseDown}
       >
-        <GripHorizontal size={14} className="text-text-muted shrink-0" />
+        <Icon name="dragHandle" size={14} className="text-text-muted shrink-0" />
         <span className="flex-1 text-xs text-text-secondary font-medium">Scratchpad</span>
         <button
           className="flex items-center justify-center size-5 rounded hover:bg-overlay/10 transition-colors text-text-muted hover:text-text-primary"
           onClick={toggleScratchpad}
           onMouseDown={(e) => e.stopPropagation()}
         >
-          <X size={12} />
+          <Icon name="close" size={12} />
         </button>
       </div>
 

@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { ChevronDown, ChevronRight, Copy, Plus, Terminal, Trash2, X } from "lucide-react";
+import { Icon } from "../../ui/icons";
 import { useSettingsStore } from "../../stores/settings";
 import { useThemeStore } from "../../stores/theme";
 import { getDefaultShells, type DetectedShell } from "../../lib/shell-detect";
-import { Button, EmptyState, IconButton, Input, Section, Select, cn, focusRing, ICON_MD, ICON_SM, ConfirmDialog } from "../../ui";
+import { Button, EmptyState, IconButton, Input, Section, Select, cn, focusRing, ConfirmDialog } from "../../ui";
 import { NumberInput, SettingRow, SettingsCard } from "./SettingRow";
 import { createProfile, duplicateProfile, nextEnvKey, removeEnvKey, renameEnvKey } from "./profile-utils";
 import type { CursorStyle, ShellProfile } from "../../types/settings";
@@ -110,7 +110,7 @@ function ProfileEditor({ profile, customPath, onCustomPathChange, onChange }: Pr
           <Button
             size="xs"
             variant="ghost"
-            leadingIcon={<Plus {...ICON_SM} />}
+            leadingIcon={<Icon name="add" size="sm" />}
             onClick={() => onChange({ args: [...profile.args, ""] })}
           >
             Add argument
@@ -128,7 +128,7 @@ function ProfileEditor({ profile, customPath, onCustomPathChange, onChange }: Pr
             />
             <IconButton
               label={`Remove argument ${i + 1}`}
-              icon={<X {...ICON_SM} />}
+              icon={<Icon name="remove" size="sm" />}
               onClick={() => onChange({ args: profile.args.filter((_, idx) => idx !== i) })}
             />
           </div>
@@ -141,7 +141,7 @@ function ProfileEditor({ profile, customPath, onCustomPathChange, onChange }: Pr
           <Button
             size="xs"
             variant="ghost"
-            leadingIcon={<Plus {...ICON_SM} />}
+            leadingIcon={<Icon name="add" size="sm" />}
             onClick={() => onChange({ env: { ...profile.env, [nextEnvKey(profile.env)]: "" } })}
           >
             Add variable
@@ -171,7 +171,7 @@ function ProfileEditor({ profile, customPath, onCustomPathChange, onChange }: Pr
             />
             <IconButton
               label={`Remove variable ${key || i + 1}`}
-              icon={<X {...ICON_SM} />}
+              icon={<Icon name="remove" size="sm" />}
               onClick={() => onChange({ env: removeEnvKey(profile.env, key) })}
             />
           </div>
@@ -312,7 +312,7 @@ export default function ProfilesPanel() {
 
   const profileToDelete = profiles.find((p) => p.id === deleteId) ?? null;
   const addButton = (
-    <Button size="sm" variant="primary" leadingIcon={<Plus {...ICON_SM} />} onClick={addProfile}>
+    <Button size="sm" variant="primary" leadingIcon={<Icon name="add" size="sm" />} onClick={addProfile}>
       Add profile
     </Button>
   );
@@ -322,7 +322,7 @@ export default function ProfilesPanel() {
       <Section title="Available shells">
         {detectedShells.length === 0 ? (
           <EmptyState
-            icon={<Terminal {...ICON_MD} />}
+            icon={<Icon name="terminal" size="md" />}
             title="No shells detected"
             description="nexterm could not find any shells on this system."
           />
@@ -330,7 +330,7 @@ export default function ProfilesPanel() {
           <div className="grid grid-cols-2 gap-2">
             {detectedShells.map((shell) => (
               <div key={shell.path} className="flex items-center gap-3 rounded-lg border border-border bg-panel px-3 py-2">
-                <Terminal {...ICON_MD} aria-hidden className="shrink-0 text-fg-muted" />
+                <Icon name="terminal" size="md" aria-hidden className="shrink-0 text-fg-muted" />
                 <div className="min-w-0">
                   <p className="text-body font-medium text-fg">{shell.label}</p>
                   <p className="truncate font-mono text-label text-fg-muted">{shell.path}</p>
@@ -344,7 +344,7 @@ export default function ProfilesPanel() {
       <Section title="Custom profiles" description="Reusable shell launch configurations" actions={addButton}>
         {profiles.length === 0 ? (
           <EmptyState
-            icon={<Terminal {...ICON_MD} />}
+            icon={<Icon name="terminal" size="md" />}
             title="No custom profiles yet"
             description="Add a profile to save a shell, working directory and appearance overrides."
           />
@@ -367,9 +367,9 @@ export default function ProfilesPanel() {
                       )}
                     >
                       {expanded ? (
-                        <ChevronDown {...ICON_SM} aria-hidden className="shrink-0 text-fg-muted" />
+                        <Icon name="chevronDown" size="sm" aria-hidden className="shrink-0 text-fg-muted" />
                       ) : (
-                        <ChevronRight {...ICON_SM} aria-hidden className="shrink-0 text-fg-muted" />
+                        <Icon name="disclosure" size="sm" aria-hidden className="shrink-0 text-fg-muted" />
                       )}
                       <span className="min-w-0">
                         <span className="block truncate text-body text-fg">{profile.name}</span>
@@ -381,12 +381,12 @@ export default function ProfilesPanel() {
                     </button>
                     <IconButton
                       label={`Duplicate ${profile.name}`}
-                      icon={<Copy {...ICON_SM} />}
+                      icon={<Icon name="copy" size="sm" />}
                       onClick={() => copyProfile(profile)}
                     />
                     <IconButton
                       label={`Delete ${profile.name}`}
-                      icon={<Trash2 {...ICON_SM} />}
+                      icon={<Icon name="delete" size="sm" />}
                       onClick={() => setDeleteId(profile.id)}
                     />
                   </div>

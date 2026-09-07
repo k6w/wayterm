@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, ChevronUp, Download, Upload } from "lucide-react";
+import { Icon, Icons } from "../../ui/icons";
 import { Badge, Button, ICON_SM, Progress, cn } from "../../ui";
 import type { Transfer } from "../../types/sftp";
 import { TRANSFER_TONE, transferPercent, transferStatusLabel } from "./file-table";
@@ -34,7 +34,7 @@ export default function TransferQueue({ transfers, onClearCompleted }: TransferQ
           size="sm"
           variant="ghost"
           aria-expanded={open}
-          leadingIcon={open ? <ChevronDown {...ICON_SM} /> : <ChevronUp {...ICON_SM} />}
+          leadingIcon={open ? <Icon name="chevronDown" size="sm" /> : <Icon name="chevronUp" size="sm" />}
           onClick={() => setOpen((v) => !v)}
         >
           Transfers
@@ -52,7 +52,7 @@ export default function TransferQueue({ transfers, onClearCompleted }: TransferQ
         <ul className="max-h-36 overflow-y-auto pb-1">
           {transfers.map((t) => {
             const tone = TRANSFER_TONE[t.status];
-            const Icon = t.direction === "upload" ? Upload : Download;
+            const Icon = t.direction === "upload" ? Icons.upload : Icons.download;
             return (
               <li key={t.id} title={t.error ?? undefined} className="flex h-row items-center gap-2 px-3 text-label">
                 <Icon {...ICON_SM} aria-label={t.direction === "upload" ? "Upload" : "Download"} className={cn("shrink-0", TEXT_TONE[tone])} />

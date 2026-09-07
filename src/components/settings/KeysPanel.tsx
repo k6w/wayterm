@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
-import { Check, Copy, FileKey, KeyRound, Pencil, Trash2, Upload } from "lucide-react";
+import { Icon } from "../../ui/icons";
 import { useSshStore } from "../../stores/ssh";
-import { Button, EmptyState, IconButton, Input, Section, SegmentedControl, Textarea, ICON_MD, ICON_SM, ConfirmDialog } from "../../ui";
+import { Button, EmptyState, IconButton, Input, Section, SegmentedControl, Textarea, ConfirmDialog } from "../../ui";
 import { SettingRow, SettingsCard } from "./SettingRow";
 import type { SshKey } from "../../types/ssh";
 
@@ -154,7 +154,7 @@ export default function KeysPanel() {
       description={`${keys.length} ${keys.length === 1 ? "key" : "keys"} stored`}
       actions={
         !importing && (
-          <Button size="sm" leadingIcon={<Upload {...ICON_SM} />} onClick={() => setImporting(true)}>
+          <Button size="sm" leadingIcon={<Icon name="import" size="sm" />} onClick={() => setImporting(true)}>
             Import key
           </Button>
         )
@@ -164,7 +164,7 @@ export default function KeysPanel() {
 
       {keys.length === 0 && !importing ? (
         <EmptyState
-          icon={<FileKey {...ICON_MD} />}
+          icon={<Icon name="keyFile" size="md" />}
           title="No SSH keys"
           description="Import an existing key to authenticate your SSH connections."
           action={
@@ -178,7 +178,7 @@ export default function KeysPanel() {
           {keys.map((key) => (
             <SettingsCard key={key.id}>
               <div className="flex min-h-row items-center gap-3 px-row-x py-row-y">
-                <KeyRound {...ICON_SM} aria-hidden className="shrink-0 text-fg-muted" />
+                <Icon name="key" size="sm" aria-hidden className="shrink-0 text-fg-muted" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-body text-fg">{key.name}</p>
                   <p className="truncate font-mono text-label text-fg-muted">
@@ -187,19 +187,19 @@ export default function KeysPanel() {
                 </div>
                 <IconButton
                   label={copiedId === key.id ? "Copied" : `Copy public key of ${key.name}`}
-                  icon={copiedId === key.id ? <Check {...ICON_SM} className="text-success" /> : <Copy {...ICON_SM} />}
+                  icon={copiedId === key.id ? <Icon name="confirm" size="sm" className="text-success" /> : <Icon name="copy" size="sm" />}
                   disabled={!key.publicKey}
                   onClick={() => void handleCopy(key)}
                 />
                 <IconButton
                   label={`Edit ${key.name}`}
-                  icon={<Pencil {...ICON_SM} />}
+                  icon={<Icon name="edit" size="sm" />}
                   pressed={editingId === key.id}
                   onClick={() => setEditingId(editingId === key.id ? null : key.id)}
                 />
                 <IconButton
                   label={`Delete ${key.name}`}
-                  icon={<Trash2 {...ICON_SM} />}
+                  icon={<Icon name="delete" size="sm" />}
                   onClick={() => setDeleteTarget({ id: key.id, name: key.name })}
                 />
               </div>

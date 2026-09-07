@@ -1,8 +1,8 @@
 import { isOverlayOpen } from "../../lib/overlays";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Search, X } from "lucide-react";
+import { Icon } from "../../ui/icons";
 import { useTerminalStore } from "../../stores/terminal";
-import { EmptyState, IconButton, Input, ListRow, ICON_MD, ICON_SM, cn } from "../../ui";
+import { EmptyState, IconButton, Input, ListRow, ICON_MD, cn } from "../../ui";
 import { NAV_GROUPS, PANELS, PANEL_LABEL, isPanelId, type PanelId } from "./nav";
 import { searchSettings } from "./searchIndex";
 
@@ -108,7 +108,7 @@ function SettingsSurface({ activePanel, onSelectPanel, onClose }: SettingsSurfac
               "focus-within:outline-solid focus-within:outline-2 focus-within:outline-offset-1 focus-within:outline-focus"
             )}
           >
-            <Search {...ICON_SM} aria-hidden className="shrink-0 text-fg-muted" />
+            <Icon name="search" size="sm" aria-hidden className="shrink-0 text-fg-muted" />
             <Input
               variant="plain"
               size="sm"
@@ -171,7 +171,7 @@ function SettingsSurface({ activePanel, onSelectPanel, onClose }: SettingsSurfac
       <div className="nx-blur flex min-w-0 flex-1 flex-col bg-surface-glass">
         <header className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-border px-6">
           <h2 className="text-title font-semibold text-fg">{PANEL_LABEL[activePanel]}</h2>
-          <IconButton label="Close settings" shortcut="Escape" icon={<X {...ICON_MD} />} onClick={onClose} />
+          <IconButton label="Close settings" shortcut="Escape" icon={<Icon name="close" size="md" />} onClick={onClose} />
         </header>
         <div ref={scrollRef} data-settings-scroll className="min-h-0 flex-1 overflow-y-scroll [scrollbar-gutter:stable]">
           <SettingsPanelFrame key={activePanel}>

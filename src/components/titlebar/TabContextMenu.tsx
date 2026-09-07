@@ -1,33 +1,10 @@
 import type { CSSProperties } from "react";
-import {
-  ArrowLeft,
-  ArrowRight,
-  ArrowRightToLine,
-  Ban,
-  Columns2,
-  Copy,
-  FolderOpen,
-  Palette,
-  Pencil,
-  Rows2,
-  X,
-  XCircle,
-} from "lucide-react";
+import { Icon } from "../../ui/icons";
 import { useTerminalStore, collectPaneIds } from "../../stores/terminal";
 import { splitActivePane } from "../../lib/keybindings";
 import { shortcutFor } from "../../lib/shortcut-hints";
 import { TAB_TAG_COLORS } from "../../themes/tab-tags";
-import {
-  ContextMenuContent,
-  ContextMenuItem,
-  ContextMenuRadioGroup,
-  ContextMenuRadioItem,
-  ContextMenuSeparator,
-  ContextMenuSub,
-  ContextMenuSubContent,
-  ContextMenuSubTrigger,
-  ICON_SM,
-} from "../../ui";
+import { ContextMenuContent, ContextMenuItem, ContextMenuRadioGroup, ContextMenuRadioItem, ContextMenuSeparator, ContextMenuSub, ContextMenuSubContent, ContextMenuSubTrigger } from "../../ui";
 
 interface TabContextMenuContentProps {
   tabId: string;
@@ -57,25 +34,25 @@ export default function TabContextMenuContent({ tabId, tabIndex, onStartRename }
   return (
     // Keep focus where the action put it (e.g. the rename input), not on the tab.
     <ContextMenuContent className="min-w-52" onCloseAutoFocus={(event) => event.preventDefault()}>
-      <ContextMenuItem icon={<Pencil {...ICON_SM} />} shortcut="F2" onSelect={onStartRename}>
+      <ContextMenuItem icon={<Icon name="edit" size="sm" />} shortcut="F2" onSelect={onStartRename}>
         Rename Tab
       </ContextMenuItem>
-      <ContextMenuItem icon={<Copy {...ICON_SM} />} onSelect={() => duplicateTab(tabId)}>
+      <ContextMenuItem icon={<Icon name="copy" size="sm" />} onSelect={() => duplicateTab(tabId)}>
         Duplicate Tab
       </ContextMenuItem>
       <ContextMenuSeparator />
-      <ContextMenuItem icon={<X {...ICON_SM} />} shortcut={shortcutFor("close-tab")} onSelect={() => removeTab(tabId)}>
+      <ContextMenuItem icon={<Icon name="close" size="sm" />} shortcut={shortcutFor("close-tab")} onSelect={() => removeTab(tabId)}>
         Close Tab
       </ContextMenuItem>
       <ContextMenuItem
-        icon={<XCircle {...ICON_SM} />}
+        icon={<Icon name="closeAll" size="sm" />}
         disabled={tabCount <= 1}
         onSelect={() => closeOtherTabs(tabId)}
       >
         Close Other Tabs
       </ContextMenuItem>
       <ContextMenuItem
-        icon={<ArrowRightToLine {...ICON_SM} />}
+        icon={<Icon name="closeToRight" size="sm" />}
         disabled={isLast}
         onSelect={() => closeTabsToRight(tabId)}
       >
@@ -83,7 +60,7 @@ export default function TabContextMenuContent({ tabId, tabIndex, onStartRename }
       </ContextMenuItem>
       <ContextMenuSeparator />
       <ContextMenuItem
-        icon={<Columns2 {...ICON_SM} />}
+        icon={<Icon name="splitHorizontal" size="sm" />}
         shortcut={shortcutFor("split-horizontal")}
         onSelect={() => {
           setActiveTab(tabId);
@@ -93,7 +70,7 @@ export default function TabContextMenuContent({ tabId, tabIndex, onStartRename }
         Split Right
       </ContextMenuItem>
       <ContextMenuItem
-        icon={<Rows2 {...ICON_SM} />}
+        icon={<Icon name="splitVertical" size="sm" />}
         shortcut={shortcutFor("split-vertical")}
         onSelect={() => {
           setActiveTab(tabId);
@@ -104,14 +81,14 @@ export default function TabContextMenuContent({ tabId, tabIndex, onStartRename }
       </ContextMenuItem>
       <ContextMenuSeparator />
       <ContextMenuItem
-        icon={<ArrowLeft {...ICON_SM} />}
+        icon={<Icon name="moveLeft" size="sm" />}
         disabled={tabIndex === 0}
         onSelect={() => reorderTabs(tabIndex, tabIndex - 1)}
       >
         Move Left
       </ContextMenuItem>
       <ContextMenuItem
-        icon={<ArrowRight {...ICON_SM} />}
+        icon={<Icon name="moveRight" size="sm" />}
         disabled={isLast}
         onSelect={() => reorderTabs(tabIndex, tabIndex + 1)}
       >
@@ -119,7 +96,7 @@ export default function TabContextMenuContent({ tabId, tabIndex, onStartRename }
       </ContextMenuItem>
       <ContextMenuSeparator />
       <ContextMenuItem
-        icon={<FolderOpen {...ICON_SM} />}
+        icon={<Icon name="folderOpen" size="sm" />}
         onSelect={() => {
           void navigator.clipboard?.writeText(firstPane?.cwd || "~");
         }}
@@ -127,7 +104,7 @@ export default function TabContextMenuContent({ tabId, tabIndex, onStartRename }
         Copy Path
       </ContextMenuItem>
       <ContextMenuSub>
-        <ContextMenuSubTrigger icon={<Palette {...ICON_SM} />}>Set Color</ContextMenuSubTrigger>
+        <ContextMenuSubTrigger icon={<Icon name="theme" size="sm" />}>Set Color</ContextMenuSubTrigger>
         <ContextMenuSubContent>
           <ContextMenuRadioGroup
             value={currentColor ?? ""}
@@ -146,7 +123,7 @@ export default function TabContextMenuContent({ tabId, tabIndex, onStartRename }
           </ContextMenuRadioGroup>
           <ContextMenuSeparator />
           <ContextMenuItem
-            icon={<Ban {...ICON_SM} />}
+            icon={<Icon name="closeOthers" size="sm" />}
             disabled={!currentColor}
             onSelect={() => setTabColor(tabId, null)}
           >

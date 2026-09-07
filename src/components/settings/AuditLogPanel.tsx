@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import { Download, History, RefreshCw } from "lucide-react";
+import { Icon } from "../../ui/icons";
 import { historyRecent } from "../../lib/ipc";
 import { downloadTextFile } from "../../lib/download-file";
-import { Button, EmptyState, IconButton, Input, Section, cn, ICON_MD, ICON_SM } from "../../ui";
+import { Button, EmptyState, IconButton, Input, Section, cn } from "../../ui";
 
 export interface HistoryEntry {
   id: number;
@@ -57,7 +57,7 @@ export default function AuditLogPanel() {
         <>
           <Button
             size="sm"
-            leadingIcon={<Download {...ICON_SM} />}
+            leadingIcon={<Icon name="export" size="sm" />}
             disabled={filtered.length === 0}
             onClick={() => downloadTextFile("command-history.csv", historyCsv(filtered), "text/csv")}
           >
@@ -65,7 +65,7 @@ export default function AuditLogPanel() {
           </Button>
           <IconButton
             label="Refresh"
-            icon={<RefreshCw {...ICON_SM} className={cn(loading && "animate-spin")} />}
+            icon={<Icon name="refresh" size="sm" className={cn(loading && "animate-spin")} />}
             disabled={loading}
             onClick={() => void load()}
           />
@@ -86,7 +86,7 @@ export default function AuditLogPanel() {
       )}
       {filtered.length === 0 ? (
         <EmptyState
-          icon={<History {...ICON_MD} />}
+          icon={<Icon name="history" size="md" />}
           title={loading ? "Loading history…" : q ? "No matching commands" : "No history entries"}
           description={
             loading ? undefined : q ? "Try a different search term." : "Commands you run in the terminal appear here."

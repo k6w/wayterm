@@ -1,7 +1,7 @@
-import { FileJson, FileText } from "lucide-react";
+import { Icon } from "../../ui/icons";
 import { plural } from "../../lib/plural";
 import { downloadTextFile } from "../../lib/download-file";
-import { Button, ICON_SM, Toolbar, ToolbarButton, ToolbarSpacer } from "../../ui";
+import { Button, Toolbar, ToolbarButton, ToolbarSpacer } from "../../ui";
 import { cellText, resultsToCsv } from "./database-form";
 import type { QueryResult } from "../../types/database";
 
@@ -21,7 +21,7 @@ export default function ResultsGrid({ result }: { result: QueryResult }) {
           <Button
             size="xs"
             variant="ghost"
-            leadingIcon={<FileText {...ICON_SM} />}
+            leadingIcon={<Icon name="exportText" size="sm" />}
             onClick={() => downloadTextFile("query-results.csv", resultsToCsv(result.columns, result.rows), "text/csv")}
           >
             CSV
@@ -31,7 +31,7 @@ export default function ResultsGrid({ result }: { result: QueryResult }) {
           <Button
             size="xs"
             variant="ghost"
-            leadingIcon={<FileJson {...ICON_SM} />}
+            leadingIcon={<Icon name="json" size="sm" />}
             onClick={() => downloadTextFile("query-results.json", JSON.stringify(result.rows, null, 2), "application/json")}
           >
             JSON

@@ -1,18 +1,8 @@
 import { useEffect, useState } from "react";
-import { Database, Plus, Trash2, Unplug } from "lucide-react";
+import { Icon } from "../../ui/icons";
 import { plural } from "../../lib/plural";
 import { EMPTY_WORKSPACE, useDatabaseStore, type QueryWorkspace } from "../../stores/database";
-import {
-  Badge,
-  Button,
-  EmptyState,
-  ICON_MD,
-  ICON_SM,
-  IconButton,
-  ListRow,
-  ToolbarButton,
-  ToolbarSpacer,
-} from "../../ui";
+import { Badge, Button, EmptyState, IconButton, ListRow, ToolbarButton, ToolbarSpacer } from "../../ui";
 import { PanelContent, PanelGroup, PanelToolbar } from "../sidebar/PanelChrome";
 import DatabaseConnectionDialog from "./DatabaseConnectionDialog";
 import QueryEditor from "./QueryEditor";
@@ -76,7 +66,7 @@ export function DatabasePanel() {
       <>
         <PanelToolbar aria-label="Database actions">
           <ToolbarButton>
-            <Button size="sm" variant="ghost" leadingIcon={<Plus {...ICON_SM} />} onClick={() => setDialogOpen(true)}>
+            <Button size="sm" variant="ghost" leadingIcon={<Icon name="add" size="sm" />} onClick={() => setDialogOpen(true)}>
               New connection
             </Button>
           </ToolbarButton>
@@ -84,7 +74,7 @@ export function DatabasePanel() {
         <PanelContent>
           {connections.length === 0 ? (
             <EmptyState
-              icon={<Database {...ICON_MD} />}
+              icon={<Icon name="database" size="md" />}
               title="No saved connections"
               description="Add a PostgreSQL, MySQL, SQLite or MongoDB connection to query it here."
             />
@@ -92,7 +82,7 @@ export function DatabasePanel() {
             connections.map((conn) => (
               <ListRow
                 key={conn.id}
-                icon={<Database {...ICON_SM} />}
+                icon={<Icon name="database" size="sm" />}
                 label={conn.name}
                 description={`${conn.type} · ${conn.host}:${conn.port} · ${conn.database}`}
                 disabled={isLoading}
@@ -101,7 +91,7 @@ export function DatabasePanel() {
                   <IconButton
                     size="xs"
                     label={`Delete ${conn.name}`}
-                    icon={<Trash2 {...ICON_SM} />}
+                    icon={<Icon name="delete" size="sm" />}
                     onClick={() => void deleteConnection(conn.id).then(loadConnections)}
                   />
                 }
@@ -117,12 +107,12 @@ export function DatabasePanel() {
   return (
     <>
       <PanelToolbar aria-label="Connection">
-        <Database {...ICON_SM} aria-hidden className="shrink-0 text-fg-muted" />
+        <Icon name="database" size="sm" aria-hidden className="shrink-0 text-fg-muted" />
         <span className="min-w-0 truncate text-label font-medium text-fg">{activeConnection?.name}</span>
         {activeConnection && <Badge>{activeConnection.type}</Badge>}
         <ToolbarSpacer />
         <ToolbarButton>
-          <Button size="xs" variant="danger" leadingIcon={<Unplug {...ICON_SM} />} onClick={() => void handleDisconnect()}>
+          <Button size="xs" variant="danger" leadingIcon={<Icon name="disconnect" size="sm" />} onClick={() => void handleDisconnect()}>
             Disconnect
           </Button>
         </ToolbarButton>

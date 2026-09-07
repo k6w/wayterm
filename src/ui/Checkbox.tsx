@@ -1,6 +1,6 @@
 import { useId, type ComponentPropsWithRef, type ReactNode } from "react";
 import { Checkbox as CheckboxPrimitive } from "radix-ui";
-import { Check, Minus } from "lucide-react";
+import { Icon } from "./icons";
 import { cn, focusRing } from "./utils";
 
 export interface CheckboxProps extends Omit<ComponentPropsWithRef<typeof CheckboxPrimitive.Root>, "children"> {
@@ -28,9 +28,9 @@ export function Checkbox({ label, id, className, checked, ...rest }: CheckboxPro
     >
       <CheckboxPrimitive.Indicator className="inline-flex">
         {checked === "indeterminate" ? (
-          <Minus size={12} strokeWidth={2} aria-hidden />
+          <Icon name="indeterminate" size={12} strokeWidth={2} aria-hidden />
         ) : (
-          <Check size={12} strokeWidth={2} aria-hidden />
+          <Icon name="checked" size={12} strokeWidth={2} aria-hidden />
         )}
       </CheckboxPrimitive.Indicator>
     </CheckboxPrimitive.Root>

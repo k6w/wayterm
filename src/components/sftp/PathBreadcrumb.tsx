@@ -1,7 +1,7 @@
 import { useState } from "react";
-import { Bookmark, ChevronRight, Star, Trash2 } from "lucide-react";
+import { Icon } from "../../ui/icons";
 import { useSettingsStore } from "../../stores/settings";
-import { ICON_SM, IconButton, ListRow, Popover, PopoverContent, PopoverTrigger, cn, focusRing } from "../../ui";
+import { IconButton, ListRow, Popover, PopoverContent, PopoverTrigger, cn, focusRing } from "../../ui";
 import { breadcrumbs } from "./sftp-paths";
 
 interface PathBreadcrumbProps {
@@ -38,7 +38,7 @@ export default function PathBreadcrumb({ path, onNavigate, label, showBookmarks 
             const last = i === crumbs.length - 1;
             return (
               <li key={crumb.path} className="flex items-center gap-0.5">
-                {i > 0 && <ChevronRight size={12} strokeWidth={1.5} aria-hidden className="shrink-0 text-fg-muted" />}
+                {i > 0 && <Icon name="breadcrumbSeparator" size={12} strokeWidth={1.5} aria-hidden className="shrink-0 text-fg-muted" />}
                 <button
                   type="button"
                   aria-current={last ? "location" : undefined}
@@ -62,13 +62,13 @@ export default function PathBreadcrumb({ path, onNavigate, label, showBookmarks 
             size="xs"
             label={isBookmarked ? "Remove bookmark" : "Bookmark this path"}
             pressed={isBookmarked}
-            icon={<Star {...ICON_SM} fill={isBookmarked ? "currentColor" : "none"} />}
+            icon={<Icon name="favorite" size="sm" fill={isBookmarked ? "currentColor" : "none"} />}
             onClick={toggleBookmark}
           />
           {bookmarks.length > 0 && (
             <Popover open={listOpen} onOpenChange={setListOpen}>
               <PopoverTrigger asChild>
-                <IconButton size="xs" label="Bookmarks" icon={<Bookmark {...ICON_SM} />} />
+                <IconButton size="xs" label="Bookmarks" icon={<Icon name="bookmark" size="sm" />} />
               </PopoverTrigger>
               <PopoverContent align="end" className="w-64">
                 <ul aria-label="Bookmarks" className="flex max-h-60 flex-col overflow-y-auto">
@@ -85,7 +85,7 @@ export default function PathBreadcrumb({ path, onNavigate, label, showBookmarks 
                           <IconButton
                             size="xs"
                             label={`Remove ${bm.name}`}
-                            icon={<Trash2 {...ICON_SM} />}
+                            icon={<Icon name="delete" size="sm" />}
                             onClick={() => setBookmarks(bookmarks.filter((b) => b.id !== bm.id))}
                           />
                         }

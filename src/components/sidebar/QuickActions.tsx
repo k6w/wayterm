@@ -1,9 +1,9 @@
-import { Plus, SquareTerminal } from "lucide-react";
+import { Icon } from "../../ui/icons";
 import { useTerminalStore } from "../../stores/terminal";
 import { useSettingsStore } from "../../stores/settings";
 import { getPreferredShell } from "../../lib/shell-detect";
 import { shortcutFor } from "../../lib/shortcut-hints";
-import { Button, ICON_SM, IconButton, ToolbarButton } from "../../ui";
+import { Button, IconButton, ToolbarButton } from "../../ui";
 import { PanelToolbar } from "./PanelChrome";
 
 interface QuickActionsProps {
@@ -21,7 +21,7 @@ export default function QuickActions({ onNewSsh }: QuickActionsProps) {
         <Button
           variant="ghost"
           size="sm"
-          leadingIcon={<SquareTerminal {...ICON_SM} />}
+          leadingIcon={<Icon name="newTerminal" size="sm" />}
           shortcut={shortcutFor("new-tab")}
           onClick={() => {
             const shell = getPreferredShell(defaultShellPath);
@@ -32,7 +32,7 @@ export default function QuickActions({ onNewSsh }: QuickActionsProps) {
         </Button>
       </ToolbarButton>
       <ToolbarButton>
-        <IconButton label="New SSH" icon={<Plus {...ICON_SM} />} size="md" tooltipSide="bottom" onClick={() => onNewSsh?.()} />
+        <IconButton label="New SSH" icon={<Icon name="add" size="sm" />} size="md" tooltipSide="bottom" onClick={() => onNewSsh?.()} />
       </ToolbarButton>
     </PanelToolbar>
   );

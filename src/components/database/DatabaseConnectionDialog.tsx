@@ -1,17 +1,6 @@
 import { useId, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
-import { Database } from "lucide-react";
-import {
-  Button,
-  Dialog,
-  DialogContent,
-  FormGroup,
-  FormRow,
-  ICON_MD,
-  Input,
-  PreviewChip,
-  Select,
-  Switch,
-} from "../../ui";
+import { Icon } from "../../ui/icons";
+import { Button, Dialog, DialogContent, FormGroup, FormRow, Input, PreviewChip, Select, Switch } from "../../ui";
 import {
   DATABASE_TYPES,
   changeDatabaseType,
@@ -113,7 +102,7 @@ function ConnectionForm({ onSave, onClose }: Omit<DatabaseConnectionDialogProps,
       size="md"
       title="New database connection"
       description="Query a database from a tab next to your terminals."
-      icon={<Database {...ICON_MD} />}
+      icon={<Icon name="database" size="md" />}
       hints={[
         { shortcut: "Escape", label: "Cancel" },
         { shortcut: "Mod+Enter", label: "Save" },

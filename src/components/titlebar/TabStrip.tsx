@@ -1,5 +1,5 @@
 import { useCallback, useRef, useState, useEffect, type ReactNode } from "react";
-import { ChevronDown, HardDrive, Hash, MonitorDot, Plus, SquareTerminal, Terminal } from "lucide-react";
+import { Icon } from "../../ui/icons";
 import { AnimatePresence } from "framer-motion";
 import { useTerminalStore } from "../../stores/terminal";
 import { useSettingsStore } from "../../stores/settings";
@@ -7,7 +7,7 @@ import { getPreferredShell, getDefaultShells } from "../../lib/shell-detect";
 import { shortcutFor } from "../../lib/shortcut-hints";
 import type { ShellType } from "../../types/terminal";
 import type { DropZone } from "../../stores/terminal";
-import { ICON_SM, IconButton, Menu, MenuContent, MenuItem, MenuLabel, MenuTrigger, Tabs, TabsList, cn } from "../../ui";
+import { IconButton, Menu, MenuContent, MenuItem, MenuLabel, MenuTrigger, Tabs, TabsList, cn } from "../../ui";
 import Tab from "./Tab";
 
 function computeDropZone(x: number, y: number, rect: DOMRect): DropZone {
@@ -197,16 +197,16 @@ export default function TabStrip() {
 
 
 const SHELL_ICONS: Record<string, ReactNode> = {
-  powershell: <SquareTerminal {...ICON_SM} />,
-  cmd: <MonitorDot {...ICON_SM} />,
-  gitbash: <Hash {...ICON_SM} />,
-  wsl: <Terminal {...ICON_SM} />,
-  bash: <Terminal {...ICON_SM} />,
-  zsh: <Terminal {...ICON_SM} />,
-  fish: <Terminal {...ICON_SM} />,
-  sh: <Terminal {...ICON_SM} />,
-  ssh: <Terminal {...ICON_SM} />,
-  sftp: <HardDrive {...ICON_SM} />,
+  powershell: <Icon name="newTerminal" size="sm" />,
+  cmd: <Icon name="shellCmd" size="sm" />,
+  gitbash: <Icon name="shellGitBash" size="sm" />,
+  wsl: <Icon name="terminal" size="sm" />,
+  bash: <Icon name="terminal" size="sm" />,
+  zsh: <Icon name="terminal" size="sm" />,
+  fish: <Icon name="terminal" size="sm" />,
+  sh: <Icon name="terminal" size="sm" />,
+  ssh: <Icon name="terminal" size="sm" />,
+  sftp: <Icon name="sftp" size="sm" />,
 };
 
 /** "+" opens a tab with the default shell; the chevron menu picks another shell. */
@@ -226,21 +226,21 @@ function NewTabControls({
     <div className={cn("flex shrink-0 items-center gap-0.5", isVertical ? "w-full justify-center py-1" : "pl-1")}>
       <IconButton
         label={`New tab (${defaultShell.label})`}
-        icon={<Plus {...ICON_SM} />}
+        icon={<Icon name="newTab" size="sm" />}
         shortcut={shortcutFor("new-tab")}
         tooltipSide={tooltipSide}
         onClick={() => onAdd(defaultShell.type, defaultShell.path)}
       />
       <Menu>
         <MenuTrigger asChild>
-          <IconButton label="Choose shell" icon={<ChevronDown {...ICON_SM} />} size="xs" tooltipSide={tooltipSide} />
+          <IconButton label="Choose shell" icon={<Icon name="chevronDown" size="sm" />} size="xs" tooltipSide={tooltipSide} />
         </MenuTrigger>
         <MenuContent align="start" side={isVertical ? "right" : "bottom"}>
           <MenuLabel>New tab with</MenuLabel>
           {shells.map((shell, i) => (
             <MenuItem
               key={`${shell.type}-${i}`}
-              icon={SHELL_ICONS[shell.type] ?? <Terminal {...ICON_SM} />}
+              icon={SHELL_ICONS[shell.type] ?? <Icon name="terminal" size="sm" />}
               onSelect={() => onAdd(shell.type, shell.path)}
             >
               {shell.label}

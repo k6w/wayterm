@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
-import { Pencil } from "lucide-react";
+import { Icon } from "../../ui/icons";
 import { getDefaultKeybindings } from "../../lib/keybindings";
 import { useSettingsStore } from "../../stores/settings";
-import { Badge, IconButton, Input, Kbd, Section, shortcutLabel, ICON_SM } from "../../ui";
+import { Badge, IconButton, Input, Kbd, Section, shortcutLabel } from "../../ui";
 import { comboFromEvent, findConflicts, type BindingRow } from "./keybinding-utils";
 
 const headerCell = "h-8 px-3 text-left text-caption font-medium uppercase tracking-wide text-fg-muted";
@@ -97,7 +97,7 @@ export default function KeybindingsPanel() {
                   <td className="px-3 py-1 text-right">
                     <IconButton
                       label={isRecording ? `Cancel recording for ${row.label}` : `Change shortcut for ${row.label}`}
-                      icon={<Pencil {...ICON_SM} />}
+                      icon={<Icon name="edit" size="sm" />}
                       pressed={isRecording}
                       onClick={() => setRecording(isRecording ? null : row.id)}
                     />

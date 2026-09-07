@@ -1,10 +1,9 @@
 import { useId, useRef, useState, type FormEvent } from "react";
 import { Button } from "./Button";
 import { Dialog, DialogContent } from "./Dialog";
-import { Pencil } from "lucide-react";
+import { Icon } from "./icons";
 import { FormCard, FormRow } from "./FormRow";
 import { Input } from "./Input";
-import { ICON_MD } from "./utils";
 
 export interface InputDialogProps {
   open: boolean;
@@ -56,7 +55,7 @@ function InputDialogContent({
     <DialogContent
       size="sm"
       title={title}
-      icon={<Pencil {...ICON_MD} />}
+      icon={<Icon name="edit" size="md" />}
       hints={[
         { shortcut: "Escape", label: "Cancel" },
         { shortcut: "Enter", label: confirmLabel },

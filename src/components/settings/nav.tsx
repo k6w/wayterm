@@ -1,16 +1,5 @@
 import type { ComponentType } from "react";
-import {
-  Code2,
-  History,
-  KeyRound,
-  Keyboard,
-  Monitor,
-  Palette,
-  Settings,
-  Terminal,
-  User,
-  type LucideIcon,
-} from "lucide-react";
+import { Icons, type IconComponent } from "../../ui/icons";
 import GeneralPanel from "./GeneralPanel";
 import AppearancePanel from "./AppearancePanel";
 import TerminalPanel from "./TerminalPanel";
@@ -43,7 +32,7 @@ export function isPanelId(value: string): value is PanelId {
 export interface NavItem {
   id: PanelId;
   label: string;
-  icon: LucideIcon;
+  icon: IconComponent;
 }
 
 export interface NavGroup {
@@ -55,29 +44,29 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     title: "App",
     items: [
-      { id: "general", label: "General", icon: Settings },
-      { id: "appearance", label: "Appearance", icon: Palette },
-      { id: "keybindings", label: "Keybindings", icon: Keyboard },
+      { id: "general", label: "General", icon: Icons.generalSettings },
+      { id: "appearance", label: "Appearance", icon: Icons.appearanceSettings },
+      { id: "keybindings", label: "Keybindings", icon: Icons.keyboard },
     ],
   },
   {
     title: "Terminal",
     items: [
-      { id: "terminal", label: "Terminal", icon: Terminal },
-      { id: "profiles", label: "Profiles", icon: User },
-      { id: "snippets", label: "Snippets", icon: Code2 },
+      { id: "terminal", label: "Terminal", icon: Icons.terminalSettings },
+      { id: "profiles", label: "Profiles", icon: Icons.profile },
+      { id: "snippets", label: "Snippets", icon: Icons.snippets },
     ],
   },
   {
     title: "Connections",
     items: [
-      { id: "ssh", label: "SSH", icon: Monitor },
-      { id: "keys", label: "Keys", icon: KeyRound },
+      { id: "ssh", label: "SSH", icon: Icons.sshSettings },
+      { id: "keys", label: "Keys", icon: Icons.keysSettings },
     ],
   },
   {
     title: "Advanced",
-    items: [{ id: "history", label: "History", icon: History }],
+    items: [{ id: "history", label: "History", icon: Icons.historySettings }],
   },
 ];
 

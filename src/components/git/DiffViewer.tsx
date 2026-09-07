@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { AlignLeft, Check, Columns2 } from 'lucide-react';
-import { Badge, EmptyState, ICON_MD, ICON_SM, SegmentedControl, Toolbar, ToolbarSpacer, cn, focusRing } from '../../ui';
+import { Icon } from "../../ui/icons";
+import { Badge, EmptyState, SegmentedControl, Toolbar, ToolbarSpacer, cn, focusRing } from '../../ui';
 import { plural } from '../../lib/plural';
 import type { GitDiff } from '../../types/git';
 
@@ -191,7 +191,7 @@ export default function DiffViewer({ diffs }: DiffViewerProps) {
   const [mode, setMode] = useState<'unified' | 'split'>('unified');
 
   if (diffs.length === 0) {
-    return <EmptyState icon={<Check {...ICON_MD} />} title="No changes" />;
+    return <EmptyState icon={<Icon name="confirm" size="md" />} title="No changes" />;
   }
 
   return (
@@ -205,8 +205,8 @@ export default function DiffViewer({ diffs }: DiffViewerProps) {
           value={mode}
           onValueChange={setMode}
           options={[
-            { value: 'unified', label: 'Unified', icon: <AlignLeft {...ICON_SM} /> },
-            { value: 'split', label: 'Split', icon: <Columns2 {...ICON_SM} /> },
+            { value: 'unified', label: 'Unified', icon: <Icon name="diffUnified" size="sm" /> },
+            { value: 'split', label: 'Split', icon: <Icon name="diffSplit" size="sm" /> },
           ]}
         />
       </Toolbar>

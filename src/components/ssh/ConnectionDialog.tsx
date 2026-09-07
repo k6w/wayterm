@@ -1,25 +1,6 @@
 import { useId, useRef, useState, type CSSProperties, type FormEvent, type KeyboardEvent } from "react";
-import { KeyRound, Lock, Plus, Server, Shield, Trash2, X } from "lucide-react";
-import {
-  Button,
-  Dialog,
-  DialogContent,
-  FormDisclosure,
-  FormGroup,
-  FormRow,
-  IconButton,
-  Input,
-  PreviewChip,
-  SegmentedControl,
-  Select,
-  Switch,
-  Textarea,
-  cn,
-  focusRing,
-  ICON_MD,
-  ICON_SM,
-  type SegmentedOption,
-} from "../../ui";
+import { Icon } from "../../ui/icons";
+import { Button, Dialog, DialogContent, FormDisclosure, FormGroup, FormRow, IconButton, Input, PreviewChip, SegmentedControl, Select, Switch, Textarea, cn, focusRing, type SegmentedOption } from "../../ui";
 import { useSshStore } from "../../stores/ssh";
 import { useTerminalStore } from "../../stores/terminal";
 import { useThemeStore } from "../../stores/theme";
@@ -49,9 +30,9 @@ const NO_JUMP_HOST = "__none__";
 const INHERIT_THEME = "__inherit__";
 
 const AUTH_OPTIONS: readonly SegmentedOption<AuthMethod>[] = [
-  { value: "password", label: "Password", icon: <Lock {...ICON_SM} /> },
-  { value: "key", label: "Key", icon: <KeyRound {...ICON_SM} /> },
-  { value: "agent", label: "Agent", icon: <Shield {...ICON_SM} /> },
+  { value: "password", label: "Password", icon: <Icon name="password" size="sm" /> },
+  { value: "key", label: "Key", icon: <Icon name="key" size="sm" /> },
+  { value: "agent", label: "Agent", icon: <Icon name="security" size="sm" /> },
 ];
 
 function errorMessage(error: unknown): string {
@@ -187,7 +168,7 @@ function ConnectionForm({ onClose, onSave, editConnection }: ConnectionFormProps
     <DialogContent
       title={editConnection ? "Edit connection" : "New connection"}
       description={editConnection ? "Change how nexterm reaches this host." : "Save a host you can open in one click."}
-      icon={<Server {...ICON_MD} />}
+      icon={<Icon name="server" size="md" />}
       hints={[
         { shortcut: "Escape", label: "Cancel" },
         { shortcut: "Mod+Enter", label: "Save & connect" },
@@ -402,7 +383,7 @@ function ConnectionForm({ onClose, onSave, editConnection }: ConnectionFormProps
                   </code>
                   <IconButton
                     label={`Remove ${key}`}
-                    icon={<Trash2 {...ICON_SM} />}
+                    icon={<Icon name="delete" size="sm" />}
                     onClick={() => removeEnvVar(key)}
                   />
                 </div>
@@ -432,7 +413,7 @@ function ConnectionForm({ onClose, onSave, editConnection }: ConnectionFormProps
                 disabled={!newEnvKey.trim()}
                 onClick={addEnvVar}
               >
-                <Plus {...ICON_SM} aria-hidden />
+                <Icon name="add" size="sm" aria-hidden />
                 Add variable
               </Button>
             </div>
@@ -464,7 +445,7 @@ function ColorTagPicker({ value, onChange }: ColorTagPickerProps) {
         className={cn(dot, value === null && selected)}
       >
         <span className="inline-flex size-4 items-center justify-center rounded-full border border-border-strong bg-raised text-fg-muted">
-          <X size={10} aria-hidden />
+          <Icon name="remove" size={10} aria-hidden />
         </span>
       </button>
       {CONNECTION_TAG_COLORS.map((color) => (

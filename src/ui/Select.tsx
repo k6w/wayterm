@@ -1,7 +1,7 @@
 import { Select as SelectPrimitive } from "radix-ui";
-import { Check, ChevronDown } from "lucide-react";
+import { Icon } from "./icons";
 import { menuItemClass, menuSurfaceClass } from "./menu-styles";
-import { cn, focusRing, ICON_SM } from "./utils";
+import { cn, focusRing } from "./utils";
 
 export interface SelectOption {
   /** Must not be an empty string (Radix reserves "" for "no value"). */
@@ -53,7 +53,7 @@ export function Select({
       >
         <SelectPrimitive.Value placeholder={placeholder} />
         <SelectPrimitive.Icon className="inline-flex text-fg-muted">
-          <ChevronDown {...ICON_SM} aria-hidden />
+          <Icon name="chevronDown" size="sm" aria-hidden />
         </SelectPrimitive.Icon>
       </SelectPrimitive.Trigger>
       <SelectPrimitive.Portal>
@@ -72,7 +72,7 @@ export function Select({
               >
                 <SelectPrimitive.ItemText>{option.label}</SelectPrimitive.ItemText>
                 <SelectPrimitive.ItemIndicator className="absolute right-2 inline-flex text-accent-fg">
-                  <Check {...ICON_SM} aria-hidden />
+                  <Icon name="selected" size="sm" aria-hidden />
                 </SelectPrimitive.ItemIndicator>
               </SelectPrimitive.Item>
             ))}

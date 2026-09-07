@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
-import { Check, Download, Fingerprint, Server, Trash2 } from "lucide-react";
+import { Icon } from "../../ui/icons";
 import { useSettingsStore } from "../../stores/settings";
 import { useSshStore } from "../../stores/ssh";
 import { sshImportConfig, sshKnownHostsClear, sshKnownHostsList, sshKnownHostsRemove, type KnownHost } from "../../lib/ipc";
-import { Badge, Button, Checkbox, EmptyState, IconButton, Input, Section, ICON_MD, ICON_SM, ConfirmDialog } from "../../ui";
+import { Badge, Button, Checkbox, EmptyState, IconButton, Input, Section, ConfirmDialog } from "../../ui";
 import { NumberInput, SettingRow, SettingsCard } from "./SettingRow";
 import { connectionsFromConfig, type ImportedHost } from "./ssh-import";
 
@@ -157,7 +157,7 @@ export default function SshPanel() {
         actions={
           <Button
             size="sm"
-            leadingIcon={<Download {...ICON_SM} />}
+            leadingIcon={<Icon name="importSshConfig" size="sm" />}
             loading={importLoading}
             onClick={() => void handleOpenImport()}
           >
@@ -175,7 +175,7 @@ export default function SshPanel() {
             role="status"
             className="flex items-center gap-1.5 rounded-md bg-success-subtle px-3 py-2 text-label text-success"
           >
-            <Check {...ICON_SM} aria-hidden />
+            <Icon name="confirm" size="sm" aria-hidden />
             Imported {importSuccess} connection{importSuccess === 1 ? "" : "s"}
           </p>
         )}
@@ -226,7 +226,7 @@ export default function SshPanel() {
       <Section title={`Saved connections (${connections.length})`}>
         {connections.length === 0 ? (
           <EmptyState
-            icon={<Server {...ICON_MD} />}
+            icon={<Icon name="server" size="md" />}
             title="No saved connections"
             description="Add connections from the Connections panel."
           />
@@ -234,7 +234,7 @@ export default function SshPanel() {
           <SettingsCard>
             {connections.map((conn) => (
               <div key={conn.id} className={listRow}>
-                <Server {...ICON_SM} aria-hidden className="shrink-0 text-fg-muted" />
+                <Icon name="server" size="sm" aria-hidden className="shrink-0 text-fg-muted" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-body text-fg">{conn.name}</p>
                   <p className="truncate font-mono text-label text-fg-muted">
@@ -243,7 +243,7 @@ export default function SshPanel() {
                 </div>
                 <IconButton
                   label={`Delete ${conn.name}`}
-                  icon={<Trash2 {...ICON_SM} />}
+                  icon={<Icon name="delete" size="sm" />}
                   onClick={() => setDeleteTarget({ id: conn.id, name: conn.name })}
                 />
               </div>
@@ -263,12 +263,12 @@ export default function SshPanel() {
         }
       >
         {knownHosts.length === 0 ? (
-          <EmptyState icon={<Fingerprint {...ICON_MD} />} title="No known hosts found" />
+          <EmptyState icon={<Icon name="fingerprint" size="md" />} title="No known hosts found" />
         ) : (
           <SettingsCard>
             {knownHosts.map((host) => (
               <div key={`${host.hostname}-${host.lineNumber}`} className={listRow}>
-                <Fingerprint {...ICON_SM} aria-hidden className="shrink-0 text-fg-muted" />
+                <Icon name="fingerprint" size="sm" aria-hidden className="shrink-0 text-fg-muted" />
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-mono text-body text-fg">{host.hostname}</p>
                   <p className="flex items-center gap-2 text-label text-fg-muted">
@@ -278,7 +278,7 @@ export default function SshPanel() {
                 </div>
                 <IconButton
                   label={`Remove ${host.hostname}`}
-                  icon={<Trash2 {...ICON_SM} />}
+                  icon={<Icon name="delete" size="sm" />}
                   onClick={() => void handleRemoveHost(host.hostname)}
                 />
               </div>

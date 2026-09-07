@@ -1,12 +1,12 @@
 import type { MouseEvent } from "react";
-import { Columns2, Search, Settings } from "lucide-react";
+import { Icon } from "../../ui/icons";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useSettingsStore } from "../../stores/settings";
 import { useTerminalStore } from "../../stores/terminal";
 import { isMac, MAC_TRAFFIC_LIGHT_INSET } from "../../lib/platform";
 import { splitActivePane } from "../../lib/keybindings";
 import { shortcutFor } from "../../lib/shortcut-hints";
-import { Button, ICON_SM, IconButton, Toolbar, ToolbarButton } from "../../ui";
+import { Button, IconButton, Toolbar, ToolbarButton } from "../../ui";
 import TabStrip from "./TabStrip";
 import WindowControls from "./WindowControls";
 
@@ -53,7 +53,7 @@ export default function Titlebar() {
             variant="secondary"
             size="sm"
             className="w-56"
-            leadingIcon={<Search {...ICON_SM} />}
+            leadingIcon={<Icon name="search" size="sm" />}
             shortcut={shortcutFor("command-palette")}
             onClick={toggleCommandPalette}
           >
@@ -63,7 +63,7 @@ export default function Titlebar() {
         <ToolbarButton>
           <IconButton
             label="Split pane right"
-            icon={<Columns2 {...ICON_SM} />}
+            icon={<Icon name="splitHorizontal" size="sm" />}
             shortcut={shortcutFor("split-horizontal")}
             tooltipSide="bottom"
             disabled={!hasActivePane}
@@ -73,7 +73,7 @@ export default function Titlebar() {
         <ToolbarButton>
           <IconButton
             label="Settings"
-            icon={<Settings {...ICON_SM} />}
+            icon={<Icon name="settings" size="sm" />}
             shortcut={shortcutFor("settings")}
             tooltipSide="bottom"
             onClick={toggleSettings}

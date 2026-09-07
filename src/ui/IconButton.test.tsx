@@ -1,18 +1,18 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { Plus } from "lucide-react";
+import { Icon } from "./icons";
 import { IconButton } from "./index";
 
 describe("IconButton", () => {
   it("uses its label as the accessible name", () => {
-    render(<IconButton label="New tab" icon={<Plus />} />);
+    render(<IconButton label="New tab" icon={<Icon name="add" />} />);
     expect(screen.getByRole("button", { name: "New tab" })).toBeInTheDocument();
   });
 
   it("shows the label and shortcut in a tooltip on focus", async () => {
     const user = userEvent.setup();
-    render(<IconButton label="New tab" icon={<Plus />} shortcut="Control+t" />);
+    render(<IconButton label="New tab" icon={<Icon name="add" />} shortcut="Control+t" />);
     await user.tab();
     expect(screen.getByRole("button", { name: "New tab" })).toHaveFocus();
     const tooltip = await screen.findByRole("tooltip");
@@ -23,20 +23,20 @@ describe("IconButton", () => {
   it("activates with the keyboard", async () => {
     const user = userEvent.setup();
     const onClick = vi.fn();
-    render(<IconButton label="New tab" icon={<Plus />} onClick={onClick} />);
+    render(<IconButton label="New tab" icon={<Icon name="add" />} onClick={onClick} />);
     await user.tab();
     await user.keyboard("{Enter}");
     expect(onClick).toHaveBeenCalledTimes(1);
   });
 
   it("exposes toggle state through aria-pressed", () => {
-    render(<IconButton label="Broadcast" icon={<Plus />} pressed />);
+    render(<IconButton label="Broadcast" icon={<Icon name="add" />} pressed />);
     expect(screen.getByRole("button", { name: "Broadcast" })).toHaveAttribute("aria-pressed", "true");
   });
 
   it("can drop the tooltip", async () => {
     const user = userEvent.setup();
-    render(<IconButton label="Close" icon={<Plus />} tooltip={false} />);
+    render(<IconButton label="Close" icon={<Icon name="add" />} tooltip={false} />);
     await user.tab();
     expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
   });

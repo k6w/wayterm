@@ -1,7 +1,7 @@
 import { useRef } from "react";
-import { ShieldAlert, ShieldCheck, ShieldQuestion } from "lucide-react";
+import { Icon } from "../../ui/icons";
 import type { ReactNode } from "react";
-import { Button, Dialog, DialogContent, FormCard, ICON_MD, ICON_SM } from "../../ui";
+import { Button, Dialog, DialogContent, FormCard } from "../../ui";
 import type { PendingHostKey } from "../../lib/ipc";
 import { fingerprintParts, hostLabel } from "./host-key";
 
@@ -64,7 +64,7 @@ function UnknownHost({
       title="Unknown host"
       description={`This is the first connection to ${host}. Compare the fingerprint with the one from your server administrator before you trust it.`}
       descriptionPlacement="body"
-      icon={<ShieldQuestion {...ICON_MD} />}
+      icon={<Icon name="hostKeyUnknown" size="md" />}
       tone="warning"
       onOpenAutoFocus={(event) => {
         event.preventDefault();
@@ -75,7 +75,7 @@ function UnknownHost({
           <Button ref={cancelRef} disabled={pending} onClick={onCancel}>
             Cancel
           </Button>
-          <Button variant="primary" disabled={pending} leadingIcon={<ShieldCheck {...ICON_SM} />} onClick={onTrust}>
+          <Button variant="primary" disabled={pending} leadingIcon={<Icon name="hostKeyTrusted" size="sm" />} onClick={onTrust}>
             Trust host
           </Button>
         </>
@@ -120,7 +120,7 @@ function ChangedKey({
       title="Host key changed"
       hideClose
       description={`The key ${label} sent differs from the one saved in ~/.ssh/known_hosts.`}
-      icon={<ShieldAlert {...ICON_MD} />}
+      icon={<Icon name="hostKeyChanged" size="md" />}
       tone="danger"
       onOpenAutoFocus={(event) => {
         event.preventDefault();
@@ -138,7 +138,7 @@ function ChangedKey({
       <div className="flex flex-col gap-3">
         <div role="alert" className="flex gap-3 rounded-md border border-danger bg-danger-subtle p-3 text-label text-fg">
           <span aria-hidden className="mt-0.5 inline-flex shrink-0 text-danger">
-            <ShieldAlert {...ICON_MD} />
+            <Icon name="hostKeyChanged" size="md" />
           </span>
           <p>
             Someone could be intercepting this connection (a man-in-the-middle attack), or the server was

@@ -1,8 +1,7 @@
 import { useRef, type ReactNode } from "react";
-import { CircleHelp, TriangleAlert } from "lucide-react";
+import { Icon } from "./icons";
 import { Button } from "./Button";
 import { Dialog, DialogContent } from "./Dialog";
-import { ICON_MD } from "./utils";
 
 export interface ConfirmDialogProps {
   open: boolean;
@@ -48,7 +47,7 @@ export function ConfirmDialog({
         title={title}
         description={message}
         descriptionPlacement="body"
-        icon={icon ?? (variant === "danger" ? <TriangleAlert {...ICON_MD} /> : <CircleHelp {...ICON_MD} />)}
+        icon={icon ?? (variant === "danger" ? <Icon name="warning" size="md" /> : <Icon name="help" size="md" />)}
         tone={variant === "danger" ? "danger" : "accent"}
         onOpenAutoFocus={(event) => {
           event.preventDefault();

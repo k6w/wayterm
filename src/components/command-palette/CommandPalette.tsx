@@ -1,6 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
-import { ArrowLeft, Check, ChevronRight, Search, SquareTerminal } from "lucide-react";
-import { Dialog, DialogContent, Input, ICON_MD, ICON_SM } from "../../ui";
+import { Icon } from "../../ui/icons";
+import { Dialog, DialogContent, Input, ICON_MD } from "../../ui";
 import type { ThemeDefinition } from "../../types/theme";
 import { useTerminalStore } from "../../stores/terminal";
 import { useThemeStore } from "../../stores/theme";
@@ -200,7 +200,7 @@ function PaletteBody() {
       icon: <Icon {...ICON_MD} />,
       subtitle: showCategory ? action.category : undefined,
       shortcut: action.subView ? undefined : action.keys,
-      trailing: action.subView ? <ChevronRight {...ICON_SM} aria-hidden className="shrink-0 text-fg-muted" /> : undefined,
+      trailing: action.subView ? <Icon name="drillIn" size="sm" aria-hidden className="shrink-0 text-fg-muted" /> : undefined,
     };
   };
 
@@ -218,7 +218,7 @@ function PaletteBody() {
               trailing:
                 theme.id === activeThemeId ? (
                   <span className="inline-flex shrink-0 text-accent-fg">
-                    <Check {...ICON_SM} aria-hidden />
+                    <Icon name="selected" size="sm" aria-hidden />
                     <span className="sr-only">(current)</span>
                   </span>
                 ) : undefined,
@@ -256,7 +256,7 @@ function PaletteBody() {
       }}
     >
       <div className="flex h-13 shrink-0 items-center gap-3 border-b border-border px-4">
-        <Search {...ICON_MD} aria-hidden className="shrink-0 text-fg-muted" />
+        <Icon name="search" size="md" aria-hidden className="shrink-0 text-fg-muted" />
         <Input
           ref={inputRef}
           variant="plain"
@@ -281,7 +281,7 @@ function PaletteBody() {
             onClick={showCommands}
             className="inline-flex h-6 shrink-0 items-center gap-1.5 rounded-md border border-border bg-raised pl-1.5 pr-2 text-label text-fg-secondary transition-colors duration-100 hover:bg-hover"
           >
-            <ArrowLeft {...ICON_SM} aria-hidden />
+            <Icon name="back" size="sm" aria-hidden />
             Themes
           </button>
         )}
@@ -315,7 +315,7 @@ function PaletteBody() {
       )}
       <div className="flex h-8 shrink-0 items-center justify-between border-t border-border px-4 text-label text-fg-muted">
         <span className="inline-flex items-center gap-1.5">
-          <SquareTerminal {...ICON_SM} aria-hidden />
+          <Icon name="newTerminal" size="sm" aria-hidden />
           nexterm
         </span>
         <span className="inline-flex items-center gap-4" data-testid="palette-hints">

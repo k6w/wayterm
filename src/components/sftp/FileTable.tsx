@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState, type DragEvent, type KeyboardEvent, type MouseEvent } from "react";
-import { ArrowDown, ArrowUp, Copy, Download, FileText, Folder, FolderOpen, FolderPlus, Link, Pencil, RefreshCw, Trash2, Upload } from "lucide-react";
+import { Icon, Icons, type IconComponent } from "../../ui/icons";
 import { isMac } from "../../lib/platform";
 import {
   ContextMenu,
@@ -26,15 +26,15 @@ import {
   type SortState,
 } from "./file-table";
 
-const ACTION_ICONS: Record<FileAction, typeof Copy> = {
-  open: FolderOpen,
-  download: Download,
-  upload: Upload,
-  rename: Pencil,
-  delete: Trash2,
-  copy_path: Copy,
-  new_folder: FolderPlus,
-  refresh: RefreshCw,
+const ACTION_ICONS: Record<FileAction, IconComponent> = {
+  open: Icons.folderOpen,
+  download: Icons.download,
+  upload: Icons.upload,
+  rename: Icons.edit,
+  delete: Icons.delete,
+  copy_path: Icons.copy,
+  new_folder: Icons.newFolder,
+  refresh: Icons.refresh,
 };
 
 const COLUMNS: { key: SortKey; label: string; className: string }[] = [
@@ -60,9 +60,9 @@ interface FileTableProps {
 }
 
 function EntryIcon({ entry }: { entry: SftpEntry }) {
-  if (entry.isSymlink) return <Link {...ICON_SM} aria-hidden className="shrink-0 text-fg-muted" />;
-  if (entry.isDir) return <Folder {...ICON_SM} aria-hidden className="shrink-0 text-fg-secondary" />;
-  return <FileText {...ICON_SM} aria-hidden className="shrink-0 text-fg-muted" />;
+  if (entry.isSymlink) return <Icon name="symlink" size="sm" aria-hidden className="shrink-0 text-fg-muted" />;
+  if (entry.isDir) return <Icon name="folder" size="sm" aria-hidden className="shrink-0 text-fg-secondary" />;
+  return <Icon name="file" size="sm" aria-hidden className="shrink-0 text-fg-muted" />;
 }
 
 /**
@@ -191,9 +191,9 @@ export default function FileTable({
                         {col.label}
                         {active &&
                           (sort.dir === "asc" ? (
-                            <ArrowUp size={12} strokeWidth={1.5} aria-hidden />
+                            <Icon name="sortAscending" size={12} strokeWidth={1.5} aria-hidden />
                           ) : (
-                            <ArrowDown size={12} strokeWidth={1.5} aria-hidden />
+                            <Icon name="sortDescending" size={12} strokeWidth={1.5} aria-hidden />
                           ))}
                       </button>
                     </th>

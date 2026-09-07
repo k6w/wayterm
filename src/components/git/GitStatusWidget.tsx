@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useGitStore } from '../../stores/git';
 import { useTerminalStore } from '../../stores/terminal';
-import { GitBranch } from 'lucide-react';
+import { Icon } from "../../ui/icons";
 import { MiddleTruncate } from '../../ui';
 
 export function GitStatusWidget() {
@@ -33,7 +33,7 @@ export function GitStatusWidget() {
 
   return (
     <div data-git-branch className="flex shrink-0 items-center gap-1.5 whitespace-nowrap px-1.5 h-5 text-[11px] text-text-muted rounded cursor-pointer hover:bg-bg-tertiary transition-colors">
-      <GitBranch size={12} className="shrink-0" />
+      <Icon name="gitBranch" size={12} className="shrink-0" />
       <MiddleTruncate text={currentBranch || 'main'} className="max-w-48" />
       {totalChanges > 0 && (
         <>

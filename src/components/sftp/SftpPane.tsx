@@ -1,8 +1,8 @@
 import { useState } from "react";
-import { AlertCircle, Download, ExternalLink, FolderPlus, PanelLeft, PanelLeftClose, Pencil, RefreshCw, Trash2, Upload, X } from "lucide-react";
+import { Icon } from "../../ui/icons";
 import { useTerminalStore } from "../../stores/terminal";
 import { useSftpStore } from "../../stores/sftp";
-import { Button, EmptyState, ICON_MD, ICON_SM, IconButton, SplitPane, Spinner, ToolbarButton, ToolbarSeparator, ToolbarSpacer, ConfirmDialog, InputDialog } from "../../ui";
+import { Button, EmptyState, IconButton, SplitPane, Spinner, ToolbarButton, ToolbarSeparator, ToolbarSpacer, ConfirmDialog, InputDialog } from "../../ui";
 import HostKeyDialog from "../ssh/HostKeyDialog";
 import FileConflictDialog from "./FileConflictDialog";
 import SftpSide from "./SftpSide";
@@ -50,11 +50,11 @@ export default function SftpPane({ paneId, isActive, paneCount = 1 }: SftpPanePr
       >
         {sftp.error ? (
           <EmptyState
-            icon={<AlertCircle {...ICON_MD} />}
+            icon={<Icon name="error" size="md" />}
             title="Connection failed"
             description={sftp.error}
             action={
-              <Button size="sm" variant="primary" leadingIcon={<RefreshCw {...ICON_SM} />} onClick={sftp.retry}>
+              <Button size="sm" variant="primary" leadingIcon={<Icon name="refresh" size="sm" />} onClick={sftp.retry}>
                 Retry
               </Button>
             }
@@ -88,13 +88,13 @@ export default function SftpPane({ paneId, isActive, paneCount = 1 }: SftpPanePr
           <ToolbarButton>
             <IconButton
               label="Upload selected"
-              icon={<Upload {...ICON_SM} />}
+              icon={<Icon name="upload" size="sm" />}
               disabled={selected.local.size === 0}
               onClick={browser.uploadSelected}
             />
           </ToolbarButton>
           <ToolbarButton>
-            <IconButton label="Refresh" icon={<RefreshCw {...ICON_SM} />} onClick={browser.refresh} />
+            <IconButton label="Refresh" icon={<Icon name="refresh" size="sm" />} onClick={browser.refresh} />
           </ToolbarButton>
         </>
       }
@@ -111,7 +111,7 @@ export default function SftpPane({ paneId, isActive, paneCount = 1 }: SftpPanePr
             <IconButton
               label={browser.localCollapsed ? "Show local files" : "Hide local files"}
               pressed={!browser.localCollapsed}
-              icon={browser.localCollapsed ? <PanelLeft {...ICON_SM} /> : <PanelLeftClose {...ICON_SM} />}
+              icon={browser.localCollapsed ? <Icon name="sidebar" size="sm" /> : <Icon name="sidebarClose" size="sm" />}
               onClick={browser.toggleLocal}
             />
           </ToolbarButton>
@@ -119,36 +119,36 @@ export default function SftpPane({ paneId, isActive, paneCount = 1 }: SftpPanePr
           <ToolbarButton>
             <IconButton
               label="Download selected"
-              icon={<Download {...ICON_SM} />}
+              icon={<Icon name="download" size="sm" />}
               disabled={selected.remote.size === 0}
               onClick={browser.downloadSelected}
             />
           </ToolbarButton>
           <ToolbarButton>
-            <IconButton label="New folder" icon={<FolderPlus {...ICON_SM} />} onClick={browser.requestNewFolder} />
+            <IconButton label="New folder" icon={<Icon name="newFolder" size="sm" />} onClick={browser.requestNewFolder} />
           </ToolbarButton>
           <ToolbarButton>
-            <IconButton label="Rename" icon={<Pencil {...ICON_SM} />} disabled={!remoteOne} onClick={browser.requestRename} />
+            <IconButton label="Rename" icon={<Icon name="rename" size="sm" />} disabled={!remoteOne} onClick={browser.requestRename} />
           </ToolbarButton>
           <ToolbarButton>
             <IconButton
               label="Delete"
-              icon={<Trash2 {...ICON_SM} />}
+              icon={<Icon name="delete" size="sm" />}
               disabled={selected.remote.size === 0}
               onClick={browser.requestDelete}
             />
           </ToolbarButton>
           <ToolbarButton>
-            <IconButton label="Refresh" icon={<RefreshCw {...ICON_SM} />} onClick={browser.refresh} />
+            <IconButton label="Refresh" icon={<Icon name="refresh" size="sm" />} onClick={browser.refresh} />
           </ToolbarButton>
           {paneCount > 1 && (
             <>
               <ToolbarSpacer />
               <ToolbarButton>
-                <IconButton label="Detach to tab" icon={<ExternalLink {...ICON_SM} />} onClick={() => detachPaneToTab(paneId)} />
+                <IconButton label="Detach to tab" icon={<Icon name="detach" size="sm" />} onClick={() => detachPaneToTab(paneId)} />
               </ToolbarButton>
               <ToolbarButton>
-                <IconButton label="Close pane" icon={<X {...ICON_SM} />} onClick={() => closePaneInTab(paneId)} />
+                <IconButton label="Close pane" icon={<Icon name="close" size="sm" />} onClick={() => closePaneInTab(paneId)} />
               </ToolbarButton>
             </>
           )}
@@ -223,7 +223,7 @@ export default function SftpPane({ paneId, isActive, paneCount = 1 }: SftpPanePr
       {browser.desktopDragOver && (
         <div className="pointer-events-none absolute inset-0 z-[var(--z-divider)] flex items-center justify-center border-2 border-dashed border-accent bg-accent-subtle">
           <div className="flex flex-col items-center gap-2 rounded-lg border border-border bg-raised px-8 py-6 shadow-popover">
-            <Upload {...ICON_MD} aria-hidden className="text-accent-fg" />
+            <Icon name="upload" size="md" aria-hidden className="text-accent-fg" />
             <p className="text-body font-medium text-fg">Drop files to upload</p>
             <p className="text-label text-fg-muted">They go to {browser.remoteCwd}</p>
           </div>

@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
-import { ArrowUp } from "lucide-react";
-import { Badge, ICON_SM, IconButton, Spinner, Toolbar } from "../../ui";
+import { Icon } from "../../ui/icons";
+import { Badge, IconButton, Spinner, Toolbar } from "../../ui";
 import type { SftpBrowser } from "./useSftpBrowser";
 import type { SftpSide as Side } from "./file-table";
 import FileTable from "./FileTable";
@@ -23,7 +23,7 @@ export default function SftpSide({ side, browser, actions }: SftpSideProps) {
     <section aria-label={`${name} files`} className="flex h-full min-w-0 flex-col">
       <div className="flex h-8 shrink-0 items-center gap-1 border-b border-border px-1.5">
         <Badge>{name}</Badge>
-        <IconButton size="xs" label="Up one folder" icon={<ArrowUp {...ICON_SM} />} onClick={() => browser.navigate(side, parentPath(cwd))} />
+        <IconButton size="xs" label="Up one folder" icon={<Icon name="parentFolder" size="sm" />} onClick={() => browser.navigate(side, parentPath(cwd))} />
         <PathBreadcrumb path={cwd} onNavigate={(path) => browser.navigate(side, path)} label={name} showBookmarks={remote} />
         {remote && browser.busy && <Spinner size={14} label="Working" />}
       </div>

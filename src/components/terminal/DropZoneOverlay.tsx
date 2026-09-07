@@ -1,9 +1,4 @@
-import {
-  ArrowLeftToLine,
-  ArrowRightToLine,
-  ArrowUpToLine,
-  ArrowDownToLine,
-} from "lucide-react";
+import { Icons } from "../../ui/icons";
 import type { DropZone } from "../../stores/terminal";
 
 interface DropZoneOverlayProps {
@@ -14,25 +9,25 @@ const zones = [
   {
     key: "left" as const,
     label: "Split Left",
-    Icon: ArrowLeftToLine,
+    Icon: Icons.dropLeft,
     position: "top-0 left-0 w-[30%] h-full",
   },
   {
     key: "right" as const,
     label: "Split Right",
-    Icon: ArrowRightToLine,
+    Icon: Icons.dropRight,
     position: "top-0 right-0 w-[30%] h-full",
   },
   {
     key: "top" as const,
     label: "Split Up",
-    Icon: ArrowUpToLine,
+    Icon: Icons.dropTop,
     position: "top-0 left-[30%] w-[40%] h-[30%]",
   },
   {
     key: "bottom" as const,
     label: "Split Down",
-    Icon: ArrowDownToLine,
+    Icon: Icons.dropBottom,
     position: "bottom-0 left-[30%] w-[40%] h-[30%]",
   },
 ] as const;

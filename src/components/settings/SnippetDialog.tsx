@@ -1,8 +1,8 @@
 import { useId, useState, type FormEvent, type KeyboardEvent } from "react";
 import { SNIPPET_VARIABLE_HINTS } from "../../lib/snippet-utils";
 import { isMac } from "../../lib/platform";
-import { SquareTerminal } from "lucide-react";
-import { Button, Dialog, DialogContent, FormGroup, FormRow, ICON_MD, Input, Textarea, Tooltip } from "../../ui";
+import { Icon } from "../../ui/icons";
+import { Button, Dialog, DialogContent, FormGroup, FormRow, Input, Textarea, Tooltip } from "../../ui";
 import { isDraftValid, type SnippetDraft } from "./snippets";
 
 interface SnippetDialogProps {
@@ -67,7 +67,7 @@ function SnippetForm({
       size="md"
       title={editing ? "Edit snippet" : "New snippet"}
       description="Saved commands run in the active terminal."
-      icon={<SquareTerminal {...ICON_MD} />}
+      icon={<Icon name="newTerminal" size="md" />}
       hints={[
         { shortcut: "Escape", label: "Cancel" },
         { shortcut: "Mod+Enter", label: "Save" },

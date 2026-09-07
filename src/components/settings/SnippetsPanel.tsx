@@ -1,12 +1,12 @@
 import { useRef, useState, type ChangeEvent } from "react";
-import { ChevronRight, Download, Pencil, Play, Plus, ScrollText, Trash2, Upload } from "lucide-react";
+import { Icon } from "../../ui/icons";
 import { useSettingsStore } from "../../stores/settings";
 import { useTerminalStore } from "../../stores/terminal";
 import { useSshStore } from "../../stores/ssh";
 import { getCachedTerminal } from "../../lib/terminal-registry";
 import { resolveSnippetVars } from "../../lib/snippet-utils";
 import { downloadTextFile } from "../../lib/download-file";
-import { Button, EmptyState, ICON_MD, ICON_SM, IconButton, ListRow, Section, Toolbar, ToolbarButton, cn, ConfirmDialog } from "../../ui";
+import { Button, EmptyState, IconButton, ListRow, Section, Toolbar, ToolbarButton, cn, ConfirmDialog } from "../../ui";
 import { PanelGroup } from "../sidebar/PanelChrome";
 import SnippetDialog from "./SnippetDialog";
 import { groupSnippets, mergeImportedSnippets, saveSnippet, type SnippetDraft } from "./snippets";
@@ -86,7 +86,7 @@ export default function SnippetsPanel() {
         actions={
           <Toolbar aria-label="Snippet actions" className="gap-1">
             <ToolbarButton>
-              <Button size="sm" variant="ghost" leadingIcon={<Upload {...ICON_SM} />} onClick={() => fileInputRef.current?.click()}>
+              <Button size="sm" variant="ghost" leadingIcon={<Icon name="import" size="sm" />} onClick={() => fileInputRef.current?.click()}>
                 Import
               </Button>
             </ToolbarButton>
@@ -94,7 +94,7 @@ export default function SnippetsPanel() {
               <Button
                 size="sm"
                 variant="ghost"
-                leadingIcon={<Download {...ICON_SM} />}
+                leadingIcon={<Icon name="export" size="sm" />}
                 disabled={snippets.length === 0}
                 onClick={() => downloadTextFile("nexterm-snippets.json", JSON.stringify(snippets, null, 2), "application/json")}
               >
@@ -105,7 +105,7 @@ export default function SnippetsPanel() {
               <Button
                 size="sm"
                 variant="primary"
-                leadingIcon={<Plus {...ICON_SM} />}
+                leadingIcon={<Icon name="add" size="sm" />}
                 onClick={() => setDialog({ draft: EMPTY_DRAFT, editingId: null })}
               >
                 New snippet
@@ -116,11 +116,11 @@ export default function SnippetsPanel() {
       >
         {groups.length === 0 ? (
           <EmptyState
-            icon={<ScrollText {...ICON_MD} />}
+            icon={<Icon name="script" size="md" />}
             title="No snippets yet"
             description="Save commands you run often, then launch them from the command palette."
             action={
-              <Button size="sm" leadingIcon={<Plus {...ICON_SM} />} onClick={() => setDialog({ draft: EMPTY_DRAFT, editingId: null })}>
+              <Button size="sm" leadingIcon={<Icon name="add" size="sm" />} onClick={() => setDialog({ draft: EMPTY_DRAFT, editingId: null })}>
                 New snippet
               </Button>
             }
@@ -141,7 +141,7 @@ export default function SnippetsPanel() {
                         size="xs"
                         label={open ? "Collapse" : "Expand"}
                         aria-expanded={open}
-                        icon={<ChevronRight {...ICON_SM} className={cn("transition-transform duration-150 ease-out", open && "rotate-90")} />}
+                        icon={<Icon name="disclosure" size="sm" className={cn("transition-transform duration-150 ease-out", open && "rotate-90")} />}
                         onClick={() => toggleGroup(key)}
                       />
                     )
@@ -161,11 +161,11 @@ export default function SnippetsPanel() {
                         }
                         actions={
                           <>
-                            <IconButton size="xs" label="Run snippet" icon={<Play {...ICON_SM} />} onClick={() => runSnippet(snippet)} />
+                            <IconButton size="xs" label="Run snippet" icon={<Icon name="run" size="sm" />} onClick={() => runSnippet(snippet)} />
                             <IconButton
                               size="xs"
                               label="Edit snippet"
-                              icon={<Pencil {...ICON_SM} />}
+                              icon={<Icon name="edit" size="sm" />}
                               onClick={() =>
                                 setDialog({
                                   draft: { name: snippet.name, category: snippet.category ?? "", command: snippet.command },
@@ -176,7 +176,7 @@ export default function SnippetsPanel() {
                             <IconButton
                               size="xs"
                               label="Delete snippet"
-                              icon={<Trash2 {...ICON_SM} />}
+                              icon={<Icon name="delete" size="sm" />}
                               onClick={() => setDeletingId(snippet.id)}
                             />
                           </>

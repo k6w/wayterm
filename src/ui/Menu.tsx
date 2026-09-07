@@ -1,9 +1,9 @@
 import type { ComponentPropsWithRef, ReactNode } from "react";
 import { DropdownMenu as MenuPrimitive } from "radix-ui";
-import { Check, ChevronRight } from "lucide-react";
+import { Icon } from "./icons";
 import { Kbd } from "./Kbd";
 import { menuContentClass, menuItemClass, menuLabelClass, menuSeparatorClass } from "./menu-styles";
-import { cn, ICON_SM } from "./utils";
+import { cn } from "./utils";
 
 export const Menu = MenuPrimitive.Root;
 export const MenuTrigger = MenuPrimitive.Trigger;
@@ -57,7 +57,7 @@ export function MenuRadioItem({
     <MenuPrimitive.RadioItem className={cn(menuItemClass, "pr-7", className)} {...rest}>
       <span className="flex flex-1 items-center gap-2 truncate">{children}</span>
       <MenuPrimitive.ItemIndicator className="absolute right-2 inline-flex text-accent-fg">
-        <Check {...ICON_SM} aria-hidden />
+        <Icon name="selected" size="sm" aria-hidden />
       </MenuPrimitive.ItemIndicator>
     </MenuPrimitive.RadioItem>
   );
@@ -84,7 +84,7 @@ export function MenuSubTrigger({ icon, className, children, ...rest }: MenuSubTr
         </span>
       )}
       <span className="flex-1 truncate">{children}</span>
-      <ChevronRight {...ICON_SM} aria-hidden className="text-fg-muted" />
+      <Icon name="submenu" size="sm" aria-hidden className="text-fg-muted" />
     </MenuPrimitive.SubTrigger>
   );
 }

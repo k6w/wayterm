@@ -1,17 +1,4 @@
-import {
-  ExternalLink,
-  Columns2,
-  Rows2,
-  X,
-  Copy,
-  ClipboardPaste,
-  TextSelect,
-  Eraser,
-  RotateCcw,
-  FolderOpen,
-  FileText,
-  StopCircle,
-} from "lucide-react";
+import { Icon } from "../../ui/icons";
 import { useTerminalStore } from "../../stores/terminal";
 import { splitActivePane } from "../../lib/keybindings";
 import {
@@ -22,7 +9,7 @@ import {
   resetTerminal,
   hasSelection,
 } from "../../lib/terminal-registry";
-import { ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ICON_SM } from "../../ui";
+import { ContextMenuContent, ContextMenuItem, ContextMenuSeparator } from "../../ui";
 
 interface PaneContextMenuProps {
   paneId: string;
@@ -61,7 +48,7 @@ export default function PaneContextMenu({
       }}
     >
       <ContextMenuItem
-        icon={<Copy {...ICON_SM} />}
+        icon={<Icon name="copy" size="sm" />}
         shortcut="Mod+c"
         disabled={!hasSel}
         onSelect={() => copySelection(paneId)}
@@ -69,7 +56,7 @@ export default function PaneContextMenu({
         Copy
       </ContextMenuItem>
       <ContextMenuItem
-        icon={<ClipboardPaste {...ICON_SM} />}
+        icon={<Icon name="paste" size="sm" />}
         shortcut="Mod+v"
         onSelect={() => {
           void pasteToTerminal(paneId);
@@ -77,19 +64,19 @@ export default function PaneContextMenu({
       >
         Paste
       </ContextMenuItem>
-      <ContextMenuItem icon={<TextSelect {...ICON_SM} />} shortcut="Mod+a" onSelect={() => selectAll(paneId)}>
+      <ContextMenuItem icon={<Icon name="selectAll" size="sm" />} shortcut="Mod+a" onSelect={() => selectAll(paneId)}>
         Select All
       </ContextMenuItem>
       <ContextMenuSeparator />
-      <ContextMenuItem icon={<Eraser {...ICON_SM} />} shortcut="Mod+k" onSelect={() => clearBuffer(paneId)}>
+      <ContextMenuItem icon={<Icon name="clear" size="sm" />} shortcut="Mod+k" onSelect={() => clearBuffer(paneId)}>
         Clear Buffer
       </ContextMenuItem>
-      <ContextMenuItem icon={<RotateCcw {...ICON_SM} />} onSelect={() => resetTerminal(paneId)}>
+      <ContextMenuItem icon={<Icon name="reset" size="sm" />} onSelect={() => resetTerminal(paneId)}>
         Reset Terminal
       </ContextMenuItem>
       <ContextMenuSeparator />
       <ContextMenuItem
-        icon={<Columns2 {...ICON_SM} />}
+        icon={<Icon name="splitHorizontal" size="sm" />}
         shortcut="Mod+Shift+d"
         onSelect={() => {
           setActivePane(paneId);
@@ -99,7 +86,7 @@ export default function PaneContextMenu({
         Split Right
       </ContextMenuItem>
       <ContextMenuItem
-        icon={<Rows2 {...ICON_SM} />}
+        icon={<Icon name="splitVertical" size="sm" />}
         shortcut="Mod+Shift+e"
         onSelect={() => {
           setActivePane(paneId);
@@ -112,7 +99,7 @@ export default function PaneContextMenu({
       {paneCount > 1 && (
         <>
           <ContextMenuItem
-            icon={<ExternalLink {...ICON_SM} />}
+            icon={<Icon name="detach" size="sm" />}
             shortcut="Mod+Shift+t"
             onSelect={() => {
               setActivePane(paneId);
@@ -122,7 +109,7 @@ export default function PaneContextMenu({
             Detach to Tab
           </ContextMenuItem>
           <ContextMenuItem
-            icon={<X {...ICON_SM} />}
+            icon={<Icon name="close" size="sm" />}
             shortcut="Mod+Shift+w"
             onSelect={() => closePaneInTab(paneId)}
           >
@@ -132,7 +119,7 @@ export default function PaneContextMenu({
         </>
       )}
       <ContextMenuItem
-        icon={<FolderOpen {...ICON_SM} />}
+        icon={<Icon name="folderOpen" size="sm" />}
         onSelect={() => {
           void navigator.clipboard.writeText(pane?.cwd || "~");
         }}
@@ -141,11 +128,11 @@ export default function PaneContextMenu({
       </ContextMenuItem>
       <ContextMenuSeparator />
       {isLogging ? (
-        <ContextMenuItem icon={<StopCircle {...ICON_SM} />} onSelect={() => onStopLog?.()}>
+        <ContextMenuItem icon={<Icon name="stop" size="sm" />} onSelect={() => onStopLog?.()}>
           Stop Session Log
         </ContextMenuItem>
       ) : (
-        <ContextMenuItem icon={<FileText {...ICON_SM} />} onSelect={() => onStartLog?.()}>
+        <ContextMenuItem icon={<Icon name="log" size="sm" />} onSelect={() => onStartLog?.()}>
           Start Session Log
         </ContextMenuItem>
       )}

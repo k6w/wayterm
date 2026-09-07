@@ -1,9 +1,9 @@
 import type { ComponentPropsWithRef, ReactNode } from "react";
 import { Dialog as DialogPrimitive } from "radix-ui";
-import { X } from "lucide-react";
+import { Icon } from "./icons";
 import { IconButton } from "./IconButton";
 import { Kbd } from "./Kbd";
-import { cn, ICON_SM } from "./utils";
+import { cn } from "./utils";
 
 export const Dialog = DialogPrimitive.Root;
 export const DialogTrigger = DialogPrimitive.Trigger;
@@ -185,7 +185,7 @@ export function DialogContent({
           <DialogPrimitive.Close asChild>
             <IconButton
               label="Close"
-              icon={<X {...ICON_SM} />}
+              icon={<Icon name="close" size="sm" />}
               tooltip={false}
               className="absolute right-4 top-4"
             />

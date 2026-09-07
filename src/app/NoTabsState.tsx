@@ -1,7 +1,7 @@
-import { Command, Monitor, Plus, Terminal } from "lucide-react";
+import { Icon } from "../ui/icons";
 import { useTerminalStore } from "../stores/terminal";
 import { shortcutFor } from "../lib/shortcut-hints";
-import { Button, EmptyState, ICON_SM } from "../ui";
+import { Button, EmptyState } from "../ui";
 
 interface NoTabsStateProps {
   onNewTerminal: () => void;
@@ -15,25 +15,25 @@ export default function NoTabsState({ onNewTerminal, onNewSsh }: NoTabsStateProp
   return (
     <div className="flex h-full w-full items-center justify-center">
       <EmptyState
-        icon={<Terminal size={32} strokeWidth={1.5} />}
+        icon={<Icon name="terminal" size={32} strokeWidth={1.5} />}
         title="No open tabs"
         description="Start a terminal, connect to a server, or search every command."
         action={
           <div className="flex w-60 flex-col items-stretch gap-2">
             <Button
               className="w-full"
-              leadingIcon={<Plus {...ICON_SM} />}
+              leadingIcon={<Icon name="add" size="sm" />}
               shortcut={shortcutFor("new-tab")}
               onClick={onNewTerminal}
             >
               New terminal
             </Button>
-            <Button className="w-full" leadingIcon={<Monitor {...ICON_SM} />} onClick={onNewSsh}>
+            <Button className="w-full" leadingIcon={<Icon name="remote" size="sm" />} onClick={onNewSsh}>
               New SSH connection
             </Button>
             <Button
               className="w-full"
-              leadingIcon={<Command {...ICON_SM} />}
+              leadingIcon={<Icon name="command" size="sm" />}
               shortcut={shortcutFor("command-palette")}
               onClick={toggleCommandPalette}
             >

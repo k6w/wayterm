@@ -1,20 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import { Archive, ArrowLeft, FileDiff, FolderGit2, FolderSearch, GitBranch, GitCommitHorizontal, RefreshCw } from "lucide-react";
+import { Icon } from "../../ui/icons";
 import { useGitStore } from "../../stores/git";
 import { useTerminalStore } from "../../stores/terminal";
-import {
-  Button,
-  EmptyState,
-  ICON_MD,
-  ICON_SM,
-  IconButton,
-  SegmentedControl,
-  Spinner,
-  Tooltip,
-  Toolbar,
-  ToolbarButton,
-  ToolbarSpacer,
-} from "../../ui";
+import { Button, EmptyState, IconButton, SegmentedControl, Spinner, Tooltip, Toolbar, ToolbarButton, ToolbarSpacer } from "../../ui";
 import { PanelContent, PanelToolbar } from "../sidebar/PanelChrome";
 import DiffViewer from "./DiffViewer";
 import GitChanges from "./GitChanges";
@@ -25,10 +13,10 @@ import type { GitDiff } from "../../types/git";
 type GitView = "status" | "branches" | "commits" | "stash";
 
 const VIEWS = [
-  { value: "status", label: "Status", icon: <FileDiff {...ICON_SM} /> },
-  { value: "branches", label: "Branches", icon: <GitBranch {...ICON_SM} /> },
-  { value: "commits", label: "Commits", icon: <GitCommitHorizontal {...ICON_SM} /> },
-  { value: "stash", label: "Stash", icon: <Archive {...ICON_SM} /> },
+  { value: "status", label: "Status", icon: <Icon name="diff" size="sm" /> },
+  { value: "branches", label: "Branches", icon: <Icon name="gitBranch" size="sm" /> },
+  { value: "commits", label: "Commits", icon: <Icon name="gitHistory" size="sm" /> },
+  { value: "stash", label: "Stash", icon: <Icon name="stash" size="sm" /> },
 ] as const;
 
 /** Git for the active pane's working directory (local, or over SSH for status and history). */
@@ -102,7 +90,7 @@ export function GitPanel() {
     return (
       <PanelContent>
         <EmptyState
-          icon={<FolderSearch {...ICON_MD} />}
+          icon={<Icon name="findRepository" size="md" />}
           title="No folder selected"
           description="Open a terminal and cd into a folder to see its Git status here."
         />
@@ -116,7 +104,7 @@ export function GitPanel() {
     return (
       <PanelContent>
         <EmptyState
-          icon={<FolderGit2 {...ICON_MD} />}
+          icon={<Icon name="repository" size="md" />}
           title="Not a Git repository"
           description={
             <>
@@ -147,7 +135,7 @@ export function GitPanel() {
     return (
       <PanelContent>
         <EmptyState
-          icon={<FolderSearch {...ICON_MD} />}
+          icon={<Icon name="findRepository" size="md" />}
           title="Couldn't read Git status"
           description={`Git may not be installed, or this folder isn't accessible. ${error}`}
           action={
@@ -165,7 +153,7 @@ export function GitPanel() {
       <>
         <Toolbar aria-label="Diff" className="h-9 shrink-0 gap-1 border-b border-border px-2">
           <ToolbarButton>
-            <IconButton label="Back to changes" icon={<ArrowLeft {...ICON_SM} />} onClick={() => setDiff(null)} />
+            <IconButton label="Back to changes" icon={<Icon name="back" size="sm" />} onClick={() => setDiff(null)} />
           </ToolbarButton>
           <span className="text-label text-fg-secondary">Diff</span>
         </Toolbar>
@@ -192,7 +180,7 @@ export function GitPanel() {
         <ToolbarButton>
           <IconButton
             label="Refresh"
-            icon={isLoading ? <Spinner size={14} label="Refreshing" /> : <RefreshCw {...ICON_SM} />}
+            icon={isLoading ? <Spinner size={14} label="Refreshing" /> : <Icon name="refresh" size="sm" />}
             disabled={isLoading}
             onClick={() => void loadRepo(cwd)}
           />

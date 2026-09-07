@@ -1,19 +1,7 @@
 import { useState, type KeyboardEvent } from "react";
-import { Archive, Check, Download, FileDiff, GitBranch, Minus, Plus, Upload } from "lucide-react";
+import { Icon } from "../../ui/icons";
 import { isMac } from "../../lib/platform";
-import {
-  Badge,
-  Button,
-  EmptyState,
-  ICON_MD,
-  ICON_SM,
-  IconButton,
-  ListRow,
-  MiddleTruncate,
-  Textarea,
-  Toolbar,
-  ToolbarButton,
-} from "../../ui";
+import { Badge, Button, EmptyState, IconButton, ListRow, MiddleTruncate, Textarea, Toolbar, ToolbarButton } from "../../ui";
 import { PanelGroup } from "../sidebar/PanelChrome";
 import { CHANGE_CODES, changeGroups, type ChangeRow } from "./git-changes";
 import type { GitStatus } from "../../types/git";
@@ -73,9 +61,9 @@ export default function GitChanges({
         onSelect={() => onShowDiff(change.path, change.staged)}
         actions={
           action === "stage" ? (
-            <IconButton size="xs" label={`Stage ${change.path}`} icon={<Plus {...ICON_SM} />} onClick={() => onStage([change.path])} />
+            <IconButton size="xs" label={`Stage ${change.path}`} icon={<Icon name="stage" size="sm" />} onClick={() => onStage([change.path])} />
           ) : (
-            <IconButton size="xs" label={`Unstage ${change.path}`} icon={<Minus {...ICON_SM} />} onClick={() => onUnstage(change.path)} />
+            <IconButton size="xs" label={`Unstage ${change.path}`} icon={<Icon name="unstage" size="sm" />} onClick={() => onUnstage(change.path)} />
           )
         }
       />
@@ -85,29 +73,29 @@ export default function GitChanges({
   return (
     <div className="flex flex-col gap-2">
       <Toolbar aria-label="Repository actions" className="h-7 gap-1 pl-2">
-        <GitBranch {...ICON_SM} aria-hidden className="shrink-0 text-fg-muted" />
+        <Icon name="gitBranch" size="sm" aria-hidden className="shrink-0 text-fg-muted" />
         <MiddleTruncate text={branch || "main"} className="flex-1 text-label font-medium text-fg" />
         <ToolbarButton>
-          <IconButton label="View diff" icon={<FileDiff {...ICON_SM} />} onClick={() => onShowDiff()} />
+          <IconButton label="View diff" icon={<Icon name="diff" size="sm" />} onClick={() => onShowDiff()} />
         </ToolbarButton>
         <ToolbarButton>
-          <IconButton label="Pull" icon={<Download {...ICON_SM} />} onClick={onPull} />
+          <IconButton label="Pull" icon={<Icon name="pull" size="sm" />} onClick={onPull} />
         </ToolbarButton>
         <ToolbarButton>
-          <IconButton label="Push" icon={<Upload {...ICON_SM} />} onClick={onPush} />
+          <IconButton label="Push" icon={<Icon name="push" size="sm" />} onClick={onPush} />
         </ToolbarButton>
         <ToolbarButton>
-          <IconButton label="Stash" icon={<Archive {...ICON_SM} />} onClick={onStash} />
+          <IconButton label="Stash" icon={<Icon name="stash" size="sm" />} onClick={onStash} />
         </ToolbarButton>
       </Toolbar>
 
       {staged.length === 0 && unstaged.length === 0 ? (
         <EmptyState
-          icon={<Check {...ICON_MD} />}
+          icon={<Icon name="confirm" size="md" />}
           title="Working tree clean"
           description={
             <Badge data-testid="git-clean-branch" tone="neutral" size="md">
-              <GitBranch {...ICON_SM} aria-hidden />
+              <Icon name="gitBranch" size="sm" aria-hidden />
               <MiddleTruncate text={branch || "main"} />
             </Badge>
           }
@@ -146,7 +134,7 @@ export default function GitChanges({
           />
           <Button
             variant="primary"
-            leadingIcon={<Check {...ICON_SM} />}
+            leadingIcon={<Icon name="confirm" size="sm" />}
             shortcut="Mod+Enter"
             disabled={!message.trim()}
             onClick={() => void commit()}

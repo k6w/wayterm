@@ -1,5 +1,5 @@
 import type { CSSProperties } from "react";
-import { Terminal, Columns2, Rows2 } from "lucide-react";
+import { Icon, Icons } from "../../ui/icons";
 import type { SplitNode, TerminalPane } from "../../types/terminal";
 
 interface TerminalTreeProps {
@@ -39,14 +39,14 @@ function TreeNode({
         className="flex items-center gap-1.5 py-0.5 pl-[calc(var(--nx-dyn-depth)*12px)] text-text-primary"
         style={{ "--nx-dyn-depth": depth } as CSSProperties}
       >
-        <Terminal className="size-3 shrink-0 text-text-muted" />
+        <Icon name="terminal" className="size-3 shrink-0 text-text-muted" />
         <span className="truncate text-xs">{label}</span>
       </div>
     );
   }
 
   const isHorizontal = node.direction === "horizontal";
-  const DirectionIcon = isHorizontal ? Columns2 : Rows2;
+  const DirectionIcon = isHorizontal ? Icons.splitHorizontal : Icons.splitVertical;
   const directionLabel = isHorizontal ? "Split H" : "Split V";
 
   return (

@@ -1,6 +1,6 @@
 import { useRef } from "react";
-import { Copy, FileWarning, Replace } from "lucide-react";
-import { Button, Dialog, DialogContent, ICON_MD, ICON_SM } from "../../ui";
+import { Icon } from "../../ui/icons";
+import { Button, Dialog, DialogContent } from "../../ui";
 import { joinRemote } from "./sftp-paths";
 
 interface FileConflictDialogProps {
@@ -48,7 +48,7 @@ export default function FileConflictDialog({
       <DialogContent
         size="sm"
         title="File already exists"
-        icon={<FileWarning {...ICON_MD} />}
+        icon={<Icon name="fileConflict" size="md" />}
         tone="warning"
         hints={[{ shortcut: "Escape", label: "Skip" }]}
         onOpenAutoFocus={(event) => {
@@ -61,12 +61,12 @@ export default function FileConflictDialog({
               Skip
             </Button>
             <Button
-              leadingIcon={<Copy {...ICON_SM} />}
+              leadingIcon={<Icon name="copy" size="sm" />}
               onClick={() => onRename(joinRemote(remoteDir, nextAvailableName(fileName, remoteNames)))}
             >
               Keep both
             </Button>
-            <Button variant="primary" leadingIcon={<Replace {...ICON_SM} />} onClick={onReplace}>
+            <Button variant="primary" leadingIcon={<Icon name="replace" size="sm" />} onClick={onReplace}>
               Replace
             </Button>
           </>

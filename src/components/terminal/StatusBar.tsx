@@ -1,22 +1,5 @@
 import { useState } from "react";
-import {
-  ArrowRightLeft,
-  Bell,
-  BellOff,
-  Columns2,
-  Command,
-  Eraser,
-  Folder,
-  LayoutGrid,
-  Moon,
-  Palette,
-  Radio,
-  Rows2,
-  Search,
-  Settings,
-  Sun,
-  Terminal,
-} from "lucide-react";
+import { Icon } from "../../ui/icons";
 import { useTerminalStore, collectPaneIds } from "../../stores/terminal";
 import { useThemeStore } from "../../stores/theme";
 import { useSshStore } from "../../stores/ssh";
@@ -28,23 +11,7 @@ import { shortcutFor } from "../../lib/shortcut-hints";
 import { selectTheme } from "../../lib/theme-selection";
 import QuickPortForwardDialog from "../ssh/QuickPortForwardDialog";
 import { GitStatusWidget } from "../git/GitStatusWidget";
-import {
-  Badge,
-  Button,
-  ICON_SM,
-  IconButton,
-  Menu,
-  MenuContent,
-  MenuLabel,
-  MenuRadioGroup,
-  MenuRadioItem,
-  MenuTrigger,
-  Toolbar,
-  ToolbarButton,
-  ToolbarSeparator,
-  ToolbarSpacer,
-  Tooltip,
-} from "../../ui";
+import { Badge, Button, IconButton, Menu, MenuContent, MenuLabel, MenuRadioGroup, MenuRadioItem, MenuTrigger, Toolbar, ToolbarButton, ToolbarSeparator, ToolbarSpacer, Tooltip } from "../../ui";
 
 /**
  * Bottom status bar. One Toolbar: Tab enters it, arrow keys move between its
@@ -103,7 +70,7 @@ export default function StatusBar() {
     >
       <Tooltip content={`Shell: ${paneShell.path}`}>
         <ToolbarButton>
-          <Button variant="ghost" size="xs" leadingIcon={<Terminal {...ICON_SM} />}>
+          <Button variant="ghost" size="xs" leadingIcon={<Icon name="terminal" size="sm" />}>
             {paneShell.label}
           </Button>
         </ToolbarButton>
@@ -116,7 +83,7 @@ export default function StatusBar() {
           <Button
             variant="ghost"
             size="xs"
-            leadingIcon={<Folder {...ICON_SM} />}
+            leadingIcon={<Icon name="folder" size="sm" />}
             className="max-w-[240px]"
             onClick={handleCopyPath}
           >
@@ -132,7 +99,7 @@ export default function StatusBar() {
           <ToolbarSeparator />
           <Tooltip content="Focus next pane">
             <ToolbarButton>
-              <Button variant="ghost" size="xs" leadingIcon={<LayoutGrid {...ICON_SM} />} onClick={focusNextPane}>
+              <Button variant="ghost" size="xs" leadingIcon={<Icon name="panes" size="sm" />} onClick={focusNextPane}>
                 Pane {paneIndex}/{paneCount}
               </Button>
             </ToolbarButton>
@@ -156,7 +123,7 @@ export default function StatusBar() {
             <IconButton
               size="xs"
               label="Quick port forward"
-              icon={<ArrowRightLeft {...ICON_SM} />}
+              icon={<Icon name="quickPortForward" size="sm" />}
               onClick={() => setShowQuickPortForward(true)}
             />
           </ToolbarButton>
@@ -182,7 +149,7 @@ export default function StatusBar() {
         <IconButton
           size="xs"
           label="Broadcast input to all panes"
-          icon={<Radio {...ICON_SM} />}
+          icon={<Icon name="broadcast" size="sm" />}
           pressed={broadcastMode}
           onClick={toggleBroadcastMode}
         />
@@ -191,7 +158,7 @@ export default function StatusBar() {
         <IconButton
           size="xs"
           label="Search in terminal"
-          icon={<Search {...ICON_SM} />}
+          icon={<Icon name="search" size="sm" />}
           shortcut={shortcutFor("search-terminal")}
           onClick={() => window.dispatchEvent(new CustomEvent("nexterm:open-search"))}
         />
@@ -200,7 +167,7 @@ export default function StatusBar() {
         <IconButton
           size="xs"
           label="Clear terminal"
-          icon={<Eraser {...ICON_SM} />}
+          icon={<Icon name="clear" size="sm" />}
           onClick={() => clearBuffer(activePaneId)}
         />
       </ToolbarButton>
@@ -211,7 +178,7 @@ export default function StatusBar() {
         <IconButton
           size="xs"
           label="Split right"
-          icon={<Columns2 {...ICON_SM} />}
+          icon={<Icon name="splitHorizontal" size="sm" />}
           shortcut={shortcutFor("split-horizontal")}
           onClick={() => splitActivePane("horizontal")}
         />
@@ -220,7 +187,7 @@ export default function StatusBar() {
         <IconButton
           size="xs"
           label="Split down"
-          icon={<Rows2 {...ICON_SM} />}
+          icon={<Icon name="splitVertical" size="sm" />}
           shortcut={shortcutFor("split-vertical")}
           onClick={() => splitActivePane("vertical")}
         />
@@ -232,7 +199,7 @@ export default function StatusBar() {
         <IconButton
           size="xs"
           label={bellEnabled ? "Mute bell" : "Unmute bell"}
-          icon={bellEnabled ? <Bell {...ICON_SM} /> : <BellOff {...ICON_SM} />}
+          icon={bellEnabled ? <Icon name="bellOn" size="sm" /> : <Icon name="bellOff" size="sm" />}
           onClick={() => setBellEnabled((b) => !b)}
         />
       </ToolbarButton>
@@ -241,7 +208,7 @@ export default function StatusBar() {
         <IconButton
           size="xs"
           label="Command palette"
-          icon={<Command {...ICON_SM} />}
+          icon={<Icon name="command" size="sm" />}
           shortcut={shortcutFor("command-palette")}
           onClick={toggleCommandPalette}
         />
@@ -250,7 +217,7 @@ export default function StatusBar() {
         <IconButton
           size="xs"
           label="Settings"
-          icon={<Settings {...ICON_SM} />}
+          icon={<Icon name="settings" size="sm" />}
           shortcut={shortcutFor("settings")}
           onClick={toggleSettings}
         />
@@ -277,7 +244,7 @@ function ThemePicker() {
     >
       <ToolbarButton>
         <MenuTrigger asChild>
-          <IconButton size="xs" label={`Theme: ${activeName}`} icon={<Palette {...ICON_SM} />} />
+          <IconButton size="xs" label={`Theme: ${activeName}`} icon={<Icon name="theme" size="sm" />} />
         </MenuTrigger>
       </ToolbarButton>
       <MenuContent side="top" align="end" className="max-h-80 overflow-y-auto">
@@ -286,9 +253,9 @@ function ThemePicker() {
           {Object.values(themes).map((theme) => (
             <MenuRadioItem key={theme.id} value={theme.id} onFocus={() => previewTheme(theme.id)}>
               {theme.variant === "light" ? (
-                <Sun {...ICON_SM} aria-hidden className="text-fg-muted" />
+                <Icon name="lightMode" size="sm" aria-hidden className="text-fg-muted" />
               ) : (
-                <Moon {...ICON_SM} aria-hidden className="text-fg-muted" />
+                <Icon name="darkMode" size="sm" aria-hidden className="text-fg-muted" />
               )}
               {theme.name}
             </MenuRadioItem>

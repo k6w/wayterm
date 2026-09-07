@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState, type FormEvent } from "react";
-import { Layout, RefreshCw, Save, Trash2 } from "lucide-react";
+import { Icon } from "../../ui/icons";
 import { useWorkspaceStore } from "../../stores/workspace";
-import { Button, EmptyState, ICON_MD, ICON_SM, IconButton, Input, ListRow, ConfirmDialog } from "../../ui";
+import { Button, EmptyState, IconButton, Input, ListRow, ConfirmDialog } from "../../ui";
 import { PanelGroup } from "./PanelChrome";
 
 /** "Today", "Yesterday", "3d ago", then a short date. */
@@ -58,14 +58,14 @@ export default function WorkspaceList() {
           value={nameInput}
           onChange={(e) => setNameInput(e.target.value)}
         />
-        <Button type="submit" size="sm" loading={saving} leadingIcon={<Save {...ICON_SM} />}>
+        <Button type="submit" size="sm" loading={saving} leadingIcon={<Icon name="save" size="sm" />}>
           Save
         </Button>
       </form>
 
       {workspaces.length === 0 ? (
         <EmptyState
-          icon={<Layout {...ICON_MD} />}
+          icon={<Icon name="workspace" size="md" />}
           title="No saved workspaces"
           description="Save your open tabs and splits to bring them back later."
         />
@@ -73,7 +73,7 @@ export default function WorkspaceList() {
         workspaces.map((ws) => (
           <ListRow
             key={ws.id}
-            icon={<Layout {...ICON_SM} />}
+            icon={<Icon name="workspace" size="sm" />}
             label={ws.name}
             description={formatWorkspaceDate(ws.updatedAt)}
             onSelect={() => restore(ws.id)}
@@ -82,13 +82,13 @@ export default function WorkspaceList() {
                 <IconButton
                   size="xs"
                   label="Update with current session"
-                  icon={<RefreshCw {...ICON_SM} />}
+                  icon={<Icon name="refresh" size="sm" />}
                   onClick={() => void update(ws.id)}
                 />
                 <IconButton
                   size="xs"
                   label="Delete workspace"
-                  icon={<Trash2 {...ICON_SM} />}
+                  icon={<Icon name="delete" size="sm" />}
                   onClick={() => setDeleteTarget({ id: ws.id, name: ws.name })}
                 />
               </>

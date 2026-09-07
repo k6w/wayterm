@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent } from "react";
-import { Columns2, Cpu, HardDrive, Rows2, Terminal, X } from "lucide-react";
+import { Icon } from "../../ui/icons";
 import { motion, useReducedMotion } from "framer-motion";
 import type { TerminalTab } from "../../types/terminal";
 import { useTerminalStore, countPaneNodes } from "../../stores/terminal";
-import { ContextMenu, ContextMenuTrigger, ICON_SM, IconButton, Input, TabsTrigger, Tooltip, cn } from "../../ui";
+import { ContextMenu, ContextMenuTrigger, IconButton, Input, TabsTrigger, Tooltip, cn } from "../../ui";
 import TerminalTree from "./TerminalTree";
 import TabContextMenuContent from "./TabContextMenu";
 
@@ -95,16 +95,16 @@ export default function Tab({
 
   const icon = hasSplits ? (
     tab.panes.direction === "horizontal" ? (
-      <Columns2 {...ICON_SM} />
+      <Icon name="splitHorizontal" size="sm" />
     ) : (
-      <Rows2 {...ICON_SM} />
+      <Icon name="splitVertical" size="sm" />
     )
   ) : tab.shellType === "sftp" ? (
-    <HardDrive {...ICON_SM} />
+    <Icon name="sftp" size="sm" />
   ) : tab.shellType === "serial" ? (
-    <Cpu {...ICON_SM} />
+    <Icon name="serialTab" size="sm" />
   ) : (
-    <Terminal {...ICON_SM} />
+    <Icon name="terminal" size="sm" />
   );
 
   const enterOffset = reduceMotion ? 0 : -8;
@@ -201,7 +201,7 @@ export default function Tab({
               <IconButton
                 data-close-btn
                 label={`Close ${tab.title}`}
-                icon={<X {...ICON_SM} />}
+                icon={<Icon name="close" size="sm" />}
                 size="xs"
                 tooltip={false}
                 tabIndex={-1}

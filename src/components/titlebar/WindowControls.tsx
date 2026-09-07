@@ -1,8 +1,8 @@
-import { Minus, Square, X } from "lucide-react";
+import { Icon } from "../../ui/icons";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useSettingsStore } from "../../stores/settings";
 import { isMac } from "../../lib/platform";
-import { ICON_MD, ICON_SM, cn, focusRing } from "../../ui";
+import { cn, focusRing } from "../../ui";
 
 // Windows/Linux caption buttons keep the native 46px-wide geometry, so they
 // are styled with kit tokens rather than the square kit IconButton.
@@ -24,7 +24,7 @@ export default function WindowControls() {
         className={cn(CAPTION, "hover:bg-hover hover:text-fg")}
         onClick={() => void appWindow.minimize()}
       >
-        <Minus {...ICON_MD} aria-hidden />
+        <Icon name="minimize" size="md" aria-hidden />
       </button>
       <button
         type="button"
@@ -32,7 +32,7 @@ export default function WindowControls() {
         className={cn(CAPTION, "hover:bg-hover hover:text-fg")}
         onClick={() => void appWindow.toggleMaximize()}
       >
-        <Square {...ICON_SM} aria-hidden />
+        <Icon name="maximize" size="sm" aria-hidden />
       </button>
       <button
         type="button"
@@ -40,7 +40,7 @@ export default function WindowControls() {
         className={cn(CAPTION, "hover:bg-danger hover:text-fg-on-accent")}
         onClick={() => void (closeToTray ? appWindow.hide() : appWindow.close())}
       >
-        <X {...ICON_MD} aria-hidden />
+        <Icon name="close" size="md" aria-hidden />
       </button>
     </div>
   );

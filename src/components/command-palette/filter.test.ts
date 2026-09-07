@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { Terminal } from "lucide-react";
+import { Icons } from "../../ui/icons";
 import type { PaletteAction } from "./actions";
 import { displayOrder, filterActions, filterThemes, groupActions, matchRanges, wrapIndex } from "./filter";
 
 function action(id: string, label: string, category: string): PaletteAction {
-  return { id, label, category, icon: Terminal, handler: () => {} };
+  return { id, label, category, icon: Icons.terminal, handler: () => {} };
 }
 
 const ACTIONS = [

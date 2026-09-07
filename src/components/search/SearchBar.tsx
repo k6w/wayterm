@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { CaseSensitive, ChevronDown, ChevronUp, Regex, Search, WholeWord, X } from "lucide-react";
+import { Icon } from "../../ui/icons";
 import type { ISearchOptions, SearchAddon } from "@xterm/addon-search";
-import { IconButton, Input, Toolbar, ToolbarButton, ToolbarSeparator, ICON_SM } from "../../ui";
+import { IconButton, Input, Toolbar, ToolbarButton, ToolbarSeparator } from "../../ui";
 import { useThemeStore } from "../../stores/theme";
 import { formatMatchCount, type SearchResults } from "./match-count";
 
@@ -100,7 +100,7 @@ export function SearchBar({ searchAddon, onClose }: SearchBarProps) {
 
   return (
     <div role="search" className="flex h-9 shrink-0 items-center gap-2 border-b border-border bg-panel px-2">
-      <Search {...ICON_SM} aria-hidden className="shrink-0 text-fg-muted" />
+      <Icon name="search" size="sm" aria-hidden className="shrink-0 text-fg-muted" />
       <Input
         ref={inputRef}
         size="sm"
@@ -119,7 +119,7 @@ export function SearchBar({ searchAddon, onClose }: SearchBarProps) {
         <ToolbarButton>
           <IconButton
             label="Match case"
-            icon={<CaseSensitive {...ICON_SM} />}
+            icon={<Icon name="matchCase" size="sm" />}
             pressed={flags.caseSensitive}
             onClick={() => toggle("caseSensitive")}
           />
@@ -127,7 +127,7 @@ export function SearchBar({ searchAddon, onClose }: SearchBarProps) {
         <ToolbarButton>
           <IconButton
             label="Match whole word"
-            icon={<WholeWord {...ICON_SM} />}
+            icon={<Icon name="wholeWord" size="sm" />}
             pressed={flags.wholeWord}
             onClick={() => toggle("wholeWord")}
           />
@@ -135,7 +135,7 @@ export function SearchBar({ searchAddon, onClose }: SearchBarProps) {
         <ToolbarButton>
           <IconButton
             label="Use regular expression"
-            icon={<Regex {...ICON_SM} />}
+            icon={<Icon name="regex" size="sm" />}
             pressed={flags.regex}
             onClick={() => toggle("regex")}
           />
@@ -145,7 +145,7 @@ export function SearchBar({ searchAddon, onClose }: SearchBarProps) {
           <IconButton
             label="Previous match"
             shortcut="Shift+Enter"
-            icon={<ChevronUp {...ICON_SM} />}
+            icon={<Icon name="chevronUp" size="sm" />}
             disabled={!query}
             onClick={findPrevious}
           />
@@ -154,14 +154,14 @@ export function SearchBar({ searchAddon, onClose }: SearchBarProps) {
           <IconButton
             label="Next match"
             shortcut="Enter"
-            icon={<ChevronDown {...ICON_SM} />}
+            icon={<Icon name="chevronDown" size="sm" />}
             disabled={!query}
             onClick={findNext}
           />
         </ToolbarButton>
         <ToolbarSeparator />
         <ToolbarButton>
-          <IconButton label="Close search" shortcut="Escape" icon={<X {...ICON_SM} />} onClick={close} />
+          <IconButton label="Close search" shortcut="Escape" icon={<Icon name="close" size="sm" />} onClick={close} />
         </ToolbarButton>
       </Toolbar>
     </div>

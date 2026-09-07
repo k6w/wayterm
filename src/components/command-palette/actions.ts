@@ -1,26 +1,4 @@
-import {
-  ArrowRightLeft,
-  ChevronLeft,
-  ChevronRight,
-  Clock,
-  Columns2,
-  Copy,
-  Eraser,
-  ExternalLink,
-  Focus,
-  Hash,
-  MonitorDot,
-  Palette,
-  PanelLeft,
-  Plus,
-  RotateCcw,
-  Rows2,
-  Settings,
-  SquareTerminal,
-  Terminal,
-  X,
-  type LucideIcon,
-} from "lucide-react";
+import { Icons, type IconComponent } from "../../ui/icons";
 import { useTerminalStore } from "../../stores/terminal";
 import { useSettingsStore } from "../../stores/settings";
 import { useSshStore } from "../../stores/ssh";
@@ -38,7 +16,7 @@ export interface PaletteAction {
   label: string;
   /** Group heading the action is listed under. */
   category: string;
-  icon: LucideIcon;
+  icon: IconComponent;
   /** Keybindings-format shortcut ("Meta+Shift+d"), rendered as a Kbd. */
   keys?: string;
   subView?: PaletteSubView;
@@ -50,35 +28,35 @@ export interface HistoryEntry {
   command: string;
 }
 
-const KEYBINDING_ICONS: Record<string, LucideIcon> = {
-  "new-tab": Plus,
-  "close-tab": X,
-  "close-pane": X,
-  "toggle-sidebar": PanelLeft,
-  "command-palette": ArrowRightLeft,
-  settings: Settings,
-  "split-horizontal": Columns2,
-  "split-vertical": Rows2,
-  "next-tab": ChevronRight,
-  "prev-tab": ChevronLeft,
-  "detach-pane": ExternalLink,
-  "focus-next-pane": Focus,
-  "focus-prev-pane": Focus,
-  "focus-next-pane-arrow": Focus,
-  "focus-prev-pane-arrow": Focus,
-  "zoom-pane": Focus,
-  "toggle-scratchpad": SquareTerminal,
+const KEYBINDING_ICONS: Record<string, IconComponent> = {
+  "new-tab": Icons.add,
+  "close-tab": Icons.close,
+  "close-pane": Icons.close,
+  "toggle-sidebar": Icons.sidebar,
+  "command-palette": Icons.commandPalette,
+  settings: Icons.settings,
+  "split-horizontal": Icons.splitHorizontal,
+  "split-vertical": Icons.splitVertical,
+  "next-tab": Icons.nextTab,
+  "prev-tab": Icons.prevTab,
+  "detach-pane": Icons.detach,
+  "focus-next-pane": Icons.focusPane,
+  "focus-prev-pane": Icons.focusPane,
+  "focus-next-pane-arrow": Icons.focusPane,
+  "focus-prev-pane-arrow": Icons.focusPane,
+  "zoom-pane": Icons.focusPane,
+  "toggle-scratchpad": Icons.scratchpad,
 };
 
-const SHELL_ICONS: Record<string, LucideIcon> = {
-  powershell: SquareTerminal,
-  cmd: MonitorDot,
-  gitbash: Hash,
-  wsl: Terminal,
-  bash: Terminal,
-  zsh: Terminal,
-  fish: Terminal,
-  sh: Terminal,
+const SHELL_ICONS: Record<string, IconComponent> = {
+  powershell: Icons.shellPowerShell,
+  cmd: Icons.shellCmd,
+  gitbash: Icons.shellGitBash,
+  wsl: Icons.terminal,
+  bash: Icons.terminal,
+  zsh: Icons.terminal,
+  fish: Icons.terminal,
+  sh: Icons.terminal,
 };
 
 function activePaneId(): string | null {
@@ -119,7 +97,7 @@ export function buildPaletteActions(): PaletteAction[] {
       id: binding.id,
       label: binding.label,
       keys: binding.keys,
-      icon: KEYBINDING_ICONS[binding.id] ?? Terminal,
+      icon: KEYBINDING_ICONS[binding.id] ?? Icons.terminal,
       category: "Actions",
       handler: binding.handler,
     });
@@ -129,7 +107,7 @@ export function buildPaletteActions(): PaletteAction[] {
     {
       id: "clear-buffer",
       label: "Clear Terminal Buffer",
-      icon: Eraser,
+      icon: Icons.clear,
       category: "Terminal",
       handler: () => {
         const paneId = activePaneId();
@@ -139,7 +117,7 @@ export function buildPaletteActions(): PaletteAction[] {
     {
       id: "reset-terminal",
       label: "Reset Terminal",
-      icon: RotateCcw,
+      icon: Icons.reset,
       category: "Terminal",
       handler: () => {
         const paneId = activePaneId();
@@ -149,7 +127,7 @@ export function buildPaletteActions(): PaletteAction[] {
     {
       id: "copy-cwd",
       label: "Copy Current Path",
-      icon: Copy,
+      icon: Icons.copy,
       category: "Terminal",
       handler: () => {
         const state = useTerminalStore.getState();
@@ -163,7 +141,7 @@ export function buildPaletteActions(): PaletteAction[] {
     actions.push({
       id: `new-tab-${shell.type}-${shell.path}`,
       label: `New ${shell.label} Tab`,
-      icon: SHELL_ICONS[shell.type] ?? Terminal,
+      icon: SHELL_ICONS[shell.type] ?? Icons.terminal,
       category: "New Tab",
       handler: () => {
         useTerminalStore.getState().addTab(shell.type, shell.path);
@@ -175,7 +153,7 @@ export function buildPaletteActions(): PaletteAction[] {
     {
       id: "change-theme",
       label: "Change Theme",
-      icon: Palette,
+      icon: Icons.theme,
       category: "Appearance",
       subView: "themes",
       handler: () => {},
@@ -183,7 +161,7 @@ export function buildPaletteActions(): PaletteAction[] {
     {
       id: "toggle-scratchpad",
       label: "Toggle Scratchpad Terminal",
-      icon: SquareTerminal,
+      icon: Icons.scratchpad,
       category: "Terminal",
       handler: () => {
         useTerminalStore.getState().toggleScratchpad();
@@ -192,7 +170,7 @@ export function buildPaletteActions(): PaletteAction[] {
     {
       id: "new-serial-tab",
       label: "New Serial / COM Port Tab",
-      icon: Terminal,
+      icon: Icons.terminal,
       category: "New Tab",
       handler: () => {
         window.dispatchEvent(new Event("nexterm:open-serial"));
@@ -204,7 +182,7 @@ export function buildPaletteActions(): PaletteAction[] {
     actions.push({
       id: `snippet-${snippet.id}`,
       label: snippet.name,
-      icon: SquareTerminal,
+      icon: Icons.newTerminal,
       category: "Snippets",
       handler: () => runSnippet(snippet),
     });
@@ -222,7 +200,7 @@ export function historyActions(entries: readonly HistoryEntry[] | null | undefin
       return {
         id: `history-${entry.id}`,
         label: command,
-        icon: Clock,
+        icon: Icons.recent,
         category: "History",
         handler: () => {
           const paneId = activePaneId();

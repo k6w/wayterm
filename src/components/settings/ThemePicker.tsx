@@ -1,8 +1,8 @@
 import type { CSSProperties } from "react";
 import { RadioGroup } from "radix-ui";
-import { Check } from "lucide-react";
+import { Icon } from "../../ui/icons";
 import type { ThemeDefinition } from "../../types/theme";
-import { cn, focusRing, ICON_SM } from "../../ui";
+import { cn, focusRing } from "../../ui";
 
 export interface ThemePickerProps {
   themes: readonly ThemeDefinition[];
@@ -72,7 +72,7 @@ export function ThemePicker({ themes, value, onValueChange, onPreview, className
               <span className="block text-caption capitalize text-fg-muted">{theme.variant}</span>
             </span>
             <RadioGroup.Indicator className="inline-flex shrink-0 text-accent-fg">
-              <Check {...ICON_SM} aria-hidden />
+              <Icon name="selected" size="sm" aria-hidden />
             </RadioGroup.Indicator>
           </span>
         </RadioGroup.Item>

@@ -1,4 +1,4 @@
-import { Download, Upload } from "lucide-react";
+import { Icon } from "../../ui/icons";
 import { enable as enableAutostart, disable as disableAutostart } from "@tauri-apps/plugin-autostart";
 import { useSettingsStore } from "../../stores/settings";
 import { useSshStore } from "../../stores/ssh";
@@ -6,7 +6,7 @@ import { useWorkspaceStore } from "../../stores/workspace";
 import { getDefaultShells } from "../../lib/shell-detect";
 import { downloadTextFile } from "../../lib/download-file";
 import { pickFile } from "../../lib/pick-file";
-import { Button, Section, SegmentedControl, Select, Slider, Switch, ICON_SM } from "../../ui";
+import { Button, Section, SegmentedControl, Select, Slider, Switch } from "../../ui";
 import { SettingRow, SettingsCard } from "./SettingRow";
 import type { AppSettings, StartupBehavior } from "../../types/settings";
 
@@ -198,10 +198,10 @@ export default function GeneralPanel() {
 
       <Section title="Data" description="Back up or restore settings and connections">
         <div className="flex gap-2">
-          <Button leadingIcon={<Download {...ICON_SM} />} onClick={exportSettings}>
+          <Button leadingIcon={<Icon name="export" size="sm" />} onClick={exportSettings}>
             Export settings…
           </Button>
-          <Button leadingIcon={<Upload {...ICON_SM} />} onClick={() => void importSettings()}>
+          <Button leadingIcon={<Icon name="import" size="sm" />} onClick={() => void importSettings()}>
             Import settings…
           </Button>
         </div>

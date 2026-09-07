@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { RefreshCw, Route, Trash2 } from "lucide-react";
+import { Icon } from "../../ui/icons";
 import { useSshStore } from "../../stores/ssh";
 import { toast } from "../../stores/toast";
-import { Badge, EmptyState, ICON_MD, ICON_SM, IconButton, ListRow, Spinner, ToolbarButton, ToolbarSpacer, Tooltip } from "../../ui";
+import { Badge, EmptyState, IconButton, ListRow, Spinner, ToolbarButton, ToolbarSpacer, Tooltip } from "../../ui";
 import { forwardRoute, forwardType } from "../ssh/port-forward-form";
 import { PanelContent, PanelGroup, PanelToolbar } from "./PanelChrome";
 import type { PortForward } from "../../lib/ipc";
@@ -83,7 +83,7 @@ export default function TunnelsPanel() {
         <ToolbarButton>
           <IconButton
             label="Refresh"
-            icon={loading ? <Spinner size={14} label="Refreshing" /> : <RefreshCw {...ICON_SM} />}
+            icon={loading ? <Spinner size={14} label="Refreshing" /> : <Icon name="refresh" size="sm" />}
             disabled={loading}
             onClick={() => void reload()}
           />
@@ -92,7 +92,7 @@ export default function TunnelsPanel() {
       <PanelContent>
         {groups.length === 0 ? (
           <EmptyState
-            icon={<Route {...ICON_MD} />}
+            icon={<Icon name="portForward" size="md" />}
             title="No port forwards"
             description="Open an SSH tab and add one with the port forward button in the status bar."
           />
@@ -132,7 +132,7 @@ export default function TunnelsPanel() {
                       <IconButton
                         size="xs"
                         label="Delete forward"
-                        icon={<Trash2 {...ICON_SM} />}
+                        icon={<Icon name="delete" size="sm" />}
                         onClick={() => void handleDelete(forward)}
                       />
                     }

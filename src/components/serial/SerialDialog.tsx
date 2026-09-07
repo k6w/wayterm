@@ -1,19 +1,6 @@
 import { useCallback, useEffect, useId, useRef, useState, type FormEvent } from "react";
-import { Cable, RefreshCw } from "lucide-react";
-import {
-  Button,
-  Dialog,
-  DialogContent,
-  FormGroup,
-  FormRow,
-  IconButton,
-  Input,
-  PreviewChip,
-  Select,
-  ICON_MD,
-  ICON_SM,
-  cn,
-} from "../../ui";
+import { Icon } from "../../ui/icons";
+import { Button, Dialog, DialogContent, FormGroup, FormRow, IconButton, Input, PreviewChip, Select, cn } from "../../ui";
 import { serialListPorts, type SerialPortInfo } from "../../lib/ipc";
 import type { SerialConfig } from "../../types/terminal";
 
@@ -104,7 +91,7 @@ export default function SerialDialog({ open, onClose, onConnect }: SerialDialogP
         size="md"
         title="New serial connection"
         description="Open a terminal on a serial port."
-        icon={<Cable {...ICON_MD} />}
+        icon={<Icon name="serial" size="md" />}
         hints={[
           { shortcut: "Escape", label: "Cancel" },
           { shortcut: "Enter", label: "Connect" },
@@ -156,8 +143,8 @@ export default function SerialDialog({ open, onClose, onConnect }: SerialDialogP
                     size="md"
                     label="Refresh ports"
                     icon={
-                      <RefreshCw
-                        {...ICON_SM}
+                      <Icon name="refresh"
+                        size="sm"
                         className={cn(loading && "animate-spin motion-reduce:animate-none")}
                       />
                     }

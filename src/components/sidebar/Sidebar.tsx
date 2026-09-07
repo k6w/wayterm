@@ -1,7 +1,7 @@
-import { PanelLeftClose } from "lucide-react";
+import { Icon } from "../../ui/icons";
 import { useSidebarStore } from "../../stores/sidebar";
 import { shortcutFor } from "../../lib/shortcut-hints";
-import { ICON_SM, IconButton, Toolbar, ToolbarButton } from "../../ui";
+import { IconButton, Toolbar, ToolbarButton } from "../../ui";
 import QuickActions from "./QuickActions";
 import ConnectionTree from "./ConnectionTree";
 import WorkspaceList from "./WorkspaceList";
@@ -40,7 +40,7 @@ export default function Sidebar({ onNewSsh, onEditSsh }: SidebarProps) {
         <ToolbarButton>
           <IconButton
             label="Hide sidebar"
-            icon={<PanelLeftClose {...ICON_SM} />}
+            icon={<Icon name="sidebarClose" size="sm" />}
             shortcut={shortcutFor("toggle-sidebar")}
             tooltipSide="bottom"
             onClick={toggle}

@@ -1,9 +1,9 @@
 import { useCallback, useMemo, useRef, useState, type CSSProperties, type DragEvent, type KeyboardEvent } from "react";
-import { ChevronRight, Folder, FolderOpen, Pencil, PlayCircle, Plug, Plus, Server, Trash2 } from "lucide-react";
+import { Icon } from "../../ui/icons";
 import { useSshStore } from "../../stores/ssh";
 import { useTerminalStore, getFirstPaneId } from "../../stores/terminal";
 import { CONNECTION_TAG_COLORS } from "../../themes/connection-tags";
-import { Badge, Button, ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger, EmptyState, ICON_MD, ICON_SM, IconButton, ListRow, cn, ConfirmDialog } from "../../ui";
+import { Badge, Button, ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger, EmptyState, IconButton, ListRow, cn, ConfirmDialog } from "../../ui";
 import { buildTreeRows, treeKeyAction, type TreeRow } from "./connection-tree";
 import type { SshConnection } from "../../types/ssh";
 
@@ -149,12 +149,12 @@ export default function ConnectionTree({ onAddConnection, onEditConnection }: Co
   if (connections.length === 0) {
     return (
       <EmptyState
-        icon={<Server {...ICON_MD} />}
+        icon={<Icon name="server" size="md" />}
         title="No connections"
         description="Save an SSH host to connect to it in one click."
         action={
           onAddConnection && (
-            <Button size="sm" leadingIcon={<Plus {...ICON_SM} />} onClick={onAddConnection}>
+            <Button size="sm" leadingIcon={<Icon name="add" size="sm" />} onClick={onAddConnection}>
               New SSH connection
             </Button>
           )
@@ -182,11 +182,11 @@ export default function ConnectionTree({ onAddConnection, onEditConnection }: Co
                 aria-expanded={row.expanded}
                 icon={
                   <>
-                    <ChevronRight
-                      {...ICON_SM}
+                    <Icon name="disclosure"
+                      size="sm"
                       className={cn("transition-transform duration-150 ease-out", row.expanded && "rotate-90")}
                     />
-                    <Folder {...ICON_SM} />
+                    <Icon name="folder" size="sm" />
                   </>
                 }
                 label={row.folder}
@@ -197,7 +197,7 @@ export default function ConnectionTree({ onAddConnection, onEditConnection }: Co
                     size="xs"
                     tabIndex={-1}
                     label="Connect all"
-                    icon={<PlayCircle {...ICON_SM} />}
+                    icon={<Icon name="openSession" size="sm" />}
                     onClick={() => handleConnectAll(row.connections)}
                   />
                 }
@@ -205,7 +205,7 @@ export default function ConnectionTree({ onAddConnection, onEditConnection }: Co
             </div>
           </ContextMenuTrigger>
           <ContextMenuContent>
-            <ContextMenuItem icon={<PlayCircle {...ICON_SM} />} onSelect={() => handleConnectAll(row.connections)}>
+            <ContextMenuItem icon={<Icon name="openSession" size="sm" />} onSelect={() => handleConnectAll(row.connections)}>
               Connect all
             </ContextMenuItem>
           </ContextMenuContent>
@@ -243,7 +243,7 @@ export default function ConnectionTree({ onAddConnection, onEditConnection }: Co
                       />
                     )}
                   </span>
-                  <Server {...ICON_SM} />
+                  <Icon name="server" size="sm" />
                 </>
               }
               label={conn.name}
@@ -254,14 +254,14 @@ export default function ConnectionTree({ onAddConnection, onEditConnection }: Co
               onSelect={() => handleConnect(conn)}
               actions={
                 <>
-                  <IconButton size="xs" tabIndex={-1} label="Connect" icon={<Plug {...ICON_SM} />} onClick={() => handleConnect(conn)} />
-                  <IconButton size="xs" tabIndex={-1} label="Open SFTP" icon={<FolderOpen {...ICON_SM} />} onClick={() => handleSftp(conn)} />
-                  <IconButton size="xs" tabIndex={-1} label="Edit" icon={<Pencil {...ICON_SM} />} onClick={() => onEditConnection?.(conn)} />
+                  <IconButton size="xs" tabIndex={-1} label="Connect" icon={<Icon name="connect" size="sm" />} onClick={() => handleConnect(conn)} />
+                  <IconButton size="xs" tabIndex={-1} label="Open SFTP" icon={<Icon name="folderOpen" size="sm" />} onClick={() => handleSftp(conn)} />
+                  <IconButton size="xs" tabIndex={-1} label="Edit" icon={<Icon name="edit" size="sm" />} onClick={() => onEditConnection?.(conn)} />
                   <IconButton
                     size="xs"
                     tabIndex={-1}
                     label="Delete"
-                    icon={<Trash2 {...ICON_SM} />}
+                    icon={<Icon name="delete" size="sm" />}
                     onClick={() => setDeleteTarget({ id: conn.id, name: conn.name })}
                   />
                 </>
@@ -270,17 +270,17 @@ export default function ConnectionTree({ onAddConnection, onEditConnection }: Co
           </div>
         </ContextMenuTrigger>
         <ContextMenuContent>
-          <ContextMenuItem icon={<Plug {...ICON_SM} />} onSelect={() => handleConnect(conn)}>
+          <ContextMenuItem icon={<Icon name="connect" size="sm" />} onSelect={() => handleConnect(conn)}>
             Connect
           </ContextMenuItem>
-          <ContextMenuItem icon={<FolderOpen {...ICON_SM} />} onSelect={() => handleSftp(conn)}>
+          <ContextMenuItem icon={<Icon name="folderOpen" size="sm" />} onSelect={() => handleSftp(conn)}>
             Open SFTP
           </ContextMenuItem>
-          <ContextMenuItem icon={<Pencil {...ICON_SM} />} onSelect={() => onEditConnection?.(conn)}>
+          <ContextMenuItem icon={<Icon name="edit" size="sm" />} onSelect={() => onEditConnection?.(conn)}>
             Edit
           </ContextMenuItem>
           <ContextMenuSeparator />
-          <ContextMenuItem danger icon={<Trash2 {...ICON_SM} />} onSelect={() => setDeleteTarget({ id: conn.id, name: conn.name })}>
+          <ContextMenuItem danger icon={<Icon name="delete" size="sm" />} onSelect={() => setDeleteTarget({ id: conn.id, name: conn.name })}>
             Delete
           </ContextMenuItem>
         </ContextMenuContent>

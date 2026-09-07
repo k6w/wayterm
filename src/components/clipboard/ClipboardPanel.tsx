@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { ClipboardList, Copy, Star, Trash2 } from "lucide-react";
+import { Icon } from "../../ui/icons";
 import { useClipboardStore } from "../../stores/clipboard";
 import { useTerminalStore } from "../../stores/terminal";
 import { pasteToTerminal } from "../../lib/terminal-registry";
-import { Badge, EmptyState, ICON_MD, ICON_SM, IconButton, Input, ListRow, ToolbarButton } from "../../ui";
+import { Badge, EmptyState, IconButton, Input, ListRow, ToolbarButton } from "../../ui";
 import { PanelContent, PanelToolbar } from "../sidebar/PanelChrome";
 import { clipboardPreview, filterClipboard } from "./clipboard-list";
 
@@ -39,7 +39,7 @@ export function ClipboardPanel() {
         />
         {entries.length > 0 && (
           <ToolbarButton>
-            <IconButton label="Clear history" icon={<Trash2 {...ICON_SM} />} onClick={clearHistory} />
+            <IconButton label="Clear history" icon={<Icon name="delete" size="sm" />} onClick={clearHistory} />
           </ToolbarButton>
         )}
       </PanelToolbar>
@@ -49,7 +49,7 @@ export function ClipboardPanel() {
             <EmptyState title="No matches" description={`Nothing in the history contains "${query.trim()}".`} />
           ) : (
             <EmptyState
-              icon={<ClipboardList {...ICON_MD} />}
+              icon={<Icon name="clipboardHistory" size="md" />}
               title="Clipboard history is empty"
               description="Text you copy in the terminal shows up here."
             />
@@ -58,7 +58,7 @@ export function ClipboardPanel() {
           visible.map((entry) => (
             <ListRow
               key={entry.id}
-              icon={entry.favorite ? <Star {...ICON_SM} fill="currentColor" className="text-warning" /> : undefined}
+              icon={entry.favorite ? <Icon name="favorite" size="sm" fill="currentColor" className="text-warning" /> : undefined}
               label={<span className="font-mono">{clipboardPreview(entry.content)}</span>}
               description={new Date(entry.timestamp).toLocaleTimeString()}
               trailing={entry.favorite ? <Badge tone="warning">Starred</Badge> : undefined}
@@ -70,16 +70,16 @@ export function ClipboardPanel() {
                     size="xs"
                     label={entry.favorite ? "Unstar" : "Star"}
                     pressed={entry.favorite}
-                    icon={<Star {...ICON_SM} />}
+                    icon={<Icon name="favorite" size="sm" />}
                     onClick={() => toggleFavorite(entry.id)}
                   />
                   <IconButton
                     size="xs"
                     label="Copy"
-                    icon={<Copy {...ICON_SM} />}
+                    icon={<Icon name="copy" size="sm" />}
                     onClick={() => void navigator.clipboard.writeText(entry.content)}
                   />
-                  <IconButton size="xs" label="Delete" icon={<Trash2 {...ICON_SM} />} onClick={() => removeEntry(entry.id)} />
+                  <IconButton size="xs" label="Delete" icon={<Icon name="delete" size="sm" />} onClick={() => removeEntry(entry.id)} />
                 </>
               }
             />

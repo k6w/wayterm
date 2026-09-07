@@ -1,26 +1,12 @@
 import { useMemo, useState } from "react";
-import { Download, Palette, Trash2, Upload } from "lucide-react";
+import { Icon } from "../../ui/icons";
 import { useSettingsStore } from "../../stores/settings";
 import { useThemeStore } from "../../stores/theme";
 import { selectTheme } from "../../lib/theme-selection";
 import { missingFontWarning } from "../../lib/font-check";
 import { pickFile } from "../../lib/pick-file";
 import { BUILTIN_THEMES, DEFAULT_THEME_ID } from "../../themes";
-import {
-  Badge,
-  Button,
-  EmptyState,
-  IconButton,
-  Input,
-  ListRow,
-  Section,
-  SegmentedControl,
-  Select,
-  Slider,
-  Switch,
-  ICON_MD,
-  ICON_SM,
-} from "../../ui";
+import { Badge, Button, EmptyState, IconButton, Input, ListRow, Section, SegmentedControl, Select, Slider, Switch } from "../../ui";
 import { SettingRow, SettingsCard } from "./SettingRow";
 import { ThemePicker } from "./ThemePicker";
 import { THEME_FILE_ACCEPT, exportThemeFile, importThemeFile } from "./theme-files";
@@ -128,7 +114,7 @@ export default function AppearancePanel() {
   };
 
   const importButton = (
-    <Button size="sm" leadingIcon={<Upload {...ICON_SM} />} onClick={() => void handleImport()}>
+    <Button size="sm" leadingIcon={<Icon name="import" size="sm" />} onClick={() => void handleImport()}>
       Import theme…
     </Button>
   );
@@ -157,7 +143,7 @@ export default function AppearancePanel() {
         )}
         {customThemes.length === 0 ? (
           <EmptyState
-            icon={<Palette {...ICON_MD} />}
+            icon={<Icon name="theme" size="md" />}
             title="No custom themes"
             description="Import a theme file to add it here."
           />
@@ -177,12 +163,12 @@ export default function AppearancePanel() {
                   <>
                     <IconButton
                       label={`Export ${theme.name}`}
-                      icon={<Download {...ICON_SM} />}
+                      icon={<Icon name="export" size="sm" />}
                       onClick={() => exportThemeFile(theme)}
                     />
                     <IconButton
                       label={`Delete ${theme.name}`}
-                      icon={<Trash2 {...ICON_SM} />}
+                      icon={<Icon name="delete" size="sm" />}
                       onClick={() => void handleDelete(theme.id)}
                     />
                   </>

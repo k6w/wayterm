@@ -1,6 +1,6 @@
 import { useId, useState, type CSSProperties, type ReactNode } from "react";
-import { ChevronRight } from "lucide-react";
-import { cn, focusRing, ICON_SM } from "./utils";
+import { Icon } from "./icons";
+import { cn, focusRing } from "./utils";
 
 /** Props a FormRow hands to its control. Spread them onto an Input, Textarea or Select. */
 export interface FormRowControlProps {
@@ -119,8 +119,8 @@ export function FormDisclosure({ title, count = 0, defaultOpen = false, children
           focusRing
         )}
       >
-        <ChevronRight
-          {...ICON_SM}
+        <Icon name="disclosure"
+          size="sm"
           aria-hidden
           className={cn("text-fg-muted transition-transform duration-150 ease-out", open && "rotate-90")}
         />

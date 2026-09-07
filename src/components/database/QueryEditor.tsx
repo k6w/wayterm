@@ -1,19 +1,7 @@
 import { useRef, type KeyboardEvent } from "react";
-import { Clock, Play } from "lucide-react";
+import { Icon } from "../../ui/icons";
 import { isMac } from "../../lib/platform";
-import {
-  Button,
-  ICON_SM,
-  IconButton,
-  Menu,
-  MenuContent,
-  MenuItem,
-  MenuTrigger,
-  Textarea,
-  Toolbar,
-  ToolbarButton,
-  ToolbarSpacer,
-} from "../../ui";
+import { Button, IconButton, Menu, MenuContent, MenuItem, MenuTrigger, Textarea, Toolbar, ToolbarButton, ToolbarSpacer } from "../../ui";
 import { historyStep } from "./database-form";
 import type { QueryHistory } from "../../types/database";
 
@@ -68,7 +56,7 @@ export default function QueryEditor({ query, onQueryChange, history, running, on
           <Button
             size="sm"
             variant="primary"
-            leadingIcon={<Play {...ICON_SM} />}
+            leadingIcon={<Icon name="run" size="sm" />}
             shortcut="Mod+Enter"
             loading={running}
             disabled={!query.trim()}
@@ -85,7 +73,7 @@ export default function QueryEditor({ query, onQueryChange, history, running, on
           <Menu>
             <ToolbarButton asChild>
               <MenuTrigger asChild>
-                <IconButton label="Query history" icon={<Clock {...ICON_SM} />} />
+                <IconButton label="Query history" icon={<Icon name="recent" size="sm" />} />
               </MenuTrigger>
             </ToolbarButton>
             <MenuContent align="end" className="max-h-72 w-72 overflow-y-auto">

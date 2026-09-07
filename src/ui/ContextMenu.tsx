@@ -1,9 +1,9 @@
 import type { ComponentPropsWithRef, ReactNode } from "react";
 import { ContextMenu as ContextMenuPrimitive } from "radix-ui";
-import { Check, ChevronRight } from "lucide-react";
+import { Icon } from "./icons";
 import { Kbd } from "./Kbd";
 import { menuContentClass, menuItemClass, menuLabelClass, menuSeparatorClass } from "./menu-styles";
-import { cn, ICON_SM } from "./utils";
+import { cn } from "./utils";
 
 export const ContextMenu = ContextMenuPrimitive.Root;
 /** Wrap the right-clickable element: <ContextMenuTrigger asChild><div>...</div></ContextMenuTrigger>. */
@@ -64,7 +64,7 @@ export function ContextMenuRadioItem({
     <ContextMenuPrimitive.RadioItem className={cn(menuItemClass, "pr-7", className)} {...rest}>
       <span className="flex flex-1 items-center gap-2 truncate">{children}</span>
       <ContextMenuPrimitive.ItemIndicator className="absolute right-2 inline-flex text-accent-fg">
-        <Check {...ICON_SM} aria-hidden />
+        <Icon name="selected" size="sm" aria-hidden />
       </ContextMenuPrimitive.ItemIndicator>
     </ContextMenuPrimitive.RadioItem>
   );
@@ -101,7 +101,7 @@ export function ContextMenuSubTrigger({ icon, className, children, ...rest }: Co
         </span>
       )}
       <span className="flex-1 truncate">{children}</span>
-      <ChevronRight {...ICON_SM} aria-hidden className="text-fg-muted" />
+      <Icon name="submenu" size="sm" aria-hidden className="text-fg-muted" />
     </ContextMenuPrimitive.SubTrigger>
   );
 }
