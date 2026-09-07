@@ -8,7 +8,7 @@ export const CHROME_ALPHA_FLOOR = 0.6;
 export const OVERLAY_ALPHA_FLOOR = 0.78;
 
 const TEXT_TOKENS = ["text", "textSecondary", "textMuted"] as const;
-const SURFACE_TOKENS = ["panel", "raised", "tabBar", "statusBar"] as const;
+const SURFACE_TOKENS = ["canvas", "panel", "raised", "tabBar", "statusBar"] as const;
 /**
  * Native vibrancy follows the theme appearance, so the worst-case backdrop is
  * the matching material: dark themes span black to a mid-dark material tone,

@@ -9,7 +9,8 @@ import { searchSettings } from "./searchIndex";
 /**
  * Full-window settings surface. It fills the main content region (the title
  * bar, activity bar and status bar stay around it) instead of floating as a
- * modal. The chosen panel survives closing and reopening; the search does not.
+ * modal. It is glass like the rest of the chrome; the app layout under it is
+ * hidden while it is open (see BehindSettings) so only the desktop shows through. The chosen panel survives closing and reopening; the search does not.
  */
 export default function SettingsView() {
   const settingsOpen = useTerminalStore((s) => s.settingsOpen);
@@ -96,9 +97,9 @@ function SettingsSurface({ activePanel, onSelectPanel, onClose }: SettingsSurfac
   return (
     <section
       aria-label="Settings"
-      className="absolute inset-0 z-[var(--z-modal)] flex animate-nx-fade-in bg-canvas"
+      className="absolute inset-0 z-[var(--z-modal)] flex animate-nx-fade-in"
     >
-      <div className="flex w-[232px] shrink-0 flex-col border-r border-border bg-panel">
+      <div className="nx-blur flex w-[232px] shrink-0 flex-col border-r border-border bg-panel-glass">
         <div className="flex flex-col gap-3 px-3 pb-2 pt-3">
           <h1 className="px-1 text-title font-semibold text-fg">Settings</h1>
           <div
@@ -167,7 +168,7 @@ function SettingsSurface({ activePanel, onSelectPanel, onClose }: SettingsSurfac
         </nav>
       </div>
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="nx-blur flex min-w-0 flex-1 flex-col bg-surface-glass">
         <header className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-border px-6">
           <h2 className="text-title font-semibold text-fg">{PANEL_LABEL[activePanel]}</h2>
           <IconButton label="Close settings" shortcut="Escape" icon={<X {...ICON_MD} />} onClick={onClose} />

@@ -10,6 +10,7 @@ import Sidebar from "../components/sidebar/Sidebar";
 import ActivityBar from "../components/sidebar/ActivityBar";
 import CommandPalette from "../components/command-palette/CommandPalette";
 import SettingsView from "../components/settings/SettingsView";
+import { BehindSettings } from "../components/settings/BehindSettings";
 import ConnectionDialog from "../components/ssh/ConnectionDialog";
 import SerialDialog from "../components/serial/SerialDialog";
 import Scratchpad from "../components/terminal/Scratchpad";
@@ -165,37 +166,39 @@ function AppContent() {
         {tabPosition === "left" && <TabRail />}
         <ActivityBar />
         <div className="relative min-h-0 min-w-0 flex-1 overflow-hidden">
-          <SplitPane
-            unit="px"
-            ratio={sidebarWidth}
-            onRatioChange={setSidebarWidth}
-            min={SIDEBAR_MIN_WIDTH}
-            max={SIDEBAR_MAX_WIDTH}
-            collapsed={sidebarCollapsed}
-            separatorLabel="Resize sidebar"
-            first={<Sidebar onNewSsh={handleNewSsh} onEditSsh={handleEditSsh} />}
-            second={
-              <main aria-label="Terminals" className="relative h-full w-full">
-                {tabs.map((tab) => (
-                  <div key={tab.id} className={cn("absolute inset-0", tab.id !== activeTabId && "hidden")}>
-                    <SplitContainer node={tab.panes} />
-                  </div>
-                ))}
-                {tabs.length === 0 && showWelcome && (
-                  <WelcomeWizard
-                    onDismiss={() => {
-                      localStorage.setItem("nexterm-welcomed", "1");
-                      setShowWelcome(false);
-                      newTerminal();
-                    }}
-                  />
-                )}
-                {tabs.length === 0 && !showWelcome && (
-                  <NoTabsState onNewTerminal={newTerminal} onNewSsh={handleNewSsh} />
-                )}
-              </main>
-            }
-          />
+          <BehindSettings>
+            <SplitPane
+              unit="px"
+              ratio={sidebarWidth}
+              onRatioChange={setSidebarWidth}
+              min={SIDEBAR_MIN_WIDTH}
+              max={SIDEBAR_MAX_WIDTH}
+              collapsed={sidebarCollapsed}
+              separatorLabel="Resize sidebar"
+              first={<Sidebar onNewSsh={handleNewSsh} onEditSsh={handleEditSsh} />}
+              second={
+                <main aria-label="Terminals" className="relative h-full w-full">
+                  {tabs.map((tab) => (
+                    <div key={tab.id} className={cn("absolute inset-0", tab.id !== activeTabId && "hidden")}>
+                      <SplitContainer node={tab.panes} />
+                    </div>
+                  ))}
+                  {tabs.length === 0 && showWelcome && (
+                    <WelcomeWizard
+                      onDismiss={() => {
+                        localStorage.setItem("nexterm-welcomed", "1");
+                        setShowWelcome(false);
+                        newTerminal();
+                      }}
+                    />
+                  )}
+                  {tabs.length === 0 && !showWelcome && (
+                    <NoTabsState onNewTerminal={newTerminal} onNewSsh={handleNewSsh} />
+                  )}
+                </main>
+              }
+            />
+          </BehindSettings>
           <SettingsView />
         </div>
         {tabPosition === "right" && <TabRail />}

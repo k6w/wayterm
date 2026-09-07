@@ -44,6 +44,8 @@ export function applyAppearanceToDom(a: AppearanceSettings, theme: ThemeDefiniti
   const glass = (color: string, alpha: number) => (alpha >= 1 ? color : hexToRgba(color, alpha));
   root.style.setProperty("--nx-glass-canvas", glass(c.canvas, userAlpha));
   root.style.setProperty("--nx-glass-panel", glass(c.panel, chrome));
+  // Canvas tone at the chrome floor: full-window surfaces that carry text (Settings).
+  root.style.setProperty("--nx-glass-surface", glass(c.canvas, chrome));
   root.style.setProperty("--nx-glass-tab-bar", glass(c.tabBar, chrome));
   root.style.setProperty("--nx-glass-status-bar", glass(c.statusBar, chrome));
   root.style.setProperty("--nx-glass-raised", glass(c.raised, overlay));

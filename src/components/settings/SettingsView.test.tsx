@@ -18,13 +18,16 @@ function openSettings() {
 }
 
 describe("SettingsView surface", () => {
-  it("is opaque and unblurred so content behind never shows through at any blur setting", () => {
+  it("is glass like the rest of the chrome, on the chrome readability floor", () => {
     render(<SettingsView />);
     openSettings();
     const root = screen.getByRole("region", { name: "Settings" });
-    expect(root).toHaveClass("bg-canvas");
-    expect(root).not.toHaveClass("nx-blur");
-    expect(root.className).not.toMatch(/glass/);
+    expect(root.className).not.toMatch(/\bbg-canvas\b/);
+    const nav = root.firstElementChild as HTMLElement;
+    const content = root.lastElementChild as HTMLElement;
+    expect(nav).toHaveClass("bg-panel-glass", "nx-blur");
+    // Not canvas-glass: that follows the window opacity freely with no text floor.
+    expect(content).toHaveClass("bg-surface-glass", "nx-blur");
   });
 });
 

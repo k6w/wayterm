@@ -38,7 +38,7 @@ const BACKDROPS = {
 } as const;
 const REQUIRED = { text: WCAG_AA_TEXT, textSecondary: WCAG_AA_TEXT, textMuted: WCAG_AA_NON_TEXT } as const;
 const FG_TOKENS = ["text", "textSecondary", "textMuted"] as const;
-const SURFACE_TOKENS = ["panel", "raised", "tabBar", "statusBar"] as const;
+const SURFACE_TOKENS = ["canvas", "panel", "raised", "tabBar", "statusBar"] as const;
 
 function allPass(theme: (typeof BUILTIN_THEMES)[number], alpha: number): boolean {
   const c = theme.chrome;
