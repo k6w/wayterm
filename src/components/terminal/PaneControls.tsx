@@ -28,7 +28,7 @@ export default function PaneControls({ searchOpen, onDetach, onClose }: PaneCont
         label="Detach to tab"
         size="xs"
         variant="subtle"
-        icon={<Icon name="detach" size={10} strokeWidth={1.5} />}
+        icon={<Icon name="detach" size={10} />}
         onClick={(e) => {
           e.stopPropagation();
           onDetach();
@@ -38,7 +38,7 @@ export default function PaneControls({ searchOpen, onDetach, onClose }: PaneCont
         label="Close pane"
         size="xs"
         variant="subtle"
-        icon={<Icon name="close" size={10} strokeWidth={1.5} />}
+        icon={<Icon name="close" size={10} />}
         onClick={(e) => {
           e.stopPropagation();
           onClose();

@@ -1,3 +1,4 @@
+import { IconWeightProvider } from "./icons";
 import type { ComponentPropsWithRef, ReactNode } from "react";
 import { Kbd } from "./Kbd";
 import { cn, focusRing } from "./utils";
@@ -62,7 +63,7 @@ export function ListRow({
     >
       {icon && (
         <span aria-hidden className="inline-flex shrink-0 items-center gap-1.5 text-fg-muted">
-          {icon}
+          <IconWeightProvider weight={selected ? "fill" : "regular"}>{icon}</IconWeightProvider>
         </span>
       )}
       <span className="min-w-0 flex-1">

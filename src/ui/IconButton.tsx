@@ -1,6 +1,7 @@
 import type { ComponentPropsWithRef, ReactNode } from "react";
 import { cva, type VariantProps } from "class-variance-authority";
 import { Tooltip, type TooltipProps } from "./Tooltip";
+import { IconWeightProvider } from "./icons";
 import { cn, focusRing } from "./utils";
 
 export const iconButtonVariants = cva(
@@ -68,7 +69,7 @@ export function IconButton({
         {...rest}
       >
         <span aria-hidden className="inline-flex">
-          {icon}
+          <IconWeightProvider weight={pressed ? "fill" : "regular"}>{icon}</IconWeightProvider>
         </span>
       </button>
     </Tooltip>

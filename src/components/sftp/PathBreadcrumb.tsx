@@ -38,7 +38,7 @@ export default function PathBreadcrumb({ path, onNavigate, label, showBookmarks 
             const last = i === crumbs.length - 1;
             return (
               <li key={crumb.path} className="flex items-center gap-0.5">
-                {i > 0 && <Icon name="breadcrumbSeparator" size={12} strokeWidth={1.5} aria-hidden className="shrink-0 text-fg-muted" />}
+                {i > 0 && <Icon name="breadcrumbSeparator" size={12} aria-hidden className="shrink-0 text-fg-muted" />}
                 <button
                   type="button"
                   aria-current={last ? "location" : undefined}

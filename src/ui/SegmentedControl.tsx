@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { ToggleGroup } from "radix-ui";
+import { IconWeightProvider } from "./icons";
 import { cn, focusRing } from "./utils";
 
 export interface SegmentedOption<T extends string> {
@@ -64,7 +65,7 @@ export function SegmentedControl<T extends string>({
         >
           {option.icon && (
             <span aria-hidden className="inline-flex">
-              {option.icon}
+              <IconWeightProvider weight={option.value === value ? "fill" : "regular"}>{option.icon}</IconWeightProvider>
             </span>
           )}
           <span className={labelClassName}>{option.label}</span>

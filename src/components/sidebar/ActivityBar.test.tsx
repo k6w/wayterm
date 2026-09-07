@@ -49,6 +49,17 @@ describe("ActivityBar", () => {
     expect(useSidebarStore.getState().collapsed).toBe(true);
   });
 
+  it("draws only the active item with the fill icon weight", async () => {
+    const user = userEvent.setup();
+    render(<ActivityBar />);
+    const svg = (name: string) => screen.getByRole("button", { name }).querySelector("svg")?.innerHTML;
+    const gitRegular = svg("Git");
+    const dbRegular = svg("Database");
+    await user.click(screen.getByRole("button", { name: "Git" }));
+    expect(svg("Git")).not.toBe(gitRegular);
+    expect(svg("Database")).toBe(dbRegular);
+  });
+
   it("shows no item as selected while Settings is open", () => {
     useSidebarStore.setState({ collapsed: false, section: "git" });
     useTerminalStore.setState({ settingsOpen: true });

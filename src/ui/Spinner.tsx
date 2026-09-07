@@ -12,7 +12,7 @@ export interface SpinnerProps {
 export function Spinner({ size = 14, label = "Loading", className }: SpinnerProps) {
   return (
     <span role="status" aria-label={label} className={cn("inline-flex text-fg-muted", className)}>
-      <Icon name="spinner" size={size} strokeWidth={1.5} aria-hidden className="animate-spin motion-reduce:animate-none" />
+      <Icon name="spinner" size={size} aria-hidden className="animate-spin motion-reduce:animate-none" />
     </span>
   );
 }

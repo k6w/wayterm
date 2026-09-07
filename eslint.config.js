@@ -35,7 +35,7 @@ export default [
         {
           paths: [
             {
-              name: "lucide-react",
+              name: "@phosphor-icons/react",
               message: "Import icons through the semantic registry in src/ui/icons.tsx (Icon / Icons).",
             },
           ],

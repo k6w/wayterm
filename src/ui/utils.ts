@@ -16,9 +16,9 @@ export const focusRing = [
   "data-[initial-focus]:outline-solid data-[initial-focus]:outline-2 data-[initial-focus]:outline-offset-1 data-[initial-focus]:outline-focus",
 ].join(" ");
 
-/** lucide icon presets: 14px and 16px at 1.5 stroke (spec section 1). */
-export const ICON_SM = { size: 14, strokeWidth: 1.5 } as const;
-export const ICON_MD = { size: 16, strokeWidth: 1.5 } as const;
+/** Icon size presets: 14px and 16px (spec section 1). Weight comes from the registry / IconWeightProvider. */
+export const ICON_SM = { size: 14 } as const;
+export const ICON_MD = { size: 16 } as const;
 
 /** Attributes that stop macOS/WebKit rewriting code, commands, paths and hosts as prose. */
 export const CODE_TEXT_ATTRS = {

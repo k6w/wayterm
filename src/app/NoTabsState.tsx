@@ -15,7 +15,7 @@ export default function NoTabsState({ onNewTerminal, onNewSsh }: NoTabsStateProp
   return (
     <div className="flex h-full w-full items-center justify-center">
       <EmptyState
-        icon={<Icon name="terminal" size={32} strokeWidth={1.5} />}
+        icon={<Icon name="terminal" size={32} />}
         title="No open tabs"
         description="Start a terminal, connect to a server, or search every command."
         action={

@@ -191,9 +191,9 @@ export default function FileTable({
                         {col.label}
                         {active &&
                           (sort.dir === "asc" ? (
-                            <Icon name="sortAscending" size={12} strokeWidth={1.5} aria-hidden />
+                            <Icon name="sortAscending" size={12} aria-hidden />
                           ) : (
-                            <Icon name="sortDescending" size={12} strokeWidth={1.5} aria-hidden />
+                            <Icon name="sortDescending" size={12} aria-hidden />
                           ))}
                       </button>
                     </th>

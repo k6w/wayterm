@@ -28,9 +28,9 @@ export function Checkbox({ label, id, className, checked, ...rest }: CheckboxPro
     >
       <CheckboxPrimitive.Indicator className="inline-flex">
         {checked === "indeterminate" ? (
-          <Icon name="indeterminate" size={12} strokeWidth={2} aria-hidden />
+          <Icon name="indeterminate" size={12} aria-hidden />
         ) : (
-          <Icon name="checked" size={12} strokeWidth={2} aria-hidden />
+          <Icon name="checked" size={12} aria-hidden />
         )}
       </CheckboxPrimitive.Indicator>
     </CheckboxPrimitive.Root>

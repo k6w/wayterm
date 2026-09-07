@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type CSSProperties, type KeyboardEvent, type MouseEvent } from "react";
-import { Icon } from "../../ui/icons";
+import { Icon, IconWeightProvider } from "../../ui/icons";
 import { motion, useReducedMotion } from "framer-motion";
 import type { TerminalTab } from "../../types/terminal";
 import { useTerminalStore, countPaneNodes } from "../../stores/terminal";
@@ -177,7 +177,7 @@ export default function Tab({
                   className={cn("max-w-full gap-2 pr-7", isVertical && "w-full justify-start")}
                 >
                   <span aria-hidden className="inline-flex shrink-0">
-                    {icon}
+                    <IconWeightProvider weight={tab.isActive ? "fill" : "regular"}>{icon}</IconWeightProvider>
                   </span>
                   {tab.colorTag && (
                     <span
