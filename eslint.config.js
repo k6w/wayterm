@@ -12,8 +12,8 @@ export default [
     ignores: ["dist/**", "node_modules/**", "src-tauri/**", "docs/**", "public/**", "coverage/**"],
   },
   {
-    // Existing eslint-disable comments predate this config; do not fail on them.
-    linterOptions: { reportUnusedDisableDirectives: "off" },
+    // No eslint-disable comments remain; any stale one is an error.
+    linterOptions: { reportUnusedDisableDirectives: "error" },
   },
   {
     files: ["**/*.{ts,tsx}"],
@@ -30,6 +30,15 @@ export default [
       "react-hooks/exhaustive-deps": "error",
       "nexterm/no-inline-style": "error",
       "nexterm/no-color-literals": "error",
+      "no-restricted-syntax": [
+        "error",
+        {
+          // A local named Icon shadows the registry's <Icon> component, so a later
+          // <Icon name=... /> in the same scope silently renders the wrong glyph.
+          selector: "VariableDeclarator[id.name='Icon'], FunctionDeclaration[id.name='Icon']",
+          message: "Don't declare a local named Icon; it shadows the registry <Icon>. Use a descriptive name (e.g. ItemIcon).",
+        },
+      ],
       "no-restricted-imports": [
         "error",
         {
@@ -44,9 +53,9 @@ export default [
     },
   },
   {
-    // The one place the icon library may be imported.
+    // The one place the icon library may be imported and <Icon> is defined.
     files: ["src/ui/icons.tsx"],
-    rules: { "no-restricted-imports": "off" },
+    rules: { "no-restricted-imports": "off", "no-restricted-syntax": "off" },
   },
   {
     // Theme data, color math, foreign-theme converters and test fixtures are

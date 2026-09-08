@@ -151,12 +151,12 @@ function SettingsSurface({ activePanel, onSelectPanel, onClose }: SettingsSurfac
                   {group.title}
                 </p>
                 {group.items.map((item) => {
-                  const Icon = item.icon;
+                  const ItemIcon = item.icon;
                   return (
                     <ListRow
                       key={item.id}
                       label={item.label}
-                      icon={<Icon {...ICON_MD} />}
+                      icon={<ItemIcon {...ICON_MD} />}
                       selected={activePanel === item.id}
                       onSelect={() => onSelectPanel(item.id)}
                     />

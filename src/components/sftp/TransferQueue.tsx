@@ -52,10 +52,10 @@ export default function TransferQueue({ transfers, onClearCompleted }: TransferQ
         <ul className="max-h-36 overflow-y-auto pb-1">
           {transfers.map((t) => {
             const tone = TRANSFER_TONE[t.status];
-            const Icon = t.direction === "upload" ? Icons.upload : Icons.download;
+            const DirectionIcon = t.direction === "upload" ? Icons.upload : Icons.download;
             return (
               <li key={t.id} title={t.error ?? undefined} className="flex h-row items-center gap-2 px-3 text-label">
-                <Icon {...ICON_SM} aria-label={t.direction === "upload" ? "Upload" : "Download"} className={cn("shrink-0", TEXT_TONE[tone])} />
+                <DirectionIcon {...ICON_SM} aria-label={t.direction === "upload" ? "Upload" : "Download"} className={cn("shrink-0", TEXT_TONE[tone])} />
                 <span className="min-w-0 flex-1 truncate text-fg-secondary">{t.fileName}</span>
                 <Progress label={t.fileName} value={transferPercent(t)} tone={tone} className="w-20 shrink-0" />
                 <span className={cn("w-12 shrink-0 text-right tabular-nums text-caption", TEXT_TONE[tone])}>

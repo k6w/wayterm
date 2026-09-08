@@ -249,12 +249,12 @@ export default function FileTable({
       <ContextMenuContent>
         {menuItems.map((item, i) => {
           if (item === "separator") return <ContextMenuSeparator key={`sep-${i}`} />;
-          const Icon = ACTION_ICONS[item.action];
+          const ActionIcon = ACTION_ICONS[item.action];
           return (
             <ContextMenuItem
               key={item.action}
               danger={item.danger}
-              icon={<Icon {...ICON_SM} />}
+              icon={<ActionIcon {...ICON_SM} />}
               onSelect={() => onAction(item.action, menuEntry)}
             >
               {item.label}
