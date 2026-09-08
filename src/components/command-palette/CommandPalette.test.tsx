@@ -49,6 +49,16 @@ describe("CommandPalette", () => {
     expect(input).toHaveFocus();
   });
 
+  it("draws every row icon at a fixed pixel size, including the theme drill-in arrow", async () => {
+    await openPalette();
+    const row = screen.getByRole("option", { name: /Change Theme/ });
+    const svgs = row.querySelectorAll("svg");
+    expect(svgs.length).toBeGreaterThanOrEqual(2);
+    for (const svg of svgs) {
+      expect(svg.getAttribute("width")).toMatch(/^\d+$/);
+    }
+  });
+
   it("groups commands under section labels and shows shortcuts as Kbd glyphs", async () => {
     await openPalette();
     const actions = screen.getByRole("group", { name: "Actions" });

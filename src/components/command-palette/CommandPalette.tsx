@@ -192,12 +192,12 @@ function PaletteBody() {
   };
 
   const commandItem = (action: PaletteAction, keyPrefix = "", showCategory = false): PaletteItem => {
-    const Icon = action.icon;
+    const ActionIcon = action.icon;
     return {
       key: keyPrefix + action.id,
       label: action.label,
       ranges: matchRanges(action.label, query),
-      icon: <Icon {...ICON_MD} />,
+      icon: <ActionIcon {...ICON_MD} />,
       subtitle: showCategory ? action.category : undefined,
       shortcut: action.subView ? undefined : action.keys,
       trailing: action.subView ? <Icon name="drillIn" size="sm" aria-hidden className="shrink-0 text-fg-muted" /> : undefined,
