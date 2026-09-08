@@ -13,7 +13,9 @@ interface TabProps {
   tabRef: (el: HTMLDivElement | null) => void;
   isDragTarget: boolean;
   isDragSource: boolean;
-  onReorderStart: (index: number, clientX: number) => void;
+  onReorderStart: (index: number, clientX: number, clientY: number) => void;
+  /** Mouse selection; the strip ignores it right after a drag. */
+  onActivate: (id: string, trigger: HTMLElement) => void;
   onClose: (id: string) => void;
   onRename: (id: string, title: string) => void;
   isVertical?: boolean;
@@ -31,6 +33,7 @@ export default function Tab({
   isDragTarget,
   isDragSource,
   onReorderStart,
+  onActivate,
   onClose,
   onRename,
   isVertical = false,
@@ -78,7 +81,7 @@ export default function Tab({
       if (editing || e.button !== 0) return;
       if ((e.target as HTMLElement).closest("[data-close-btn]")) return;
       e.stopPropagation();
-      onReorderStart(index, e.clientX);
+      onReorderStart(index, e.clientX, e.clientY);
     },
     [editing, index, onReorderStart]
   );
@@ -170,6 +173,13 @@ export default function Tab({
                   value={tab.id}
                   variant="strip"
                   onKeyDown={handleTriggerKeyDown}
+                  // Radix selects on mousedown; that would activate a tab the
+                  // user is about to drag. Select on click instead.
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={(e) => {
+                    if (e.button !== 0) return;
+                    onActivate(tab.id, e.currentTarget);
+                  }}
                   onDoubleClick={(e) => {
                     e.preventDefault();
                     startRename();

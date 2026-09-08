@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState, useEffect, type ReactNode } from "react";
 import { Icon } from "../../ui/icons";
 import { AnimatePresence } from "framer-motion";
-import { useTerminalStore } from "../../stores/terminal";
+import { useTerminalStore, collectPaneIds } from "../../stores/terminal";
 import { useSettingsStore } from "../../stores/settings";
 import { getPreferredShell, getDefaultShells } from "../../lib/shell-detect";
 import { shortcutFor } from "../../lib/shortcut-hints";
@@ -9,6 +9,9 @@ import type { ShellType } from "../../types/terminal";
 import type { DropZone } from "../../stores/terminal";
 import { IconButton, Menu, MenuContent, MenuItem, MenuLabel, MenuTrigger, Tabs, TabsList, cn } from "../../ui";
 import Tab from "./Tab";
+
+/** Pointer travel (px) before a press on a tab becomes a drag instead of a click. */
+const DRAG_THRESHOLD_PX = 4;
 
 function computeDropZone(x: number, y: number, rect: DOMRect): DropZone {
   const rx = (x - rect.left) / rect.width;
@@ -35,10 +38,11 @@ export default function TabStrip() {
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dropIndex, setDropIndex] = useState<number | null>(null);
   const tabRefs = useRef<Map<number, HTMLDivElement>>(new Map());
-  const startXRef = useRef(0);
   const isDraggingRef = useRef(false);
   const dragIndexRef = useRef<number | null>(null);
   const dropIndexRef = useRef<number | null>(null);
+  /** True between the end of a drag and the click event the browser may fire after it. */
+  const justDraggedRef = useRef(false);
 
   const handleRename = useCallback(
     (id: string, title: string) => {
@@ -47,34 +51,41 @@ export default function TabStrip() {
     [renameTab]
   );
 
-  
   useEffect(() => { dragIndexRef.current = dragIndex; }, [dragIndex]);
   useEffect(() => { dropIndexRef.current = dropIndex; }, [dropIndex]);
 
+  /**
+   * Mouse selection happens on click, not mousedown (Radix's default), so that
+   * press-and-drag never activates the dragged tab. Activating it would show
+   * its own pane, and a tab cannot be merged into itself.
+   */
+  const handleActivate = useCallback(
+    (id: string, trigger: HTMLElement) => {
+      if (justDraggedRef.current) return;
+      setActiveTab(id);
+      trigger.focus();
+    },
+    [setActiveTab]
+  );
+
   const handleReorderStart = useCallback(
-    (index: number, clientX: number) => {
-      startXRef.current = clientX;
+    (index: number, startX: number, startY: number) => {
       isDraggingRef.current = false;
+      justDraggedRef.current = false;
       dragIndexRef.current = index;
 
-      const store = useTerminalStore.getState();
-      const draggedTabId = store.tabs[index]?.id;
+      const draggedTab = useTerminalStore.getState().tabs[index];
+      const ownPaneIds = new Set(draggedTab ? collectPaneIds(draggedTab.panes) : []);
 
       const onMouseMove = (e: MouseEvent) => {
-        const dx = Math.abs(e.clientX - startXRef.current);
-        if (dx > 5) {
-          if (!isDraggingRef.current) {
-            isDraggingRef.current = true;
-            
-            useTerminalStore.getState().setDraggingTab(draggedTabId ?? null);
-          }
+        if (!isDraggingRef.current) {
+          if (Math.hypot(e.clientX - startX, e.clientY - startY) <= DRAG_THRESHOLD_PX) return;
+          isDraggingRef.current = true;
+          useTerminalStore.getState().setDraggingTab(draggedTab?.id ?? null);
         }
-
-        if (!isDraggingRef.current) return;
 
         setDragIndex(index);
 
-        
         let overTab: number | null = null;
         tabRefs.current.forEach((el, i) => {
           const rect = el.getBoundingClientRect();
@@ -85,58 +96,67 @@ export default function TabStrip() {
         });
 
         if (overTab !== null) {
-          
           setDropIndex(overTab);
           dropIndexRef.current = overTab;
           useTerminalStore.getState().setDragOverPane(null, null);
-        } else {
-          
-          setDropIndex(null);
-          dropIndexRef.current = null;
+          return;
+        }
 
-          const el = document.elementFromPoint(e.clientX, e.clientY);
-          const paneEl = el?.closest("[data-pane-id]") as HTMLElement | null;
-          if (paneEl) {
-            const paneId = paneEl.getAttribute("data-pane-id")!;
-            const rect = paneEl.getBoundingClientRect();
-            const zone = computeDropZone(e.clientX, e.clientY, rect);
-            useTerminalStore.getState().setDragOverPane(paneId, zone);
-          } else {
-            useTerminalStore.getState().setDragOverPane(null, null);
-          }
+        setDropIndex(null);
+        dropIndexRef.current = null;
+
+        const el = document.elementFromPoint(e.clientX, e.clientY);
+        const paneEl = el?.closest<HTMLElement>("[data-pane-id]");
+        const paneId = paneEl?.getAttribute("data-pane-id");
+        if (paneEl && paneId && !ownPaneIds.has(paneId)) {
+          const zone = computeDropZone(e.clientX, e.clientY, paneEl.getBoundingClientRect());
+          useTerminalStore.getState().setDragOverPane(paneId, zone);
+        } else {
+          useTerminalStore.getState().setDragOverPane(null, null);
         }
       };
 
-      const onMouseUp = () => {
+      const finish = (commit: boolean) => {
         document.removeEventListener("mousemove", onMouseMove);
         document.removeEventListener("mouseup", onMouseUp);
+        document.removeEventListener("keydown", onKeyDown, true);
 
         if (isDraggingRef.current) {
           const from = dragIndexRef.current;
           const to = dropIndexRef.current;
-
           const s = useTerminalStore.getState();
 
-          if (from !== null && to !== null && from !== to) {
-            
-            s.reorderTabs(from, to);
-          } else if (s.dragOverPaneId && s.dragOverZone && s.draggingTabId) {
-            
-            s.mergeTabIntoPane(s.draggingTabId, s.dragOverPaneId, s.dragOverZone);
+          if (commit) {
+            if (from !== null && to !== null && from !== to) {
+              s.reorderTabs(from, to);
+            } else if (s.dragOverPaneId && s.dragOverZone && s.draggingTabId) {
+              s.mergeTabIntoPane(s.draggingTabId, s.dragOverPaneId, s.dragOverZone);
+            }
           }
 
-          
           s.setDraggingTab(null);
           s.setDragOverPane(null, null);
+          justDraggedRef.current = true;
+          setTimeout(() => { justDraggedRef.current = false; }, 0);
         }
 
         setDragIndex(null);
         setDropIndex(null);
+        dropIndexRef.current = null;
         isDraggingRef.current = false;
+      };
+
+      const onMouseUp = () => finish(true);
+      const onKeyDown = (e: KeyboardEvent) => {
+        if (e.key !== "Escape" || !isDraggingRef.current) return;
+        e.preventDefault();
+        e.stopPropagation();
+        finish(false);
       };
 
       document.addEventListener("mousemove", onMouseMove);
       document.addEventListener("mouseup", onMouseUp);
+      document.addEventListener("keydown", onKeyDown, true);
     },
     []
   );
@@ -179,6 +199,7 @@ export default function TabStrip() {
               isDragTarget={dropIndex === i && dragIndex !== null && dragIndex !== i}
               isDragSource={dragIndex === i}
               onReorderStart={handleReorderStart}
+              onActivate={handleActivate}
               onClose={removeTab}
               onRename={handleRename}
               isVertical={isVertical}
