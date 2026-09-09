@@ -16,7 +16,19 @@ function phosphorUsedWeightsOnly(): Plugin {
     enforce: "pre",
     transform(code, id) {
       if (!/@phosphor-icons\/react\/dist\/defs\/[^/]+\.es\.js$/.test(id)) return null;
-      return { code: code.replace(/\[\s*"(?:bold|duotone|light|thin)",[\s\S]*?\n  \],?/g, ""), map: null };
+      let removed = 0;
+      const stripped = code.replace(/\[\s*"(?:bold|duotone|light|thin)",[\s\S]*?\n  \],?/g, () => {
+        removed += 1;
+        return "";
+      });
+      // Only trust the edit when it removed exactly the four expected entries and both kept weights survive;
+      // otherwise the package layout changed, so ship the file untouched (bigger, but correct).
+      const intact = removed === 4 && stripped.includes('"regular"') && stripped.includes('"fill"');
+      if (!intact) {
+        this.warn(`phosphor-used-weights-only: unexpected layout in ${id}; left unchanged`);
+        return null;
+      }
+      return { code: stripped, map: null };
     },
   };
 }
