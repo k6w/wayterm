@@ -2,7 +2,6 @@ import {
   IconContext,
   type Icon as PhosphorIcon,
   type IconProps as PhosphorProps,
-  type IconWeight,
   Archive,
   ArrowCounterClockwise,
   ArrowDown,
@@ -265,7 +264,11 @@ export type IconName = keyof typeof Icons;
 /** Component type of a registry entry, for props that take an icon component (e.g. `icon: IconComponent`). */
 export type IconComponent = PhosphorIcon;
 
-export type { IconWeight };
+/**
+ * The weights the app renders. The production build strips Phosphor's other four weights from the bundle
+ * (vite.config.ts), so widen this only together with that plugin.
+ */
+export type IconWeight = "regular" | "fill";
 
 /**
  * Provides the default weight for every icon below it (Phosphor's own context, so it also reaches glyphs rendered
