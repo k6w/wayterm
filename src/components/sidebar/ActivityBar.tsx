@@ -3,6 +3,7 @@ import { useSidebarStore } from "../../stores/sidebar";
 import { shortcutFor } from "../../lib/shortcut-hints";
 import { ICON_MD, IconButton, Toolbar, ToolbarButton } from "../../ui";
 import { SIDEBAR_SECTIONS } from "./sections";
+import { preloadSidebarPanel } from "./Sidebar";
 
 /**
  * 44px rail of side-panel buttons. One tab stop; Up/Down move between the
@@ -40,6 +41,8 @@ export default function ActivityBar() {
                 pressed={active}
                 tooltipSide="right"
                 onClick={() => activate(id)}
+                onPointerEnter={() => preloadSidebarPanel(id)}
+                onFocus={() => preloadSidebarPanel(id)}
               />
             </ToolbarButton>
           </div>

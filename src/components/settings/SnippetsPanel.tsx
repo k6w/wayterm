@@ -1,4 +1,4 @@
-import { useRef, useState, type ChangeEvent } from "react";
+import { Suspense, useRef, useState, type ChangeEvent } from "react";
 import { Icon } from "../../ui/icons";
 import { useSettingsStore } from "../../stores/settings";
 import { useTerminalStore } from "../../stores/terminal";
@@ -8,9 +8,11 @@ import { resolveSnippetVars } from "../../lib/snippet-utils";
 import { downloadTextFile } from "../../lib/download-file";
 import { Button, EmptyState, IconButton, ListRow, Section, Toolbar, ToolbarButton, cn, ConfirmDialog } from "../../ui";
 import { PanelGroup } from "../sidebar/PanelChrome";
-import SnippetDialog from "./SnippetDialog";
+import { lazyWithPreload, useEverTrue } from "../../lib/lazy";
 import { groupSnippets, mergeImportedSnippets, saveSnippet, type SnippetDraft } from "./snippets";
 import type { Snippet } from "../../types/settings";
+
+const SnippetDialog = lazyWithPreload(() => import("./SnippetDialog"));
 
 const EMPTY_DRAFT: SnippetDraft = { name: "", category: "", command: "" };
 /** Stable fallback, so the store selector does not return a new array on every read. */
@@ -44,6 +46,7 @@ export default function SnippetsPanel() {
   const update = useSettingsStore((s) => s.update);
 
   const [dialog, setDialog] = useState<{ draft: SnippetDraft; editingId: string | null } | null>(null);
+  const dialogMounted = useEverTrue(dialog !== null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -199,15 +202,19 @@ export default function SnippetsPanel() {
         onChange={handleImport}
       />
 
-      <SnippetDialog
-        draft={dialog?.draft ?? null}
-        editing={dialog?.editingId != null}
-        onSave={(draft) => {
-          save(saveSnippet(snippets, draft, dialog?.editingId ?? null, () => crypto.randomUUID()));
-          setDialog(null);
-        }}
-        onCancel={() => setDialog(null)}
-      />
+      {dialogMounted && (
+        <Suspense fallback={null}>
+          <SnippetDialog
+            draft={dialog?.draft ?? null}
+            editing={dialog?.editingId != null}
+            onSave={(draft) => {
+              save(saveSnippet(snippets, draft, dialog?.editingId ?? null, () => crypto.randomUUID()));
+              setDialog(null);
+            }}
+            onCancel={() => setDialog(null)}
+          />
+        </Suspense>
+      )}
 
       <ConfirmDialog
         open={deletingId !== null}

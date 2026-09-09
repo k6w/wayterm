@@ -71,7 +71,7 @@ describe("DatabasePanel", () => {
     const user = userEvent.setup();
     render(<DatabasePanel />);
     await user.click(screen.getByRole("button", { name: "New connection" }));
-    const dialog = screen.getByRole("dialog", { name: "New database connection" });
+    const dialog = await screen.findByRole("dialog", { name: "New database connection" });
     return { user, dialog };
   }
 
@@ -150,7 +150,7 @@ describe("DatabasePanel", () => {
     const user = userEvent.setup();
     render(<DatabasePanel />);
     await user.click(screen.getByRole("button", { name: "New connection" }));
-    const dialog = screen.getByRole("dialog", { name: "New database connection" });
+    const dialog = await screen.findByRole("dialog", { name: "New database connection" });
     await user.click(within(dialog).getByRole("button", { name: "Save connection" }));
     expect(within(dialog).getByRole("textbox", { name: "Name" })).toHaveAccessibleDescription("Enter a name.");
     expect(within(dialog).getByRole("textbox", { name: "Name" })).toHaveFocus();

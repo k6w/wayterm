@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { Icon } from "../../ui/icons";
 import { useTerminalStore, collectPaneIds } from "../../stores/terminal";
 import { useThemeStore } from "../../stores/theme";
@@ -9,7 +9,7 @@ import { splitActivePane } from "../../lib/keybindings";
 import { clearBuffer } from "../../lib/terminal-registry";
 import { shortcutFor } from "../../lib/shortcut-hints";
 import { selectTheme } from "../../lib/theme-selection";
-import QuickPortForwardDialog from "../ssh/QuickPortForwardDialog";
+import { lazyWithPreload, useEverTrue } from "../../lib/lazy";
 import { GitStatusWidget } from "../git/GitStatusWidget";
 import { Badge, Button, IconButton, Menu, MenuContent, MenuLabel, MenuRadioGroup, MenuRadioItem, MenuTrigger, Toolbar, ToolbarButton, ToolbarSeparator, ToolbarSpacer, Tooltip } from "../../ui";
 
@@ -17,6 +17,8 @@ import { Badge, Button, IconButton, Menu, MenuContent, MenuLabel, MenuRadioGroup
  * Bottom status bar. One Toolbar: Tab enters it, arrow keys move between its
  * controls, and every icon button has a tooltip with its shortcut.
  */
+const QuickPortForwardDialog = lazyWithPreload(() => import("../ssh/QuickPortForwardDialog"));
+
 export default function StatusBar() {
   const activePaneId = useTerminalStore((s) => s.activePaneId);
   const pane = useTerminalStore((s) => (s.activePaneId ? s.panes[s.activePaneId] : null));
@@ -32,6 +34,7 @@ export default function StatusBar() {
   const [copiedFlash, setCopiedFlash] = useState(false);
   const [bellEnabled, setBellEnabled] = useState(true);
   const [showQuickPortForward, setShowQuickPortForward] = useState(false);
+  const portForwardMounted = useEverTrue(showQuickPortForward);
 
   const sshUsername = useSshStore((s) => {
     if (!pane?.sshConnectionId) return undefined;
@@ -127,12 +130,16 @@ export default function StatusBar() {
               onClick={() => setShowQuickPortForward(true)}
             />
           </ToolbarButton>
-          <QuickPortForwardDialog
-            isOpen={showQuickPortForward}
-            onClose={() => setShowQuickPortForward(false)}
-            connectionId={pane.sshConnectionId}
-            sessionId={pane.sessionId}
-          />
+          {portForwardMounted && (
+            <Suspense fallback={null}>
+              <QuickPortForwardDialog
+                isOpen={showQuickPortForward}
+                onClose={() => setShowQuickPortForward(false)}
+                connectionId={pane.sshConnectionId}
+                sessionId={pane.sessionId}
+              />
+            </Suspense>
+          )}
         </>
       )}
 

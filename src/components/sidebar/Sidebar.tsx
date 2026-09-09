@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { Icon } from "../../ui/icons";
 import { useSidebarStore } from "../../stores/sidebar";
 import { shortcutFor } from "../../lib/shortcut-hints";
@@ -6,12 +7,21 @@ import QuickActions from "./QuickActions";
 import ConnectionTree from "./ConnectionTree";
 import WorkspaceList from "./WorkspaceList";
 import TunnelsPanel from "./TunnelsPanel";
-import { GitPanel } from "../git/GitPanel";
-import { DatabasePanel } from "../database/DatabasePanel";
+import { lazyWithPreload } from "../../lib/lazy";
+import { PanelFallback } from "../PanelFallback";
 import { ClipboardPanel } from "../clipboard/ClipboardPanel";
 import { SIDEBAR_SECTIONS } from "./sections";
 import { PanelContent } from "./PanelChrome";
 import type { SshConnection } from "../../types/ssh";
+
+const GitPanel = lazyWithPreload(async () => ({ default: (await import("../git/GitPanel")).GitPanel }));
+const DatabasePanel = lazyWithPreload(async () => ({ default: (await import("../database/DatabasePanel")).DatabasePanel }));
+
+/** Warm a side panel chunk (called on hover/focus of its activity-bar button). */
+export function preloadSidebarPanel(section: string): void {
+  if (section === "git") void GitPanel.preload();
+  if (section === "database") void DatabasePanel.preload();
+}
 
 interface SidebarProps {
   onNewSsh?: () => void;
@@ -58,8 +68,16 @@ export default function Sidebar({ onNewSsh, onEditSsh }: SidebarProps) {
             </PanelContent>
           </>
         )}
-        {section === "git" && <GitPanel />}
-        {section === "database" && <DatabasePanel />}
+        {section === "git" && (
+          <Suspense fallback={<PanelFallback />}>
+            <GitPanel />
+          </Suspense>
+        )}
+        {section === "database" && (
+          <Suspense fallback={<PanelFallback />}>
+            <DatabasePanel />
+          </Suspense>
+        )}
         {section === "clipboard" && <ClipboardPanel />}
         {section === "tunnels" && <TunnelsPanel />}
       </div>

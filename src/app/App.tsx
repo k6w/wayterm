@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { Suspense, useEffect, useState, useCallback } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { MotionConfig } from "framer-motion";
 import { AppProviders } from "./providers";
@@ -9,14 +9,12 @@ import SplitContainer from "../components/terminal/SplitContainer";
 import Sidebar from "../components/sidebar/Sidebar";
 import ActivityBar from "../components/sidebar/ActivityBar";
 import CommandPalette from "../components/command-palette/CommandPalette";
-import SettingsView from "../components/settings/SettingsView";
 import { BehindSettings } from "../components/settings/BehindSettings";
-import ConnectionDialog from "../components/ssh/ConnectionDialog";
-import SerialDialog from "../components/serial/SerialDialog";
 import Scratchpad from "../components/terminal/Scratchpad";
 import StatusBar from "../components/terminal/StatusBar";
 import UpdateNotification from "./UpdateNotification";
-import { WelcomeWizard } from "../components/welcome/WelcomeWizard";
+import { PanelFallback } from "../components/PanelFallback";
+import { lazyWithPreload, useEverTrue } from "../lib/lazy";
 import { useTerminalStore } from "../stores/terminal";
 import { useSettingsStore } from "../stores/settings";
 import { useThemeStore } from "../stores/theme";
@@ -46,6 +44,10 @@ function AppContent() {
   const [sshDialogOpen, setSshDialogOpen] = useState(false);
   const [editingConnection, setEditingConnection] = useState<SshConnection | null>(null);
   const [serialDialogOpen, setSerialDialogOpen] = useState(false);
+  const settingsOpen = useTerminalStore((s) => s.settingsOpen);
+  const settingsMounted = useEverTrue(settingsOpen);
+  const sshDialogMounted = useEverTrue(sshDialogOpen);
+  const serialDialogMounted = useEverTrue(serialDialogOpen);
   const [showWelcome, setShowWelcome] = useState(() => !localStorage.getItem("nexterm-welcomed"));
 
   // Apply the non-theme appearance settings (UI font, accent override, blur,
@@ -184,13 +186,15 @@ function AppContent() {
                     </div>
                   ))}
                   {tabs.length === 0 && showWelcome && (
-                    <WelcomeWizard
-                      onDismiss={() => {
-                        localStorage.setItem("nexterm-welcomed", "1");
-                        setShowWelcome(false);
-                        newTerminal();
-                      }}
-                    />
+                    <Suspense fallback={<PanelFallback />}>
+                      <WelcomeWizard
+                        onDismiss={() => {
+                          localStorage.setItem("nexterm-welcomed", "1");
+                          setShowWelcome(false);
+                          newTerminal();
+                        }}
+                      />
+                    </Suspense>
                   )}
                   {tabs.length === 0 && !showWelcome && (
                     <NoTabsState onNewTerminal={newTerminal} onNewSsh={handleNewSsh} />
@@ -199,24 +203,36 @@ function AppContent() {
               }
             />
           </BehindSettings>
-          <SettingsView />
+          {settingsMounted && (
+            <Suspense fallback={<PanelFallback />}>
+              <SettingsView />
+            </Suspense>
+          )}
         </div>
         {tabPosition === "right" && <TabRail />}
       </div>
       {tabPosition === "bottom" && <TabRail />}
       <StatusBar />
       <CommandPalette />
-      <ConnectionDialog
-        isOpen={sshDialogOpen}
-        onClose={handleSshClose}
-        onSave={handleSshSave}
-        editConnection={editingConnection}
-      />
-      <SerialDialog
-        open={serialDialogOpen}
-        onClose={() => setSerialDialogOpen(false)}
-        onConnect={handleSerialConnect}
-      />
+      {sshDialogMounted && (
+        <Suspense fallback={null}>
+          <ConnectionDialog
+            isOpen={sshDialogOpen}
+            onClose={handleSshClose}
+            onSave={handleSshSave}
+            editConnection={editingConnection}
+          />
+        </Suspense>
+      )}
+      {serialDialogMounted && (
+        <Suspense fallback={null}>
+          <SerialDialog
+            open={serialDialogOpen}
+            onClose={() => setSerialDialogOpen(false)}
+            onConnect={handleSerialConnect}
+          />
+        </Suspense>
+      )}
       <Scratchpad />
       <Toaster />
     </div>
@@ -248,6 +264,11 @@ class ErrorBoundary extends React.Component<
     return this.props.children;
   }
 }
+
+const SettingsView = lazyWithPreload(() => import("../components/settings/SettingsView"));
+const ConnectionDialog = lazyWithPreload(() => import("../components/ssh/ConnectionDialog"));
+const SerialDialog = lazyWithPreload(() => import("../components/serial/SerialDialog"));
+const WelcomeWizard = lazyWithPreload(async () => ({ default: (await import("../components/welcome/WelcomeWizard")).WelcomeWizard }));
 
 export default function App() {
   return (

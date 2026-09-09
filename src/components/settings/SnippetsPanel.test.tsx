@@ -32,7 +32,7 @@ describe("SnippetsPanel", () => {
     const user = userEvent.setup();
     render(<SnippetsPanel />);
     await user.click(screen.getByRole("button", { name: "New snippet" }));
-    const dialog = screen.getByRole("dialog", { name: "New snippet" });
+    const dialog = await screen.findByRole("dialog", { name: "New snippet" });
     expect(within(dialog).getByRole("button", { name: /Save/ })).toBeDisabled();
     expect(within(dialog).getByRole("textbox", { name: "Name" })).toHaveFocus();
     await user.type(within(dialog).getByRole("textbox", { name: "Name" }), "uptime");

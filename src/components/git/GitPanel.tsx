@@ -1,14 +1,17 @@
-import { useCallback, useEffect, useState } from "react";
+import { Suspense, useCallback, useEffect, useState } from "react";
 import { Icon } from "../../ui/icons";
 import { useGitStore } from "../../stores/git";
 import { useTerminalStore } from "../../stores/terminal";
 import { Button, EmptyState, IconButton, SegmentedControl, Spinner, Tooltip, Toolbar, ToolbarButton, ToolbarSpacer } from "../../ui";
 import { PanelContent, PanelToolbar } from "../sidebar/PanelChrome";
-import DiffViewer from "./DiffViewer";
+import { lazyWithPreload } from "../../lib/lazy";
+import { PanelFallback } from "../PanelFallback";
 import GitChanges from "./GitChanges";
 import { GitBranches, GitCommits, GitStashes } from "./GitHistory";
 import { isRepoPath, NOT_A_REPO, truncateMiddle } from "./git-changes";
 import type { GitDiff } from "../../types/git";
+
+const DiffViewer = lazyWithPreload(() => import("./DiffViewer"));
 
 type GitView = "status" | "branches" | "commits" | "stash";
 
@@ -158,7 +161,9 @@ export function GitPanel() {
           <span className="text-label text-fg-secondary">Diff</span>
         </Toolbar>
         <div className="min-h-0 flex-1">
-          <DiffViewer diffs={diff} />
+          <Suspense fallback={<PanelFallback />}>
+            <DiffViewer diffs={diff} />
+          </Suspense>
         </div>
       </>
     );

@@ -89,11 +89,13 @@ describe("ActivityBar", () => {
 });
 
 describe("Sidebar", () => {
-  it("shows the active panel under a header named after it", () => {
+  it("shows the active panel under a header named after it", async () => {
     useSidebarStore.setState({ collapsed: false, section: "database" });
     render(<Sidebar />);
     expect(screen.getByRole("heading", { name: "Database" })).toBeInTheDocument();
-    expect(screen.getByText("database body")).toBeInTheDocument();
+    // Database and Git panels are lazy chunks: a spinner shows until they resolve.
+    expect(screen.getByRole("status", { name: "Loading" })).toBeInTheDocument();
+    expect(await screen.findByText("database body")).toBeInTheDocument();
   });
 
   it("shows connections with the quick actions and workspaces", () => {

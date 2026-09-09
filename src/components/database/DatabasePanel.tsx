@@ -1,12 +1,14 @@
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { lazyWithPreload, useEverTrue } from "../../lib/lazy";
 import { Icon } from "../../ui/icons";
 import { plural } from "../../lib/plural";
 import { EMPTY_WORKSPACE, useDatabaseStore, type QueryWorkspace } from "../../stores/database";
 import { Badge, Button, EmptyState, IconButton, ListRow, ToolbarButton, ToolbarSpacer } from "../../ui";
 import { PanelContent, PanelGroup, PanelToolbar } from "../sidebar/PanelChrome";
-import DatabaseConnectionDialog from "./DatabaseConnectionDialog";
 import QueryEditor from "./QueryEditor";
 import ResultsGrid from "./ResultsGrid";
+
+const DatabaseConnectionDialog = lazyWithPreload(() => import("./DatabaseConnectionDialog"));
 
 /** Database client: saved connections, then (once connected) a query editor, results and history. */
 export function DatabasePanel() {
@@ -26,6 +28,7 @@ export function DatabasePanel() {
     updateWorkspace,
   } = useDatabaseStore();
   const [dialogOpen, setDialogOpen] = useState(false);
+  const dialogMounted = useEverTrue(dialogOpen);
   // Query text and last results live in the store per connection, so they survive switching sidebar panels.
   const connectionId = activeConnection?.id ?? null;
   const { query, result, error: queryError } = (connectionId && workspaces[connectionId]) || EMPTY_WORKSPACE;
@@ -57,9 +60,11 @@ export function DatabasePanel() {
     await disconnect();
   };
 
-  const dialog = (
-    <DatabaseConnectionDialog open={dialogOpen} onSave={saveConnection} onClose={() => setDialogOpen(false)} />
-  );
+  const dialog = dialogMounted ? (
+    <Suspense fallback={null}>
+      <DatabaseConnectionDialog open={dialogOpen} onSave={saveConnection} onClose={() => setDialogOpen(false)} />
+    </Suspense>
+  ) : null;
 
   if (!isConnected) {
     return (

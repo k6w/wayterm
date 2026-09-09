@@ -1,11 +1,14 @@
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import type { SplitNode } from "../../types/terminal";
 import { useTerminalStore, countPaneNodes } from "../../stores/terminal";
 import { SplitPane } from "../../ui";
 import TerminalPane from "./TerminalPane";
-import SftpPane from "../sftp/SftpPane";
-import SerialPane from "./SerialPane";
+import { lazyWithPreload } from "../../lib/lazy";
+import { PanelFallback } from "../PanelFallback";
 import PaneFrame from "./PaneFrame";
+
+const SftpPane = lazyWithPreload(() => import("../sftp/SftpPane"));
+const SerialPane = lazyWithPreload(() => import("./SerialPane"));
 
 interface SplitContainerProps {
   node: SplitNode;
@@ -28,8 +31,14 @@ function findPaneNode(node: SplitNode, paneId: string): SplitNode | null {
 
 function PaneView({ paneId, isActive, paneCount }: { paneId: string; isActive: boolean; paneCount: number }) {
   const shellType = useTerminalStore.getState().panes[paneId]?.shellType;
-  if (shellType === "sftp") return <SftpPane paneId={paneId} isActive={isActive} paneCount={paneCount} />;
-  if (shellType === "serial") return <SerialPane paneId={paneId} isActive={isActive} paneCount={paneCount} />;
+  if (shellType === "sftp" || shellType === "serial") {
+    const Pane = shellType === "sftp" ? SftpPane : SerialPane;
+    return (
+      <Suspense fallback={<PanelFallback />}>
+        <Pane paneId={paneId} isActive={isActive} paneCount={paneCount} />
+      </Suspense>
+    );
+  }
   return <TerminalPane paneId={paneId} isActive={isActive} paneCount={paneCount} />;
 }
 
