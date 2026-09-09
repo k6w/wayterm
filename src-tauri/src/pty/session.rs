@@ -96,7 +96,11 @@ impl PtySession {
     /// Working directory of the PTY's foreground process (falling back to the
     /// shell itself), independent of which shell is running.
     pub fn cwd(&self) -> Option<String> {
+        // process_group_leader is Unix-only in portable-pty; elsewhere start from the shell itself.
+        #[cfg(unix)]
         let foreground = self.master.lock().process_group_leader();
+        #[cfg(not(unix))]
+        let foreground: Option<i32> = None;
         foreground
             .and_then(super::cwd::cwd_of_pid)
             .or_else(|| {
@@ -143,6 +147,7 @@ mod tests {
         assert_eq!(get(&cmd, "TERM").as_deref(), Some("xterm-256color"));
     }
 
+    #[cfg(unix)]
     #[cfg(unix)]
     #[test]
     fn session_cwd_follows_foreground_process() {

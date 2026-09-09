@@ -61,6 +61,7 @@ mod platform {
 mod tests {
     use super::*;
 
+    #[cfg(unix)]
     #[test]
     fn own_cwd_matches_current_dir() {
         let expected = std::env::current_dir().unwrap().canonicalize().unwrap();
@@ -74,6 +75,7 @@ mod tests {
         assert_eq!(cwd_of_pid(-5), None);
     }
 
+    #[cfg(unix)]
     #[test]
     fn child_cwd_is_reported() {
         let dir = std::env::temp_dir().canonicalize().unwrap();
