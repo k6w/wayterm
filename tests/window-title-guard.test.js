@@ -6,9 +6,11 @@
 // frontend file may call it.
 import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 
-const root = new URL("../src/", import.meta.url).pathname;
+// fileURLToPath, not URL.pathname: on Windows .pathname is "/D:/..." and breaks fs calls.
+const root = fileURLToPath(new URL("../src/", import.meta.url));
 
 function sourceFiles(dir) {
   return readdirSync(dir).flatMap((name) => {
