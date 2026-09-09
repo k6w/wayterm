@@ -205,7 +205,7 @@ fn whoami() -> String {
     }
 }
 
-fn compute_fingerprint(public_key: &str) -> String {
+pub(crate) fn compute_fingerprint(public_key: &str) -> String {
     use sha2::{Sha256, Digest};
     use std::fmt::Write;
 

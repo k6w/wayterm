@@ -4,6 +4,7 @@ mod db;
 mod pty;
 mod port_forward;
 mod sftp;
+mod ssh_config;
 mod theme;
 mod window;
 
@@ -155,6 +156,8 @@ pub fn run() {
             commands::ssh::ssh_delete_port_forward,
             commands::ssh::ssh_toggle_port_forward,
             commands::ssh::ssh_import_config,
+            commands::ssh_config::ssh_config_hosts,
+            commands::ssh_config::ssh_config_import,
             commands::terminal::terminal_log_start,
             commands::terminal::terminal_log_stop,
             commands::terminal::terminal_log_write,

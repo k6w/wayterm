@@ -7,5 +7,6 @@ pub mod serial;
 pub mod settings;
 pub mod sftp;
 pub mod ssh;
+pub mod ssh_config;
 pub mod terminal;
 pub mod workspace;
