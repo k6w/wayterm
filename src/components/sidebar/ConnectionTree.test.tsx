@@ -51,6 +51,13 @@ describe("ConnectionTree", () => {
     expect(screen.getByRole("treeitem", { name: /web/ })).toHaveClass("pl-6");
   });
 
+  it("never lists a quick-connect (transient) connection", () => {
+    useSshStore.setState((s) => ({ connections: [...s.connections, { ...conn("adhoc", "/", 9), transient: true }] }));
+    render(<ConnectionTree />);
+    expect(screen.queryByRole("treeitem", { name: /adhoc/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("treeitem", { name: /laptop/ })).toBeInTheDocument();
+  });
+
   it("walks the tree with arrows, folds with Left/Right and connects on Enter", async () => {
     const user = userEvent.setup();
     render(<ConnectionTree />);

@@ -47,6 +47,12 @@ fn load() -> Result<(Env, std::path::PathBuf, crate::ssh_config::ParseOutput), S
     Ok((env, path, out))
 }
 
+/// The OS user name: the login a quick connect uses when none is typed.
+#[tauri::command]
+pub async fn ssh_local_user() -> Result<String, String> {
+    Env::current().map(|e| e.user).ok_or_else(|| "Could not find the home directory".to_string())
+}
+
 #[tauri::command]
 pub async fn ssh_config_hosts(pool: State<'_, DbPool>) -> Result<SshConfigHosts, String> {
     let (_, path, out) = load()?;

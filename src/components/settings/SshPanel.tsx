@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Icon } from "../../ui/icons";
 import { useSettingsStore } from "../../stores/settings";
-import { useSshStore } from "../../stores/ssh";
+import { savedConnections, useSshStore } from "../../stores/ssh";
 import { sshImportConfig, sshKnownHostsClear, sshKnownHostsList, sshKnownHostsRemove, type KnownHost } from "../../lib/ipc";
 import { Badge, Button, Checkbox, EmptyState, IconButton, Input, Section, ConfirmDialog } from "../../ui";
 import { NumberInput, SettingRow, SettingsCard } from "./SettingRow";
@@ -74,7 +74,7 @@ export default function SshPanel() {
     const added = connectionsFromConfig(
       importedHosts,
       selectedHosts,
-      useSshStore.getState().connections,
+      savedConnections(useSshStore.getState().connections),
       new Date().toISOString(),
       () => crypto.randomUUID()
     );

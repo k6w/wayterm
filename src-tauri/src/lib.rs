@@ -158,6 +158,7 @@ pub fn run() {
             commands::ssh::ssh_import_config,
             commands::ssh_config::ssh_config_hosts,
             commands::ssh_config::ssh_config_import,
+            commands::ssh_config::ssh_local_user,
             commands::terminal::terminal_log_start,
             commands::terminal::terminal_log_stop,
             commands::terminal::terminal_log_write,

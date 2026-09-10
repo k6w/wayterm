@@ -153,7 +153,7 @@ function ConnectionForm({ onClose, onSave, editConnection }: ConnectionFormProps
   const jumpHostOptions = [
     { value: NO_JUMP_HOST, label: "None" },
     ...allConnections
-      .filter((c) => c.id !== editConnection?.id)
+      .filter((c) => !c.transient && c.id !== editConnection?.id)
       .map((c) => ({ value: c.id, label: `${c.name} (${c.host}:${c.port})` })),
   ];
   const themeOptions = [

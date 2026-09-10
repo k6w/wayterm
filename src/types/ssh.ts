@@ -20,6 +20,8 @@ export interface SshConnection {
   themeOverride?: string | null;
   agentForwarding?: boolean;
   envVars?: Record<string, string>;
+  /** In-memory only (a quick connect): never saved, hidden from connection lists. */
+  transient?: boolean;
 }
 
 export interface SshKey {

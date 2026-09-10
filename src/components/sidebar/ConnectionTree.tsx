@@ -1,9 +1,10 @@
 import { useCallback, useMemo, useRef, useState, type CSSProperties, type DragEvent, type KeyboardEvent } from "react";
 import { Icon } from "../../ui/icons";
-import { useSshStore } from "../../stores/ssh";
+import { savedConnections, useSshStore } from "../../stores/ssh";
 import { useTerminalStore, getFirstPaneId } from "../../stores/terminal";
 import { CONNECTION_TAG_COLORS } from "../../themes/connection-tags";
 import { Badge, Button, ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuSeparator, ContextMenuTrigger, EmptyState, IconButton, ListRow, cn, ConfirmDialog } from "../../ui";
+import { openSavedConnection } from "../ssh/open-connection";
 import { buildTreeRows, treeKeyAction, type TreeRow } from "./connection-tree";
 import type { SshConnection } from "../../types/ssh";
 
@@ -23,7 +24,8 @@ function tagColor(tag: string): string {
  * inline actions; right-click (or the context-menu key) shows all of them.
  */
 export default function ConnectionTree({ onAddConnection, onEditConnection }: ConnectionTreeProps) {
-  const connections = useSshStore((s) => s.connections);
+  const allConnections = useSshStore((s) => s.connections);
+  const connections = useMemo(() => savedConnections(allConnections), [allConnections]);
   const saveConnection = useSshStore((s) => s.saveConnection);
   const deleteConnection = useSshStore((s) => s.deleteConnection);
   const addTab = useTerminalStore((s) => s.addTab);
@@ -60,13 +62,8 @@ export default function ConnectionTree({ onAddConnection, onEditConnection }: Co
   }, []);
 
   const handleConnect = useCallback(
-    (conn: SshConnection) => {
-      addTab("ssh", undefined, conn.id);
-      const { tabs, renameTab } = useTerminalStore.getState();
-      const newTab = tabs[tabs.length - 1];
-      if (newTab) renameTab(newTab.id, conn.name);
-    },
-    [addTab]
+    (conn: SshConnection) => openSavedConnection(conn),
+    []
   );
 
   const handleConnectAll = useCallback(

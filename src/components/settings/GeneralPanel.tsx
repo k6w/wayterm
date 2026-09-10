@@ -1,7 +1,7 @@
 import { Icon } from "../../ui/icons";
 import { enable as enableAutostart, disable as disableAutostart } from "@tauri-apps/plugin-autostart";
 import { useSettingsStore } from "../../stores/settings";
-import { useSshStore } from "../../stores/ssh";
+import { savedConnections, useSshStore } from "../../stores/ssh";
 import { useWorkspaceStore } from "../../stores/workspace";
 import { getDefaultShells } from "../../lib/shell-detect";
 import { downloadTextFile } from "../../lib/download-file";
@@ -71,7 +71,7 @@ export default function GeneralPanel() {
     const data = {
       version: 1,
       settings: useSettingsStore.getState().settings,
-      connections: useSshStore.getState().connections,
+      connections: savedConnections(useSshStore.getState().connections),
     };
     downloadTextFile(
       `nexterm-settings-${new Date().toISOString().slice(0, 10)}.json`,

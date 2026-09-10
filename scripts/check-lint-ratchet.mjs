@@ -104,6 +104,8 @@ const STRICT_PATHS = [
   "src/components/welcome/",
   "src/components/settings/",
   "src/app/UpdateNotification.tsx",
+  "src/components/ssh/quick-connect.ts",
+  "src/components/ssh/open-connection.ts",
 ];
 
 const file = "eslint-suppressions.json";

@@ -497,6 +497,55 @@ export async function sshImportConfig(): Promise<{
   return invoke("ssh_import_config");
 }
 
+export interface SshConfigForward {
+  bindPort: number;
+  host: string;
+  port: number;
+}
+
+/** One concrete Host alias from ~/.ssh/config with its options resolved. */
+export interface SshConfigHost {
+  alias: string;
+  hostname: string;
+  user: string;
+  port: number;
+  identityFiles: string[];
+  proxyJump: string | null;
+  forwardAgent: boolean;
+  localForwards: SshConfigForward[];
+  remoteForwards: SshConfigForward[];
+  dynamicForwards: number[];
+  /** A saved connection already has this host, user and port. */
+  alreadyImported: boolean;
+}
+
+export interface SshConfigHosts {
+  /** False when ~/.ssh/config does not exist. */
+  found: boolean;
+  path: string;
+  hosts: SshConfigHost[];
+  warnings: string[];
+}
+
+export interface SshConfigImportResult {
+  imported: { alias: string; connectionId: string }[];
+  skipped: { alias: string; reason: string }[];
+  warnings: string[];
+}
+
+export async function sshConfigHosts(): Promise<SshConfigHosts> {
+  return invoke("ssh_config_hosts");
+}
+
+export async function sshConfigImport(selected: string[]): Promise<SshConfigImportResult> {
+  return invoke("ssh_config_import", { selected });
+}
+
+/** The OS user name, the login default for a connection typed without one. */
+export async function sshLocalUser(): Promise<string> {
+  return invoke("ssh_local_user");
+}
+
 export async function terminalLogStart(sessionId: string, path: string): Promise<void> {
   return invoke("terminal_log_start", { sessionId, path });
 }

@@ -15,6 +15,11 @@ import {
   type PortForward,
 } from "../lib/ipc";
 
+/** The connections the user has saved: every list, picker and export shows these, never quick-connect ones. */
+export function savedConnections(connections: readonly SshConnection[]): SshConnection[] {
+  return connections.filter((c) => !c.transient);
+}
+
 interface SshSessionState {
   connectionId: string;
   sessionId: string;
@@ -29,6 +34,8 @@ interface SshState {
   loaded: boolean;
   load: () => Promise<void>;
   saveConnection: (connection: SshConnection) => Promise<void>;
+  /** Keeps a quick-connect connection in memory so its tab can resolve it; it is never persisted or listed. */
+  addTransientConnection: (connection: SshConnection) => void;
   deleteConnection: (id: string) => Promise<void>;
   loadKeys: () => Promise<void>;
   importKey: (request: {
@@ -62,10 +69,15 @@ export const useSshStore = create<SshState>((set, get) => ({
         sshListConnections() as Promise<SshConnection[]>,
         sshListKeys() as Promise<SshKey[]>,
       ]);
-      set({ connections: list, keys: keyList, loaded: true });
+      // Open quick-connect tabs still need their in-memory connection.
+      set((s) => ({ connections: [...list, ...s.connections.filter((c) => c.transient)], keys: keyList, loaded: true }));
     } catch {
       set({ loaded: true });
     }
+  },
+
+  addTransientConnection: (connection: SshConnection) => {
+    set((s) => ({ connections: [...s.connections, { ...connection, transient: true }] }));
   },
 
   saveConnection: async (connection: SshConnection) => {
