@@ -22,6 +22,9 @@ import {
   sshGetKeyTempPath,
 } from "../../lib/ipc";
 import { getDefaultShell } from "../../lib/shell-detect";
+import HostKeyDialog from "../ssh/HostKeyDialog";
+import { preflightHostKey } from "../ssh/host-key-preflight";
+import { useChangedHostKey } from "../ssh/useChangedHostKey";
 import { useSshStore } from "../../stores/ssh";
 import { identityFileArgs } from "../ssh/identity-args";
 import {
@@ -244,6 +247,10 @@ export default function TerminalPane({
   const [showSearch, setShowSearch] = useState(false);
   const [sessionExited, setSessionExited] = useState(false);
 
+  // Changed host key, found by the check before `ssh` runs (see preflightHostKey).
+  const changedHostKey = useChangedHostKey();
+  const askChangedHostKey = changedHostKey.ask;
+
   // Feature: Reconnect cooldown / backoff
   const reconnectCountRef = useRef(0);
   const [reconnectCooldown, setReconnectCooldown] = useState(0);
@@ -441,6 +448,24 @@ export default function TerminalPane({
         
         const existingPane = useTerminalStore.getState().panes[paneId];
         const isSsh = !!existingPane?.sshConnectionId;
+
+        // A changed host key is shown in the changed-key dialog before `ssh` runs;
+        // `ssh` is started only if the user replaced the key (or it did not change).
+        const sshConn = isSsh
+          ? useSshStore.getState().connections.find((c) => c.id === existingPane.sshConnectionId)
+          : undefined;
+        if (sshConn) {
+          setSshStep("Checking host key...");
+          const proceed = await preflightHostKey(sshConn, askChangedHostKey);
+          if (cancelled) return;
+          if (!proceed) {
+            setSshOverlay(false);
+            term.write("\x1b[31mHost key changed: the connection was not made.\x1b[0m\r\n");
+            setSessionExited(true);
+            return;
+          }
+          setSshStep("Resolving host...");
+        }
 
         let spawnShell: string, spawnArgs: string[], spawnEnv: [string, string][];
         try {
@@ -727,7 +752,8 @@ export default function TerminalPane({
       fitRef.current = null;
       sessionRef.current = null;
     };
-  }, [paneId]);
+    // askChangedHostKey is stable (useCallback with no deps).
+  }, [paneId, askChangedHostKey]);
 
   // ── Sync theme + vibrancy (manages WebGL addon lifecycle) ──
   useEffect(() => {
@@ -1004,6 +1030,19 @@ export default function TerminalPane({
 
     </div>
     </ContextMenuTrigger>
+    {/* Outside the pane wrapper so its mouse handlers do not pull focus back to the terminal. */}
+    <HostKeyDialog
+      prompt={changedHostKey.mismatch ? { kind: "changed", mismatch: changedHostKey.mismatch } : null}
+      pending={changedHostKey.replacing}
+      replaceError={changedHostKey.error}
+      onTrust={() => {}}
+      onReplace={changedHostKey.replace}
+      onOpenSettings={() => {
+        changedHostKey.cancel();
+        useTerminalStore.getState().openSettings("ssh");
+      }}
+      onCancel={changedHostKey.cancel}
+    />
     <PaneContextMenu
       paneId={paneId}
       paneCount={paneCount}
