@@ -6,6 +6,8 @@ import CommandPalette from "./CommandPalette";
 import { useTerminalStore } from "../../stores/terminal";
 import { useSettingsStore } from "../../stores/settings";
 import { useThemeStore } from "../../stores/theme";
+import { useSshStore } from "../../stores/ssh";
+import { getFirstPaneId } from "../../stores/terminal";
 import { clearRecents } from "./recents";
 
 vi.mock("../../lib/terminal-registry", () => ({
@@ -34,6 +36,15 @@ async function openPalette() {
 function activeOption(input: HTMLElement) {
   const id = input.getAttribute("aria-activedescendant");
   return id ? document.getElementById(id) : null;
+}
+
+/** The option whose visible text contains `text` (the matched part of a label is split into its own span). */
+async function optionWithText(text: string, container: HTMLElement = document.body) {
+  return waitFor(() => {
+    const found = within(container).queryAllByRole("option").find((o) => o.textContent?.includes(text));
+    if (!found) throw new Error(`no option with text ${text}`);
+    return found;
+  });
 }
 
 describe("CommandPalette", () => {
@@ -240,6 +251,111 @@ describe("CommandPalette", () => {
     it("marks the current theme", async () => {
       await openThemes();
       expect(screen.getByRole("option", { name: /Graphite.*\(current\)/ })).toBeInTheDocument();
+    });
+  });
+
+  describe("connecting", () => {
+    const saved = {
+      id: "c1",
+      name: "prod-db",
+      host: "10.0.0.5",
+      port: 22,
+      username: "deploy",
+      authMethod: "password" as const,
+      privateKeyId: null,
+      jumpHostId: null,
+      startupCommands: null,
+      colorTag: null,
+      folderPath: "",
+      sortOrder: 0,
+      createdAt: "",
+      updatedAt: "",
+    };
+
+    beforeEach(() => {
+      useSshStore.setState({ connections: [] });
+      useTerminalStore.setState({ tabs: [], panes: {} });
+      vi.mocked(invoke).mockImplementation(async (command: string) => {
+        if (command === "ssh_local_user") return "localuser";
+        if (command === "ssh_config_hosts") {
+          return {
+            found: true,
+            path: "/home/me/.ssh/config",
+            warnings: [],
+            hosts: [
+              {
+                alias: "prod-web",
+                hostname: "web.corp.example",
+                user: "ops",
+                port: 2200,
+                identityFiles: [],
+                proxyJump: null,
+                forwardAgent: false,
+                localForwards: [],
+                remoteForwards: [],
+                dynamicForwards: [],
+                alreadyImported: false,
+              },
+            ],
+          };
+        }
+        return null;
+      });
+    });
+
+    it("offers a top result for user@host:port and opens an SSH tab on Enter", async () => {
+      const { user, input } = await openPalette();
+      await user.type(input, "alice@example.com:2200");
+      const row = await optionWithText("Connect to alice@example.com:2200");
+      expect(activeOption(input)).toBe(row);
+      await user.keyboard("{Enter}");
+      await waitFor(() => expect(useTerminalStore.getState().tabs).toHaveLength(1));
+      const { tabs, panes } = useTerminalStore.getState();
+      const pane = panes[getFirstPaneId(tabs[0].panes) ?? ""];
+      expect(useSshStore.getState().connections.find((c) => c.id === pane.sshConnectionId)).toMatchObject({
+        host: "example.com",
+        port: 2200,
+        username: "alice",
+        transient: true,
+      });
+      expect(useTerminalStore.getState().commandPaletteOpen).toBe(false);
+    });
+
+    it("defaults the user to the OS user", async () => {
+      const { user, input } = await openPalette();
+      await user.type(input, "example.com:22");
+      expect(await optionWithText("Connect to localuser@example.com")).toBeInTheDocument();
+    });
+
+    it("prefers the default username from settings", async () => {
+      useSettingsStore.setState((s) => ({ settings: { ...s.settings, ssh: { ...s.settings.ssh, defaultUsername: "configured" } } }));
+      const { user, input } = await openPalette();
+      await user.type(input, "example.com:22");
+      expect(await optionWithText("Connect to configured@example.com")).toBeInTheDocument();
+    });
+
+    it("lists matching saved connections and ssh config aliases", async () => {
+      useSshStore.setState({ connections: [saved] });
+      const { user, input } = await openPalette();
+      await user.type(input, "prod");
+      const connections = await screen.findByRole("group", { name: "Connections" });
+      expect(await optionWithText("prod-db", connections)).toHaveTextContent("deploy@10.0.0.5");
+      const config = await screen.findByRole("group", { name: "SSH config" });
+      expect(await optionWithText("prod-web", config)).toHaveTextContent("ops@web.corp.example:2200");
+    });
+
+    it("keeps quick-connect results out of an unrelated search", async () => {
+      useSshStore.setState({ connections: [saved] });
+      const { user, input } = await openPalette();
+      await user.type(input, "split");
+      expect(screen.queryByRole("group", { name: "Connect" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("group", { name: "Connections" })).not.toBeInTheDocument();
+    });
+
+    it("lists the ~/.ssh/config import as a command", async () => {
+      const { user, input } = await openPalette();
+      await user.type(input, "ssh/config");
+      expect(await optionWithText("Import from ~/.ssh/config")).toBeInTheDocument();
     });
   });
 

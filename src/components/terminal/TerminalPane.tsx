@@ -208,7 +208,8 @@ async function resolveSpawnConfig(
     const envEntries = Object.entries(envVars).filter(([k]) => k.trim());
     const env: [string, string][] = envEntries.map(([k, v]) => [k, v]);
 
-    sshArgs.push(`${conn.username}@${conn.host}`);
+    // "--" so a user or host can never be read as an ssh option.
+    sshArgs.push("--", `${conn.username}@${conn.host}`);
 
     return { shell: "ssh", args: sshArgs, env };
   }

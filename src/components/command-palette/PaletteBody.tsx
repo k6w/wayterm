@@ -3,10 +3,13 @@ import { Icon } from "../../ui/icons";
 import { DialogContent, Input, ICON_MD } from "../../ui";
 import type { ThemeDefinition } from "../../types/theme";
 import { useTerminalStore } from "../../stores/terminal";
+import { useSettingsStore } from "../../stores/settings";
 import { useThemeStore } from "../../stores/theme";
-import { historyRecent } from "../../lib/ipc";
+import { historyRecent, sshConfigHosts, sshLocalUser, type SshConfigHost } from "../../lib/ipc";
+import { savedConnections, useSshStore } from "../../stores/ssh";
 import { selectTheme } from "../../lib/theme-selection";
 import { buildPaletteActions, historyActions, type PaletteAction } from "./actions";
+import { buildConnectActions } from "./connect-actions";
 import { displayOrder, filterActions, filterThemes, groupActions, matchRanges, wrapIndex } from "./filter";
 import { getRecents, recordRecent } from "./recents";
 import { restoreFocusAfterPalette } from "./restore-focus";
@@ -45,6 +48,8 @@ function closePalette(): void {
 export default function PaletteBody() {
   const [actions] = useState(buildPaletteActions);
   const [history, setHistory] = useState<PaletteAction[]>([]);
+  const [configHosts, setConfigHosts] = useState<SshConfigHost[]>([]);
+  const [localUser, setLocalUser] = useState("");
   const [view, setView] = useState<View>("commands");
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState(0);
@@ -71,6 +76,24 @@ export default function PaletteBody() {
     };
   }, []);
 
+  // ~/.ssh/config aliases and the OS user, for the connection results.
+  useEffect(() => {
+    let cancelled = false;
+    sshConfigHosts()
+      .then((config) => {
+        if (!cancelled) setConfigHosts(config?.hosts ?? []);
+      })
+      .catch(() => {});
+    sshLocalUser()
+      .then((name) => {
+        if (!cancelled) setLocalUser(name ?? "");
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Closing without choosing (Escape, click outside, running a command) drops
   // any theme preview, so the active theme is shown again.
   useEffect(
@@ -92,10 +115,23 @@ export default function PaletteBody() {
           }),
     [actions, recentIds, query]
   );
+  const connections = useSshStore((s) => s.connections);
+  const defaultUsername = useSettingsStore((s) => s.settings.ssh.defaultUsername);
+  const connectActions = useMemo(
+    () =>
+      buildConnectActions(query, {
+        defaultUser: defaultUsername.trim() || localUser,
+        connections: savedConnections(connections),
+        configHosts,
+      }),
+    [query, defaultUsername, localUser, connections, configHosts]
+  );
   const commandGroups = useMemo(() => {
     const skip = new Set(suggested.map((action) => action.id));
-    return groupActions(filterActions([...actions, ...history], query).filter((action) => !skip.has(action.id)));
-  }, [actions, history, query, suggested]);
+    const matching = filterActions([...actions, ...history], query).filter((action) => !skip.has(action.id));
+    // Connection results come first and are not filtered: typing a target is not a command name.
+    return groupActions([...connectActions, ...matching]);
+  }, [actions, history, query, suggested, connectActions]);
   const commandItems = useMemo(() => [...suggested, ...displayOrder(commandGroups)], [suggested, commandGroups]);
   const themeItems = useMemo(() => filterThemes(Object.values(themes), query), [themes, query]);
 
@@ -180,7 +216,7 @@ export default function PaletteBody() {
       label: action.label,
       ranges: matchRanges(action.label, query),
       icon: <ActionIcon {...ICON_MD} />,
-      subtitle: showCategory ? action.category : undefined,
+      subtitle: action.detail ?? (showCategory ? action.category : undefined),
       shortcut: action.subView ? undefined : action.keys,
       trailing: action.subView ? <Icon name="drillIn" size="sm" aria-hidden className="shrink-0 text-fg-muted" /> : undefined,
     };
