@@ -12,6 +12,8 @@ use tokio::sync::Mutex;
 struct ClientHandler {
     host: String,
     port: u16,
+    /// A host-key rejection, kept so connect() can return it verbatim.
+    host_key_error: crate::commands::known_hosts::HostKeyErrorSlot,
 }
 
 impl client::Handler for ClientHandler {
@@ -23,7 +25,10 @@ impl client::Handler for ClientHandler {
     ) -> Result<bool, Self::Error> {
         match crate::commands::known_hosts::verify_host_key(&self.host, self.port, server_public_key) {
             Ok(valid) => Ok(valid),
-            Err(e) => Err(russh::Error::from(std::io::Error::new(std::io::ErrorKind::PermissionDenied, e))),
+            Err(e) => {
+                crate::commands::known_hosts::put_host_key_error(&self.host_key_error, e.clone());
+                Err(russh::Error::from(std::io::Error::new(std::io::ErrorKind::PermissionDenied, e)))
+            }
         }
     }
 }
@@ -70,15 +75,19 @@ impl SftpSessionManager {
         
         let config = client::Config {
             inactivity_timeout: Some(std::time::Duration::from_secs(300)),
-            ..Default::default()
+            ..crate::commands::known_hosts::client_config_for(host, port)
         };
 
         
-        let handler = ClientHandler { host: host.to_string(), port };
+        let host_key_error = crate::commands::known_hosts::HostKeyErrorSlot::default();
+        let handler = ClientHandler { host: host.to_string(), port, host_key_error: Arc::clone(&host_key_error) };
         let mut handle =
             client::connect(Arc::new(config), (host, port), handler)
                 .await
-                .map_err(|e| format!("SSH connect failed: {e}"))?;
+                .map_err(|e| {
+                    crate::commands::known_hosts::take_host_key_error(&host_key_error)
+                        .unwrap_or_else(|| format!("SSH connect failed: {e}"))
+                })?;
 
         
         let auth_ok = match auth_method {

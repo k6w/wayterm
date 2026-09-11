@@ -1,6 +1,7 @@
 mod commands;
 mod crypto;
 mod db;
+mod known_hosts;
 mod pty;
 mod port_forward;
 mod sftp;
@@ -198,6 +199,8 @@ pub fn run() {
             commands::known_hosts::ssh_known_hosts_remove,
             commands::known_hosts::ssh_known_hosts_add,
             commands::known_hosts::ssh_known_hosts_clear,
+            commands::known_hosts::ssh_known_hosts_replace,
+            commands::known_hosts::ssh_check_host_key,
             commands::known_hosts::ssh_get_pending_host_key,
             commands::known_hosts::ssh_clear_pending_host_key,
             commands::serial::serial_list_ports,

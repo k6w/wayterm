@@ -1,0 +1,3 @@
+@cert-authority *.example.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIB/cEu9J5cpAf8zr0Ccw5DShchyD9YGg3vWk+QPhhn/u
+example.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEBideruyixQqgBBMvV809wd4ptM2LMIU5Uy2rZb3H+h
+@revoked * ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHAyNTYAAABBBKgIamot+xkJ3/Yqw68zxq3mgjzWAzdDmZ7T7MfnTonUVUcGN6Jo4cNt6ZV2LKA0maILsIz1P4u70aCpaol2LhU=

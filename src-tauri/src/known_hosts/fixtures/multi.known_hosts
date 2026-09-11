@@ -1,0 +1,2 @@
+example.com,192.0.2.10,alias.example.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEBideruyixQqgBBMvV809wd4ptM2LMIU5Uy2rZb3H+h shared entry
+other.org ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIB/cEu9J5cpAf8zr0Ccw5DShchyD9YGg3vWk+QPhhn/u
