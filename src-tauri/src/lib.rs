@@ -155,7 +155,6 @@ pub fn run() {
             commands::ssh::ssh_save_port_forward,
             commands::ssh::ssh_delete_port_forward,
             commands::ssh::ssh_toggle_port_forward,
-            commands::ssh::ssh_import_config,
             commands::ssh_config::ssh_config_hosts,
             commands::ssh_config::ssh_config_import,
             commands::ssh_config::ssh_local_user,

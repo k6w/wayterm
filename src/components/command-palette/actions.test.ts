@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { buildPaletteActions, historyActions } from "./actions";
 import { useSettingsStore } from "../../stores/settings";
 import { useTerminalStore } from "../../stores/terminal";
+import { OPEN_SSH_CONFIG_IMPORT } from "../ssh/ssh-config-import";
 import { writeToTerminal } from "../../lib/terminal-registry";
 
 vi.mock("../../lib/terminal-registry", () => ({
@@ -45,6 +46,16 @@ describe("buildPaletteActions", () => {
       label: "Deploy",
       category: "Snippets",
     });
+  });
+
+  it("offers the ~/.ssh/config import, which opens its dialog", () => {
+    const listener = vi.fn();
+    window.addEventListener(OPEN_SSH_CONFIG_IMPORT, listener);
+    const action = buildPaletteActions().find((a) => a.id === "import-ssh-config");
+    expect(action).toMatchObject({ label: "Import from ~/.ssh/config", category: "SSH" });
+    action?.handler();
+    expect(listener).toHaveBeenCalledTimes(1);
+    window.removeEventListener(OPEN_SSH_CONFIG_IMPORT, listener);
   });
 
   it("keeps the theme picker as a nested list", () => {

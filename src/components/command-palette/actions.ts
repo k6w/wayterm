@@ -6,6 +6,7 @@ import { getEffectiveKeybindings } from "../../lib/keybindings";
 import { getDefaultShells } from "../../lib/shell-detect";
 import { clearBuffer, getCachedTerminal, resetTerminal, writeToTerminal } from "../../lib/terminal-registry";
 import { resolveSnippetVars } from "../../lib/snippet-utils";
+import { openSshConfigImport } from "../ssh/ssh-config-import";
 import type { Snippet } from "../../types/settings";
 
 /** Opens a nested list instead of running a handler. */
@@ -17,6 +18,8 @@ export interface PaletteAction {
   /** Group heading the action is listed under. */
   category: string;
   icon: IconComponent;
+  /** Muted text after the label, e.g. the user@host of a connection. */
+  detail?: string;
   /** Keybindings-format shortcut ("Meta+Shift+d"), rendered as a Kbd. */
   keys?: string;
   subView?: PaletteSubView;
@@ -166,6 +169,13 @@ export function buildPaletteActions(): PaletteAction[] {
       handler: () => {
         useTerminalStore.getState().toggleScratchpad();
       },
+    },
+    {
+      id: "import-ssh-config",
+      label: "Import from ~/.ssh/config",
+      icon: Icons.importSshConfig,
+      category: "SSH",
+      handler: openSshConfigImport,
     },
     {
       id: "new-serial-tab",

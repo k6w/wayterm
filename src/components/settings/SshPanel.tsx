@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { Icon } from "../../ui/icons";
 import { useSettingsStore } from "../../stores/settings";
-import { savedConnections, useSshStore } from "../../stores/ssh";
-import { sshImportConfig, sshKnownHostsClear, sshKnownHostsList, sshKnownHostsRemove, type KnownHost } from "../../lib/ipc";
-import { Badge, Button, Checkbox, EmptyState, IconButton, Input, Section, ConfirmDialog } from "../../ui";
+import { useSshStore } from "../../stores/ssh";
+import { sshKnownHostsClear, sshKnownHostsList, sshKnownHostsRemove, type KnownHost } from "../../lib/ipc";
+import { Badge, Button, EmptyState, IconButton, Input, Section, ConfirmDialog } from "../../ui";
 import { NumberInput, SettingRow, SettingsCard } from "./SettingRow";
-import { connectionsFromConfig, type ImportedHost } from "./ssh-import";
+import { openSshConfigImport } from "../ssh/ssh-config-import";
 
 const listRow = "flex min-h-row items-center gap-3 px-row-x py-row-y";
 
@@ -14,16 +14,10 @@ export default function SshPanel() {
   const update = useSettingsStore((s) => s.update);
   const connections = useSshStore((s) => s.connections);
   const deleteConnection = useSshStore((s) => s.deleteConnection);
-  const saveConnection = useSshStore((s) => s.saveConnection);
 
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
   const [knownHosts, setKnownHosts] = useState<KnownHost[]>([]);
   const [clearAllConfirm, setClearAllConfirm] = useState(false);
-  const [importedHosts, setImportedHosts] = useState<ImportedHost[] | null>(null);
-  const [selectedHosts, setSelectedHosts] = useState<Set<number>>(new Set());
-  const [importLoading, setImportLoading] = useState(false);
-  const [importError, setImportError] = useState<string | null>(null);
-  const [importSuccess, setImportSuccess] = useState<number | null>(null);
 
   const loadKnownHosts = useCallback(async () => {
     try {
@@ -53,44 +47,6 @@ export default function SshPanel() {
     setClearAllConfirm(false);
     await loadKnownHosts();
   };
-
-  const handleOpenImport = async () => {
-    setImportError(null);
-    setImportSuccess(null);
-    setImportLoading(true);
-    try {
-      const hosts = (await sshImportConfig()) ?? [];
-      setImportedHosts(hosts);
-      setSelectedHosts(new Set(hosts.map((_, i) => i)));
-    } catch (err) {
-      setImportError(err instanceof Error ? err.message : "Failed to read SSH config");
-    } finally {
-      setImportLoading(false);
-    }
-  };
-
-  const handleImportSelected = async () => {
-    if (!importedHosts) return;
-    const added = connectionsFromConfig(
-      importedHosts,
-      selectedHosts,
-      savedConnections(useSshStore.getState().connections),
-      new Date().toISOString(),
-      () => crypto.randomUUID()
-    );
-    for (const connection of added) await saveConnection(connection);
-    setImportedHosts(null);
-    setSelectedHosts(new Set());
-    setImportSuccess(added.length);
-  };
-
-  const toggleHost = (index: number, checked: boolean) =>
-    setSelectedHosts((prev) => {
-      const next = new Set(prev);
-      if (checked) next.add(index);
-      else next.delete(index);
-      return next;
-    });
 
   return (
     <div className="flex flex-col gap-6">
@@ -155,73 +111,11 @@ export default function SshPanel() {
         title="Import from SSH config"
         description="Reads Host entries from ~/.ssh/config"
         actions={
-          <Button
-            size="sm"
-            leadingIcon={<Icon name="importSshConfig" size="sm" />}
-            loading={importLoading}
-            onClick={() => void handleOpenImport()}
-          >
+          <Button size="sm" leadingIcon={<Icon name="importSshConfig" size="sm" />} onClick={openSshConfigImport}>
             Import ~/.ssh/config
           </Button>
         }
-      >
-        {importError && (
-          <p role="alert" className="rounded-md border border-danger bg-danger-subtle px-3 py-2 text-label text-danger">
-            {importError}
-          </p>
-        )}
-        {importSuccess !== null && (
-          <p
-            role="status"
-            className="flex items-center gap-1.5 rounded-md bg-success-subtle px-3 py-2 text-label text-success"
-          >
-            <Icon name="confirm" size="sm" aria-hidden />
-            Imported {importSuccess} connection{importSuccess === 1 ? "" : "s"}
-          </p>
-        )}
-        {importedHosts && (
-          <div className="flex flex-col gap-2">
-            <p className="text-label text-fg-muted">Select hosts to import:</p>
-            <SettingsCard className="max-h-48 overflow-y-auto">
-              {importedHosts.map((h, i) => (
-                <div key={i} className={listRow}>
-                  <Checkbox
-                    checked={selectedHosts.has(i)}
-                    onCheckedChange={(checked) => toggleHost(i, checked === true)}
-                    label={
-                      <span className="flex flex-col">
-                        <span className="text-body text-fg">{h.name}</span>
-                        <span className="font-mono text-label text-fg-muted">
-                          {h.username}@{h.host}:{h.port}
-                        </span>
-                      </span>
-                    }
-                  />
-                  {h.jumpHost && <Badge className="ml-auto">via {h.jumpHost}</Badge>}
-                </div>
-              ))}
-            </SettingsCard>
-            <div className="flex gap-2">
-              <Button
-                variant="primary"
-                disabled={selectedHosts.size === 0}
-                onClick={() => void handleImportSelected()}
-              >
-                Import {selectedHosts.size} selected
-              </Button>
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  setImportedHosts(null);
-                  setSelectedHosts(new Set());
-                }}
-              >
-                Cancel
-              </Button>
-            </div>
-          </div>
-        )}
-      </Section>
+      />
 
       <Section title={`Saved connections (${connections.length})`}>
         {connections.length === 0 ? (

@@ -486,17 +486,6 @@ export function onSerialExit(
   });
 }
 
-export async function sshImportConfig(): Promise<{
-  name: string;
-  host: string;
-  port: number;
-  username: string;
-  identityFile: string | null;
-  jumpHost: string | null;
-}[]> {
-  return invoke("ssh_import_config");
-}
-
 export interface SshConfigForward {
   bindPort: number;
   host: string;

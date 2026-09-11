@@ -10,6 +10,7 @@ import Sidebar from "../components/sidebar/Sidebar";
 import ActivityBar from "../components/sidebar/ActivityBar";
 import CommandPalette from "../components/command-palette/CommandPalette";
 import { BehindSettings } from "../components/settings/BehindSettings";
+import { OPEN_SSH_CONFIG_IMPORT } from "../components/ssh/ssh-config-import";
 import Scratchpad from "../components/terminal/Scratchpad";
 import StatusBar from "../components/terminal/StatusBar";
 import UpdateNotification from "./UpdateNotification";
@@ -48,6 +49,8 @@ function AppContent() {
   const settingsMounted = useEverTrue(settingsOpen);
   const sshDialogMounted = useEverTrue(sshDialogOpen);
   const serialDialogMounted = useEverTrue(serialDialogOpen);
+  const [sshConfigImportOpen, setSshConfigImportOpen] = useState(false);
+  const sshConfigImportMounted = useEverTrue(sshConfigImportOpen);
   const [showWelcome, setShowWelcome] = useState(() => !localStorage.getItem("nexterm-welcomed"));
 
   // Apply the non-theme appearance settings (UI font, accent override, blur,
@@ -150,6 +153,13 @@ function AppContent() {
     return () => window.removeEventListener("nexterm:open-serial", handler);
   }, []);
 
+  // The Connections toolbar, the palette and Settings open the ~/.ssh/config import this way.
+  useEffect(() => {
+    const handler = () => setSshConfigImportOpen(true);
+    window.addEventListener(OPEN_SSH_CONFIG_IMPORT, handler);
+    return () => window.removeEventListener(OPEN_SSH_CONFIG_IMPORT, handler);
+  }, []);
+
   const newTerminal = useCallback(() => {
     const shell = getPreferredShell(useSettingsStore.getState().settings.general.defaultShell);
     addTab(shell.type, shell.path);
@@ -233,6 +243,11 @@ function AppContent() {
           />
         </Suspense>
       )}
+      {sshConfigImportMounted && (
+        <Suspense fallback={null}>
+          <SshConfigImportDialog isOpen={sshConfigImportOpen} onClose={() => setSshConfigImportOpen(false)} />
+        </Suspense>
+      )}
       <Scratchpad />
       <Toaster />
     </div>
@@ -268,6 +283,7 @@ class ErrorBoundary extends React.Component<
 const SettingsView = lazyWithPreload(() => import("../components/settings/SettingsView"));
 const ConnectionDialog = lazyWithPreload(() => import("../components/ssh/ConnectionDialog"));
 const SerialDialog = lazyWithPreload(() => import("../components/serial/SerialDialog"));
+const SshConfigImportDialog = lazyWithPreload(() => import("../components/ssh/SshConfigImportDialog"));
 const WelcomeWizard = lazyWithPreload(async () => ({ default: (await import("../components/welcome/WelcomeWizard")).WelcomeWizard }));
 
 export default function App() {
