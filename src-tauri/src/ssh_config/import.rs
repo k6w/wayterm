@@ -55,13 +55,13 @@ fn split_hop(token: &str) -> (Option<&str>, &str, Option<i32>) {
     }
 }
 
-/// Decides which selected hosts become connections. Pure: key files and ids
-/// come in through the two callbacks so tests need neither disk nor database.
+/// Decides which selected hosts become connections. Pure: ids come in through
+/// a callback so tests need neither disk nor database. A host's IdentityFile is
+/// stored as a path; the key file itself is never read here.
 pub fn plan_import(
     hosts: &[ConfigHost],
     selected: &[String],
     existing: &[ConnectionProfile],
-    resolve_key: &mut dyn FnMut(&str) -> Option<String>,
     new_id: &mut dyn FnMut() -> String,
 ) -> Plan {
     let mut plan = Plan::default();
@@ -114,23 +114,8 @@ pub fn plan_import(
     };
 
     for (host, id) in planned_hosts.iter().zip(&ids) {
-        let mut key_id = None;
-        let mut failed = Vec::new();
-        for file in &host.identity_files {
-            match resolve_key(file) {
-                Some(k) => {
-                    key_id = Some(k);
-                    break;
-                }
-                None => failed.push(file),
-            }
-        }
-        if key_id.is_none() {
-            for file in failed {
-                plan.warnings.push(format!("{}: IdentityFile {file} could not be imported", host.alias));
-            }
-        }
-        let auth_method = if key_id.is_some() {
+        let identity_file = host.identity_files.first().cloned();
+        let auth_method = if identity_file.is_some() {
             "key"
         } else if host.forward_agent {
             "agent"
@@ -183,7 +168,7 @@ pub fn plan_import(
                 port: i32::from(host.port),
                 username: host.user.clone(),
                 auth_method: auth_method.into(),
-                private_key_id: key_id,
+                private_key_id: None,
                 jump_host_id,
                 startup_commands: None,
                 color_tag: None,
@@ -192,6 +177,7 @@ pub fn plan_import(
                 theme_override: None,
                 agent_forwarding: host.forward_agent,
                 env_vars: "{}".into(),
+                identity_file,
                 created_at: String::new(),
                 updated_at: String::new(),
             },
@@ -201,25 +187,6 @@ pub fn plan_import(
 
     break_jump_cycles(&mut plan);
     plan
-}
-
-/// The stored algorithm ("rsa" or "ed25519") for a private key file the app
-/// can use, or `None` when the text is not a key or needs a passphrase.
-/// `public_key` is the matching `.pub` text (may be empty) and wins when it says RSA.
-pub fn classify_key(pem: &str, public_key: &str) -> Option<&'static str> {
-    if !pem.contains("PRIVATE KEY-----") || pem.contains("ENCRYPTED") {
-        return None;
-    }
-    let body = pem.lines().find(|l| !l.starts_with("-----")).unwrap_or("");
-    // base64 of "openssh-key-v1\0" + cipher "none": anything else is passphrase-protected.
-    if pem.contains("BEGIN OPENSSH PRIVATE KEY") && !body.starts_with("b3BlbnNzaC1rZXktdjEAAAAABG5vbmU") {
-        return None;
-    }
-    if public_key.trim_start().starts_with("ssh-rsa") || pem.contains("BEGIN RSA PRIVATE KEY") {
-        Some("rsa")
-    } else {
-        Some("ed25519")
-    }
 }
 
 /// A jump chain that loops back on itself can never connect; unlink the host
@@ -286,6 +253,7 @@ mod tests {
             theme_override: None,
             agent_forwarding: false,
             env_vars: "{}".into(),
+            identity_file: None,
             created_at: String::new(),
             updated_at: String::new(),
         }
@@ -298,7 +266,6 @@ mod tests {
             hosts,
             &selected,
             existing,
-            &mut |path| path.contains("good").then(|| format!("key-for-{path}")),
             &mut || {
                 n += 1;
                 format!("id{n}")
@@ -355,22 +322,21 @@ mod tests {
     }
 
     #[test]
-    fn identity_file_becomes_key_auth_when_the_key_imports() {
+    fn identity_file_is_stored_as_a_path_with_key_auth_and_no_stored_key() {
         let mut h = host("k");
-        h.identity_files = vec!["/missing".into(), "/keys/good_ed25519".into()];
+        h.identity_files = vec!["/keys/id_ed25519".into(), "/keys/other".into()];
         let plan = run(&[h], &["k"], &[]);
         let p = &plan.connections[0].profile;
         assert_eq!(p.auth_method, "key");
-        assert_eq!(p.private_key_id.as_deref(), Some("key-for-/keys/good_ed25519"));
+        assert_eq!(p.identity_file.as_deref(), Some("/keys/id_ed25519"));
+        assert_eq!(p.private_key_id, None);
+        assert!(plan.warnings.is_empty());
     }
 
     #[test]
-    fn unreadable_identity_files_warn_and_fall_back_to_password() {
-        let mut h = host("k");
-        h.identity_files = vec!["/missing".into()];
-        let plan = run(&[h], &["k"], &[]);
-        assert_eq!(plan.connections[0].profile.auth_method, "password");
-        assert!(plan.warnings.iter().any(|w| w.contains('k') && w.contains("/missing")), "{:?}", plan.warnings);
+    fn no_identity_file_means_password_auth_and_no_path() {
+        let p = &run(&[host("k")], &["k"], &[]).connections[0].profile;
+        assert_eq!((p.auth_method.as_str(), p.identity_file.as_deref()), ("password", None));
     }
 
     #[test]
@@ -437,22 +403,6 @@ mod tests {
         assert!(plan.connections.iter().all(|c| c.profile.jump_host_id.is_none()));
         assert!(plan.warnings.iter().any(|w| w.starts_with("a:") && w.contains("nowhere")), "{:?}", plan.warnings);
         assert!(plan.warnings.iter().any(|w| w.starts_with("b:") && w.contains("multi")), "{:?}", plan.warnings);
-    }
-
-    #[test]
-    fn key_files_are_classified() {
-        let open = "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZWQyNTUxOQ\n-----END OPENSSH PRIVATE KEY-----\n";
-        assert_eq!(classify_key(open, ""), Some("ed25519"));
-        let enc = "-----BEGIN OPENSSH PRIVATE KEY-----\nb3BlbnNzaC1rZXktdjEAAAAACmFlczI1Ni1jdHIAAAAGYmNyeXB0AAAAGAAAABD\n-----END OPENSSH PRIVATE KEY-----\n";
-        assert_eq!(classify_key(enc, ""), None);
-        let rsa = "-----BEGIN RSA PRIVATE KEY-----\nMIIEow\n-----END RSA PRIVATE KEY-----\n";
-        assert_eq!(classify_key(rsa, ""), Some("rsa"));
-        let rsa_enc = "-----BEGIN RSA PRIVATE KEY-----\nProc-Type: 4,ENCRYPTED\nDEK-Info: AES-128-CBC,AB\n\nMIIEow\n-----END RSA PRIVATE KEY-----\n";
-        assert_eq!(classify_key(rsa_enc, ""), None);
-        let pkcs8_enc = "-----BEGIN ENCRYPTED PRIVATE KEY-----\nMIIFH\n-----END ENCRYPTED PRIVATE KEY-----\n";
-        assert_eq!(classify_key(pkcs8_enc, ""), None);
-        assert_eq!(classify_key("not a key", ""), None);
-        assert_eq!(classify_key(open, "ssh-rsa AAAA user@host"), Some("rsa"));
     }
 
     #[test]

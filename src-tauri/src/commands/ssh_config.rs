@@ -1,9 +1,7 @@
-use crate::commands::ssh::compute_fingerprint;
-use crate::db::{self, keys::SshKey, DbPool};
-use crate::ssh_config::import::{classify_key, is_imported, plan_import, Skipped};
+use crate::db::{self, DbPool};
+use crate::ssh_config::import::{is_imported, plan_import, Skipped};
 use crate::ssh_config::{parse_file, ConfigHost, Env};
 use serde::Serialize;
-use std::collections::HashMap;
 use tauri::State;
 use uuid::Uuid;
 
@@ -70,65 +68,100 @@ pub async fn ssh_config_hosts(pool: State<'_, DbPool>) -> Result<SshConfigHosts,
     })
 }
 
-/// Stores an unencrypted private key file in the key store; `None` when it
-/// cannot be read or is passphrase-protected.
-fn import_key_file(pool: &DbPool, path: &str) -> Option<String> {
-    let pem = std::fs::read_to_string(path).ok()?;
-    let public_key = std::fs::read_to_string(format!("{path}.pub")).unwrap_or_default();
-    let algorithm = classify_key(&pem, &public_key)?;
-    let name = std::path::Path::new(path)
-        .file_name()
-        .map(|n| n.to_string_lossy().to_string())
-        .unwrap_or_else(|| "ssh key".to_string());
-    let key = SshKey {
-        id: Uuid::new_v4().to_string(),
-        name,
-        algorithm: algorithm.to_string(),
-        fingerprint: compute_fingerprint(public_key.trim()),
-        public_key: public_key.trim().to_string(),
-        created_at: String::new(),
-    };
-    db::keys::insert(pool, &key, pem.as_bytes()).ok()?;
-    Some(key.id)
-}
-
 #[tauri::command]
 pub async fn ssh_config_import(
     selected: Vec<String>,
     pool: State<'_, DbPool>,
 ) -> Result<SshConfigImportResult, String> {
     let (_, _, out) = load()?;
-    let existing = db::connections::list(&pool)?;
+    import_hosts(&pool, &out.hosts, &selected)
+}
 
-    let mut key_ids: HashMap<String, Option<String>> = HashMap::new();
-    let plan = plan_import(
-        &out.hosts,
-        &selected,
-        &existing,
-        &mut |path| {
-            key_ids
-                .entry(path.to_string())
-                .or_insert_with(|| import_key_file(&pool, path))
-                .clone()
-        },
-        &mut || Uuid::new_v4().to_string(),
-    );
+/// Saves the selected hosts as connections. Key files are only referenced by
+/// path: nothing is read from them and nothing is added to the key store.
+fn import_hosts(pool: &DbPool, hosts: &[ConfigHost], selected: &[String]) -> Result<SshConfigImportResult, String> {
+    let existing = db::connections::list(pool)?;
+    let plan = plan_import(hosts, selected, &existing, &mut || Uuid::new_v4().to_string());
 
     let mut warnings = plan.warnings;
     let mut skipped = plan.skipped;
     let mut imported = Vec::new();
     for planned in plan.connections {
         let alias = planned.profile.name.clone();
-        if let Err(e) = db::connections::insert(&pool, &planned.profile) {
+        if let Some(file) = &planned.profile.identity_file {
+            if !std::path::Path::new(file).is_file() {
+                warnings.push(format!("{alias}: key file {file} does not exist"));
+            }
+        }
+        if let Err(e) = db::connections::insert(pool, &planned.profile) {
             skipped.push(Skipped { alias, reason: e });
             continue;
         }
         for forward in &planned.forwards {
-            if let Err(e) = db::port_forwards::insert(&pool, forward) {
+            if let Err(e) = db::port_forwards::insert(pool, forward) {
                 warnings.push(format!("{alias}: port forward {} was not saved: {e}", forward.local_port));
             }
         }
         imported.push(ImportedHost { alias, connection_id: planned.profile.id });
     }
     Ok(SshConfigImportResult { imported, skipped, warnings })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use parking_lot::Mutex;
+    use std::sync::Arc;
+
+    fn pool() -> DbPool {
+        let conn = rusqlite::Connection::open_in_memory().unwrap();
+        conn.execute_batch("PRAGMA foreign_keys=ON;").unwrap();
+        let pool = Arc::new(Mutex::new(conn));
+        db::migrations::run(&pool).unwrap();
+        pool
+    }
+
+    fn host(alias: &str, key: &str) -> ConfigHost {
+        ConfigHost {
+            alias: alias.into(),
+            hostname: format!("{alias}.example.com"),
+            user: "me".into(),
+            port: 22,
+            identity_files: vec![key.into()],
+            proxy_jump: None,
+            forward_agent: false,
+            local_forwards: vec![],
+            remote_forwards: vec![],
+            dynamic_forwards: vec![],
+        }
+    }
+
+    #[test]
+    fn import_stores_the_key_path_and_never_touches_the_key_store() {
+        let dir = std::env::temp_dir().join(format!("nexterm_import_{}", Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let key = dir.join("id_ed25519");
+        std::fs::write(&key, "-----BEGIN OPENSSH PRIVATE KEY-----\nsecret\n-----END OPENSSH PRIVATE KEY-----\n").unwrap();
+        let key_path = key.to_string_lossy().to_string();
+
+        let pool = pool();
+        let result = import_hosts(&pool, &[host("web", &key_path)], &["web".to_string()]).unwrap();
+        assert_eq!(result.imported.len(), 1);
+        assert!(result.warnings.is_empty(), "{:?}", result.warnings);
+
+        let saved = db::connections::list(&pool).unwrap();
+        assert_eq!(saved[0].identity_file.as_deref(), Some(key_path.as_str()));
+        assert_eq!(saved[0].auth_method, "key");
+        assert_eq!(saved[0].private_key_id, None);
+        assert!(db::keys::list(&pool).unwrap().is_empty(), "no key may be copied into the key store");
+        let _ = std::fs::remove_dir_all(&dir);
+    }
+
+    #[test]
+    fn a_missing_key_file_is_a_warning() {
+        let pool = pool();
+        let result = import_hosts(&pool, &[host("web", "/definitely/not/here")], &["web".to_string()]).unwrap();
+        assert_eq!(result.imported.len(), 1);
+        assert!(result.warnings.iter().any(|w| w.contains("does not exist")), "{:?}", result.warnings);
+    }
 }

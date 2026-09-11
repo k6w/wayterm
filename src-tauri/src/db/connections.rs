@@ -19,6 +19,9 @@ pub struct ConnectionProfile {
     pub theme_override: Option<String>,
     pub agent_forwarding: bool,
     pub env_vars: String,
+    /// Path of a private key file on disk (e.g. imported from ~/.ssh/config). Never the key itself.
+    #[serde(default)]
+    pub identity_file: Option<String>,
     pub created_at: String,
     pub updated_at: String,
 }
@@ -29,7 +32,7 @@ pub fn list(pool: &DbPool) -> Result<Vec<ConnectionProfile>, String> {
         .prepare(
             "SELECT id, name, host, port, username, auth_method, private_key_id, \
              jump_host_id, startup_commands, color_tag, folder_path, sort_order, \
-             theme_override, agent_forwarding, env_vars, \
+             theme_override, agent_forwarding, env_vars, identity_file, \
              created_at, updated_at FROM connections ORDER BY folder_path, sort_order",
         )
         .map_err(|e| e.to_string())?;
@@ -52,8 +55,9 @@ pub fn list(pool: &DbPool) -> Result<Vec<ConnectionProfile>, String> {
                 theme_override: row.get(12)?,
                 agent_forwarding: row.get(13)?,
                 env_vars: row.get::<_, Option<String>>(14)?.unwrap_or_else(|| "{}".to_string()),
-                created_at: row.get(15)?,
-                updated_at: row.get(16)?,
+                identity_file: row.get(15)?,
+                created_at: row.get(16)?,
+                updated_at: row.get(17)?,
             })
         })
         .map_err(|e| e.to_string())?;
@@ -67,8 +71,8 @@ pub fn insert(pool: &DbPool, profile: &ConnectionProfile) -> Result<(), String> 
     conn.execute(
         "INSERT INTO connections (id, name, host, port, username, auth_method, \
          private_key_id, jump_host_id, startup_commands, color_tag, folder_path, \
-         sort_order, theme_override, agent_forwarding, env_vars) \
-         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15)",
+         sort_order, theme_override, agent_forwarding, env_vars, identity_file) \
+         VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?14,?15,?16)",
         rusqlite::params![
             profile.id,
             profile.name,
@@ -85,6 +89,7 @@ pub fn insert(pool: &DbPool, profile: &ConnectionProfile) -> Result<(), String> 
             profile.theme_override,
             profile.agent_forwarding as i32,
             profile.env_vars,
+            profile.identity_file,
         ],
     )
     .map_err(|e| e.to_string())?;
@@ -97,7 +102,7 @@ pub fn update(pool: &DbPool, profile: &ConnectionProfile) -> Result<(), String> 
         "UPDATE connections SET name=?2, host=?3, port=?4, username=?5, \
          auth_method=?6, private_key_id=?7, jump_host_id=?8, startup_commands=?9, \
          color_tag=?10, folder_path=?11, sort_order=?12, \
-         theme_override=?13, agent_forwarding=?14, env_vars=?15, \
+         theme_override=?13, agent_forwarding=?14, env_vars=?15, identity_file=?16, \
          updated_at=datetime('now') WHERE id=?1",
         rusqlite::params![
             profile.id,
@@ -115,6 +120,7 @@ pub fn update(pool: &DbPool, profile: &ConnectionProfile) -> Result<(), String> 
             profile.theme_override,
             profile.agent_forwarding as i32,
             profile.env_vars,
+            profile.identity_file,
         ],
     )
     .map_err(|e| e.to_string())?;
@@ -134,7 +140,7 @@ pub fn get(pool: &DbPool, id: &str) -> Result<Option<ConnectionProfile>, String>
         .prepare(
             "SELECT id, name, host, port, username, auth_method, private_key_id, \
              jump_host_id, startup_commands, color_tag, folder_path, sort_order, \
-             theme_override, agent_forwarding, env_vars, \
+             theme_override, agent_forwarding, env_vars, identity_file, \
              created_at, updated_at FROM connections WHERE id = ?1",
         )
         .map_err(|e| e.to_string())?;
@@ -157,8 +163,9 @@ pub fn get(pool: &DbPool, id: &str) -> Result<Option<ConnectionProfile>, String>
                 theme_override: row.get(12)?,
                 agent_forwarding: row.get(13)?,
                 env_vars: row.get::<_, Option<String>>(14)?.unwrap_or_else(|| "{}".to_string()),
-                created_at: row.get(15)?,
-                updated_at: row.get(16)?,
+                identity_file: row.get(15)?,
+                created_at: row.get(16)?,
+                updated_at: row.get(17)?,
             })
         })
         .map_err(|e| e.to_string())?;

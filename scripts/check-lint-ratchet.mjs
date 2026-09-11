@@ -106,6 +106,7 @@ const STRICT_PATHS = [
   "src/app/UpdateNotification.tsx",
   "src/components/ssh/quick-connect.ts",
   "src/components/ssh/open-connection.ts",
+  "src/components/ssh/identity-args.ts",
   "src/components/ssh/ssh-config-import.ts",
   "src/components/ssh/SshConfigImportDialog.tsx",
 ];

@@ -321,6 +321,10 @@ pub async fn ssh_toggle_port_forward(
             if let Some(key_path) = key_option.as_ref() {
                 ssh_args.push("-i".to_string());
                 ssh_args.push(key_path.to_string_lossy().to_string());
+            } else if let (true, Some(file)) = (connection.auth_method == "key", connection.identity_file.as_ref()) {
+                // A key file on disk (imported from ~/.ssh/config); one argv element, no shell.
+                ssh_args.push("-i".to_string());
+                ssh_args.push(file.clone());
             }
 
             ssh_args.push(format!("{}@{}", connection.username, connection.host));

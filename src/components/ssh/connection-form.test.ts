@@ -91,6 +91,21 @@ describe("toConnection", () => {
     });
   });
 
+  it("keeps the key file path of a connection imported from ~/.ssh/config", () => {
+    const imported: SshConnection = { ...EXISTING, privateKeyId: null, identityFile: "/home/me/.ssh/id_ed25519" };
+    const form = createFormState(imported);
+    expect(form.privateKeyPath).toBe("/home/me/.ssh/id_ed25519");
+    expect(toConnection(form, imported, NOW, () => "unused").identityFile).toBe("/home/me/.ssh/id_ed25519");
+    expect(toConnection({ ...form, privateKeyPath: "  " }, imported, NOW, () => "unused").identityFile).toBeUndefined();
+  });
+
+  it("saves the typed key path for key auth only, and not alongside a stored key", () => {
+    const base = { ...createFormState(), name: "n", host: "h", username: "u", privateKeyPath: " ~/.ssh/id " };
+    expect(toConnection({ ...base, authMethod: "key" }, null, NOW, () => "i").identityFile).toBe("~/.ssh/id");
+    expect(toConnection({ ...base, authMethod: "password" }, null, NOW, () => "i").identityFile).toBeUndefined();
+    expect(toConnection({ ...base, authMethod: "key", selectedKeyId: "k1" }, null, NOW, () => "i").identityFile).toBeUndefined();
+  });
+
   it("creates a new connection in the root folder", () => {
     const form = { ...createFormState(), name: "dev", host: "dev.local", username: "me" };
     expect(toConnection(form, null, NOW, () => "new-id")).toMatchObject({

@@ -38,6 +38,29 @@ pub struct TransferProgress {
 
 
 
+/// Reads a private key file for SFTP at connect time. The text is used for this
+/// one connection and never stored. A passphrase-protected key cannot be
+/// opened (there is no passphrase prompt on this path), so it fails with a
+/// message that points at ssh-agent instead.
+fn read_identity_file(path: &str) -> Result<String, String> {
+    let expanded = match (path.strip_prefix("~/"), dirs::home_dir()) {
+        (Some(rest), Some(home)) => home.join(rest),
+        _ => std::path::PathBuf::from(path),
+    };
+    let raw = std::fs::read_to_string(&expanded)
+        .map_err(|e| format!("Could not read the key file {}: {e}", expanded.display()))?;
+    let pem = raw.replace("\r\n", "\n").replace('\r', "\n");
+    match russh::keys::decode_secret_key(&pem, None) {
+        Err(russh::keys::Error::KeyIsEncrypted) => Err(format!(
+            "The key file {} is protected by a passphrase, which SFTP cannot ask for. \
+             Add it to ssh-agent (ssh-add) or use a key without a passphrase.",
+            expanded.display()
+        )),
+        Err(e) => Err(format!("Could not use the key file {}: {e}", expanded.display())),
+        Ok(_) => Ok(pem),
+    }
+}
+
 #[tauri::command]
 pub async fn sftp_connect(
     connection_id: String,
@@ -54,16 +77,19 @@ pub async fn sftp_connect(
 
     
     let key_pem: Option<String> = if profile.auth_method == "key" {
-        let key_id = profile
-            .private_key_id
-            .as_deref()
-            .ok_or("Key auth selected but no private_key_id set")?;
-        let raw = db::keys::get_private_key(&pool, key_id)?;
-        let pem = String::from_utf8(raw)
-            .map_err(|e| format!("Private key is not valid UTF-8: {e}"))?;
-        
-        let pem = pem.replace("\r\n", "\n").replace('\r', "\n");
-        Some(pem)
+        if let Some(path) = profile.identity_file.as_deref() {
+            // A key file on disk (imported from ~/.ssh/config): read it now, keep nothing.
+            Some(read_identity_file(path)?)
+        } else {
+            let key_id = profile
+                .private_key_id
+                .as_deref()
+                .ok_or("Key auth selected but no key or key file is set")?;
+            let raw = db::keys::get_private_key(&pool, key_id)?;
+            let pem = String::from_utf8(raw)
+                .map_err(|e| format!("Private key is not valid UTF-8: {e}"))?;
+            Some(pem.replace("\r\n", "\n").replace('\r', "\n"))
+        }
     } else {
         None
     };
@@ -505,4 +531,45 @@ pub async fn local_list_dir(path: String) -> Result<Vec<SftpEntry>, String> {
     });
 
     Ok(entries)
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use russh::keys::{Algorithm, PrivateKey};
+    use russh::keys::ssh_key::LineEnding;
+
+    fn write_key(encrypt: bool) -> (std::path::PathBuf, std::path::PathBuf) {
+        let dir = std::env::temp_dir().join(format!("nexterm_sftpkey_{}", Uuid::new_v4()));
+        std::fs::create_dir_all(&dir).unwrap();
+        let mut key = PrivateKey::random(&mut rand::rngs::OsRng, Algorithm::Ed25519).unwrap();
+        if encrypt {
+            key = key.encrypt(&mut rand::rngs::OsRng, "pw").unwrap();
+        }
+        let path = dir.join("id");
+        std::fs::write(&path, key.to_openssh(LineEnding::LF).unwrap().as_bytes()).unwrap();
+        (dir, path)
+    }
+
+    #[test]
+    fn reads_an_unencrypted_key_file_from_disk() {
+        let (dir, path) = write_key(false);
+        let pem = read_identity_file(&path.to_string_lossy()).unwrap();
+        assert!(pem.contains("BEGIN OPENSSH PRIVATE KEY"));
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn an_encrypted_key_file_explains_itself_and_suggests_ssh_agent() {
+        let (dir, path) = write_key(true);
+        let err = read_identity_file(&path.to_string_lossy()).unwrap_err();
+        assert!(err.contains("passphrase") && err.contains("ssh-agent"), "{err}");
+        let _ = std::fs::remove_dir_all(dir);
+    }
+
+    #[test]
+    fn a_missing_key_file_names_the_path() {
+        let err = read_identity_file("/definitely/not/here").unwrap_err();
+        assert!(err.contains("/definitely/not/here"), "{err}");
+    }
 }

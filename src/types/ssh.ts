@@ -10,6 +10,8 @@ export interface SshConnection {
   username: string;
   authMethod: AuthMethod;
   privateKeyId: string | null;
+  /** Path of a private key file on disk, used instead of a stored key. The key itself is never copied. */
+  identityFile?: string | null;
   jumpHostId: string | null;
   startupCommands: string | null;
   colorTag: string | null;

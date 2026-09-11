@@ -23,6 +23,7 @@ import {
 } from "../../lib/ipc";
 import { getDefaultShell } from "../../lib/shell-detect";
 import { useSshStore } from "../../stores/ssh";
+import { identityFileArgs } from "../ssh/identity-args";
 import {
   getCachedTerminal,
   setCachedTerminal,
@@ -185,6 +186,8 @@ async function resolveSpawnConfig(
         // ignore key path errors
       }
     }
+
+    sshArgs.push(...identityFileArgs(conn));
 
     // ProxyJump / jump host
     if (conn.jumpHostId) {
