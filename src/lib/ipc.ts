@@ -189,6 +189,49 @@ export async function sshClearPendingHostKey(host: string, port: number): Promis
   return invoke("ssh_clear_pending_host_key", { host, port });
 }
 
+/** A key already saved in known_hosts for a host. */
+export interface SavedHostKey {
+  keyType: string;
+  /** "SHA256:…" */
+  fingerprint: string;
+  /** 1-based line in known_hosts. */
+  lineNumber: number;
+}
+
+/** Payload of a "HOST KEY CHANGED" connect error (see src/components/ssh/host-key.ts). */
+export interface HostKeyMismatch {
+  host: string;
+  port: number;
+  knownHostsPath: string;
+  oldKeys: SavedHostKey[];
+  newKeyType: string;
+  newFingerprint: string;
+  /** The server's new public key (base64 blob), captured during the handshake. */
+  newKeyB64: string;
+}
+
+/**
+ * Replaces this host's saved key with the new one, only if the saved key still
+ * has `expectedOldFingerprint`. Rejects (and changes nothing) otherwise.
+ */
+export async function sshKnownHostsReplace(
+  host: string,
+  port: number,
+  expectedOldFingerprint: string,
+  newKeyType: string,
+  newKeyB64: string
+): Promise<void> {
+  return invoke("ssh_known_hosts_replace", { host, port, expectedOldFingerprint, newKeyType, newKeyB64 });
+}
+
+/**
+ * Checks a server's host key without logging in: "trusted" or "unknown".
+ * Rejects with the "HOST KEY CHANGED" error for a changed key, and on network errors.
+ */
+export async function sshCheckHostKey(host: string, port: number): Promise<"trusted" | "unknown"> {
+  return invoke("ssh_check_host_key", { host, port });
+}
+
 export async function workspaceList(): Promise<unknown[]> {
   return invoke("workspace_list");
 }

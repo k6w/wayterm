@@ -109,6 +109,8 @@ const STRICT_PATHS = [
   "src/components/ssh/identity-args.ts",
   "src/components/ssh/ssh-config-import.ts",
   "src/components/ssh/SshConfigImportDialog.tsx",
+  "src/components/ssh/useChangedHostKey.ts",
+  "src/components/ssh/host-key-preflight.ts",
 ];
 
 const file = "eslint-suppressions.json";

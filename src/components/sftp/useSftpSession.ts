@@ -3,8 +3,9 @@ import { useTerminalStore } from "../../stores/terminal";
 import { useSshStore } from "../../stores/ssh";
 import { useSftpStore } from "../../stores/sftp";
 import { sshClearPendingHostKey, sshGetPendingHostKey, sshKnownHostsAdd, type PendingHostKey } from "../../lib/ipc";
-import { isHostKeyChanged } from "../ssh/host-key";
+import { hostKeyErrorText, parseHostKeyMismatch } from "../ssh/host-key";
 import type { HostKeyPrompt } from "../ssh/HostKeyDialog";
+import { useChangedHostKey } from "../ssh/useChangedHostKey";
 
 export interface SftpSession {
   /** The open SFTP session, once connected. */
@@ -15,9 +16,13 @@ export interface SftpSession {
   connectionName: string;
   /** The host-key question to show, if any (unknown host or changed key). */
   hostKeyPrompt: HostKeyPrompt | null;
-  /** True while a trust request runs (the dialog disables its buttons). */
+  /** True while a trust or replace request runs (the dialog disables its buttons). */
   trusting: boolean;
   trustHost: () => void;
+  /** Changed key: why the replacement failed (known_hosts is unchanged). */
+  replaceError: string | null;
+  /** Changed key, confirmed by the user: replace the saved key, then reconnect. */
+  replaceHostKey: () => void;
   /** Changed key: close the dialog and open Settings on the SSH panel. */
   openSshSettings: () => void;
   cancelHostKey: () => void;
@@ -28,7 +33,8 @@ export interface SftpSession {
 /**
  * Connects the pane's SFTP session once per pane (reusing a session that
  * survived a split remount) and runs the host-key flow: trust an unknown
- * host, or for a changed key only explain and point to SSH settings.
+ * host, or for a changed key replace the saved key once the user confirms the
+ * new fingerprint, then reconnect.
  * Disconnects only when the pane is really gone, not on a remount.
  */
 export function useSftpSession(paneId: string): SftpSession {
@@ -41,7 +47,8 @@ export function useSftpSession(paneId: string): SftpSession {
   const [tofuPending, setTofuPending] = useState<PendingHostKey | null>(null);
   const [trusting, setTrusting] = useState(false);
   const trustingRef = useRef(false);
-  const [hostKeyChanged, setHostKeyChanged] = useState<{ host: string; port: number } | null>(null);
+  const changedKey = useChangedHostKey();
+  const askChangedKey = changedKey.ask;
 
   const sftpConnId = useTerminalStore((s) => s.panes[paneId]?.sftpConnectionId ?? "");
   const sftpConn = useSshStore((s) => s.connections.find((c) => c.id === sftpConnId));
@@ -101,10 +108,21 @@ export function useSftpSession(paneId: string): SftpSession {
             // fall through to generic error
           }
         }
-        if (conn && isHostKeyChanged(msg)) {
-          setHostKeyChanged({ host: conn.host, port: conn.port ?? 22 });
+        const mismatch = parseHostKeyMismatch(msg);
+        if (mismatch) {
+          // Changed key: ask; reconnect only after the saved key was replaced.
+          setConnecting(false);
+          const replaced = await askChangedKey(mismatch);
+          if (cancelled) return;
+          if (replaced) {
+            setConnecting(true);
+            setAttempt((n) => n + 1);
+          } else {
+            setError(hostKeyErrorText(msg));
+          }
+          return;
         }
-        setError(msg);
+        setError(hostKeyErrorText(msg));
         setConnecting(false);
       }
     })();
@@ -120,11 +138,10 @@ export function useSftpSession(paneId: string): SftpSession {
         disconnect(sid).catch(() => {});
       }
     };
-  }, [paneId, attempt]);
+  }, [paneId, attempt, askChangedKey]);
 
   const retry = useCallback(() => {
     setError(null);
-    setHostKeyChanged(null);
     setConnecting(true);
     setAttempt((n) => n + 1);
   }, []);
@@ -163,8 +180,8 @@ export function useSftpSession(paneId: string): SftpSession {
 
   const hostKeyPrompt: HostKeyPrompt | null = tofuPending
     ? { kind: "unknown", key: tofuPending }
-    : hostKeyChanged
-      ? { kind: "changed", ...hostKeyChanged }
+    : changedKey.mismatch
+      ? { kind: "changed", mismatch: changedKey.mismatch }
       : null;
 
   return {
@@ -174,16 +191,17 @@ export function useSftpSession(paneId: string): SftpSession {
     retry,
     connectionName,
     hostKeyPrompt,
-    trusting,
+    trusting: trusting || changedKey.replacing,
     trustHost: () => void trustHost(),
-    // Changed key: the dialog only closes or sends the user to SSH settings.
+    replaceError: changedKey.error,
+    replaceHostKey: changedKey.replace,
     openSshSettings: () => {
-      setHostKeyChanged(null);
+      changedKey.cancel();
       useTerminalStore.getState().openSettings("ssh");
     },
     cancelHostKey: () => {
       if (tofuPending) void cancelTofu();
-      else setHostKeyChanged(null);
+      else changedKey.cancel();
     },
   };
 }

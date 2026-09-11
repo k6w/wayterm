@@ -36,7 +36,9 @@ export default function SftpPane({ paneId, isActive, paneCount = 1 }: SftpPanePr
     <HostKeyDialog
       prompt={sftp.hostKeyPrompt}
       pending={sftp.trusting}
+      replaceError={sftp.replaceError}
       onTrust={sftp.trustHost}
+      onReplace={sftp.replaceHostKey}
       onOpenSettings={sftp.openSshSettings}
       onCancel={sftp.cancelHostKey}
     />
@@ -59,6 +61,11 @@ export default function SftpPane({ paneId, isActive, paneCount = 1 }: SftpPanePr
               </Button>
             }
           />
+        ) : sftp.hostKeyPrompt?.kind === "changed" ? (
+          <>
+            <p className="text-body font-medium text-danger">Host key changed</p>
+            <p className="text-label text-fg-muted">Verify the server fingerprint</p>
+          </>
         ) : sftp.hostKeyPrompt ? (
           <>
             <p className="text-body font-medium text-warning">Unknown host</p>
