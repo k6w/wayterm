@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { act, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { invoke } from "@tauri-apps/api/core";
 import AppearancePanel from "./AppearancePanel";
@@ -196,10 +196,20 @@ describe("AppearancePanel blur intensity", () => {
     vi.mocked(invoke).mockClear();
     const slider = screen.getByRole("slider", { name: "Blur intensity" });
     slider.focus();
-    await user.keyboard("{ArrowLeft}{ArrowLeft}{ArrowLeft}{ArrowLeft}");
-    expect(appearance().blurIntensity).toBeCloseTo(0.8);
-    expect(blurWrites()).toHaveLength(0);
-    await waitFor(() => expect(blurWrites()).toHaveLength(1));
-    expect(blurWrites()[0][1]).toEqual({ key: "appearance.blurIntensity", value: 0.8 });
+    // Simulated clock: on slow CI runners real time between key presses can exceed the
+    // debounce, which made this assertion flaky. Only the debounce timer should drive the write.
+    vi.useFakeTimers({ shouldAdvanceTime: false });
+    try {
+      for (let i = 0; i < 4; i++) fireEvent.keyDown(slider, { key: "ArrowLeft" });
+      expect(appearance().blurIntensity).toBeCloseTo(0.8);
+      expect(blurWrites()).toHaveLength(0);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1000);
+      });
+      expect(blurWrites()).toHaveLength(1);
+      expect(blurWrites()[0][1]).toEqual({ key: "appearance.blurIntensity", value: 0.8 });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
