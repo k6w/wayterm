@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback, type CSSProperties } from "react";
+import { Suspense, useEffect, useRef, useState, useCallback, type CSSProperties } from "react";
 import { Terminal } from "@xterm/xterm";
 import { WebglAddon } from "@xterm/addon-webgl";
 import { FitAddon } from "@xterm/addon-fit";
@@ -22,9 +22,12 @@ import {
   sshGetKeyTempPath,
 } from "../../lib/ipc";
 import { getDefaultShell } from "../../lib/shell-detect";
-import HostKeyDialog from "../ssh/HostKeyDialog";
 import { preflightHostKey } from "../ssh/host-key-preflight";
 import { useChangedHostKey } from "../ssh/useChangedHostKey";
+import { lazyWithPreload, useEverTrue } from "../../lib/lazy";
+
+// Only needed when a host key changed: loaded on first use.
+const HostKeyDialog = lazyWithPreload(() => import("../ssh/HostKeyDialog"));
 import { useSshStore } from "../../stores/ssh";
 import { identityFileArgs } from "../ssh/identity-args";
 import {
@@ -250,6 +253,7 @@ export default function TerminalPane({
   // Changed host key, found by the check before `ssh` runs (see preflightHostKey).
   const changedHostKey = useChangedHostKey();
   const askChangedHostKey = changedHostKey.ask;
+  const hostKeyDialogMounted = useEverTrue(changedHostKey.mismatch !== null);
 
   // Feature: Reconnect cooldown / backoff
   const reconnectCountRef = useRef(0);
@@ -1031,6 +1035,8 @@ export default function TerminalPane({
     </div>
     </ContextMenuTrigger>
     {/* Outside the pane wrapper so its mouse handlers do not pull focus back to the terminal. */}
+    {hostKeyDialogMounted && (
+    <Suspense fallback={null}>
     <HostKeyDialog
       prompt={changedHostKey.mismatch ? { kind: "changed", mismatch: changedHostKey.mismatch } : null}
       pending={changedHostKey.replacing}
@@ -1043,6 +1049,8 @@ export default function TerminalPane({
       }}
       onCancel={changedHostKey.cancel}
     />
+    </Suspense>
+    )}
     <PaneContextMenu
       paneId={paneId}
       paneCount={paneCount}
