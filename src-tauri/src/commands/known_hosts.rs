@@ -90,7 +90,21 @@ pub fn classify_server_key(
              The connection was not made.",
             path.display()
         )),
-        HostKeyCheck::Changed(old_keys) => ServerKeyVerdict::Rejected(
+        HostKeyCheck::Changed(old_keys) => {
+            // Bind a later replacement to exactly this presented key and these saved keys.
+            kh::pending::with_pending(|p| {
+                p.record(
+                    host,
+                    port,
+                    kh::pending::PendingChange {
+                        new_key_type: key_type.to_string(),
+                        new_fingerprint: fingerprint.clone(),
+                        old_fingerprints: old_keys.iter().map(|k| k.fingerprint.clone()).collect(),
+                        recorded: std::time::Instant::now(),
+                    },
+                )
+            });
+            ServerKeyVerdict::Rejected(
             HostKeyMismatch {
                 host: host.to_string(),
                 port,
@@ -101,7 +115,8 @@ pub fn classify_server_key(
                 new_key_b64: key_b64.to_string(),
             }
             .to_error(),
-        ),
+        )
+        }
     })
 }
 
@@ -193,16 +208,13 @@ impl russh::client::Handler for ProbeHandler {
     }
 }
 
-/// Checks a server's host key without logging in (used before the terminal runs
-/// `ssh`). Ok("trusted") or Ok("unknown"); a changed key fails with the
-/// "HOST KEY CHANGED" error and its mismatch payload. Network errors fail too.
-#[tauri::command]
-pub async fn ssh_check_host_key(host: String, port: u16) -> Result<String, String> {
+/// Handshake-only probe of host:port (no login).
+async fn probe_host_key(host: &str, port: u16) -> Result<String, String> {
     let verdict = Arc::new(Mutex::new(None));
-    let handler = ProbeHandler { host: host.clone(), port, verdict: Arc::clone(&verdict) };
-    let mut config = client_config_for(&host, port);
+    let handler = ProbeHandler { host: host.to_string(), port, verdict: Arc::clone(&verdict) };
+    let mut config = client_config_for(host, port);
     config.inactivity_timeout = Some(std::time::Duration::from_secs(10));
-    let connect = russh::client::connect(Arc::new(config), (host.as_str(), port), handler);
+    let connect = russh::client::connect(Arc::new(config), (host, port), handler);
     let result = tokio::time::timeout(std::time::Duration::from_secs(10), connect).await;
     let recorded = verdict.lock().unwrap_or_else(|e| e.into_inner()).take();
     if let Ok(Ok(handle)) = &result {
@@ -218,6 +230,25 @@ pub async fn ssh_check_host_key(host: String, port: u16) -> Result<String, Strin
     }
 }
 
+/// Checks a server's host key without logging in, before the terminal runs
+/// `ssh <host>` (with `-p port` when the app passes one). The destination is
+/// resolved with `ssh -G` first so the probe sees what ssh will: see
+/// `known_hosts::resolve`. Ok("trusted"), Ok("unknown"), or Ok("skipped") when
+/// ssh must check the key itself (proxy, HostKeyAlias, other known_hosts file,
+/// or `ssh -G` failed). A changed key fails with the "HOST KEY CHANGED" error
+/// and its mismatch payload, named by the resolved host and port.
+#[tauri::command]
+pub async fn ssh_check_host_key(host: String, port: Option<u16>) -> Result<String, String> {
+    let Ok(resolved) = kh::resolve::resolve_destination(&host, port, None).await else {
+        return Ok("skipped".to_string());
+    };
+    let home = dirs::home_dir().ok_or("Cannot determine home directory")?;
+    match kh::resolve::plan_probe(&resolved, &home) {
+        kh::resolve::ProbePlan::Skip(_) => Ok("skipped".to_string()),
+        kh::resolve::ProbePlan::Probe { host, port } => probe_host_key(&host, port).await,
+    }
+}
+
 /// The audit-log line for a replaced key.
 fn audit_entry(host: &str, port: u16, key_type: &str, replaced: &kh::Replaced, at: &str) -> String {
     let label = if port == 22 { host.to_string() } else { format!("[{host}]:{port}") };
@@ -230,8 +261,32 @@ fn audit_entry(host: &str, port: u16, key_type: &str, replaced: &kh::Replaced, a
     )
 }
 
+/// Replaces a saved key only with the key a server presented in the last 10
+/// minutes (recorded when the change was detected) and only in place of one of
+/// the saved keys it did not match; then `known_hosts::replace_file` checks the
+/// file still holds that old key. The pending change is used up on success.
+#[allow(clippy::too_many_arguments)]
+fn replace_presented_key(
+    store: &Mutex<Option<kh::pending::PendingChanges>>,
+    path: &std::path::Path,
+    host: &str,
+    port: u16,
+    expected_old_fingerprint: &str,
+    new_key_type: &str,
+    new_key_b64: &str,
+    now: std::time::Instant,
+) -> Result<kh::Replaced, String> {
+    let new_fingerprint = kh::fingerprint_sha256(new_key_b64)?;
+    kh::pending::with_store(store, |p| {
+        p.verify(host, port, new_key_type, &new_fingerprint, expected_old_fingerprint, now)
+    })?;
+    let replaced = kh::replace_file(path, host, port, expected_old_fingerprint, new_key_type, new_key_b64)?;
+    kh::pending::with_store(store, |p| p.consume(host, port));
+    Ok(replaced)
+}
+
 /// Replaces this host's saved key with the server's new key, but only if the
-/// saved key still has `expected_old_fingerprint`. See `known_hosts::replace_file`.
+/// saved key still has `expected_old_fingerprint`. See `replace_presented_key`.
 #[tauri::command]
 pub async fn ssh_known_hosts_replace(
     host: String,
@@ -242,7 +297,16 @@ pub async fn ssh_known_hosts_replace(
     pool: State<'_, DbPool>,
 ) -> Result<(), String> {
     let path = known_hosts_path()?;
-    let replaced = kh::replace_file(&path, &host, port, &expected_old_fingerprint, &new_key_type, &new_key_b64)?;
+    let replaced = replace_presented_key(
+        &kh::pending::PENDING_CHANGES,
+        &path,
+        &host,
+        port,
+        &expected_old_fingerprint,
+        &new_key_type,
+        &new_key_b64,
+        std::time::Instant::now(),
+    )?;
     let entry = audit_entry(&host, port, &new_key_type, &replaced, &kh::utc_timestamp());
     // The file is already replaced; a failed audit insert must not report the replacement as failed.
     if let Err(e) = db::history::add(&pool, "known_hosts", &entry, None, Some(&path.display().to_string())) {
@@ -312,60 +376,18 @@ pub async fn ssh_known_hosts_list() -> Result<Vec<KnownHost>, String> {
 
 #[tauri::command]
 pub async fn ssh_known_hosts_remove(hostname: String) -> Result<(), String> {
-    let path = known_hosts_path()?;
-    if !path.exists() {
-        return Ok(());
-    }
-    let content = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
-    let filtered: Vec<&str> = content
-        .lines()
-        .filter(|line| {
-            let trimmed = line.trim();
-            if trimmed.is_empty() || trimmed.starts_with('#') {
-                return true;
-            }
-            let parts: Vec<&str> = trimmed.splitn(4, ' ').collect();
-            if parts.is_empty() {
-                return true;
-            }
-            !parts[0]
-                .split(',')
-                .any(|h| h.trim_matches(|c| c == '[' || c == ']') == hostname || h == hostname)
-        })
-        .collect();
-    std::fs::write(&path, filtered.join("\n") + "\n").map_err(|e| e.to_string())?;
-    Ok(())
+    kh::remove_host_file(&known_hosts_path()?, &hostname)
 }
 
+/// Saves a first-use host key (validated like a replacement, written atomically).
 #[tauri::command]
 pub async fn ssh_known_hosts_add(host: String, port: u16, key_type: String, key_data: String) -> Result<(), String> {
-    let path = known_hosts_path()?;
-    let dir = path.parent().ok_or("Cannot determine .ssh directory")?;
-    std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
-
-    let entry = if port == 22 {
-        format!("{} {} {}\n", host, key_type, key_data)
-    } else {
-        format!("[{}]:{} {} {}\n", host, port, key_type, key_data)
-    };
-
-    use std::io::Write;
-    let mut file = std::fs::OpenOptions::new()
-        .create(true)
-        .append(true)
-        .open(&path)
-        .map_err(|e| e.to_string())?;
-    file.write_all(entry.as_bytes()).map_err(|e| e.to_string())?;
-    Ok(())
+    kh::add_file(&known_hosts_path()?, &host, port, &key_type, &key_data)
 }
 
 #[tauri::command]
 pub async fn ssh_known_hosts_clear() -> Result<(), String> {
-    let path = known_hosts_path()?;
-    if path.exists() {
-        std::fs::write(&path, "").map_err(|e| e.to_string())?;
-    }
-    Ok(())
+    kh::clear_file(&known_hosts_path()?)
 }
 
 #[cfg(test)]
@@ -394,6 +416,100 @@ mod tests {
         assert_eq!(order_key_algorithms(&defaults, &[]), defaults);
     }
 
+    const OLD_B64: &str = "AAAAC3NzaC1lZDI1NTE5AAAAIEBideruyixQqgBBMvV809wd4ptM2LMIU5Uy2rZb3H+h";
+    const OLD_FP: &str = "SHA256:ANn8TSkGESlxtfcNBritd0+eASn7b4Qk2d2wkUd9m+8";
+    const NEW_B64: &str = "AAAAC3NzaC1lZDI1NTE5AAAAICNbsieyVJqvXuKZPxUkHI3LEHkelfGm1+sUEaCQ9gax";
+    const NEW_FP: &str = "SHA256:LBuyLim8IdHpu2wb2n4XlpdeS449E1PMNZHGyxEusKo";
+    const OTHER_B64: &str = "AAAAC3NzaC1lZDI1NTE5AAAAIB/cEu9J5cpAf8zr0Ccw5DShchyD9YGg3vWk+QPhhn/u";
+
+    fn fixture(host: &str) -> (tempfile::TempDir, std::path::PathBuf, String) {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("known_hosts");
+        let content = format!("{host} ssh-ed25519 {OLD_B64}\n");
+        std::fs::write(&path, &content).unwrap();
+        (dir, path, content)
+    }
+
+    type Store = Mutex<Option<kh::pending::PendingChanges>>;
+
+    fn record(store: &Store, host: &str, at: std::time::Instant) {
+        kh::pending::with_store(store, |p| {
+            p.record(
+                host,
+                22,
+                kh::pending::PendingChange {
+                    new_key_type: "ssh-ed25519".into(),
+                    new_fingerprint: NEW_FP.into(),
+                    old_fingerprints: vec![OLD_FP.into()],
+                    recorded: at,
+                },
+            )
+        });
+    }
+
+    #[test]
+    fn replace_needs_a_recorded_change() {
+        let (_dir, path, content) = fixture("unrecorded.example");
+        let store = Store::default();
+        let now = std::time::Instant::now();
+        let err = replace_presented_key(&store, &path, "unrecorded.example", 22, OLD_FP, "ssh-ed25519", NEW_B64, now).unwrap_err();
+        assert!(err.contains("No changed host key"), "{err}");
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), content);
+    }
+
+    #[test]
+    fn replace_refuses_a_key_the_server_did_not_present() {
+        let (_dir, path, content) = fixture("presented.example");
+        let store = Store::default();
+        let now = std::time::Instant::now();
+        record(&store, "presented.example", now);
+        let err = replace_presented_key(&store, &path, "presented.example", 22, OLD_FP, "ssh-ed25519", OTHER_B64, now).unwrap_err();
+        assert!(err.contains("not the key the server presented"), "{err}");
+        let err = replace_presented_key(&store, &path, "presented.example", 22, NEW_FP, "ssh-ed25519", NEW_B64, now).unwrap_err();
+        assert!(err.contains("not one of the saved keys"), "{err}");
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), content);
+    }
+
+    #[test]
+    fn replace_refuses_an_expired_change() {
+        let (_dir, path, content) = fixture("expired.example");
+        let store = Store::default();
+        let then = std::time::Instant::now();
+        record(&store, "expired.example", then);
+        let later = then + kh::pending::PENDING_TTL;
+        assert!(replace_presented_key(&store, &path, "expired.example", 22, OLD_FP, "ssh-ed25519", NEW_B64, later).is_err());
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), content);
+    }
+
+    #[test]
+    fn replace_consumes_the_change_on_success() {
+        let (_dir, path, _content) = fixture("consumed.example");
+        let store = Store::default();
+        let now = std::time::Instant::now();
+        record(&store, "consumed.example", now);
+        replace_presented_key(&store, &path, "consumed.example", 22, OLD_FP, "ssh-ed25519", NEW_B64, now).unwrap();
+        assert_eq!(
+            std::fs::read_to_string(&path).unwrap(),
+            format!("consumed.example ssh-ed25519 {NEW_B64}\n")
+        );
+        // A second use of the same confirmation is refused.
+        let err = replace_presented_key(&store, &path, "consumed.example", 22, OLD_FP, "ssh-ed25519", NEW_B64, now).unwrap_err();
+        assert!(err.contains("No changed host key"), "{err}");
+    }
+
+    #[test]
+    fn a_failed_replace_keeps_the_change_for_a_retry() {
+        let (_dir, path, _content) = fixture("retry.example");
+        let store = Store::default();
+        let now = std::time::Instant::now();
+        record(&store, "retry.example", now);
+        // The file no longer holds the old key: refused, but the change stays pending.
+        std::fs::write(&path, format!("retry.example ssh-ed25519 {OTHER_B64}\n")).unwrap();
+        assert!(replace_presented_key(&store, &path, "retry.example", 22, OLD_FP, "ssh-ed25519", NEW_B64, now).is_err());
+        std::fs::write(&path, format!("retry.example ssh-ed25519 {OLD_B64}\n")).unwrap();
+        assert!(replace_presented_key(&store, &path, "retry.example", 22, OLD_FP, "ssh-ed25519", NEW_B64, now).is_ok());
+    }
+
     #[test]
     fn audit_entry_names_host_and_both_fingerprints() {
         let replaced = kh::Replaced {
@@ -401,6 +517,7 @@ mod tests {
             replaced_lines: vec![4],
             old_fingerprint: "SHA256:old".into(),
             new_fingerprint: "SHA256:new".into(),
+            hashed: false,
         };
         assert_eq!(
             audit_entry("example.com", 2222, "ssh-ed25519", &replaced, "2026-10-09T12:00:00Z"),

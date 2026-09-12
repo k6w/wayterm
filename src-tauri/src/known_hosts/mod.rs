@@ -23,6 +23,9 @@ pub const MISMATCH_MARKER: &str = "\nnexterm-host-key-mismatch:";
 /// Name of the single backup written next to known_hosts before a replacement.
 const BACKUP_SUFFIX: &str = ".nexterm-bak";
 
+pub mod pending;
+pub mod resolve;
+
 /// Serialises our own writers of known_hosts within this process.
 static WRITE_LOCK: Mutex<()> = Mutex::new(());
 
@@ -83,6 +86,8 @@ pub struct Replaced {
     pub replaced_lines: Vec<usize>,
     pub old_fingerprint: String,
     pub new_fingerprint: String,
+    /// True when a replaced entry was hashed (the new entry is hashed too).
+    pub hashed: bool,
 }
 
 /// OpenSSH SHA256 fingerprint ("SHA256:" + unpadded base64) of a base64 key blob.
@@ -396,11 +401,75 @@ pub fn replace_in_content(
         replaced_lines,
         old_fingerprint: expected_old_fingerprint.to_string(),
         new_fingerprint,
+        hashed: removed_hashed,
     })
 }
 
 // ---------------------------------------------------------------------------
+// Adding and removing (Settings and the trust-on-first-use prompt)
+
+/// Appends `host key_type key` for a first-use trust, after the same checks as a replacement.
+/// Adding a key that is already saved for this host changes nothing.
+pub fn add_in_content(content: &str, host: &str, port: u16, key_type: &str, key_b64: &str) -> Result<String, String> {
+    validate_host(host, port)?;
+    let blob = validate_new_key(key_type, key_b64)?;
+    if is_revoked(content, &blob) {
+        return Err("Refused: this key is marked @revoked in known_hosts".to_string());
+    }
+    if check_host_key(content, host, port, key_type, key_b64) == HostKeyCheck::Trusted {
+        return Ok(content.to_string());
+    }
+    let mut out = content.to_string();
+    if !out.is_empty() && !out.ends_with('\n') {
+        out.push('\n');
+    }
+    out.push_str(&format!("{} {key_type} {key_b64}\n", host_pattern(host, port)));
+    Ok(out)
+}
+
+/// Drops the host-key lines naming `hostname` (the whole hosts field, or one of
+/// its names); comments, marker lines and every other line are kept byte for byte.
+pub fn remove_in_content(content: &str, hostname: &str) -> String {
+    content
+        .split_inclusive('\n')
+        .filter(|line| {
+            let Some(entry) = parse_entry(split_terminator(line).0) else {
+                return true;
+            };
+            if entry.marker.is_some() {
+                return true;
+            }
+            let named = entry.hosts == hostname
+                || entry
+                    .hosts
+                    .split(',')
+                    .any(|h| h == hostname || h.trim_matches(|c| c == '[' || c == ']') == hostname);
+            !named
+        })
+        .collect()
+}
+
+// ---------------------------------------------------------------------------
 // Atomic file write
+
+#[cfg(test)]
+thread_local! {
+    static FAIL_NEXT_RENAME: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+/// Test hook: the next rename on this thread fails.
+#[cfg(test)]
+pub(crate) fn fail_next_rename() {
+    FAIL_NEXT_RENAME.with(|f| f.set(true));
+}
+
+fn rename(from: &Path, to: &Path) -> std::io::Result<()> {
+    #[cfg(test)]
+    if FAIL_NEXT_RENAME.with(|f| f.replace(false)) {
+        return Err(std::io::Error::other("injected rename failure"));
+    }
+    fs::rename(from, to)
+}
 
 /// Removes a temp file unless it was committed by a rename.
 struct TempFile {
@@ -421,8 +490,9 @@ fn temp_path(dir: &Path, name: &str) -> PathBuf {
     dir.join(format!(".{name}.{}-{:016x}.tmp", std::process::id(), rand::thread_rng().next_u64()))
 }
 
-/// Writes `bytes` to a new temp file in `dir` (created 0600, then given `permissions`) and fsyncs it.
-fn write_temp(dir: &Path, name: &str, bytes: &[u8], permissions: fs::Permissions) -> Result<TempFile, String> {
+/// Writes `bytes` to a new temp file in `dir` and fsyncs it. The file is created
+/// 0600 on Unix, then given `permissions` when set.
+fn write_temp(dir: &Path, name: &str, bytes: &[u8], permissions: Option<fs::Permissions>) -> Result<TempFile, String> {
     let path = temp_path(dir, name);
     let mut options = OpenOptions::new();
     options.write(true).create_new(true);
@@ -434,13 +504,20 @@ fn write_temp(dir: &Path, name: &str, bytes: &[u8], permissions: fs::Permissions
     let mut file = options.open(&path).map_err(|e| format!("Cannot create temp file: {e}"))?;
     let temp = TempFile { path, committed: false };
     file.write_all(bytes).map_err(|e| format!("Cannot write temp file: {e}"))?;
-    fs::set_permissions(&temp.path, permissions).map_err(|e| format!("Cannot set permissions: {e}"))?;
+    if let Some(permissions) = permissions {
+        fs::set_permissions(&temp.path, permissions).map_err(|e| format!("Cannot set permissions: {e}"))?;
+    }
     file.sync_all().map_err(|e| format!("Cannot flush temp file: {e}"))?;
     Ok(temp)
 }
 
+/// Renames the temp file over `target`. On failure the temp file is deleted and the target is untouched.
 fn commit(mut temp: TempFile, target: &Path) -> Result<(), String> {
-    fs::rename(&temp.path, target).map_err(|e| format!("Cannot replace {}: {e}", target.display()))?;
+    if let Err(e) = rename(&temp.path, target) {
+        let _ = fs::remove_file(&temp.path);
+        temp.committed = true; // already removed
+        return Err(format!("Cannot replace {}: {e}", target.display()));
+    }
     temp.committed = true;
     #[cfg(unix)]
     if let Some(dir) = target.parent() {
@@ -452,17 +529,17 @@ fn commit(mut temp: TempFile, target: &Path) -> Result<(), String> {
     Ok(())
 }
 
-/// The backup is readable by the owner only (0600 on Unix); elsewhere it copies the original's permissions.
-fn backup_permissions(original: &fs::Permissions) -> fs::Permissions {
+/// The backup is owner-only (0600) on Unix; elsewhere it copies the original's permissions.
+fn backup_permissions(original: Option<&fs::Permissions>) -> Option<fs::Permissions> {
     #[cfg(unix)]
     {
         use std::os::unix::fs::PermissionsExt;
         let _ = original;
-        fs::Permissions::from_mode(0o600)
+        Some(fs::Permissions::from_mode(0o600))
     }
     #[cfg(not(unix))]
     {
-        original.clone()
+        original.cloned()
     }
 }
 
@@ -491,13 +568,82 @@ pub(crate) fn utc_timestamp() -> String {
     )
 }
 
-/// Replaces the key in the known_hosts file at `path` (see [`replace_in_content`]).
+/// What a rewrite produces: the new content, and a backup comment when the old content is to be backed up.
+struct Rewrite<R> {
+    content: String,
+    backup_header: Option<String>,
+    result: R,
+}
+
+/// The one way this app writes known_hosts. Under a process-wide lock it reads
+/// the file (following a symlink to the real file), lets `transform` compute the
+/// new content, optionally saves the old content to `known_hosts.nexterm-bak`
+/// (only the latest backup is kept), writes and fsyncs a temp file with the
+/// original permissions in the same directory, checks the file did not change
+/// meanwhile, and renames the temp file over it.
 ///
-/// The file is rewritten atomically: a temp file with the original permissions
-/// is written and fsynced in the same directory, then renamed over the file.
-/// Before that, the previous content is saved to `known_hosts.nexterm-bak`
-/// (only the latest backup is kept). If the file changes while this runs, the
-/// rename is not done and an error is returned.
+/// A read-only file is refused with an error; its attributes are never changed.
+/// A missing file is created owner-only when `create` is set. The rewritten file
+/// is owned by the user running the app (a rename cannot keep another owner).
+fn rewrite_file<R>(
+    path: &Path,
+    create: bool,
+    transform: impl FnOnce(&str) -> Result<Rewrite<R>, String>,
+    before_commit: impl FnOnce(),
+) -> Result<R, String> {
+    let _guard = WRITE_LOCK.lock().unwrap_or_else(|e| e.into_inner());
+    let exists = fs::symlink_metadata(path).is_ok();
+    let (target, original, permissions) = if exists {
+        let target = fs::canonicalize(path).map_err(|e| format!("Cannot open {}: {e}", path.display()))?;
+        let permissions = fs::metadata(&target).map_err(|e| e.to_string())?.permissions();
+        if permissions.readonly() {
+            return Err(format!("{} is read-only, so nothing was changed.", target.display()));
+        }
+        let original = fs::read(&target).map_err(|e| format!("Cannot read {}: {e}", target.display()))?;
+        (target, Some(original), Some(permissions))
+    } else if create {
+        let dir = path.parent().ok_or("known_hosts has no parent directory")?;
+        fs::create_dir_all(dir).map_err(|e| format!("Cannot create {}: {e}", dir.display()))?;
+        (path.to_path_buf(), None, None)
+    } else {
+        return Err(format!("{} does not exist", path.display()));
+    };
+
+    let content = match &original {
+        Some(bytes) => std::str::from_utf8(bytes).map_err(|_| "known_hosts is not valid UTF-8; nothing was changed".to_string())?,
+        None => "",
+    };
+    let rewrite = transform(content)?;
+    if original.is_some() && rewrite.content == content {
+        return Ok(rewrite.result);
+    }
+
+    let dir = target.parent().ok_or("known_hosts has no parent directory")?;
+    let name = target.file_name().ok_or("known_hosts has no file name")?.to_string_lossy().to_string();
+
+    if let (Some(header), Some(old)) = (&rewrite.backup_header, &original) {
+        let mut backup = format!("{header}\n").into_bytes();
+        backup.extend_from_slice(old);
+        let backup_temp = write_temp(dir, &name, &backup, backup_permissions(permissions.as_ref()))?;
+        commit(backup_temp, &dir.join(format!("{name}{BACKUP_SUFFIX}")))?;
+    }
+
+    let temp = write_temp(dir, &name, rewrite.content.as_bytes(), permissions)?;
+    before_commit();
+    let unchanged = match (&original, fs::read(&target)) {
+        (Some(old), Ok(now)) => *old == now,
+        (None, Err(e)) => e.kind() == std::io::ErrorKind::NotFound,
+        _ => false,
+    };
+    if !unchanged {
+        return Err("known_hosts changed while saving, so nothing was changed. Try again.".to_string());
+    }
+    commit(temp, &target)?;
+    Ok(rewrite.result)
+}
+
+/// Replaces the key in the known_hosts file at `path` (see [`replace_in_content`]
+/// and the write guarantees of `rewrite_file`). The old content is backed up first.
 pub fn replace_file(
     path: &Path,
     host: &str,
@@ -519,36 +665,71 @@ pub(crate) fn replace_file_with_hook(
     new_key_b64: &str,
     before_commit: impl FnOnce(),
 ) -> Result<Replaced, String> {
-    let _guard = WRITE_LOCK.lock().unwrap_or_else(|e| e.into_inner());
-    // Follow a symlinked known_hosts (dotfile managers) and replace the real file.
-    let target = fs::canonicalize(path).map_err(|e| format!("Cannot open {}: {e}", path.display()))?;
-    let original = fs::read(&target).map_err(|e| format!("Cannot read {}: {e}", target.display()))?;
-    let content = std::str::from_utf8(&original).map_err(|_| "known_hosts is not valid UTF-8; nothing was changed".to_string())?;
-    let permissions = fs::metadata(&target).map_err(|e| e.to_string())?.permissions();
-
-    let replaced = replace_in_content(content, host, port, expected_old_fingerprint, new_key_type, new_key_b64)?;
-
-    let dir = target.parent().ok_or("known_hosts has no parent directory")?;
-    let name = target.file_name().ok_or("known_hosts has no file name")?.to_string_lossy().to_string();
-
-    let mut backup = format!(
-        "# nexterm backup of known_hosts taken {} before replacing the key for {}\n",
-        utc_timestamp(),
-        host_pattern(host, port)
-    )
-    .into_bytes();
-    backup.extend_from_slice(&original);
-    let backup_temp = write_temp(dir, &name, &backup, backup_permissions(&permissions))?;
-    commit(backup_temp, &dir.join(format!("{name}{BACKUP_SUFFIX}")))?;
-
-    let temp = write_temp(dir, &name, replaced.content.as_bytes(), permissions)?;
-    before_commit();
-    let current = fs::read(&target).map_err(|e| format!("Cannot re-read {}: {e}", target.display()))?;
-    if current != original {
-        return Err("known_hosts changed while saving, so nothing was replaced. Try again.".to_string());
+    if fs::symlink_metadata(path).is_err() {
+        return Err(format!("{} does not exist", path.display()));
     }
-    commit(temp, &target)?;
-    Ok(replaced)
+    rewrite_file(
+        path,
+        false,
+        |content| {
+            let replaced = replace_in_content(content, host, port, expected_old_fingerprint, new_key_type, new_key_b64)?;
+            // Never write a hashed host name in clear text, not even in a comment.
+            let subject = if replaced.hashed { "a hashed host entry".to_string() } else { host_pattern(host, port) };
+            Ok(Rewrite {
+                content: replaced.content.clone(),
+                backup_header: Some(format!(
+                    "# nexterm backup of known_hosts taken {} before replacing the key for {subject}",
+                    utc_timestamp()
+                )),
+                result: replaced,
+            })
+        },
+        before_commit,
+    )
+}
+
+/// Adds a first-use host key (see [`add_in_content`]); creates the file owner-only if it is missing.
+pub fn add_file(path: &Path, host: &str, port: u16, key_type: &str, key_b64: &str) -> Result<(), String> {
+    rewrite_file(
+        path,
+        true,
+        |content| {
+            Ok(Rewrite { content: add_in_content(content, host, port, key_type, key_b64)?, backup_header: None, result: () })
+        },
+        || {},
+    )
+}
+
+/// Removes a host's lines (see [`remove_in_content`]). A missing file is left alone.
+pub fn remove_host_file(path: &Path, hostname: &str) -> Result<(), String> {
+    if fs::symlink_metadata(path).is_err() {
+        return Ok(());
+    }
+    rewrite_file(
+        path,
+        false,
+        |content| Ok(Rewrite { content: remove_in_content(content, hostname), backup_header: None, result: () }),
+        || {},
+    )
+}
+
+/// Empties known_hosts, keeping the old content in the backup. A missing file is left alone.
+pub fn clear_file(path: &Path) -> Result<(), String> {
+    if fs::symlink_metadata(path).is_err() {
+        return Ok(());
+    }
+    rewrite_file(
+        path,
+        false,
+        |_| {
+            Ok(Rewrite {
+                content: String::new(),
+                backup_header: Some(format!("# nexterm backup of known_hosts taken {} before clearing it", utc_timestamp())),
+                result: (),
+            })
+        },
+        || {},
+    )
 }
 
 #[cfg(test)]

@@ -21,11 +21,13 @@ afterEach(() => {
 });
 
 describe("preflightHostKey", () => {
-  it("goes ahead for a trusted or unknown host without asking", async () => {
+  it("goes ahead for a trusted, unknown or skipped host without asking", async () => {
     const ask = vi.fn();
     vi.mocked(invoke).mockResolvedValueOnce("trusted");
     await expect(preflightHostKey(conn, ask)).resolves.toBe(true);
     vi.mocked(invoke).mockResolvedValueOnce("unknown");
+    await expect(preflightHostKey(conn, ask)).resolves.toBe(true);
+    vi.mocked(invoke).mockResolvedValueOnce("skipped");
     await expect(preflightHostKey(conn, ask)).resolves.toBe(true);
     expect(invoke).toHaveBeenCalledWith("ssh_check_host_key", { host: "example.com", port: 2222 });
     expect(ask).not.toHaveBeenCalled();
@@ -54,9 +56,11 @@ describe("preflightHostKey", () => {
     expect(invoke).not.toHaveBeenCalled();
   });
 
-  it("uses port 22 when the connection has no port", async () => {
-    vi.mocked(invoke).mockResolvedValueOnce("trusted");
+  it("passes a port only when ssh gets -p, so ~/.ssh/config can set it otherwise", async () => {
+    vi.mocked(invoke).mockResolvedValue("trusted");
     await preflightHostKey({ host: "example.com", port: undefined, jumpHostId: null }, vi.fn());
-    expect(invoke).toHaveBeenCalledWith("ssh_check_host_key", { host: "example.com", port: 22 });
+    expect(invoke).toHaveBeenLastCalledWith("ssh_check_host_key", { host: "example.com", port: null });
+    await preflightHostKey({ host: "example.com", port: 22, jumpHostId: null }, vi.fn());
+    expect(invoke).toHaveBeenLastCalledWith("ssh_check_host_key", { host: "example.com", port: null });
   });
 });

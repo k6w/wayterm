@@ -225,10 +225,11 @@ export async function sshKnownHostsReplace(
 }
 
 /**
- * Checks a server's host key without logging in: "trusted" or "unknown".
- * Rejects with the "HOST KEY CHANGED" error for a changed key, and on network errors.
+ * Checks the host key `ssh <host>` (with `-p port` when port is set) would get,
+ * without logging in: "trusted", "unknown", or "skipped" when ssh must check it
+ * itself. Rejects with the "HOST KEY CHANGED" error for a changed key, and on network errors.
  */
-export async function sshCheckHostKey(host: string, port: number): Promise<"trusted" | "unknown"> {
+export async function sshCheckHostKey(host: string, port: number | null): Promise<"trusted" | "unknown" | "skipped"> {
   return invoke("ssh_check_host_key", { host, port });
 }
 

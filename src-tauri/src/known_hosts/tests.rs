@@ -366,6 +366,159 @@ fn replace_file_missing_file_is_an_error() {
     assert!(replace_file(&dir.path().join("known_hosts"), "example.com", 22, OLD_FP, ED, NEW_B64).is_err());
 }
 
+fn dir_names(dir: &Path) -> Vec<String> {
+    let mut names: Vec<String> =
+        std::fs::read_dir(dir).unwrap().map(|e| e.unwrap().file_name().to_string_lossy().to_string()).collect();
+    names.sort();
+    names
+}
+
+#[test]
+fn replace_file_refuses_a_read_only_file() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = write_fixture(dir.path(), PLAIN, 0o444);
+    #[cfg(not(unix))]
+    {
+        let mut p = std::fs::metadata(&path).unwrap().permissions();
+        p.set_readonly(true);
+        std::fs::set_permissions(&path, p).unwrap();
+    }
+    let err = replace_file(&path, "example.com", 22, OLD_FP, ED, NEW_B64).unwrap_err();
+    assert!(err.contains("read-only"), "{err}");
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), PLAIN);
+    assert_eq!(dir_names(dir.path()), vec!["known_hosts"]);
+    assert!(std::fs::metadata(&path).unwrap().permissions().readonly(), "attributes are not changed");
+}
+
+#[test]
+fn a_failed_rename_removes_the_temp_file() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = write_fixture(dir.path(), PLAIN, 0o600);
+    let err = replace_file_with_hook(&path, "example.com", 22, OLD_FP, ED, NEW_B64, fail_next_rename).unwrap_err();
+    assert!(err.contains("Cannot replace"), "{err}");
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), PLAIN);
+    assert!(dir_names(dir.path()).iter().all(|n| !n.ends_with(".tmp")), "{:?}", dir_names(dir.path()));
+}
+
+#[test]
+fn backup_header_does_not_reveal_a_hashed_host() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = write_fixture(dir.path(), HASHED, 0o600);
+    let out = replace_file(&path, "example.com", 22, OLD_FP, ED, NEW_B64).unwrap();
+    assert!(out.hashed);
+    let backup = std::fs::read_to_string(dir.path().join("known_hosts.nexterm-bak")).unwrap();
+    assert!(!backup.contains("example.com"), "{backup}");
+    assert!(backup.lines().next().unwrap().contains("hashed host entry"));
+
+    let dir = tempfile::tempdir().unwrap();
+    let path = write_fixture(dir.path(), PLAIN, 0o600);
+    assert!(!replace_file(&path, "example.com", 22, OLD_FP, ED, NEW_B64).unwrap().hashed);
+    let backup = std::fs::read_to_string(dir.path().join("known_hosts.nexterm-bak")).unwrap();
+    assert!(backup.lines().next().unwrap().contains("example.com"));
+}
+
+// ---------------------------------------------------------------- add / remove / clear
+
+#[test]
+fn add_file_creates_a_missing_file_owner_only() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("ssh").join("known_hosts");
+    add_file(&path, "Example.com", 2222, ED, NEW_B64).unwrap();
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), format!("[example.com]:2222 {ED} {NEW_B64}\n"));
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        assert_eq!(std::fs::metadata(&path).unwrap().permissions().mode() & 0o777, 0o600);
+    }
+}
+
+#[test]
+fn add_file_appends_and_keeps_other_bytes() {
+    let dir = tempfile::tempdir().unwrap();
+    let content = format!("# c\r\nother.org {ED} {OTHER_B64}");
+    let path = write_fixture(dir.path(), &content, 0o600);
+    add_file(&path, "example.com", 22, ED, NEW_B64).unwrap();
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), format!("{content}\nexample.com {ED} {NEW_B64}\n"));
+    // Adding the same key again changes nothing.
+    add_file(&path, "example.com", 22, ED, NEW_B64).unwrap();
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), format!("{content}\nexample.com {ED} {NEW_B64}\n"));
+    assert_eq!(dir_names(dir.path()), vec!["known_hosts"]);
+}
+
+#[test]
+fn add_file_validates_like_replace() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = write_fixture(dir.path(), PLAIN, 0o600);
+    for bad_host in ["", "a b", "a,b", "*.example.com", "!x", "[x]:22", "|1|abc", "x\ny", "@revoked"] {
+        assert!(add_file(&path, bad_host, 22, ED, NEW_B64).is_err(), "{bad_host:?}");
+    }
+    assert!(add_file(&path, "example.com", 0, ED, NEW_B64).is_err());
+    assert!(add_file(&path, "example.com", 22, "ssh-rsa", NEW_B64).is_err());
+    assert!(add_file(&path, "example.com", 22, ED, "%%%").is_err());
+    assert!(add_file(&path, "example.com", 22, ED, &format!("{NEW_B64}\nevil.example {ED} {OTHER_B64}")).is_err());
+    assert!(add_file(&path, "example.com", 22, "ssh-ed25519 x", NEW_B64).is_err());
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), PLAIN);
+}
+
+#[test]
+fn add_file_refuses_a_revoked_key() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = write_fixture(dir.path(), REVOKED_NEW, 0o600);
+    assert!(add_file(&path, "new.example", 22, ED, NEW_B64).unwrap_err().contains("revoked"));
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), REVOKED_NEW);
+}
+
+#[test]
+fn remove_host_file_removes_only_that_hosts_lines() {
+    let dir = tempfile::tempdir().unwrap();
+    let content = format!(
+        "# keep\r\nexample.com {ED} {OLD_B64}\r\n[example.com]:2222 {ED} {OLD_B64}\nother.org {ED} {OTHER_B64}\n@revoked example.com {ED} {NEW_B64}\n"
+    );
+    let path = write_fixture(dir.path(), &content, 0o600);
+    remove_host_file(&path, "example.com").unwrap();
+    assert_eq!(
+        std::fs::read_to_string(&path).unwrap(),
+        format!("# keep\r\n[example.com]:2222 {ED} {OLD_B64}\nother.org {ED} {OTHER_B64}\n@revoked example.com {ED} {NEW_B64}\n")
+    );
+    remove_host_file(&path, "[example.com]:2222").unwrap();
+    assert_eq!(
+        std::fs::read_to_string(&path).unwrap(),
+        format!("# keep\r\nother.org {ED} {OTHER_B64}\n@revoked example.com {ED} {NEW_B64}\n")
+    );
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        assert_eq!(std::fs::metadata(&path).unwrap().permissions().mode() & 0o777, 0o600);
+    }
+}
+
+#[test]
+fn remove_host_file_matches_a_whole_hosts_field() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = write_fixture(dir.path(), MULTI, 0o600);
+    remove_host_file(&path, "example.com,192.0.2.10,alias.example.com").unwrap();
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), format!("other.org {ED} {OTHER_B64}\n"));
+}
+
+#[test]
+fn remove_and_clear_on_a_missing_file_do_nothing() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("known_hosts");
+    remove_host_file(&path, "example.com").unwrap();
+    clear_file(&path).unwrap();
+    assert!(dir_names(dir.path()).is_empty());
+}
+
+#[test]
+fn clear_file_empties_atomically_and_keeps_a_backup() {
+    let dir = tempfile::tempdir().unwrap();
+    let path = write_fixture(dir.path(), PLAIN, 0o600);
+    clear_file(&path).unwrap();
+    assert_eq!(std::fs::read_to_string(&path).unwrap(), "");
+    let backup = std::fs::read_to_string(dir.path().join("known_hosts.nexterm-bak")).unwrap();
+    assert_eq!(backup.split_once('\n').unwrap().1, PLAIN);
+}
+
 // ---------------------------------------------------------------- mismatch payload
 
 #[test]
