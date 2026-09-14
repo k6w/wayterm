@@ -71,6 +71,16 @@ pub async fn terminal_cwd(
     Ok(pty_manager.cwd(&session_id))
 }
 
+/// Whether `path` is an existing directory (a workspace restore checks a saved cwd before spawning in it).
+fn dir_exists(path: &str) -> bool {
+    !path.trim().is_empty() && std::path::Path::new(path).is_dir()
+}
+
+#[tauri::command]
+pub async fn terminal_dir_exists(path: String) -> bool {
+    dir_exists(&path)
+}
+
 #[tauri::command]
 pub async fn terminal_kill(
     session_id: String,
@@ -249,6 +259,19 @@ pub async fn shell_info() -> Result<ShellInfo, String> {
 #[cfg(test)]
 mod shell_tests {
     use super::*;
+
+    #[test]
+    fn dir_exists_only_for_directories() {
+        let dir = std::env::temp_dir();
+        assert!(dir_exists(dir.to_str().unwrap()));
+        assert!(!dir_exists(dir.join("nexterm-no-such-dir-9f3a").to_str().unwrap()));
+        assert!(!dir_exists(""));
+        assert!(!dir_exists("   "));
+        let file = dir.join(format!("nexterm-dir-exists-{}.txt", std::process::id()));
+        std::fs::write(&file, b"x").unwrap();
+        assert!(!dir_exists(file.to_str().unwrap()));
+        std::fs::remove_file(&file).unwrap();
+    }
 
     #[test]
     fn login_shell_prefers_env() {

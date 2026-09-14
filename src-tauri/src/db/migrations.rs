@@ -7,6 +7,7 @@ const MIGRATION_004: &str = include_str!("../../migrations/004_port_forwards.sql
 const MIGRATION_005: &str = include_str!("../../migrations/005_database_connections.sql");
 const MIGRATION_007: &str = include_str!("../../migrations/007_connection_extras.sql");
 const MIGRATION_008: &str = include_str!("../../migrations/008_connection_identity_file.sql");
+const MIGRATION_009: &str = include_str!("../../migrations/009_workspace_last_opened.sql");
 
 pub fn run(pool: &DbPool) -> Result<(), String> {
     let conn = pool.lock();
@@ -75,6 +76,13 @@ pub fn run(pool: &DbPool) -> Result<(), String> {
         conn.execute_batch(MIGRATION_008)
             .map_err(|e| e.to_string())?;
         conn.execute("INSERT INTO schema_version (version) VALUES (8)", [])
+            .map_err(|e| e.to_string())?;
+    }
+
+    if current < 9 {
+        conn.execute_batch(MIGRATION_009)
+            .map_err(|e| e.to_string())?;
+        conn.execute("INSERT INTO schema_version (version) VALUES (9)", [])
             .map_err(|e| e.to_string())?;
     }
 
