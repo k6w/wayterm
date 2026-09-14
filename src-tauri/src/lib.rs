@@ -17,6 +17,27 @@ use tauri::{
 
 
 
+/// macOS gets a monochrome template image (adapts to light/dark menu bars and
+/// the selected state); other platforms keep the colored app icon.
+#[cfg(target_os = "macos")]
+const TRAY_ICON_IS_TEMPLATE: bool = true;
+#[cfg(not(target_os = "macos"))]
+const TRAY_ICON_IS_TEMPLATE: bool = false;
+
+/// The 2x template PNG; macOS downsamples it on non-Retina displays.
+#[cfg(any(target_os = "macos", test))]
+const TRAY_TEMPLATE_PNG: &[u8] = include_bytes!("../icons/tray/trayTemplate@2x.png");
+
+#[cfg(target_os = "macos")]
+fn tray_icon<R: tauri::Runtime>(_app: &tauri::App<R>) -> Option<tauri::image::Image<'static>> {
+    tauri::image::Image::from_bytes(TRAY_TEMPLATE_PNG).ok()
+}
+
+#[cfg(not(target_os = "macos"))]
+fn tray_icon<R: tauri::Runtime>(app: &tauri::App<R>) -> Option<tauri::image::Image<'static>> {
+    app.default_window_icon().cloned()
+}
+
 fn resolve_cli_path(arg: &str, cwd: &str) -> Option<String> {
     let base = std::path::Path::new(cwd);
     let candidate = if std::path::Path::new(arg).is_absolute() {
@@ -105,9 +126,7 @@ pub fn run() {
             let quit_item = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&show_item, &quit_item])?;
 
-            let _tray = TrayIconBuilder::new()
-                .icon(app.default_window_icon().unwrap().clone())
-                .tooltip("Nexterm")
+            let tray_builder = TrayIconBuilder::new().tooltip("Nexterm")
                 .menu(&menu)
                 .show_menu_on_left_click(false)
                 .on_menu_event(|app, event| match event.id.as_ref() {
@@ -125,7 +144,12 @@ pub fn run() {
                         show_window(tray.app_handle());
                     }
                 })
-                .build(app)?;
+                ;
+            let tray_builder = match tray_icon(app) {
+                Some(icon) => tray_builder.icon(icon).icon_as_template(TRAY_ICON_IS_TEMPLATE),
+                None => tray_builder,
+            };
+            let _tray = tray_builder.build(app)?;
 
             Ok(())
         })
@@ -225,4 +249,30 @@ pub fn run() {
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+#[cfg(test)]
+mod tray_icon_tests {
+    use super::*;
+
+    #[test]
+    fn tray_template_is_black_rgba_with_varying_alpha() {
+        let img = tauri::image::Image::from_bytes(TRAY_TEMPLATE_PNG).expect("decodes");
+        assert_eq!((img.width(), img.height()), (36, 36));
+        let px = img.rgba();
+        assert_eq!(px.len(), 36 * 36 * 4);
+        let mut alphas = std::collections::HashSet::new();
+        for p in px.as_chunks::<4>().0 {
+            // Fully transparent pixels may carry any color; only visible ones must be black.
+            if p[3] > 0 {
+                assert_eq!(p[..3], [0, 0, 0], "template pixels must be pure black");
+            }
+            alphas.insert(p[3]);
+        }
+        assert!(alphas.contains(&0) && alphas.contains(&255) && alphas.len() > 2);
+    }
+
+    #[test]
+    fn template_flag_matches_platform() {
+        assert_eq!(TRAY_ICON_IS_TEMPLATE, cfg!(target_os = "macos"));
+    }
 }
