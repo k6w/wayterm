@@ -23,6 +23,12 @@ export interface TerminalPane {
   sshConnectionId?: string;
   sftpConnectionId?: string;
   serialConfig?: SerialConfig;
+  /** Set by a workspace restore: the saved cwd must be checked before the shell starts in it. */
+  checkCwd?: boolean;
+  /** Set by a workspace restore: typed into the pane once it is ready, then cleared. */
+  startupCommands?: string[];
+  /** Short note shown in the pane (e.g. a restored folder that no longer exists). */
+  notice?: string;
 }
 
 export interface SerialConfig {
