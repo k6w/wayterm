@@ -338,3 +338,26 @@ export function materializeSnapshot(snapshot: WorkspaceSnapshot): MaterializedSn
   focusHistory.push(activePaneId);
   return { tabs, panes, activeTabId: tabs[activeIndex].id, activePaneId, focusHistory, idMap };
 }
+
+export interface CwdChecks {
+  dirExists: (path: string) => Promise<boolean>;
+  home: () => Promise<string>;
+}
+
+/** Where a restored local shell starts: its saved folder, or home plus a notice when that folder no longer exists. */
+export async function resolveRestoredCwd(cwd: string, checks: CwdChecks): Promise<{ cwd: string; notice?: string }> {
+  let exists = false;
+  try {
+    exists = await checks.dirExists(cwd);
+  } catch {
+    exists = false;
+  }
+  if (exists) return { cwd };
+  let home = "";
+  try {
+    home = await checks.home();
+  } catch {
+    home = "";
+  }
+  return { cwd: home, notice: `${cwd} no longer exists. Started in your home folder.` };
+}

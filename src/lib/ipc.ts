@@ -37,6 +37,11 @@ export async function terminalCwd(sessionId: string): Promise<string | null> {
   return invoke("terminal_cwd", { sessionId });
 }
 
+/** Whether `path` is an existing directory. */
+export async function terminalDirExists(path: string): Promise<boolean> {
+  return invoke("terminal_dir_exists", { path });
+}
+
 export async function setVibrancy(
   enabled: boolean,
   r = 0,

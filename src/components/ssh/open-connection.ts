@@ -13,10 +13,14 @@ export function openSavedConnection(conn: SshConnection): void {
   if (newTab) renameTab(newTab.id, conn.name);
 }
 
-function adHocConnection(fields: Pick<SshConnection, "name" | "host" | "port" | "username">): SshConnection {
+/** An in-memory connection (no saved record) for a quick-connect target or ssh config alias. */
+export function adHocConnection(
+  fields: Pick<SshConnection, "name" | "host" | "port" | "username">,
+  id: string = crypto.randomUUID()
+): SshConnection {
   const now = new Date().toISOString();
   return {
-    id: crypto.randomUUID(),
+    id,
     ...fields,
     // ssh asks for a password or passphrase itself in the terminal.
     authMethod: "password",

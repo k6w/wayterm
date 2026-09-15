@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { SplitNode, TerminalPane, TerminalTab } from "../types/terminal";
 import type { SshConnection } from "../types/ssh";
 import type { WorkspaceSnapshot } from "../types/workspace";
@@ -8,6 +8,7 @@ import {
   materializeSnapshot,
   mergeStartupCommands,
   parseWorkspaceLayout,
+  resolveRestoredCwd,
   setSnapshotStartupCommands,
   snapshotPanes,
   stripPaneIds,
@@ -420,5 +421,23 @@ describe("snapshot helpers", () => {
     expect(snapshotPanes(next)[0].startupCommands).toEqual(["make"]);
     expect(snapshotPanes(next)[1].startupCommands).toEqual([]);
     expect(snapshotPanes(snap)[0].startupCommands).toEqual([]);
+  });
+});
+
+describe("resolveRestoredCwd", () => {
+  it("keeps a saved folder that still exists", async () => {
+    const dirExists = vi.fn(async () => true);
+    expect(await resolveRestoredCwd("/Users/me/repo", { dirExists, home: async () => "/Users/me" })).toEqual({ cwd: "/Users/me/repo" });
+    expect(dirExists).toHaveBeenCalledWith("/Users/me/repo");
+  });
+
+  it("falls back to home with a notice when the folder is gone", async () => {
+    const result = await resolveRestoredCwd("/Users/me/deleted", { dirExists: async () => false, home: async () => "/Users/me" });
+    expect(result).toEqual({ cwd: "/Users/me", notice: "/Users/me/deleted no longer exists. Started in your home folder." });
+  });
+
+  it("falls back to the shell default when home is unknown, and when the check itself fails", async () => {
+    expect(await resolveRestoredCwd("/gone", { dirExists: async () => false, home: async () => { throw new Error("x"); } })).toMatchObject({ cwd: "" });
+    expect(await resolveRestoredCwd("/gone", { dirExists: async () => { throw new Error("x"); }, home: async () => "/h" })).toMatchObject({ cwd: "/h" });
   });
 });
