@@ -341,7 +341,7 @@ export function materializeSnapshot(snapshot: WorkspaceSnapshot): MaterializedSn
 
 export interface CwdChecks {
   dirExists: (path: string) => Promise<boolean>;
-  home: () => Promise<string>;
+  home: () => Promise<string | null>;
 }
 
 /** Where a restored local shell starts: its saved folder, or home plus a notice when that folder no longer exists. */
@@ -355,7 +355,7 @@ export async function resolveRestoredCwd(cwd: string, checks: CwdChecks): Promis
   if (exists) return { cwd };
   let home = "";
   try {
-    home = await checks.home();
+    home = (await checks.home()) ?? "";
   } catch {
     home = "";
   }

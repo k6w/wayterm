@@ -20,7 +20,12 @@ import {
   onTerminalOutput,
   onTerminalExit,
   sshGetKeyTempPath,
+  terminalDirExists,
+  getHomeDir,
 } from "../../lib/ipc";
+import { createStartupRunner, type StartupRunner } from "../../lib/startup-commands";
+import { resolveRestoredCwd } from "../../lib/workspace-snapshot";
+import PaneNotice from "./PaneNotice";
 import { getDefaultShell } from "../../lib/shell-detect";
 import { preflightHostKey } from "../ssh/host-key-preflight";
 import { useChangedHostKey } from "../ssh/useChangedHostKey";
@@ -295,6 +300,7 @@ export default function TerminalPane({
     let resizeObs: ResizeObserver | null = null;
     let cancelled = false;
     const sshTimers: ReturnType<typeof setTimeout>[] = [];
+    let startupRunner: StartupRunner | null = null;
 
     const cached = getCachedTerminal(paneId);
 
@@ -487,10 +493,19 @@ export default function TerminalPane({
           return;
         }
 
+        // A restored workspace saved this folder: start there only if it still exists.
+        let spawnCwd = existingPane?.cwd || "";
+        if (existingPane?.checkCwd && spawnCwd && !isSsh) {
+          const resolved = await resolveRestoredCwd(spawnCwd, { dirExists: terminalDirExists, home: getHomeDir });
+          if (cancelled) return;
+          spawnCwd = resolved.cwd;
+          useTerminalStore.getState().updatePane(paneId, { checkCwd: undefined, cwd: resolved.cwd, notice: resolved.notice });
+        }
+
         const sessionId = await terminalSpawn({
           shell: spawnShell,
           args: spawnArgs,
-          cwd: existingPane?.cwd || "",
+          cwd: spawnCwd,
           env: spawnEnv,
           rows: term.rows,
           cols: term.cols,
@@ -505,6 +520,19 @@ export default function TerminalPane({
 
         sessionRef.current = sessionId;
         useTerminalStore.getState().updatePaneSession(paneId, sessionId);
+
+        // Startup commands from a restored workspace run once, when the shell (or SSH session) is ready.
+        const startupCommands = existingPane?.startupCommands;
+        if (startupCommands?.length) {
+          useTerminalStore.getState().updatePane(paneId, { startupCommands: undefined });
+          startupRunner = createStartupRunner({
+            commands: startupCommands,
+            ssh: isSsh,
+            send: (text) => {
+              terminalWrite(sessionId, Array.from(new TextEncoder().encode(text))).catch(() => {});
+            },
+          });
+        }
 
         
         
@@ -529,6 +557,9 @@ export default function TerminalPane({
             // Feature: Session logging — capture output
             if (isLoggingRef.current) {
               logBufferRef.current.push(new Uint8Array(data));
+            }
+            if (startupRunner && !startupRunner.done) {
+              startupRunner.output(new TextDecoder().decode(new Uint8Array(data)));
             }
 
             if (sshPhase === "done") {
@@ -556,6 +587,7 @@ export default function TerminalPane({
               sshBuffer.length = 0;
               sshPhase = "done";
               setSshOverlay(false);
+              startupRunner?.authPrompt();
               return;
             }
 
@@ -585,6 +617,7 @@ export default function TerminalPane({
                     term.write("\x1b[A\x1b[M");
                     sshPhase = "done";
                     setSshOverlay(false);
+                    startupRunner?.connected();
                   }, 350)
                 );
               }, 400)
@@ -595,6 +628,7 @@ export default function TerminalPane({
         const unlistenExit = await onTerminalExit(sessionId, () => {
           sshTimers.forEach((t) => clearTimeout(t));
           sshTimers.length = 0;
+          startupRunner?.dispose();
           if (sshPhase !== "done") {
             sshPhase = "done";
             setSshOverlay(false);
@@ -608,6 +642,7 @@ export default function TerminalPane({
         });
 
         term.onData((data: string) => {
+          startupRunner?.input();
           const bytes = Array.from(new TextEncoder().encode(data));
           const c = getCachedTerminal(paneId);
           if (c?.sessionId) {
@@ -728,6 +763,7 @@ export default function TerminalPane({
       cancelled = true;
       sshTimers.forEach((t) => clearTimeout(t));
       sshTimers.length = 0;
+      startupRunner?.dispose();
       if (resizeObs) resizeObs.disconnect();
 
       const paneStillExists =
@@ -949,6 +985,8 @@ export default function TerminalPane({
         className={`h-full w-full bg-(--nx-dyn-bg) pr-1 pl-1.5 ${showCloseBtn ? "pt-7" : "pt-1.5"}`}
         style={{ "--nx-dyn-bg": terminalTint } as CSSProperties}
       />
+
+      <PaneNotice paneId={paneId} />
 
       {sshOverlay && (
         <div

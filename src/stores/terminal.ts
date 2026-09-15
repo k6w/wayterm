@@ -50,6 +50,8 @@ interface TerminalState {
   setActivePane: (paneId: string) => void;
   updatePaneSession: (paneId: string, sessionId: string) => void;
   updatePaneCwd: (paneId: string, cwd: string) => void;
+  /** Merges a patch into an existing pane; a key set to undefined is removed. No-op for a pane that is gone. */
+  updatePane: (paneId: string, patch: Partial<TerminalPane>) => void;
 
   splitPane: (
     paneId: string,
@@ -268,6 +270,18 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
           : state.panes[paneId],
       },
     }));
+  },
+
+  updatePane: (paneId, patch) => {
+    set((state) => {
+      const current = state.panes[paneId];
+      if (!current) return state;
+      const next: TerminalPane = { ...current, ...patch };
+      for (const key of Object.keys(patch) as (keyof TerminalPane)[]) {
+        if (patch[key] === undefined) delete next[key];
+      }
+      return { panes: { ...state.panes, [paneId]: next } };
+    });
   },
 
   splitPane: (paneId, direction, newPane) => {
