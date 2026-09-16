@@ -361,3 +361,37 @@ export async function resolveRestoredCwd(cwd: string, checks: CwdChecks): Promis
   }
   return { cwd: home, notice: `${cwd} no longer exists. Started in your home folder.` };
 }
+
+export interface StartupTarget {
+  /** Position of the pane in `snapshotPanes` order (what `setSnapshotStartupCommands` expects). */
+  index: number;
+  tabIndex: number;
+  tab: string;
+  /** 1-based position of the pane within its tab. */
+  number: number;
+  description: string;
+  commands: string[];
+}
+
+/** The panes that take startup commands (shells and SSH sessions), described for the editing dialog. */
+export function describeStartupTargets(snapshot: WorkspaceSnapshot): StartupTarget[] {
+  const targets: StartupTarget[] = [];
+  let index = 0;
+  snapshot.tabs.forEach((tab, tabIndex) => {
+    nodePanes(tab.layout).forEach((pane, i) => {
+      if (pane.kind === "local" || pane.kind === "ssh") {
+        const description =
+          pane.kind === "ssh"
+            ? pane.sshQuick
+              ? `SSH ${pane.sshQuick.name}`
+              : "SSH"
+            : pane.cwd
+              ? `${pane.shellType} in ${pane.cwd}`
+              : pane.shellType;
+        targets.push({ index: index + i, tabIndex, tab: tab.title, number: i + 1, description, commands: pane.startupCommands });
+      }
+    });
+    index += nodePanes(tab.layout).length;
+  });
+  return targets;
+}

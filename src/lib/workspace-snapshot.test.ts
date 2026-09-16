@@ -5,6 +5,7 @@ import type { WorkspaceSnapshot } from "../types/workspace";
 import {
   buildSnapshot,
   countSnapshot,
+  describeStartupTargets,
   materializeSnapshot,
   mergeStartupCommands,
   parseWorkspaceLayout,
@@ -439,5 +440,17 @@ describe("resolveRestoredCwd", () => {
   it("falls back to the shell default when home is unknown, and when the check itself fails", async () => {
     expect(await resolveRestoredCwd("/gone", { dirExists: async () => false, home: async () => { throw new Error("x"); } })).toMatchObject({ cwd: "" });
     expect(await resolveRestoredCwd("/gone", { dirExists: async () => { throw new Error("x"); }, home: async () => "/h" })).toMatchObject({ cwd: "/h" });
+  });
+});
+
+describe("describeStartupTargets", () => {
+  it("lists the panes that can run startup commands, grouped by tab, with their global index", () => {
+    const snap = setSnapshotStartupCommands(buildSnapshot(source()), [["make"], [], [], [], ["uptime"]]);
+    const targets = describeStartupTargets(snap);
+    expect(targets).toEqual([
+      { index: 0, tabIndex: 0, tab: "Dev", number: 1, description: "zsh in /Users/me/repo", commands: ["make"] },
+      { index: 1, tabIndex: 0, tab: "Dev", number: 2, description: "SSH", commands: [] },
+      { index: 4, tabIndex: 2, tab: "scratch", number: 1, description: "SSH me@box:2222", commands: ["uptime"] },
+    ]);
   });
 });
