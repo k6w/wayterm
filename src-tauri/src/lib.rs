@@ -35,7 +35,8 @@ fn tray_icon<R: tauri::Runtime>(_app: &tauri::App<R>) -> Option<tauri::image::Im
 
 #[cfg(not(target_os = "macos"))]
 fn tray_icon<R: tauri::Runtime>(app: &tauri::App<R>) -> Option<tauri::image::Image<'static>> {
-    app.default_window_icon().cloned()
+    // The window icon borrows from the app; the tray needs an owned copy.
+    app.default_window_icon().cloned().map(tauri::image::Image::to_owned)
 }
 
 fn resolve_cli_path(arg: &str, cwd: &str) -> Option<String> {
