@@ -111,6 +111,14 @@ const STRICT_PATHS = [
   "src/components/ssh/SshConfigImportDialog.tsx",
   "src/components/ssh/useChangedHostKey.ts",
   "src/components/ssh/host-key-preflight.ts",
+  "src/lib/workspace-snapshot.ts",
+  "src/lib/startup-commands.ts",
+  "src/types/workspace.ts",
+  "src/stores/workspace.ts",
+  "src/components/sidebar/StartupCommandsDialog.tsx",
+  "src/components/sidebar/SaveWorkspaceDialog.tsx",
+  "src/components/sidebar/save-workspace.ts",
+  "src/components/terminal/PaneNotice.tsx",
 ];
 
 const file = "eslint-suppressions.json";

@@ -23,6 +23,7 @@ import { useSshStore } from "../stores/ssh";
 import { useSftpStore } from "../stores/sftp";
 import { useSidebarStore, SIDEBAR_MAX_WIDTH, SIDEBAR_MIN_WIDTH } from "../stores/sidebar";
 import { useWorkspaceStore } from "../stores/workspace";
+import SaveWorkspaceDialog from "../components/sidebar/SaveWorkspaceDialog";
 import { onSftpTransferProgress, setTrafficLightScale } from "../lib/ipc";
 import { getPreferredShell } from "../lib/shell-detect";
 import { isMac } from "../lib/platform";
@@ -249,6 +250,7 @@ function AppContent() {
         </Suspense>
       )}
       <Scratchpad />
+      <SaveWorkspaceDialog />
       <Toaster />
     </div>
   );

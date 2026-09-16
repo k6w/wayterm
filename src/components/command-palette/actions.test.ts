@@ -3,6 +3,8 @@ import { buildPaletteActions, historyActions } from "./actions";
 import { useSettingsStore } from "../../stores/settings";
 import { useTerminalStore } from "../../stores/terminal";
 import { OPEN_SSH_CONFIG_IMPORT } from "../ssh/ssh-config-import";
+import { useWorkspaceStore } from "../../stores/workspace";
+import { OPEN_SAVE_WORKSPACE } from "../sidebar/save-workspace";
 import { writeToTerminal } from "../../lib/terminal-registry";
 
 vi.mock("../../lib/terminal-registry", () => ({
@@ -70,6 +72,48 @@ describe("buildPaletteActions", () => {
     window.addEventListener("nexterm:open-serial", listener);
     buildPaletteActions().find((a) => a.id === "new-serial-tab")?.handler();
     window.removeEventListener("nexterm:open-serial", listener);
+    expect(listener).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("workspace actions", () => {
+  const meta = (id: string, name: string, layout = "{}") => ({ id, name, icon: null, isDefault: false, updatedAt: "", layout });
+  const restore = vi.fn(() => true);
+
+  beforeEach(() => {
+    restore.mockClear();
+    useTerminalStore.setState({ tabs: [] });
+    useWorkspaceStore.setState({
+      workspaces: [meta("__session__", "__session__"), meta("w1", "Backend"), meta("w2", "Ops")],
+      restore,
+    });
+  });
+
+  it("lists one Open workspace entry per saved workspace, without the auto-saved session", () => {
+    const entries = buildPaletteActions().filter((a) => a.category === "Workspaces" && a.id.startsWith("open-workspace-"));
+    expect(entries.map((a) => a.label)).toEqual(["Open workspace: Backend", "Open workspace: Ops"]);
+  });
+
+  it("opens in place of the current tabs when none are open", () => {
+    buildPaletteActions().find((a) => a.id === "open-workspace-w1")?.handler();
+    expect(restore).toHaveBeenCalledWith("w1", "replace");
+  });
+
+  it("adds to the current tabs instead of closing them when some are open", () => {
+    useTerminalStore.setState({ tabs: [{ id: "t", title: "T", icon: "terminal", shellType: "zsh", panes: { type: "pane", paneId: "p" }, isActive: true }] });
+    const entry = buildPaletteActions().find((a) => a.id === "open-workspace-w2");
+    expect(entry?.detail).toBe("Adds to current tabs");
+    entry?.handler();
+    expect(restore).toHaveBeenCalledWith("w2", "add");
+  });
+
+  it("offers saving the current layout, which opens the name dialog through its window event", () => {
+    const listener = vi.fn();
+    window.addEventListener(OPEN_SAVE_WORKSPACE, listener);
+    const action = buildPaletteActions().find((a) => a.id === "save-workspace");
+    expect(action).toMatchObject({ label: "Save current layout as workspace…", category: "Workspaces" });
+    action?.handler();
+    window.removeEventListener(OPEN_SAVE_WORKSPACE, listener);
     expect(listener).toHaveBeenCalledTimes(1);
   });
 });

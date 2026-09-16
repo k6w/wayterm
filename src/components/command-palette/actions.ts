@@ -2,10 +2,13 @@ import { Icons, type IconComponent } from "../../ui/icons";
 import { useTerminalStore } from "../../stores/terminal";
 import { useSettingsStore } from "../../stores/settings";
 import { useSshStore } from "../../stores/ssh";
+import { useWorkspaceStore } from "../../stores/workspace";
+import { openSaveWorkspace } from "../sidebar/save-workspace";
 import { getEffectiveKeybindings } from "../../lib/keybindings";
 import { getDefaultShells } from "../../lib/shell-detect";
 import { clearBuffer, getCachedTerminal, resetTerminal, writeToTerminal } from "../../lib/terminal-registry";
 import { resolveSnippetVars } from "../../lib/snippet-utils";
+import { toast } from "../../stores/toast";
 import { openSshConfigImport } from "../ssh/ssh-config-import";
 import type { Snippet } from "../../types/settings";
 
@@ -187,6 +190,31 @@ export function buildPaletteActions(): PaletteAction[] {
       },
     }
   );
+
+  const hasTabs = useTerminalStore.getState().tabs.length > 0;
+  for (const ws of useWorkspaceStore.getState().workspaces) {
+    if (ws.id === "__session__") continue;
+    actions.push({
+      id: `open-workspace-${ws.id}`,
+      label: `Open workspace: ${ws.name}`,
+      // Nothing to choose between in a palette: never close tabs that are open.
+      detail: hasTabs ? "Adds to current tabs" : undefined,
+      icon: Icons.workspace,
+      category: "Workspaces",
+      handler: () => {
+        if (!useWorkspaceStore.getState().restore(ws.id, hasTabs ? "add" : "replace")) {
+          toast.error(`Could not open "${ws.name}": its saved layout is unreadable.`);
+        }
+      },
+    });
+  }
+  actions.push({
+    id: "save-workspace",
+    label: "Save current layout as workspace…",
+    icon: Icons.save,
+    category: "Workspaces",
+    handler: openSaveWorkspace,
+  });
 
   for (const snippet of useSettingsStore.getState().settings.snippets ?? []) {
     actions.push({
