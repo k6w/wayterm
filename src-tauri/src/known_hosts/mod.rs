@@ -12,7 +12,7 @@ use hmac::{Hmac, Mac};
 use serde::Serialize;
 use sha1::Sha1;
 use sha2::{Digest, Sha256};
-use std::fs::{self, File, OpenOptions};
+use std::fs::{self, OpenOptions};
 use std::io::Write;
 use std::path::{Path, PathBuf};
 use std::sync::Mutex;
@@ -522,7 +522,7 @@ fn commit(mut temp: TempFile, target: &Path) -> Result<(), String> {
     #[cfg(unix)]
     if let Some(dir) = target.parent() {
         // Make the rename itself durable.
-        if let Ok(d) = File::open(dir) {
+        if let Ok(d) = fs::File::open(dir) {
             let _ = d.sync_all();
         }
     }

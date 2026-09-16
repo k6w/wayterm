@@ -26,7 +26,7 @@ pub async fn terminal_spawn(
 ) -> Result<String, String> {
     let session_id = Uuid::new_v4().to_string();
     let shell = if request.shell.trim().is_empty() {
-        select_login_shell(std::env::var("SHELL").ok().as_deref(), cfg!(target_os = "macos"))
+        default_shell()
     } else {
         request.shell.clone()
     };
@@ -208,7 +208,23 @@ pub async fn terminal_log_write(session_id: String, data: Vec<u8>) -> Result<(),
     Ok(())
 }
 
+/// Shell used when the request names none.
+#[cfg(not(target_os = "windows"))]
+fn default_shell() -> String {
+    select_login_shell(std::env::var("SHELL").ok().as_deref(), cfg!(target_os = "macos"))
+}
+
+/// Windows has no `$SHELL`; use the shell the system names, else PowerShell.
+#[cfg(target_os = "windows")]
+fn default_shell() -> String {
+    std::env::var("COMSPEC")
+        .ok()
+        .filter(|s| !s.trim().is_empty())
+        .unwrap_or_else(|| "powershell.exe".to_string())
+}
+
 /// Pick the user's login shell: `$SHELL` when set, else the platform default.
+#[cfg(any(unix, test))]
 pub(crate) fn select_login_shell(env_shell: Option<&str>, is_macos: bool) -> String {
     match env_shell.map(str::trim) {
         Some(s) if !s.is_empty() => s.to_string(),
@@ -218,6 +234,7 @@ pub(crate) fn select_login_shell(env_shell: Option<&str>, is_macos: bool) -> Str
 }
 
 /// Parse /etc/shells content: absolute paths only, comments and blanks skipped, deduplicated in order.
+#[cfg(any(unix, test))]
 pub(crate) fn parse_etc_shells(content: &str) -> Vec<String> {
     let mut out: Vec<String> = Vec::new();
     for line in content.lines() {
