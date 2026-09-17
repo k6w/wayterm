@@ -1,0 +1,14 @@
+# Files whose bytes matter must not get CRLF on Windows checkouts.
+
+# known_hosts fixtures: tests assert byte-exact output.
+src-tauri/src/known_hosts/fixtures/** text eol=lf
+
+# Shell scripts run by bash/zsh/fish; CRLF breaks them.
+*.sh text eol=lf
+*.bash text eol=lf
+*.zsh text eol=lf
+*.fish text eol=lf
+src-tauri/src/shell_integration/** text eol=lf
+
+# Recorded terminal output (escape sequences): compare raw bytes.
+src/lib/blocks/__fixtures__/** -text
