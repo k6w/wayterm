@@ -16,6 +16,9 @@ pub struct SpawnRequest {
     pub env: Vec<(String, String)>,
     pub rows: u16,
     pub cols: u16,
+    /// Start a local shell with the title/cwd integration (false for ssh and the scratchpad).
+    #[serde(default)]
+    pub shell_integration: bool,
 }
 
 #[tauri::command]
@@ -30,12 +33,15 @@ pub async fn terminal_spawn(
     } else {
         request.shell.clone()
     };
+    let plan = crate::shell_integration::plan(&shell, request.shell_integration);
+    let args: Vec<String> = plan.args.into_iter().chain(request.args).collect();
+    let env: Vec<(String, String)> = request.env.into_iter().chain(plan.env).collect();
     pty_manager.spawn(
         session_id.clone(),
         &shell,
-        &request.args,
+        &args,
         &request.cwd,
-        &request.env,
+        &env,
         request.rows,
         request.cols,
         app,

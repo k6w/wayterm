@@ -4,6 +4,7 @@ mod db;
 mod known_hosts;
 mod pty;
 mod port_forward;
+mod shell_integration;
 mod sftp;
 mod ssh_config;
 mod theme;

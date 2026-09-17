@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { invoke } from "@tauri-apps/api/core";
-import { sshListConnections, sshSaveConnection } from "./ipc";
+import { sshListConnections, sshSaveConnection, terminalSpawn } from "./ipc";
 
 beforeEach(() => {
   vi.mocked(invoke).mockReset();
@@ -30,5 +30,18 @@ describe("ssh connection envVars wire format", () => {
     ]);
     const list = (await sshListConnections()) as { id: string; envVars: unknown }[];
     expect(list.map((c) => c.envVars)).toEqual([{ LANG: "C" }, {}, {}]);
+  });
+});
+
+describe("terminalSpawn wire format", () => {
+  it("passes shellIntegration through and defaults it to false", async () => {
+    vi.mocked(invoke).mockResolvedValue("sid");
+    const base = { shell: "/bin/zsh", args: [], cwd: "", env: [] as [string, string][], rows: 24, cols: 80 };
+    await terminalSpawn({ ...base, shellIntegration: true });
+    await terminalSpawn(base);
+    const calls = vi.mocked(invoke).mock.calls as [string, { request: { shellIntegration: boolean } }][];
+    expect(calls[0][0]).toBe("terminal_spawn");
+    expect(calls[0][1].request.shellIntegration).toBe(true);
+    expect(calls[1][1].request.shellIntegration).toBe(false);
   });
 });

@@ -93,72 +93,6 @@ function hasVisibleContent(data: number[]): boolean {
 }
 
 
-function getShellIntegration(shellPath: string): {
-  args: string[];
-  env: [string, string][];
-} {
-  const lower = shellPath.toLowerCase();
-
-  if (lower.includes("pwsh") || lower.includes("powershell")) {
-    return {
-      args: [
-        "-NoLogo",
-        "-NoExit",
-        "-Command",
-        "function global:prompt { $Host.UI.RawUI.WindowTitle = $PWD.Path; 'PS ' + $PWD.Path + '> ' }",
-      ],
-      env: [],
-    };
-  }
-
-  if (lower.includes("bash")) {
-    return {
-      args: [],
-      env: [
-        [
-          "PROMPT_COMMAND",
-          'printf "\\033]0;%s\\007" "$PWD"',
-        ],
-      ],
-    };
-  }
-
-  if (lower.includes("zsh")) {
-    return {
-      args: [],
-      env: [
-        ["NEXTERM_ZSH_INTEGRATION", "1"],
-        [
-          "PROMPT_COMMAND",
-          'printf "\\033]0;%s\\007" "$PWD"',
-        ],
-      ],
-    };
-  }
-
-  if (lower.includes("fish")) {
-    return {
-      args: [
-        "-C",
-        "function fish_title; echo $PWD; end",
-      ],
-      env: [],
-    };
-  }
-
-  
-  
-  if (lower.includes("cmd")) {
-    return {
-      args: ["/K", "prompt $e]0;$p$e\\$p$g"],
-      env: [],
-    };
-  }
-
-  return { args: [], env: [] };
-}
-
-
 export class SshConnectionNotFoundError extends Error {
   constructor(connectionId: string) {
     super(`SSH connection with ID "${connectionId}" not found`);
@@ -169,7 +103,7 @@ export class SshConnectionNotFoundError extends Error {
 async function resolveSpawnConfig(
   pane: import("../../types/terminal").TerminalPane | undefined,
   settings: ReturnType<typeof useSettingsStore.getState>["settings"]
-): Promise<{ shell: string; args: string[]; env: [string, string][] }> {
+): Promise<{ shell: string; args: string[]; env: [string, string][]; shellIntegration: boolean }> {
   
   if (pane?.sshConnectionId) {
     const conn = useSshStore
@@ -225,16 +159,15 @@ async function resolveSpawnConfig(
     // "--" so a user or host can never be read as an ssh option.
     sshArgs.push("--", `${conn.username}@${conn.host}`);
 
-    return { shell: "ssh", args: sshArgs, env };
+    return { shell: "ssh", args: sshArgs, env, shellIntegration: false };
   }
 
   
   const detectedShell = getDefaultShell();
   const shellPath =
     pane?.shellPath || settings.general.defaultShell || detectedShell.path;
-  const integration = getShellIntegration(shellPath);
-
-  return { shell: shellPath, args: integration.args, env: integration.env };
+  // The backend adds the integration arguments and environment for this shell.
+  return { shell: shellPath, args: [], env: [], shellIntegration: true };
 }
 
 export default function TerminalPane({
@@ -478,11 +411,13 @@ export default function TerminalPane({
         }
 
         let spawnShell: string, spawnArgs: string[], spawnEnv: [string, string][];
+        let spawnIntegration: boolean;
         try {
           const config = await resolveSpawnConfig(existingPane, settings);
           spawnShell = config.shell;
           spawnArgs = config.args;
           spawnEnv = config.env;
+          spawnIntegration = config.shellIntegration;
         } catch (err) {
           if (err instanceof SshConnectionNotFoundError) {
             term.write(`\x1b[31mError: ${err.message}\x1b[0m\r\n`);
@@ -509,6 +444,7 @@ export default function TerminalPane({
           env: spawnEnv,
           rows: term.rows,
           cols: term.cols,
+          shellIntegration: spawnIntegration,
         });
 
         if (cancelled) {

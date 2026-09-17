@@ -9,8 +9,10 @@ export async function terminalSpawn(request: {
   env: [string, string][];
   rows: number;
   cols: number;
+  /** Local shells only: the backend adds the shell integration (titles, cwd). */
+  shellIntegration?: boolean;
 }): Promise<string> {
-  return invoke("terminal_spawn", { request });
+  return invoke("terminal_spawn", { request: { ...request, shellIntegration: request.shellIntegration ?? false } });
 }
 
 export async function terminalWrite(
