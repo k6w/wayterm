@@ -2,18 +2,26 @@ use super::session::PtySession;
 use parking_lot::Mutex;
 use std::collections::HashMap;
 use std::io::Read;
+use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use tauri::{AppHandle, Emitter};
 
 pub struct PtyManager {
     sessions: Arc<Mutex<HashMap<String, PtySession>>>,
+    /// Installed shell integration scripts; `None` if they could not be written.
+    integration_dir: Option<PathBuf>,
 }
 
 impl PtyManager {
-    pub fn new() -> Self {
+    pub fn new(integration_dir: Option<PathBuf>) -> Self {
         Self {
             sessions: Arc::new(Mutex::new(HashMap::new())),
+            integration_dir,
         }
+    }
+
+    pub fn integration_dir(&self) -> Option<&Path> {
+        self.integration_dir.as_deref()
     }
 
     #[allow(clippy::too_many_arguments)]

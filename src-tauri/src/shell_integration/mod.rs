@@ -1,6 +1,10 @@
 //! Decides how a local shell is started so that it reports its title, cwd and
 //! (later) command boundaries to the terminal.
 
+pub mod install;
+
+use std::path::Path;
+
 /// Extra arguments and environment for one shell spawn.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct SpawnPlan {
@@ -74,8 +78,9 @@ fn title_plan(kind: ShellKind) -> SpawnPlan {
 }
 
 /// The spawn plan for `shell_path`. `enabled` is false for shells that must
-/// start untouched (scratchpad, ssh, or integration turned off).
-pub fn plan(shell_path: &str, enabled: bool) -> SpawnPlan {
+/// start untouched (scratchpad, ssh, or integration turned off). `_dir` is where
+/// the scripts were installed (`None` if that failed).
+pub fn plan(shell_path: &str, enabled: bool, _dir: Option<&Path>) -> SpawnPlan {
     if !enabled {
         return SpawnPlan::default();
     }
@@ -93,20 +98,20 @@ mod tests {
     #[test]
     fn disabled_changes_nothing() {
         for shell in ["/bin/bash", "/bin/zsh", "/usr/bin/fish", "pwsh.exe", "cmd.exe"] {
-            assert_eq!(plan(shell, false), SpawnPlan::default(), "{shell}");
+            assert_eq!(plan(shell, false, None), SpawnPlan::default(), "{shell}");
         }
     }
 
     #[test]
     fn bash_gets_title_prompt_command() {
-        let p = plan("/opt/homebrew/bin/bash", true);
+        let p = plan("/opt/homebrew/bin/bash", true, None);
         assert!(p.args.is_empty());
         assert_eq!(p.env, env(&[("PROMPT_COMMAND", "printf \"\\033]0;%s\\007\" \"$PWD\"")]));
     }
 
     #[test]
     fn zsh_matches_previous_frontend_plan() {
-        let p = plan("/bin/zsh", true);
+        let p = plan("/bin/zsh", true, None);
         assert!(p.args.is_empty());
         assert_eq!(
             p.env,
@@ -119,7 +124,7 @@ mod tests {
 
     #[test]
     fn fish_sets_fish_title() {
-        let p = plan("/usr/local/bin/fish", true);
+        let p = plan("/usr/local/bin/fish", true, None);
         assert_eq!(p.args, strings(&["-C", "function fish_title; echo $PWD; end"]));
         assert!(p.env.is_empty());
     }
@@ -127,7 +132,7 @@ mod tests {
     #[test]
     fn powershell_sets_title_in_prompt() {
         for shell in [r"C:\Program Files\PowerShell\7\pwsh.exe", r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"] {
-            let p = plan(shell, true);
+            let p = plan(shell, true, None);
             assert_eq!(p.args[..3], strings(&["-NoLogo", "-NoExit", "-Command"])[..]);
             assert!(p.args[3].contains("WindowTitle = $PWD.Path"));
             assert!(p.env.is_empty());
@@ -136,14 +141,14 @@ mod tests {
 
     #[test]
     fn cmd_sets_title_prompt() {
-        let p = plan(r"C:\Windows\System32\cmd.exe", true);
+        let p = plan(r"C:\Windows\System32\cmd.exe", true, None);
         assert_eq!(p.args, strings(&["/K", "prompt $e]0;$p$e\\$p$g"]));
     }
 
     #[test]
     fn unknown_shell_and_ssh_get_nothing() {
-        assert_eq!(plan("/bin/sh", true), SpawnPlan::default());
-        assert_eq!(plan("ssh", true), SpawnPlan::default());
+        assert_eq!(plan("/bin/sh", true, None), SpawnPlan::default());
+        assert_eq!(plan("ssh", true, None), SpawnPlan::default());
     }
 
     #[test]

@@ -33,7 +33,11 @@ pub async fn terminal_spawn(
     } else {
         request.shell.clone()
     };
-    let plan = crate::shell_integration::plan(&shell, request.shell_integration);
+    let plan = crate::shell_integration::plan(
+        &shell,
+        request.shell_integration,
+        pty_manager.integration_dir(),
+    );
     let args: Vec<String> = plan.args.into_iter().chain(request.args).collect();
     let env: Vec<(String, String)> = request.env.into_iter().chain(plan.env).collect();
     pty_manager.spawn(

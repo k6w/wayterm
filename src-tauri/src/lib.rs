@@ -116,7 +116,14 @@ pub fn run() {
                 .expect("failed to resolve app data dir");
             let pool = db::init(&app_data).expect("failed to init database");
             app.manage(pool);
-            app.manage(pty::manager::PtyManager::new());
+            let integration_dir = match shell_integration::install::install(&app_data) {
+                Ok(dir) => Some(dir),
+                Err(err) => {
+                    eprintln!("shell integration scripts not installed: {err}");
+                    None
+                }
+            };
+            app.manage(pty::manager::PtyManager::new(integration_dir));
             app.manage(sftp::session::SftpSessionManager::new());
             app.manage(port_forward::PortForwardManager::new());
             app.manage(commands::database::DatabaseManager::new());
