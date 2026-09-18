@@ -1,0 +1,17 @@
+[1m[7m%[27m[1m[0m                                                                                ]7;file://host/home/user]0;/home/user]133;A[0m[27m[24m[J[34m~[39m
+[32m❯[39m [K[69C[90m18:58:38[39m[77D[?2004heecho hello[?2004l
+]133;C;cmdline_url=echo%20hello;nx=fixture-noncehello
+[1m[7m%[27m[1m[0m                                                                                ]133;D;0]7;file://host/home/user]0;/home/user]133;A[0m[27m[24m[J[34m~[39m
+[32m❯[39m ]133;B[K[69C[90m18:58:39[39m[77D[?2004hffalse[?2004l
+]133;C;cmdline_url=false;nx=fixture-nonce[1m[7m%[27m[1m[0m                                                                                ]133;D;1]7;file://host/home/user]0;/home/user]133;A[0m[27m[24m[J[34m~[39m
+[32m❯[39m ]133;B[K[69C[90m18:58:39[39m[77D[?2004hccd 'my dir'[?2004l
+]133;C;cmdline_url=cd%20%27my%20dir%27;nx=fixture-nonce[1m[7m%[27m[1m[0m                                                                                ]133;D;0]7;file://host/home/user/my%20dir]0;/home/user/my dir]133;A[0m[27m[24m[J[34m~/my dir[39m
+[32m❯[39m ]133;B[K[69C[90m18:58:39[39m[77D[?2004hpprintf 'one\ntwo\nthree\n'[?2004l
+]133;C;cmdline_url=printf%20%27one%5Cntwo%5Cnthree%5Cn%27;nx=fixture-nonceone
+two
+three
+[1m[7m%[27m[1m[0m                                                                                ]133;D;0]7;file://host/home/user/my%20dir]0;/home/user/my dir]133;A[0m[27m[24m[J[34m~/my dir[39m
+[32m❯[39m ]133;B[K[69C[90m18:58:39[39m[77D[?2004hccd[?2004l
+]133;C;cmdline_url=cd;nx=fixture-nonce[1m[7m%[27m[1m[0m                                                                                ]133;D;0]7;file://host/home/user]0;/home/user]133;A[0m[27m[24m[J[34m~[39m
+[32m❯[39m ]133;B[K[69C[90m18:58:39[39m[77D[?2004heexit[?2004l
+]133;C;cmdline_url=exit;nx=fixture-nonce
