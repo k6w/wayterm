@@ -63,7 +63,7 @@ mod tests {
 
     /// Changing a script without bumping SCRIPT_VERSION would let two Nexterm
     /// builds overwrite each other's files. Update both together.
-    const SCRIPTS_SHA256: &str = "325ffe9f1f012f5633b2e0a75f6e846edd87408fdcac61ddc12919226461ced6";
+    const SCRIPTS_SHA256: &str = "05dfb8c183699ed4bc82c8385a8bc7e39a73698f89f37c4c4550ea0d8a8ed16a";
 
     #[test]
     fn script_version_is_bumped_with_the_scripts() {
@@ -119,7 +119,12 @@ mod tests {
 
     #[cfg(unix)]
     fn syntax_check(shell: &str, rel: &str) {
-        let Some(bin) = super::super::pty_tests::find_shell(shell) else {
+        let found = if shell.starts_with('/') {
+            Some(PathBuf::from(shell)).filter(|p| p.is_file())
+        } else {
+            super::super::pty_tests::find_shell(shell)
+        };
+        let Some(bin) = found else {
             eprintln!("skipping: {shell} not installed");
             return;
         };
@@ -139,6 +144,8 @@ mod tests {
     #[test]
     fn bash_script_parses() {
         syntax_check("bash", "bash/nexterm.bash");
+        // macOS ships bash 3.2 as /bin/bash.
+        syntax_check("/bin/bash", "bash/nexterm.bash");
     }
 
     #[cfg(unix)]

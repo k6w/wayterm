@@ -113,6 +113,15 @@ fn zsh_plan(dir: &Path, ctx: &PlanContext) -> SpawnPlan {
     SpawnPlan { args: Vec::new(), env, integrated: true }
 }
 
+/// `bash --rcfile` replaces ~/.bashrc with ours, which sources it.
+fn bash_plan(dir: &Path, ctx: &PlanContext) -> SpawnPlan {
+    SpawnPlan {
+        args: vec!["--rcfile".to_string(), dir_str(dir, "bash/nexterm.bash")],
+        env: session_env(ctx),
+        integrated: true,
+    }
+}
+
 /// The spawn plan for `shell_path`. `enabled` is false for shells that must
 /// start untouched (scratchpad, ssh, or integration turned off). Shells without
 /// a script, or when the scripts could not be installed, get the title-only setup.
@@ -123,6 +132,7 @@ pub fn plan(shell_path: &str, enabled: bool, ctx: &PlanContext) -> SpawnPlan {
     let kind = shell_kind(shell_path);
     match (kind, ctx.dir) {
         (ShellKind::Zsh, Some(dir)) => zsh_plan(dir, ctx),
+        (ShellKind::Bash, Some(dir)) => bash_plan(dir, ctx),
         _ => title_plan(kind),
     }
 }
@@ -155,6 +165,18 @@ mod tests {
         assert_eq!(env_of(&p, "ZDOTDIR"), Some(dir.join("zsh").to_str().unwrap()));
         assert_eq!(env_of(&p, "NEXTERM_ORIG_ZDOTDIR"), Some("/home/u/.config/zsh"));
         assert_eq!(env_of(&p, "NEXTERM_ORIG_ZDOTDIR_UNSET"), None);
+        assert_eq!(env_of(&p, "NEXTERM_SHELL_INTEGRATION"), Some("1"));
+        assert_eq!(env_of(&p, "NEXTERM_SI_NONCE"), Some("abc"));
+        assert_eq!(env_of(&p, "PROMPT_COMMAND"), None);
+    }
+
+    #[test]
+    fn bash_loads_the_script_as_its_rcfile() {
+        let dir = Path::new("/data/si/v1");
+        let ctx = PlanContext { dir: Some(dir), nonce: "abc", orig_env: &no_env };
+        let p = plan("/bin/bash", true, &ctx);
+        assert!(p.integrated);
+        assert_eq!(p.args, vec!["--rcfile".to_string(), dir.join("bash/nexterm.bash").to_string_lossy().into_owned()]);
         assert_eq!(env_of(&p, "NEXTERM_SHELL_INTEGRATION"), Some("1"));
         assert_eq!(env_of(&p, "NEXTERM_SI_NONCE"), Some("abc"));
         assert_eq!(env_of(&p, "PROMPT_COMMAND"), None);

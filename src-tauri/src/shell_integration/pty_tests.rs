@@ -111,18 +111,21 @@ pub(crate) fn write(path: &Path, contents: &str) {
     std::fs::write(path, contents).unwrap();
 }
 
-/// The reports one `false` produces in an integrated shell.
-pub(crate) fn assert_reports_false(sh: &Shell) {
+/// The reports one `false` produces in an integrated shell. `c_report` is the
+/// expected OSC 133;C payload (`None` for the default with the command line).
+pub(crate) fn assert_reports_false_with(sh: &Shell, c_report: Option<&str>) {
     assert!(sh.wait_for("\x1b]133;A"), "no prompt start: {:?}", sh.text());
     sh.run("false");
     let out = sh.text();
     assert!(out.contains("\x1b]133;B"), "no command start: {out:?}");
-    assert!(
-        out.contains(&format!("\x1b]133;C;cmdline_url=false;nx={NONCE}\x07")),
-        "no command report: {out:?}"
-    );
+    let c = c_report.map(str::to_string).unwrap_or_else(|| format!("cmdline_url=false;nx={NONCE}"));
+    assert!(out.contains(&format!("\x1b]133;C;{c}\x07")), "no command report: {out:?}");
     assert!(out.contains("\x1b]133;D;1\x07"), "no exit status: {out:?}");
     assert!(out.contains("\x1b]7;file://"), "no cwd report: {out:?}");
+}
+
+pub(crate) fn assert_reports_false(sh: &Shell) {
+    assert_reports_false_with(sh, None);
 }
 
 mod zsh {
@@ -230,5 +233,175 @@ mod zsh {
         sh.run("echo 'a b;c' é");
         let want = format!("cmdline_url=echo%20%27a%20b%3Bc%27%20%C3%A9;nx={NONCE}");
         assert!(sh.text().contains(&want), "{:?}", sh.text());
+    }
+}
+
+mod bash {
+    use super::*;
+
+    /// Every distinct bash available: the one on PATH and macOS's /bin/bash 3.2.
+    fn bashes() -> Vec<PathBuf> {
+        let mut found: Vec<PathBuf> = Vec::new();
+        for candidate in [find_shell("bash"), Some(PathBuf::from("/bin/bash"))].into_iter().flatten() {
+            let Ok(real) = candidate.canonicalize() else { continue };
+            if !found.iter().any(|f| f.canonicalize().ok().as_ref() == Some(&real)) {
+                found.push(candidate);
+            }
+        }
+        if found.is_empty() {
+            eprintln!("skipping: bash not installed");
+        }
+        found
+    }
+
+    /// bash 4.4+ reports C from PS0, older bash from a DEBUG trap; neither has the command line.
+    fn c_report() -> String {
+        format!("nx={NONCE}")
+    }
+
+    fn home_with(bashrc: &str) -> tempfile::TempDir {
+        let home = tempfile::tempdir().unwrap();
+        write(&home.path().join(".bashrc"), bashrc);
+        write(&home.path().join(".bash_profile"), "echo SENTINEL-BASH-PROFILE\n");
+        home
+    }
+
+    #[test]
+    fn loads_bashrc_and_reports_commands() {
+        for bash in bashes() {
+            let home = home_with("echo SENTINEL-BASHRC\nPS1='$ '\n");
+            let sh = Shell::start(&bash, home.path(), &[], &no_env);
+            assert_reports_false_with(&sh, Some(&c_report()));
+            // Not `(exit 3)`: bash 3.2 runs no DEBUG trap for a bare subshell, so
+            // that line gets no C there (D still arrives).
+            sh.run("sh -c 'exit 3'");
+            let out = sh.text();
+            assert!(out.contains("\x1b]133;D;3\x07"), "{}: {out:?}", bash.display());
+            assert!(out.contains("SENTINEL-BASHRC"), "{}: {out:?}", bash.display());
+            // Non-login, exactly as before.
+            assert!(!out.contains("SENTINEL-BASH-PROFILE"), "{}: {out:?}", bash.display());
+            // One C per command line, none for the prompt commands.
+            assert_eq!(out.matches("\x1b]133;C").count(), 2, "{}: {out:?}", bash.display());
+        }
+    }
+
+    #[test]
+    fn empty_lines_are_not_commands() {
+        for bash in bashes() {
+            let home = home_with("PS1='$ '\n");
+            let sh = Shell::start(&bash, home.path(), &[], &no_env);
+            assert!(sh.wait_for("\x1b]133;A"));
+            sh.run("");
+            sh.run("true");
+            let out = sh.text();
+            assert_eq!(out.matches("\x1b]133;C").count(), 1, "{}: {out:?}", bash.display());
+        }
+    }
+
+    #[test]
+    fn keeps_the_users_prompt_command() {
+        for bash in bashes() {
+            let home = home_with("PROMPT_COMMAND='echo USER-PC; true'\nPS1='$ '\n");
+            let sh = Shell::start(&bash, home.path(), &[], &no_env);
+            assert_reports_false_with(&sh, Some(&c_report()));
+            assert!(sh.text().contains("USER-PC"), "{}: {:?}", bash.display(), sh.text());
+        }
+    }
+
+    #[test]
+    fn marks_prompts_that_frameworks_rebuild() {
+        for bash in bashes() {
+            let home = home_with("n=0\nPROMPT_COMMAND='n=$((n+1)); PS1=\"fw-$n> \"'\n");
+            let sh = Shell::start(&bash, home.path(), &[], &no_env);
+            assert!(sh.wait_for("\x1b]133;A"));
+            sh.run("true");
+            assert!(sh.wait_for("fw-2> \x1b]133;B\x07"), "{}: {:?}", bash.display(), sh.text());
+        }
+    }
+
+    #[test]
+    fn moves_the_mark_back_to_the_end_of_the_prompt() {
+        for bash in bashes() {
+            let home = home_with("PS1='$ '\nPROMPT_COMMAND='PS1=\"${PS1}x\"'\n");
+            let sh = Shell::start(&bash, home.path(), &[], &no_env);
+            assert!(sh.wait_for("\x1b]133;A"));
+            sh.run("true");
+            assert!(sh.wait_for("$ xx\x1b]133;B\x07"), "{}: {:?}", bash.display(), sh.text());
+        }
+    }
+
+    #[test]
+    fn encodes_the_cwd() {
+        for bash in bashes() {
+            let home = home_with("PS1='$ '\n");
+            std::fs::create_dir(home.path().join("é x")).unwrap();
+            let sh = Shell::start(&bash, home.path(), &[], &no_env);
+            assert!(sh.wait_for("\x1b]133;A"));
+            sh.run("cd 'é x'");
+            assert!(sh.wait_for("/%C3%A9%20x\x07"), "{}: {:?}", bash.display(), sh.text());
+        }
+    }
+
+    #[test]
+    fn hides_the_nonce_and_does_not_integrate_nested_shells() {
+        for bash in bashes() {
+            let home = home_with("echo SENTINEL-BASHRC\nPS1='$ '\n");
+            let sh = Shell::start(&bash, home.path(), &[], &no_env);
+            assert!(sh.wait_for("\x1b]133;A"));
+            sh.run("echo \"ENV=:$(env | grep -c NEXTERM_):\"");
+            assert!(sh.text().contains("ENV=:0:"), "{}: {:?}", bash.display(), sh.text());
+            sh.run(&format!("{} -ic 'declare -F _nx_precmd || echo NESTED-PLAIN'", bash.display()));
+            let out = sh.text();
+            assert!(out.contains("NESTED-PLAIN"), "{}: {out:?}", bash.display());
+            assert_eq!(out.matches("SENTINEL-BASHRC\r").count(), 2, "{}: {out:?}", bash.display());
+        }
+    }
+
+    #[test]
+    fn leaves_a_users_debug_trap_alone() {
+        for bash in bashes() {
+            let home = home_with("trap 'USER_TRAP=1' DEBUG\nPS1='$ '\n");
+            let sh = Shell::start(&bash, home.path(), &[], &no_env);
+            assert!(sh.wait_for("\x1b]133;A"));
+            sh.run("trap -p DEBUG");
+            let out = sh.text();
+            assert!(out.contains("USER_TRAP=1"), "{}: {out:?}", bash.display());
+            assert!(out.contains("\x1b]133;D;0\x07"), "{}: {out:?}", bash.display());
+        }
+    }
+
+    /// The hooks contract of bash-preexec: precmd_functions run from
+    /// PROMPT_COMMAND with $? set, preexec_functions get the command line.
+    const FAKE_BASH_PREEXEC: &str = r#"
+bash_preexec_imported=defined
+precmd_functions=()
+preexec_functions=()
+__fake_ready=0
+__fake_precmd() {
+  local s=$? f
+  for f in "${precmd_functions[@]}"; do (exit $s); "$f"; done
+  __fake_ready=1
+}
+__fake_debug() {
+  [[ $__fake_ready == 1 ]] || return 0
+  __fake_ready=0
+  [[ "$BASH_COMMAND" == __fake_precmd ]] && return 0
+  local f
+  for f in "${preexec_functions[@]}"; do "$f" "$BASH_COMMAND"; done
+}
+PROMPT_COMMAND=__fake_precmd
+trap __fake_debug DEBUG
+PS1='$ '
+"#;
+
+    #[test]
+    fn joins_bash_preexec_hooks() {
+        for bash in bashes() {
+            let home = home_with(FAKE_BASH_PREEXEC);
+            let sh = Shell::start(&bash, home.path(), &[], &no_env);
+            assert_reports_false(&sh);
+            let out = sh.text();
+            assert_eq!(out.matches("\x1b]133;C").count(), 1, "{}: {out:?}", bash.display());
+        }
     }
 }
