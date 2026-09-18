@@ -119,6 +119,7 @@ const STRICT_PATHS = [
   "src/components/sidebar/SaveWorkspaceDialog.tsx",
   "src/components/sidebar/save-workspace.ts",
   "src/components/terminal/PaneNotice.tsx",
+  "src/components/terminal/spawn-config.ts",
 ];
 
 const file = "eslint-suppressions.json";

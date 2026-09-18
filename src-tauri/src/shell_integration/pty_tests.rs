@@ -405,3 +405,55 @@ PS1='$ '
         }
     }
 }
+
+mod fish {
+    use super::*;
+
+    fn fish() -> Option<PathBuf> {
+        let found = find_shell("fish");
+        if found.is_none() {
+            eprintln!("skipping: fish not installed");
+        }
+        found
+    }
+
+    fn home_with_config() -> tempfile::TempDir {
+        let home = tempfile::tempdir().unwrap();
+        write(
+            &home.path().join(".config/fish/config.fish"),
+            "echo SENTINEL-FISH-CONFIG\nfunction fish_prompt; echo -n 'fish> '; end\n",
+        );
+        home
+    }
+
+    fn start(fish: &Path, home: &Path) -> Shell {
+        let config = home.join(".config").to_string_lossy().into_owned();
+        Shell::start(fish, home, &[("XDG_CONFIG_HOME", &config)], &no_env)
+    }
+
+    #[test]
+    fn loads_config_and_reports_commands() {
+        let Some(fish) = fish() else { return };
+        let home = home_with_config();
+        let sh = start(&fish, home.path());
+        // fish 4 marks A and D itself, fish 3 through the script; C always comes
+        // from the script, with the command line and the nonce.
+        assert!(sh.wait_for("\x1b]133;A"), "{:?}", sh.text());
+        sh.run("false");
+        let out = sh.text();
+        assert!(out.contains(&format!("\x1b]133;C;cmdline_url=false;nx={NONCE}\x07")), "{out:?}");
+        assert!(out.contains("\x1b]133;D;1"), "{out:?}");
+        assert!(out.contains("\x1b]7;file://"), "{out:?}");
+        assert!(out.contains("SENTINEL-FISH-CONFIG"), "{out:?}");
+    }
+
+    #[test]
+    fn hides_the_nonce() {
+        let Some(fish) = fish() else { return };
+        let home = home_with_config();
+        let sh = start(&fish, home.path());
+        assert!(sh.wait_for("\x1b]133;A"), "{:?}", sh.text());
+        sh.run("echo ENV=:(env | grep -c NEXTERM_):");
+        assert!(sh.text().contains("ENV=:0:"), "{:?}", sh.text());
+    }
+}

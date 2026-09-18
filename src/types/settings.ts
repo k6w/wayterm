@@ -54,6 +54,10 @@ export interface TerminalSettings {
   bracketedPaste: boolean;
   scrollToBottomOnInput: boolean;
   bufferPersistence: boolean;
+  /** Start local shells with Nexterm's integration script (prompt, command and cwd reports). New sessions only. */
+  shellIntegration: boolean;
+  /** Feature flag for the command blocks UI (not shown yet). */
+  commandBlocks: boolean;
 }
 
 export interface SshSettings {

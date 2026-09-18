@@ -2,7 +2,7 @@ import { create } from "zustand";
 import type { AppSettings, SftpBookmark } from "../types/settings";
 import { settingsGetAll, settingsSet } from "../lib/ipc";
 
-const defaultSettings: AppSettings = {
+export const defaultSettings: AppSettings = {
   general: {
     defaultShell: "",
     startupBehavior: "restore",
@@ -46,6 +46,8 @@ const defaultSettings: AppSettings = {
     bracketedPaste: true,
     scrollToBottomOnInput: true,
     bufferPersistence: false,
+    shellIntegration: true,
+    commandBlocks: false,
   },
   ssh: {
     defaultPort: 22,

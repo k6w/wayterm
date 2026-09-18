@@ -27,6 +27,7 @@ import { createStartupRunner, type StartupRunner } from "../../lib/startup-comma
 import { resolveRestoredCwd } from "../../lib/workspace-snapshot";
 import PaneNotice from "./PaneNotice";
 import { getDefaultShell } from "../../lib/shell-detect";
+import { localSpawnConfig, type SpawnConfig } from "./spawn-config";
 import { preflightHostKey } from "../ssh/host-key-preflight";
 import { useChangedHostKey } from "../ssh/useChangedHostKey";
 import { lazyWithPreload, useEverTrue } from "../../lib/lazy";
@@ -103,7 +104,7 @@ export class SshConnectionNotFoundError extends Error {
 async function resolveSpawnConfig(
   pane: import("../../types/terminal").TerminalPane | undefined,
   settings: ReturnType<typeof useSettingsStore.getState>["settings"]
-): Promise<{ shell: string; args: string[]; env: [string, string][]; shellIntegration: boolean }> {
+): Promise<SpawnConfig> {
   
   if (pane?.sshConnectionId) {
     const conn = useSshStore
@@ -163,11 +164,7 @@ async function resolveSpawnConfig(
   }
 
   
-  const detectedShell = getDefaultShell();
-  const shellPath =
-    pane?.shellPath || settings.general.defaultShell || detectedShell.path;
-  // The backend adds the integration arguments and environment for this shell.
-  return { shell: shellPath, args: [], env: [], shellIntegration: true };
+  return localSpawnConfig(pane, settings, getDefaultShell().path);
 }
 
 export default function TerminalPane({

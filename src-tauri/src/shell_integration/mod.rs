@@ -122,6 +122,20 @@ fn bash_plan(dir: &Path, ctx: &PlanContext) -> SpawnPlan {
     }
 }
 
+/// A fish single-quoted string.
+fn fish_quote(s: &str) -> String {
+    format!("'{}'", s.replace('\\', "\\\\").replace('\'', "\\'"))
+}
+
+/// `fish -C` runs after config.fish; the script also defines the title.
+fn fish_plan(dir: &Path, ctx: &PlanContext) -> SpawnPlan {
+    SpawnPlan {
+        args: vec!["-C".to_string(), format!("source {}", fish_quote(&dir_str(dir, "fish/nexterm.fish")))],
+        env: session_env(ctx),
+        integrated: true,
+    }
+}
+
 /// The spawn plan for `shell_path`. `enabled` is false for shells that must
 /// start untouched (scratchpad, ssh, or integration turned off). Shells without
 /// a script, or when the scripts could not be installed, get the title-only setup.
@@ -133,6 +147,7 @@ pub fn plan(shell_path: &str, enabled: bool, ctx: &PlanContext) -> SpawnPlan {
     match (kind, ctx.dir) {
         (ShellKind::Zsh, Some(dir)) => zsh_plan(dir, ctx),
         (ShellKind::Bash, Some(dir)) => bash_plan(dir, ctx),
+        (ShellKind::Fish, Some(dir)) => fish_plan(dir, ctx),
         _ => title_plan(kind),
     }
 }
@@ -180,6 +195,28 @@ mod tests {
         assert_eq!(env_of(&p, "NEXTERM_SHELL_INTEGRATION"), Some("1"));
         assert_eq!(env_of(&p, "NEXTERM_SI_NONCE"), Some("abc"));
         assert_eq!(env_of(&p, "PROMPT_COMMAND"), None);
+    }
+
+    #[test]
+    fn fish_sources_the_script_after_its_config() {
+        let dir = Path::new("/Users/me/Library/Application Support/it's/v1");
+        let ctx = PlanContext { dir: Some(dir), nonce: "abc", orig_env: &no_env };
+        let p = plan("/opt/homebrew/bin/fish", true, &ctx);
+        assert!(p.integrated);
+        let script = dir.join("fish/nexterm.fish").to_string_lossy().replace('\\', "\\\\").replace('\'', "\\'");
+        assert!(script.contains(r"Support/it\'s/v1"), "{script}");
+        assert_eq!(p.args, vec!["-C".to_string(), format!("source '{script}'")]);
+        assert_eq!(env_of(&p, "NEXTERM_SI_NONCE"), Some("abc"));
+    }
+
+    #[test]
+    fn other_shells_keep_the_title_setup_with_scripts_installed() {
+        let ctx = PlanContext { dir: Some(Path::new("/d")), nonce: "abc", orig_env: &no_env };
+        let p = plan(r"C:\Program Files\PowerShell\7\pwsh.exe", true, &ctx);
+        assert!(!p.integrated);
+        assert_eq!(p.args[0], "-NoLogo");
+        assert!(!plan(r"C:\Windows\System32\cmd.exe", true, &ctx).integrated);
+        assert_eq!(plan("/bin/sh", true, &ctx), SpawnPlan::default());
     }
 
     #[test]

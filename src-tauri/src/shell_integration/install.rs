@@ -63,7 +63,7 @@ mod tests {
 
     /// Changing a script without bumping SCRIPT_VERSION would let two Nexterm
     /// builds overwrite each other's files. Update both together.
-    const SCRIPTS_SHA256: &str = "05dfb8c183699ed4bc82c8385a8bc7e39a73698f89f37c4c4550ea0d8a8ed16a";
+    const SCRIPTS_SHA256: &str = "4f4672df6b99d69a65d06f0f194018b282d28f08c7ec338f524ea307ab10bd69";
 
     #[test]
     fn script_version_is_bumped_with_the_scripts() {
