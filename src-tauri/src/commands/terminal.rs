@@ -1,5 +1,6 @@
 use crate::db::{self, DbPool};
 use crate::pty::manager::PtyManager;
+use crate::shell_integration::{self, PlanContext};
 use std::collections::HashMap;
 use std::fs::OpenOptions;
 use std::io::Write;
@@ -21,25 +22,41 @@ pub struct SpawnRequest {
     pub shell_integration: bool,
 }
 
+#[derive(serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SpawnResult {
+    pub session_id: String,
+    /// Secret the shell integration puts in its command reports; `None` when
+    /// the shell runs without the integration script.
+    pub nonce: Option<String>,
+}
+
 #[tauri::command]
 pub async fn terminal_spawn(
     request: SpawnRequest,
     pty_manager: State<'_, PtyManager>,
     app: AppHandle,
-) -> Result<String, String> {
+) -> Result<SpawnResult, String> {
     let session_id = Uuid::new_v4().to_string();
     let shell = if request.shell.trim().is_empty() {
         default_shell()
     } else {
         request.shell.clone()
     };
-    let plan = crate::shell_integration::plan(
-        &shell,
-        request.shell_integration,
-        pty_manager.integration_dir(),
-    );
+    let nonce = Uuid::new_v4().to_string();
+    let request_env = request.env;
+    let orig_env = |key: &str| {
+        request_env
+            .iter()
+            .rev()
+            .find(|(k, _)| k == key)
+            .map(|(_, v)| v.clone())
+            .or_else(|| std::env::var(key).ok())
+    };
+    let ctx = PlanContext { dir: pty_manager.integration_dir(), nonce: &nonce, orig_env: &orig_env };
+    let plan = shell_integration::plan(&shell, request.shell_integration, &ctx);
     let args: Vec<String> = plan.args.into_iter().chain(request.args).collect();
-    let env: Vec<(String, String)> = request.env.into_iter().chain(plan.env).collect();
+    let env: Vec<(String, String)> = request_env.iter().cloned().chain(plan.env).collect();
     pty_manager.spawn(
         session_id.clone(),
         &shell,
@@ -50,7 +67,7 @@ pub async fn terminal_spawn(
         request.cols,
         app,
     )?;
-    Ok(session_id)
+    Ok(SpawnResult { session_id, nonce: plan.integrated.then_some(nonce) })
 }
 
 #[tauri::command]

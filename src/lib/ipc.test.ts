@@ -44,4 +44,12 @@ describe("terminalSpawn wire format", () => {
     expect(calls[0][1].request.shellIntegration).toBe(true);
     expect(calls[1][1].request.shellIntegration).toBe(false);
   });
+
+  it("returns the session id and the integration nonce", async () => {
+    vi.mocked(invoke).mockResolvedValue({ sessionId: "sid", nonce: "n1" });
+    const base = { shell: "/bin/zsh", args: [], cwd: "", env: [] as [string, string][], rows: 24, cols: 80 };
+    await expect(terminalSpawn(base)).resolves.toEqual({ sessionId: "sid", nonce: "n1" });
+    vi.mocked(invoke).mockResolvedValue({ sessionId: "sid2", nonce: null });
+    await expect(terminalSpawn(base)).resolves.toEqual({ sessionId: "sid2", nonce: null });
+  });
 });

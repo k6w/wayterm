@@ -1,0 +1,234 @@
+//! Runs the integration scripts in real shells on a PTY, with a temporary HOME,
+//! to prove the user's own config still loads and the reports are emitted.
+//! Every test skips when its shell is not installed.
+
+use super::{install, plan, PlanContext};
+use crate::pty::session::PtySession;
+use parking_lot::Mutex;
+use std::path::{Path, PathBuf};
+use std::sync::Arc;
+use std::time::{Duration, Instant};
+
+pub(crate) const NONCE: &str = "test-nonce-7f3a";
+
+/// Finds `name` on PATH (or in /bin, /usr/bin); `None` means skip the test.
+pub(crate) fn find_shell(name: &str) -> Option<PathBuf> {
+    let path = std::env::var_os("PATH").unwrap_or_default();
+    std::env::split_paths(&path)
+        .chain([PathBuf::from("/bin"), PathBuf::from("/usr/bin")])
+        .map(|d| d.join(name))
+        .find(|p| p.is_file())
+}
+
+pub(crate) struct Shell {
+    session: PtySession,
+    out: Arc<Mutex<Vec<u8>>>,
+    _data: tempfile::TempDir,
+}
+
+impl Shell {
+    /// Starts `shell` integrated, with HOME=`home` and the given extra environment.
+    /// `orig_env` is what the spawn plan sees as the inherited environment.
+    pub(crate) fn start(
+        shell: &Path,
+        home: &Path,
+        env: &[(&str, &str)],
+        orig_env: &dyn Fn(&str) -> Option<String>,
+    ) -> Self {
+        let data = tempfile::tempdir().unwrap();
+        let dir = install::install(data.path()).unwrap();
+        let ctx = PlanContext { dir: Some(&dir), nonce: NONCE, orig_env };
+        let p = plan(shell.to_str().unwrap(), true, &ctx);
+        assert!(p.integrated, "{} should be integrated", shell.display());
+        let mut full_env: Vec<(String, String)> = vec![("HOME".into(), home.to_string_lossy().into_owned())];
+        full_env.extend(env.iter().map(|(k, v)| (k.to_string(), v.to_string())));
+        full_env.extend(p.env);
+        let (session, mut reader) =
+            PtySession::spawn(shell.to_str().unwrap(), &p.args, home.to_str().unwrap(), &full_env, 24, 200)
+                .unwrap();
+        let out = Arc::new(Mutex::new(Vec::new()));
+        let sink = out.clone();
+        std::thread::spawn(move || {
+            let mut buf = [0u8; 4096];
+            while let Ok(n) = std::io::Read::read(&mut reader, &mut buf) {
+                if n == 0 {
+                    break;
+                }
+                sink.lock().extend_from_slice(&buf[..n]);
+            }
+        });
+        Self { session, out, _data: data }
+    }
+
+    pub(crate) fn text(&self) -> String {
+        String::from_utf8_lossy(&self.out.lock()).into_owned()
+    }
+
+    /// Waits until the output contains `needle` `count` times; false on timeout.
+    pub(crate) fn wait_for_n(&self, needle: &str, count: usize) -> bool {
+        let deadline = Instant::now() + Duration::from_secs(10);
+        while Instant::now() < deadline {
+            if self.text().matches(needle).count() >= count {
+                return true;
+            }
+            std::thread::sleep(Duration::from_millis(20));
+        }
+        false
+    }
+
+    pub(crate) fn wait_for(&self, needle: &str) -> bool {
+        self.wait_for_n(needle, 1)
+    }
+
+    pub(crate) fn send(&self, line: &str) {
+        self.session.write(format!("{line}\r").as_bytes()).unwrap();
+    }
+
+    /// Runs `line` at the next prompt and waits until the prompt after it.
+    pub(crate) fn run(&self, line: &str) {
+        let prompts = self.text().matches("\x1b]133;A").count();
+        self.send(line);
+        assert!(
+            self.wait_for_n("\x1b]133;A", prompts + 1),
+            "no prompt after {line:?}; output: {:?}",
+            self.text()
+        );
+    }
+}
+
+impl Drop for Shell {
+    fn drop(&mut self) {
+        let _ = self.session.kill();
+    }
+}
+
+pub(crate) fn no_env(_: &str) -> Option<String> {
+    None
+}
+
+pub(crate) fn write(path: &Path, contents: &str) {
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    std::fs::write(path, contents).unwrap();
+}
+
+/// The reports one `false` produces in an integrated shell.
+pub(crate) fn assert_reports_false(sh: &Shell) {
+    assert!(sh.wait_for("\x1b]133;A"), "no prompt start: {:?}", sh.text());
+    sh.run("false");
+    let out = sh.text();
+    assert!(out.contains("\x1b]133;B"), "no command start: {out:?}");
+    assert!(
+        out.contains(&format!("\x1b]133;C;cmdline_url=false;nx={NONCE}\x07")),
+        "no command report: {out:?}"
+    );
+    assert!(out.contains("\x1b]133;D;1\x07"), "no exit status: {out:?}");
+    assert!(out.contains("\x1b]7;file://"), "no cwd report: {out:?}");
+}
+
+mod zsh {
+    use super::*;
+
+    fn zsh() -> Option<PathBuf> {
+        let found = find_shell("zsh");
+        if found.is_none() {
+            eprintln!("skipping: zsh not installed");
+        }
+        found
+    }
+
+    fn home_with_rc() -> tempfile::TempDir {
+        let home = tempfile::tempdir().unwrap();
+        let h = home.path();
+        write(&h.join(".zshenv"), "echo SENTINEL-ZSHENV\n");
+        write(&h.join(".zprofile"), "echo SENTINEL-ZPROFILE\n");
+        write(&h.join(".zshrc"), "echo SENTINEL-ZSHRC ZD=:${ZDOTDIR-unset}:\nPS1='%# '\n");
+        home
+    }
+
+    #[test]
+    fn loads_user_config_and_reports_commands() {
+        let Some(zsh) = zsh() else { return };
+        let home = home_with_rc();
+        let sh = Shell::start(&zsh, home.path(), &[], &no_env);
+        assert_reports_false(&sh);
+        let out = sh.text();
+        assert!(out.contains("SENTINEL-ZSHENV"), "{out:?}");
+        assert!(out.contains("SENTINEL-ZSHRC ZD=:unset:"), "ZDOTDIR not restored: {out:?}");
+        // Non-login, exactly as before: .zprofile is not read.
+        assert!(!out.contains("SENTINEL-ZPROFILE"), "{out:?}");
+    }
+
+    #[test]
+    fn restores_a_custom_zdotdir() {
+        let Some(zsh) = zsh() else { return };
+        let home = tempfile::tempdir().unwrap();
+        let zd = home.path().join("cfg");
+        write(&zd.join(".zshenv"), "echo SENTINEL-CUSTOM-ZSHENV\n");
+        write(&zd.join(".zshrc"), "echo SENTINEL-CUSTOM-ZSHRC ZD=:${ZDOTDIR}:\n");
+        write(&home.path().join(".zshrc"), "echo WRONG-HOME-ZSHRC\n");
+        let zd_str = zd.to_string_lossy().into_owned();
+        let orig = move |k: &str| (k == "ZDOTDIR").then(|| zd_str.clone());
+        let sh = Shell::start(&zsh, home.path(), &[], &orig);
+        assert!(sh.wait_for("\x1b]133;A"), "{:?}", sh.text());
+        let out = sh.text();
+        assert!(out.contains("SENTINEL-CUSTOM-ZSHENV"), "{out:?}");
+        assert!(out.contains(&format!("SENTINEL-CUSTOM-ZSHRC ZD=:{}:", zd.display())), "{out:?}");
+        assert!(!out.contains("WRONG-HOME-ZSHRC"), "{out:?}");
+    }
+
+    #[test]
+    fn hides_the_nonce_and_does_not_integrate_nested_shells() {
+        let Some(zsh) = zsh() else { return };
+        let home = home_with_rc();
+        let sh = Shell::start(&zsh, home.path(), &[], &no_env);
+        assert!(sh.wait_for("\x1b]133;A"));
+        sh.run("echo ENV=:$(env | grep -c NEXTERM_):");
+        assert!(sh.text().contains("ENV=:0:"), "{:?}", sh.text());
+        sh.run(&format!(
+            "{} -ic 'echo NESTED ZD=:${{ZDOTDIR-unset}}:; whence _nx_precmd || echo NESTED-PLAIN'",
+            zsh.display()
+        ));
+        let out = sh.text();
+        assert!(out.contains("NESTED ZD=:unset:"), "{out:?}");
+        assert!(out.contains("NESTED-PLAIN"), "{out:?}");
+    }
+
+    #[test]
+    fn reports_status_even_after_user_precmd_hooks() {
+        let Some(zsh) = zsh() else { return };
+        let home = tempfile::tempdir().unwrap();
+        write(
+            &home.path().join(".zshrc"),
+            "autoload -Uz add-zsh-hook\n_user_hook() { true; }\nadd-zsh-hook precmd _user_hook\nPS1='%# '\n",
+        );
+        let sh = Shell::start(&zsh, home.path(), &[], &no_env);
+        assert_reports_false(&sh);
+        sh.run("(exit 3)");
+        assert!(sh.text().contains("\x1b]133;D;3\x07"), "{:?}", sh.text());
+    }
+
+    #[test]
+    fn marks_prompts_that_themes_rebuild_every_time() {
+        let Some(zsh) = zsh() else { return };
+        let home = tempfile::tempdir().unwrap();
+        write(
+            &home.path().join(".zshrc"),
+            "autoload -Uz add-zsh-hook\n_theme() { PS1=\"theme-$((++n))> \"; }\nadd-zsh-hook precmd _theme\n",
+        );
+        let sh = Shell::start(&zsh, home.path(), &[], &no_env);
+        assert!(sh.wait_for("\x1b]133;A"));
+        sh.run("true");
+        assert!(sh.wait_for("theme-2> \x1b]133;B\x07"), "{:?}", sh.text());
+    }
+
+    #[test]
+    fn encodes_the_command_line() {
+        let Some(zsh) = zsh() else { return };
+        let home = home_with_rc();
+        let sh = Shell::start(&zsh, home.path(), &[], &no_env);
+        assert!(sh.wait_for("\x1b]133;A"));
+        sh.run("echo 'a b;c' é");
+        let want = format!("cmdline_url=echo%20%27a%20b%3Bc%27%20%C3%A9;nx={NONCE}");
+        assert!(sh.text().contains(&want), "{:?}", sh.text());
+    }
+}

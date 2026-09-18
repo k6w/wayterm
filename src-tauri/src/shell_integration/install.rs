@@ -63,7 +63,7 @@ mod tests {
 
     /// Changing a script without bumping SCRIPT_VERSION would let two Nexterm
     /// builds overwrite each other's files. Update both together.
-    const SCRIPTS_SHA256: &str = "3419c6ffa97553ddd1299d496e20facd980a19e168017564498bb3031b659d87";
+    const SCRIPTS_SHA256: &str = "325ffe9f1f012f5633b2e0a75f6e846edd87408fdcac61ddc12919226461ced6";
 
     #[test]
     fn script_version_is_bumped_with_the_scripts() {
@@ -117,19 +117,9 @@ mod tests {
         out
     }
 
-    /// Finds `name` on PATH (or in /bin); tests that need a shell skip without it.
-    #[cfg(unix)]
-    pub(crate) fn find_shell(name: &str) -> Option<PathBuf> {
-        let path = std::env::var_os("PATH").unwrap_or_default();
-        std::env::split_paths(&path)
-            .chain([PathBuf::from("/bin"), PathBuf::from("/usr/bin")])
-            .map(|d| d.join(name))
-            .find(|p| p.is_file())
-    }
-
     #[cfg(unix)]
     fn syntax_check(shell: &str, rel: &str) {
-        let Some(bin) = find_shell(shell) else {
+        let Some(bin) = super::super::pty_tests::find_shell(shell) else {
             eprintln!("skipping: {shell} not installed");
             return;
         };

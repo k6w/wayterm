@@ -437,7 +437,7 @@ export default function TerminalPane({
           useTerminalStore.getState().updatePane(paneId, { checkCwd: undefined, cwd: resolved.cwd, notice: resolved.notice });
         }
 
-        const sessionId = await terminalSpawn({
+        const { sessionId } = await terminalSpawn({
           shell: spawnShell,
           args: spawnArgs,
           cwd: spawnCwd,

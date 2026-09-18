@@ -175,14 +175,14 @@ export default function Scratchpad() {
       const shell = getPreferredShell(useSettingsStore.getState().settings.general.defaultShell);
       let sessionId: string;
       try {
-        sessionId = await terminalSpawn({
+        ({ sessionId } = await terminalSpawn({
           shell: shell.path,
           args: [],
           cwd: "",
           env: [],
           rows: term.rows,
           cols: term.cols,
-        });
+        }));
       } catch (err) {
         term.write(`\x1b[31mFailed to start shell\x1b[0m\r\n`);
         return;

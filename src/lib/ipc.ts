@@ -2,6 +2,12 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type { SftpEntry } from "../types/sftp";
 
+export interface SpawnResult {
+  sessionId: string;
+  /** Secret the shell integration sends with each command report; null when the shell is not integrated. */
+  nonce: string | null;
+}
+
 export async function terminalSpawn(request: {
   shell: string;
   args: string[];
@@ -11,7 +17,7 @@ export async function terminalSpawn(request: {
   cols: number;
   /** Local shells only: the backend adds the shell integration (titles, cwd). */
   shellIntegration?: boolean;
-}): Promise<string> {
+}): Promise<SpawnResult> {
   return invoke("terminal_spawn", { request: { ...request, shellIntegration: request.shellIntegration ?? false } });
 }
 
