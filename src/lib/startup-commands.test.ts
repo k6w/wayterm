@@ -71,6 +71,30 @@ describe("startup runner for a local shell", () => {
   });
 });
 
+describe("startup runner with shell integration", () => {
+  it("ignores quiet output and runs at the first prompt mark", () => {
+    const send = vi.fn();
+    const runner = createStartupRunner({ commands: ["ls"], send, waitForPrompt: true });
+    runner.output("loading plugins...\n");
+    vi.advanceTimersByTime(2000);
+    expect(send).not.toHaveBeenCalled();
+    runner.promptReady();
+    expect(send).toHaveBeenCalledWith("ls\r");
+  });
+
+  it("still runs after the maximum wait if no prompt mark ever arrives", () => {
+    const send = vi.fn();
+    const runner = createStartupRunner({ commands: ["ls"], send, waitForPrompt: true });
+    runner.output("$ ");
+    vi.advanceTimersByTime(4999);
+    expect(send).not.toHaveBeenCalled();
+    vi.advanceTimersByTime(1);
+    expect(send).toHaveBeenCalledTimes(1);
+    runner.promptReady();
+    expect(send).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("startup runner for ssh", () => {
   it("does not run while connecting, however quiet the connection is", () => {
     const send = vi.fn();

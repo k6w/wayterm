@@ -468,13 +468,23 @@ export default function TerminalPane({
         const startupCommands = existingPane?.startupCommands;
         if (startupCommands?.length) {
           useTerminalStore.getState().updatePane(paneId, { startupCommands: undefined });
-          startupRunner = createStartupRunner({
+          const runner = createStartupRunner({
             commands: startupCommands,
             ssh: isSsh,
+            // An integrated shell says when its prompt is up; others are watched for quiet output.
+            waitForPrompt: !isSsh && nonce !== null,
             send: (text) => {
               terminalWrite(sessionId, Array.from(new TextEncoder().encode(text))).catch(() => {});
             },
           });
+          startupRunner = runner;
+          if (!isSsh && nonce !== null) {
+            const unsubscribe = blocks.subscribe(() => {
+              if (!blocks.active) return;
+              unsubscribe();
+              runner.promptReady();
+            });
+          }
         }
 
         

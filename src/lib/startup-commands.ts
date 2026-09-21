@@ -10,6 +10,8 @@ export interface StartupRunnerOptions {
   maxWaitMs?: number;
   /** Delay between two commands. */
   gapMs?: number;
+  /** Local shell with shell integration: run at its first prompt mark (`promptReady`), not on quiet output. */
+  waitForPrompt?: boolean;
 }
 
 export interface StartupRunner {
@@ -21,6 +23,8 @@ export interface StartupRunner {
   connected: () => void;
   /** SSH: the host asked for a password or passphrase; wait for the user to answer. */
   authPrompt: () => void;
+  /** Shell integration: the shell showed its first prompt. */
+  promptReady: () => void;
   /** Stop for good (pane closed, process exited). */
   dispose: () => void;
   /** True once the commands were sent (or there was nothing to send, or it was disposed). */
@@ -38,12 +42,12 @@ const AUTH_PENDING = /password|passphrase|verification|yes\/no|denied|permission
  * as input text with a carriage return, like typing it.
  */
 export function createStartupRunner(options: StartupRunnerOptions): StartupRunner {
-  const { commands, send, ssh = false, quietMs = 400, maxWaitMs = 5000, gapMs = 50 } = options;
+  const { commands, send, ssh = false, quietMs = 400, maxWaitMs = 5000, gapMs = 50, waitForPrompt = false } = options;
   let done = commands.length === 0;
   let timer: ReturnType<typeof setTimeout> | null = null;
   const pending: ReturnType<typeof setTimeout>[] = [];
   // Which readiness path applies: local shells and connected SSH sessions watch for quiet output right away.
-  let mode: "wait" | "quiet" | "auth" = ssh ? "wait" : "quiet";
+  let mode: "wait" | "quiet" | "auth" | "prompt" = ssh ? "wait" : waitForPrompt ? "prompt" : "quiet";
   let answered = false;
 
   const clear = () => {
@@ -89,6 +93,9 @@ export function createStartupRunner(options: StartupRunnerOptions): StartupRunne
       if (done) return;
       mode = "quiet";
       arm(quietMs);
+    },
+    promptReady() {
+      if (mode === "prompt") run();
     },
     authPrompt() {
       if (done) return;
