@@ -5,6 +5,7 @@ import type { TerminalPane } from "../types/terminal";
 vi.mock("./ipc", () => ({ terminalCwd: vi.fn() }));
 import { terminalCwd } from "./ipc";
 import { startCwdTracking } from "./cwd-tracker";
+import { removeCachedTerminal, setCachedTerminal, type CachedTerminal } from "./terminal-registry";
 
 const pane = (over: Partial<TerminalPane> = {}): TerminalPane => ({
   id: "p1",
@@ -55,6 +56,17 @@ describe("startCwdTracking", () => {
     stop = startCwdTracking(1000);
     await vi.advanceTimersByTimeAsync(2000);
     expect(terminalCwd).not.toHaveBeenCalled();
+  });
+
+  it("leaves panes whose shell reports its cwd (shell integration) alone", async () => {
+    seed(pane({ cwd: "/from-osc7" }));
+    setCachedTerminal("p1", { blocks: { active: true } } as unknown as CachedTerminal);
+    vi.mocked(terminalCwd).mockResolvedValue("/polled");
+    stop = startCwdTracking(1000);
+    await vi.advanceTimersByTimeAsync(2000);
+    removeCachedTerminal("p1");
+    expect(terminalCwd).not.toHaveBeenCalled();
+    expect(useTerminalStore.getState().panes.p1.cwd).toBe("/from-osc7");
   });
 
   it("stops polling after stop()", async () => {

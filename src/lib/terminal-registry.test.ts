@@ -1,6 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Terminal } from "@xterm/xterm";
-import { copySelection, recordNativeCopies, setCachedTerminal, type CachedTerminal } from "./terminal-registry";
+import {
+  copySelection,
+  isShellIntegrationActive,
+  recordNativeCopies,
+  removeCachedTerminal,
+  resetTerminal,
+  setCachedTerminal,
+  type CachedTerminal,
+} from "./terminal-registry";
 import { useClipboardStore } from "../stores/clipboard";
 
 function fakeTerminal(selection: string) {
@@ -40,5 +48,19 @@ describe("terminal copy history", () => {
     setCachedTerminal("p1", { terminal: fakeTerminal("pwd") } as unknown as CachedTerminal);
     expect(copySelection("p1")).toBe(true);
     expect(useClipboardStore.getState().entries.map((e) => e.content)).toEqual(["pwd"]);
+  });
+});
+
+describe("command blocks in the cache", () => {
+  it("resets the blocks with the terminal, whose reset keeps stale markers", () => {
+    const blocks = { active: true, reset: vi.fn() };
+    const terminal = { reset: vi.fn() };
+    setCachedTerminal("p9", { terminal, blocks } as unknown as CachedTerminal);
+    resetTerminal("p9");
+    expect(terminal.reset).toHaveBeenCalled();
+    expect(blocks.reset).toHaveBeenCalled();
+    expect(isShellIntegrationActive("p9")).toBe(true);
+    removeCachedTerminal("p9");
+    expect(isShellIntegrationActive("p9")).toBe(false);
   });
 });

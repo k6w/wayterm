@@ -191,9 +191,11 @@ describe("restore", () => {
   it("replace disposes the live terminals of the tabs it replaces", async () => {
     await workspaceFromCurrent();
     const dispose = vi.fn();
-    setCachedTerminal("a", { terminal: { dispose } as never, fitAddon: {} as never, element: {} as never, sessionId: "s-a", unlistenOutput: null, unlistenExit: null, webglAddon: null });
+    const disposeBlocks = vi.fn();
+    setCachedTerminal("a", { terminal: { dispose } as never, fitAddon: {} as never, element: {} as never, sessionId: "s-a", unlistenOutput: null, unlistenExit: null, webglAddon: null, blocks: { dispose: disposeBlocks } as never });
     useWorkspaceStore.getState().restore("w1");
     expect(dispose).toHaveBeenCalled();
+    expect(disposeBlocks).toHaveBeenCalled();
     expect(terminalKill).toHaveBeenCalledWith("s-a");
   });
 

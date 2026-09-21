@@ -120,6 +120,9 @@ const STRICT_PATHS = [
   "src/components/sidebar/save-workspace.ts",
   "src/components/terminal/PaneNotice.tsx",
   "src/components/terminal/spawn-config.ts",
+  "src/lib/blocks/",
+  "src/lib/cwd-tracker.ts",
+  "src/lib/terminal-registry.ts",
 ];
 
 const file = "eslint-suppressions.json";

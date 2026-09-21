@@ -42,6 +42,7 @@ import {
   removeCachedTerminal,
   recordNativeCopies,
 } from "../../lib/terminal-registry";
+import { BlockTracker } from "../../lib/blocks/block-tracker";
 import {
   attachSerializeAddon,
   detachSerializeAddon,
@@ -434,7 +435,7 @@ export default function TerminalPane({
           useTerminalStore.getState().updatePane(paneId, { checkCwd: undefined, cwd: resolved.cwd, notice: resolved.notice });
         }
 
-        const { sessionId } = await terminalSpawn({
+        const { sessionId, nonce } = await terminalSpawn({
           shell: spawnShell,
           args: spawnArgs,
           cwd: spawnCwd,
@@ -453,6 +454,15 @@ export default function TerminalPane({
 
         sessionRef.current = sessionId;
         useTerminalStore.getState().updatePaneSession(paneId, sessionId);
+
+        // Command blocks and cwd from the shell integration, before any shell output.
+        const blocks = new BlockTracker(term, nonce, {
+          onCwd: (cwd) => {
+            if (useTerminalStore.getState().panes[paneId]?.cwd !== cwd) {
+              useTerminalStore.getState().updatePaneCwd(paneId, cwd);
+            }
+          },
+        });
 
         // Startup commands from a restored workspace run once, when the shell (or SSH session) is ready.
         const startupCommands = existingPane?.startupCommands;
@@ -610,7 +620,8 @@ export default function TerminalPane({
             title.startsWith("/") ||
             title.startsWith("\\\\");
           if (isPath) {
-            useTerminalStore.getState().updatePaneCwd(paneId, title);
+            // With the shell integration active, OSC 7 reports the cwd instead.
+            if (!blocks.active) useTerminalStore.getState().updatePaneCwd(paneId, title);
             // Long command notification: title change means shell returned to prompt
             const startTime = commandStartTimeRef.current;
             if (startTime !== null) {
@@ -661,6 +672,7 @@ export default function TerminalPane({
           unlistenOutput,
           unlistenExit,
           webglAddon: webgl,
+          blocks,
         });
 
         // Attach serialize addon for buffer persistence (only when enabled)
@@ -716,6 +728,7 @@ export default function TerminalPane({
           if (c.unlistenOutput) c.unlistenOutput();
           if (c.unlistenExit) c.unlistenExit();
           if (c.sessionId) terminalKill(c.sessionId).catch(() => {});
+          c.blocks?.dispose();
           c.terminal.dispose();
           removeCachedTerminal(paneId);
         }

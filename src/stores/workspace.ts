@@ -73,6 +73,7 @@ function disposeLiveTerminals(paneIds: string[]) {
     cached.unlistenOutput?.();
     cached.unlistenExit?.();
     if (cached.sessionId) terminalKill(cached.sessionId).catch(() => {});
+    cached.blocks?.dispose();
     cached.terminal.dispose();
     removeCachedTerminal(paneId);
   }

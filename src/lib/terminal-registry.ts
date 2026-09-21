@@ -4,6 +4,7 @@ import type { WebglAddon } from "@xterm/addon-webgl";
 import type { UnlistenFn } from "@tauri-apps/api/event";
 import { bufferSaveBatch } from "./ipc";
 import { useClipboardStore } from "../stores/clipboard";
+import type { BlockTracker } from "./blocks/block-tracker";
 
 export interface CachedTerminal {
   terminal: Terminal;
@@ -15,6 +16,8 @@ export interface CachedTerminal {
   unlistenExit: UnlistenFn | null;
   
   webglAddon: WebglAddon | null;
+  /** Command blocks from the shell integration; disposed with the terminal. */
+  blocks: BlockTracker | null;
 }
 
 const cache = new Map<string, CachedTerminal>();
@@ -32,6 +35,11 @@ export function removeCachedTerminal(paneId: string) {
 }
 
 
+
+/** The pane's shell reports prompts and cwd itself (shell integration is active). */
+export function isShellIntegrationActive(paneId: string): boolean {
+  return cache.get(paneId)?.blocks?.active ?? false;
+}
 
 export function getTerminal(paneId: string): Terminal | undefined {
   return cache.get(paneId)?.terminal;
@@ -86,6 +94,8 @@ export function clearBuffer(paneId: string) {
 
 export function resetTerminal(paneId: string) {
   cache.get(paneId)?.terminal.reset();
+  // reset() leaves the old markers behind; the blocks they mark are gone.
+  cache.get(paneId)?.blocks?.reset();
   bufferSaveBatch([{ paneId, bufferData: "" }]).catch(() => {});
 }
 
