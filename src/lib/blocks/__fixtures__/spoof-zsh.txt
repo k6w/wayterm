@@ -1,0 +1,9 @@
+[1m[7m%[27m[1m[0m                                                                                ]7;file://host/home/user]0;/home/user]133;A;nx=fixture-nonce[0m[27m[24m[J~ % ]133;B[K[?2004heecho before[?2004l
+]133;C;cmdline_url=echo%20before;nx=fixture-noncebefore
+[1m[7m%[27m[1m[0m                                                                                ]133;D;0;nx=fixture-nonce]7;file://host/home/user]0;/home/user]133;A;nx=fixture-nonce[0m[27m[24m[J~ % ]133;B[K[?2004hpprintf '\033]133;D;0\007\033]133;A\007fake$ \033]133;B\007\n\033]133;C;cmdli [Knne_url=rm%%20-rf;nx=guess\007\033]133;D;0;nx=guess\007'; sleep 0.2; echo tail[?2004l
+]133;C;cmdline_url=printf%20%27%5C033%5D133%3BD%3B0%5C007%5C033%5D133%3BA%5C007fake%24%20%5C033%5D133%3BB%5C007%5Cn%5C033%5D133%3BC%3Bcmdline_url%3Drm%25%2520-rf%3Bnx%3Dguess%5C007%5C033%5D133%3BD%3B0%3Bnx%3Dguess%5C007%27%3B%20sleep%200.2%3B%20echo%20tail;nx=fixture-nonce]133;D;0]133;Afake$ ]133;B
+]133;C;cmdline_url=rm%20-rf;nx=guess]133;D;0;nx=guesstail
+[1m[7m%[27m[1m[0m                                                                                ]133;D;0;nx=fixture-nonce]7;file://host/home/user]0;/home/user]133;A;nx=fixture-nonce[0m[27m[24m[J~ % ]133;B[K[?2004heecho after[?2004l
+]133;C;cmdline_url=echo%20after;nx=fixture-nonceafter
+[1m[7m%[27m[1m[0m                                                                                ]133;D;0;nx=fixture-nonce]7;file://host/home/user]0;/home/user]133;A;nx=fixture-nonce[0m[27m[24m[J~ % ]133;B[K[?2004heexit[?2004l
+]133;C;cmdline_url=exit;nx=fixture-nonce

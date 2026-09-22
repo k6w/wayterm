@@ -126,6 +126,7 @@ export class BlockTracker {
 
   getCommandText(b: Block): string {
     if (b.command !== undefined) return b.command;
+    if (!b.commandStart && !b.outputStart) return "";
     const start = b.commandStart ?? b.promptStart;
     const startCol = b.commandStart ? (b.commandCol ?? 0) : 0;
     const end = b.outputStart ? { line: b.outputStart.line, col: b.outputCol ?? 0 } : this.cursor();
@@ -160,6 +161,12 @@ export class BlockTracker {
   private onMark(data: string): void {
     if (this.disposed) return;
     const [mark, ...rest] = data.split(";");
+    const params = parseParams(rest);
+    const signed = this.nonce !== null && params.get("nx") === this.nonce;
+    // A pane started with our script knows its nonce: then only marks carrying
+    // it count, so command output cannot fake prompts, commands or exits.
+    // (B carries none; it is only taken at a prompt, when nothing else prints.)
+    if (this.nonce !== null && !signed && mark !== "B") return;
     const alternate = this.term.buffer.active.type === "alternate";
     switch (mark) {
       case "A":
@@ -169,10 +176,10 @@ export class BlockTracker {
         if (!alternate) this.onCommandStart();
         break;
       case "C":
-        this.onOutputStart(parseParams(rest), alternate);
+        this.onOutputStart(params, signed, alternate);
         break;
       case "D":
-        this.onCommandEnd(rest[0], alternate);
+        this.onCommandEnd(rest[0]?.includes("=") ? undefined : rest[0], alternate);
         break;
       default:
         return;
@@ -213,22 +220,10 @@ export class BlockTracker {
     this.notify();
   }
 
-  private onOutputStart(params: Map<string, string>, alternate: boolean): void {
+  private onOutputStart(params: Map<string, string>, trusted: boolean, alternate: boolean): void {
     const b = this.last();
-    if (!b) return;
-    const trusted = this.nonce !== null && params.get("nx") === this.nonce;
+    if (!b || (b.state !== "prompt" && b.state !== "input")) return;
     const cmdline = params.get("cmdline_url");
-    if (b.state === "running") {
-      // A second report for the same command (fish 4 sends its own first). Only
-      // ours, with the nonce, may say what ran; anything else is ignored.
-      if (trusted && !b.trusted) {
-        b.trusted = true;
-        if (cmdline !== undefined) b.command = decode(cmdline)?.slice(0, MAX_COMMAND_LENGTH);
-        this.notify();
-      }
-      return;
-    }
-    if (b.state !== "prompt" && b.state !== "input") return;
     b.state = "running";
     b.startedAt = this.now();
     b.trusted = trusted;

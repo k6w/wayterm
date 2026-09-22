@@ -118,9 +118,10 @@ pub(crate) fn assert_reports_false_with(sh: &Shell, c_report: Option<&str>) {
     sh.run("false");
     let out = sh.text();
     assert!(out.contains("\x1b]133;B"), "no command start: {out:?}");
+    assert!(out.contains(&format!("\x1b]133;A;nx={NONCE}\x07")), "no signed prompt start: {out:?}");
     let c = c_report.map(str::to_string).unwrap_or_else(|| format!("cmdline_url=false;nx={NONCE}"));
     assert!(out.contains(&format!("\x1b]133;C;{c}\x07")), "no command report: {out:?}");
-    assert!(out.contains("\x1b]133;D;1\x07"), "no exit status: {out:?}");
+    assert!(out.contains(&format!("\x1b]133;D;1;nx={NONCE}\x07")), "no exit status: {out:?}");
     assert!(out.contains("\x1b]7;file://"), "no cwd report: {out:?}");
 }
 
@@ -207,7 +208,7 @@ mod zsh {
         let sh = Shell::start(&zsh, home.path(), &[], &no_env);
         assert_reports_false(&sh);
         sh.run("(exit 3)");
-        assert!(sh.text().contains("\x1b]133;D;3\x07"), "{:?}", sh.text());
+        assert!(sh.text().contains(&format!("\x1b]133;D;3;nx={NONCE}\x07")), "{:?}", sh.text());
     }
 
     #[test]
@@ -276,7 +277,7 @@ mod bash {
             // that line gets no C there (D still arrives).
             sh.run("sh -c 'exit 3'");
             let out = sh.text();
-            assert!(out.contains("\x1b]133;D;3\x07"), "{}: {out:?}", bash.display());
+            assert!(out.contains(&format!("\x1b]133;D;3;nx={NONCE}\x07")), "{}: {out:?}", bash.display());
             assert!(out.contains("SENTINEL-BASHRC"), "{}: {out:?}", bash.display());
             // Non-login, exactly as before.
             assert!(!out.contains("SENTINEL-BASH-PROFILE"), "{}: {out:?}", bash.display());
@@ -358,6 +359,17 @@ mod bash {
     }
 
     #[test]
+    fn keeps_the_nonce_out_of_prompt_strings() {
+        for bash in bashes() {
+            let home = home_with("PS1='$ '\n");
+            let sh = Shell::start(&bash, home.path(), &[], &no_env);
+            assert!(sh.wait_for("\x1b]133;A"));
+            sh.run("case \"$PS0$PS1\" in *7f3a*) echo LE''AK;; *) echo CL''EAN;; esac");
+            assert!(sh.text().contains("CLEAN"), "{}: {:?}", bash.display(), sh.text());
+        }
+    }
+
+    #[test]
     fn leaves_a_users_debug_trap_alone() {
         for bash in bashes() {
             let home = home_with("trap 'USER_TRAP=1' DEBUG\nPS1='$ '\n");
@@ -366,7 +378,7 @@ mod bash {
             sh.run("trap -p DEBUG");
             let out = sh.text();
             assert!(out.contains("USER_TRAP=1"), "{}: {out:?}", bash.display());
-            assert!(out.contains("\x1b]133;D;0\x07"), "{}: {out:?}", bash.display());
+            assert!(out.contains(&format!("\x1b]133;D;0;nx={NONCE}\x07")), "{}: {out:?}", bash.display());
         }
     }
 
@@ -442,7 +454,8 @@ mod fish {
         sh.run("false");
         let out = sh.text();
         assert!(out.contains(&format!("\x1b]133;C;cmdline_url=false;nx={NONCE}\x07")), "{out:?}");
-        assert!(out.contains("\x1b]133;D;1"), "{out:?}");
+        assert!(out.contains(&format!("\x1b]133;D;1;nx={NONCE}\x07")), "{out:?}");
+        assert!(out.contains(&format!("\x1b]133;A;nx={NONCE}\x07")), "{out:?}");
         assert!(out.contains("\x1b]7;file://"), "{out:?}");
         assert!(out.contains("SENTINEL-FISH-CONFIG"), "{out:?}");
     }

@@ -1,7 +1,7 @@
-[1m[7m%[27m[1m[0m                                                                                ]7;file://host/home/user]0;/home/user]133;A[0m[27m[24m[J~ % ]133;B[K[?2004hssleep 5[?2004l
+[1m[7m%[27m[1m[0m                                                                                ]7;file://host/home/user]0;/home/user]133;A;nx=fixture-nonce[0m[27m[24m[J~ % ]133;B[K[?2004hssleep 5[?2004l
 ]133;C;cmdline_url=sleep%205;nx=fixture-nonce^C
-[1m[7m%[27m[1m[0m                                                                                ]133;D;130]7;file://host/home/user]0;/home/user]133;A[0m[27m[24m[J~ % ]133;B[K[?2004heecho partial[?2004l
-[1m[7m%[27m[1m[0m                                                                                ]7;file://host/home/user]0;/home/user]133;A[0m[27m[24m[J~ % ]133;B[K[?2004heecho after[?2004l
+[1m[7m%[27m[1m[0m                                                                                ]133;D;130;nx=fixture-nonce]7;file://host/home/user]0;/home/user]133;A;nx=fixture-nonce[0m[27m[24m[J~ % ]133;B[K[?2004heecho partial[?2004l
+[1m[7m%[27m[1m[0m                                                                                ]7;file://host/home/user]0;/home/user]133;A;nx=fixture-nonce[0m[27m[24m[J~ % ]133;B[K[?2004heecho after[?2004l
 ]133;C;cmdline_url=echo%20after;nx=fixture-nonceafter
-[1m[7m%[27m[1m[0m                                                                                ]133;D;0]7;file://host/home/user]0;/home/user]133;A[0m[27m[24m[J~ % ]133;B[K[?2004heexit[?2004l
+[1m[7m%[27m[1m[0m                                                                                ]133;D;0;nx=fixture-nonce]7;file://host/home/user]0;/home/user]133;A;nx=fixture-nonce[0m[27m[24m[J~ % ]133;B[K[?2004heexit[?2004l
 ]133;C;cmdline_url=exit;nx=fixture-nonce

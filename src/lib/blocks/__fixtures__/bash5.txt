@@ -1,11 +1,11 @@
-]7;file://host/home/user]0;/home/user]133;A[?2004h~ $ ]133;Becho hello
+]7;file://host/home/user]0;/home/user]133;A;nx=fixture-nonce[?2004h~ $ ]133;Becho hello
 [?2004l]133;C;nx=fixture-noncehello
-]133;D;0]7;file://host/home/user]0;/home/user]133;A[?2004h~ $ ]133;Bfalse
-[?2004l]133;C;nx=fixture-nonce]133;D;1]7;file://host/home/user]0;/home/user]133;A[?2004h~ $ ]133;Bcd 'my dir'
-[?2004l]133;C;nx=fixture-nonce]133;D;0]7;file://host/home/user/my%20dir]0;/home/user/my dir]133;A[?2004h~/my dir $ ]133;Bprintf 'one\ntwo\nthree\n'
+]133;D;0;nx=fixture-nonce]7;file://host/home/user]0;/home/user]133;A;nx=fixture-nonce[?2004h~ $ ]133;Bfalse
+[?2004l]133;C;nx=fixture-nonce]133;D;1;nx=fixture-nonce]7;file://host/home/user]0;/home/user]133;A;nx=fixture-nonce[?2004h~ $ ]133;Bcd 'my dir'
+[?2004l]133;C;nx=fixture-nonce]133;D;0;nx=fixture-nonce]7;file://host/home/user/my%20dir]0;/home/user/my dir]133;A;nx=fixture-nonce[?2004h~/my dir $ ]133;Bprintf 'one\ntwo\nthree\n'
 [?2004l]133;C;nx=fixture-nonceone
 two
 three
-]133;D;0]7;file://host/home/user/my%20dir]0;/home/user/my dir]133;A[?2004h~/my dir $ ]133;Bcd
-[?2004l]133;C;nx=fixture-nonce]133;D;0]7;file://host/home/user]0;/home/user]133;A[?2004h~ $ ]133;Bexit
+]133;D;0;nx=fixture-nonce]7;file://host/home/user/my%20dir]0;/home/user/my dir]133;A;nx=fixture-nonce[?2004h~/my dir $ ]133;Bcd
+[?2004l]133;C;nx=fixture-nonce]133;D;0;nx=fixture-nonce]7;file://host/home/user]0;/home/user]133;A;nx=fixture-nonce[?2004h~ $ ]133;Bexit
 [?2004l]133;C;nx=fixture-nonceexit

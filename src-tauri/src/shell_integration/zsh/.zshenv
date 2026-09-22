@@ -33,13 +33,14 @@ if [[ -o interactive && "$_nx_enabled" == 1 ]]; then
   _nx_precmd() {
     'builtin' 'local' _nx_status=$?
     if (( _nx_ran )); then
-      'builtin' 'printf' '\e]133;D;%s\a' "$_nx_status"
+      'builtin' 'printf' '\e]133;D;%s;nx=%s\a' "$_nx_status" "$_nx_nonce"
       _nx_ran=0
     fi
     _nx_urlencode "$PWD"
     # cwd, title (the cwd, as before) and prompt start. A is printed here rather
     # than put in PS1 so a prompt redrawn by zle (resize) does not repeat it.
-    'builtin' 'printf' '\e]7;file://%s%s\a\e]0;%s\a\e]133;A\a' "${HOST-}" "$REPLY" "${PWD//[[:cntrl:]]/}"
+    'builtin' 'printf' '\e]7;file://%s%s\a\e]0;%s\a\e]133;A;nx=%s\a' \
+      "${HOST-}" "$REPLY" "${PWD//[[:cntrl:]]/}" "$_nx_nonce"
     # Themes rebuild PS1 before every prompt, so mark its end again whenever needed.
     'builtin' 'local' _nx_mark=$'%{\e]133;B\a%}'
     if [[ "$PS1" != *"$_nx_mark" ]]; then

@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 
 /// Bump whenever any script changes, so shells started by an older Nexterm keep
 /// reading the files they were started with.
-pub const SCRIPT_VERSION: u32 = 1;
+pub const SCRIPT_VERSION: u32 = 2;
 
 /// Script path (relative to the versioned directory) and contents.
 pub const SCRIPTS: &[(&str, &str)] = &[
@@ -63,7 +63,7 @@ mod tests {
 
     /// Changing a script without bumping SCRIPT_VERSION would let two Nexterm
     /// builds overwrite each other's files. Update both together.
-    const SCRIPTS_SHA256: &str = "4f4672df6b99d69a65d06f0f194018b282d28f08c7ec338f524ea307ab10bd69";
+    const SCRIPTS_SHA256: &str = "84f67f230f2d739f2851137a5b13857e7a9c59a6e82ac153b54ac43e08942ddd";
 
     #[test]
     fn script_version_is_bumped_with_the_scripts() {

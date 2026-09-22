@@ -41,12 +41,13 @@ if [[ "$_nx_enabled" == 1 && $- == *i* ]]; then
   # Runs last before each prompt; $_nx_status is the last command's status.
   _nx_precmd() {
     if [[ -n "${_nx_started-}" ]]; then
-      builtin printf '\e]133;D;%s\a' "$_nx_status"
+      builtin printf '\e]133;D;%s;nx=%s\a' "$_nx_status" "$_nx_nonce"
     fi
     _nx_started=1
     _nx_urlencode "$PWD"
     # cwd, title (the cwd, as before) and prompt start.
-    builtin printf '\e]7;file://%s%s\a\e]0;%s\a\e]133;A\a' "${HOSTNAME-}" "$REPLY" "$PWD"
+    builtin printf '\e]7;file://%s%s\a\e]0;%s\a\e]133;A;nx=%s\a' \
+      "${HOSTNAME-}" "$REPLY" "$PWD" "$_nx_nonce"
     # Prompt frameworks rebuild PS1, so mark its end again whenever needed.
     local mark='\[\e]133;B\a\]'
     if [[ "$PS1" != *"$mark" ]]; then
@@ -80,7 +81,12 @@ if [[ "$_nx_enabled" == 1 && $- == *i* ]]; then
 
     if (( BASH_VERSINFO[0] > 4 || (BASH_VERSINFO[0] == 4 && BASH_VERSINFO[1] >= 4) )); then
       # bash 4.4+ prints PS0 after reading a command line, before running it.
-      _nx_ps0_mark=$'\e]133;C;nx='"$_nx_nonce"$'\a'
+      # The nonce is expanded when PS0 is shown, so PS0 itself never holds it.
+      if shopt -q promptvars; then
+        _nx_ps0_mark=$'\e]133;C;nx=${_nx_nonce}\a'
+      else
+        _nx_ps0_mark=$'\e]133;C;nx='"$_nx_nonce"$'\a'
+      fi
     elif [[ -z "$(trap -p DEBUG)" ]]; then
       # Older bash (macOS /bin/bash 3.2): the first command run after a prompt,
       # other than the prompt commands themselves and completion.
