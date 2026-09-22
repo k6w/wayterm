@@ -161,7 +161,7 @@ async function resolveSpawnConfig(
     // "--" so a user or host can never be read as an ssh option.
     sshArgs.push("--", `${conn.username}@${conn.host}`);
 
-    return { shell: "ssh", args: sshArgs, env, shellIntegration: false };
+    return { shell: "ssh", args: sshArgs, env, shellSetup: "none" };
   }
 
   
@@ -409,13 +409,13 @@ export default function TerminalPane({
         }
 
         let spawnShell: string, spawnArgs: string[], spawnEnv: [string, string][];
-        let spawnIntegration: boolean;
+        let spawnSetup: SpawnConfig["shellSetup"];
         try {
           const config = await resolveSpawnConfig(existingPane, settings);
           spawnShell = config.shell;
           spawnArgs = config.args;
           spawnEnv = config.env;
-          spawnIntegration = config.shellIntegration;
+          spawnSetup = config.shellSetup;
         } catch (err) {
           if (err instanceof SshConnectionNotFoundError) {
             term.write(`\x1b[31mError: ${err.message}\x1b[0m\r\n`);
@@ -442,7 +442,7 @@ export default function TerminalPane({
           env: spawnEnv,
           rows: term.rows,
           cols: term.cols,
-          shellIntegration: spawnIntegration,
+          shellSetup: spawnSetup,
         });
 
         if (cancelled) {

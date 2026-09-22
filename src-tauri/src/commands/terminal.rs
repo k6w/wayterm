@@ -1,6 +1,6 @@
 use crate::db::{self, DbPool};
 use crate::pty::manager::PtyManager;
-use crate::shell_integration::{self, PlanContext};
+use crate::shell_integration::{self, PlanContext, ShellSetup};
 use std::collections::HashMap;
 use std::fs::OpenOptions;
 use std::io::Write;
@@ -17,9 +17,9 @@ pub struct SpawnRequest {
     pub env: Vec<(String, String)>,
     pub rows: u16,
     pub cols: u16,
-    /// Start a local shell with the title/cwd integration (false for ssh and the scratchpad).
+    /// What to add to a local shell; ssh and the scratchpad leave it out (none).
     #[serde(default)]
-    pub shell_integration: bool,
+    pub shell_setup: ShellSetup,
 }
 
 #[derive(serde::Serialize)]
@@ -54,7 +54,7 @@ pub async fn terminal_spawn(
             .or_else(|| std::env::var(key).ok())
     };
     let ctx = PlanContext { dir: pty_manager.integration_dir(), nonce: &nonce, orig_env: &orig_env };
-    let plan = shell_integration::plan(&shell, request.shell_integration, &ctx);
+    let plan = shell_integration::plan(&shell, request.shell_setup, &ctx);
     let args: Vec<String> = plan.args.into_iter().chain(request.args).collect();
     let env: Vec<(String, String)> = request_env.iter().cloned().chain(plan.env).collect();
     pty_manager.spawn(

@@ -34,15 +34,15 @@ describe("ssh connection envVars wire format", () => {
 });
 
 describe("terminalSpawn wire format", () => {
-  it("passes shellIntegration through and defaults it to false", async () => {
+  it("passes shellSetup through and defaults it to none", async () => {
     vi.mocked(invoke).mockResolvedValue("sid");
     const base = { shell: "/bin/zsh", args: [], cwd: "", env: [] as [string, string][], rows: 24, cols: 80 };
-    await terminalSpawn({ ...base, shellIntegration: true });
+    await terminalSpawn({ ...base, shellSetup: "titleOnly" });
     await terminalSpawn(base);
-    const calls = vi.mocked(invoke).mock.calls as [string, { request: { shellIntegration: boolean } }][];
+    const calls = vi.mocked(invoke).mock.calls as [string, { request: { shellSetup: string } }][];
     expect(calls[0][0]).toBe("terminal_spawn");
-    expect(calls[0][1].request.shellIntegration).toBe(true);
-    expect(calls[1][1].request.shellIntegration).toBe(false);
+    expect(calls[0][1].request.shellSetup).toBe("titleOnly");
+    expect(calls[1][1].request.shellSetup).toBe("none");
   });
 
   it("returns the session id and the integration nonce", async () => {

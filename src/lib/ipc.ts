@@ -2,6 +2,9 @@ import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type { SftpEntry } from "../types/sftp";
 
+/** integrated: integration script; titleOnly: prompt sets the title to the cwd; none: untouched. */
+export type ShellSetup = "integrated" | "titleOnly" | "none";
+
 export interface SpawnResult {
   sessionId: string;
   /** Secret the shell integration sends with each command report; null when the shell is not integrated. */
@@ -15,10 +18,10 @@ export async function terminalSpawn(request: {
   env: [string, string][];
   rows: number;
   cols: number;
-  /** Local shells only: the backend adds the shell integration (titles, cwd). */
-  shellIntegration?: boolean;
+  /** Local shells only: what the backend adds (integration script, or only the title prompt). */
+  shellSetup?: ShellSetup;
 }): Promise<SpawnResult> {
-  return invoke("terminal_spawn", { request: { ...request, shellIntegration: request.shellIntegration ?? false } });
+  return invoke("terminal_spawn", { request: { ...request, shellSetup: request.shellSetup ?? "none" } });
 }
 
 export async function terminalWrite(

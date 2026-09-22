@@ -2,7 +2,7 @@
 //! to prove the user's own config still loads and the reports are emitted.
 //! Every test skips when its shell is not installed.
 
-use super::{install, plan, PlanContext};
+use super::{install, plan, PlanContext, ShellSetup};
 use crate::pty::session::PtySession;
 use parking_lot::Mutex;
 use std::path::{Path, PathBuf};
@@ -38,7 +38,7 @@ impl Shell {
         let data = tempfile::tempdir().unwrap();
         let dir = install::install(data.path()).unwrap();
         let ctx = PlanContext { dir: Some(&dir), nonce: NONCE, orig_env };
-        let p = plan(shell.to_str().unwrap(), true, &ctx);
+        let p = plan(shell.to_str().unwrap(), ShellSetup::Integrated, &ctx);
         assert!(p.integrated, "{} should be integrated", shell.display());
         let mut full_env: Vec<(String, String)> = vec![("HOME".into(), home.to_string_lossy().into_owned())];
         full_env.extend(env.iter().map(|(k, v)| (k.to_string(), v.to_string())));

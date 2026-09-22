@@ -7,6 +7,19 @@ mod pty_tests;
 
 use std::path::Path;
 
+/// How much Nexterm adds to a shell it starts.
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, serde::Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub enum ShellSetup {
+    /// Start the shell untouched (ssh, the scratchpad).
+    #[default]
+    None,
+    /// Only make the prompt set the window title to the cwd (integration turned off).
+    TitleOnly,
+    /// Load the integration script where there is one, else the title setup.
+    Integrated,
+}
+
 /// Extra arguments and environment for one shell spawn.
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct SpawnPlan {
@@ -136,18 +149,15 @@ fn fish_plan(dir: &Path, ctx: &PlanContext) -> SpawnPlan {
     }
 }
 
-/// The spawn plan for `shell_path`. `enabled` is false for shells that must
-/// start untouched (scratchpad, ssh, or integration turned off). Shells without
-/// a script, or when the scripts could not be installed, get the title-only setup.
-pub fn plan(shell_path: &str, enabled: bool, ctx: &PlanContext) -> SpawnPlan {
-    if !enabled {
-        return SpawnPlan::default();
-    }
+/// The spawn plan for `shell_path`. Shells without a script, or when the
+/// scripts could not be installed, get the title-only setup.
+pub fn plan(shell_path: &str, setup: ShellSetup, ctx: &PlanContext) -> SpawnPlan {
     let kind = shell_kind(shell_path);
-    match (kind, ctx.dir) {
-        (ShellKind::Zsh, Some(dir)) => zsh_plan(dir, ctx),
-        (ShellKind::Bash, Some(dir)) => bash_plan(dir, ctx),
-        (ShellKind::Fish, Some(dir)) => fish_plan(dir, ctx),
+    match (setup, kind, ctx.dir) {
+        (ShellSetup::None, _, _) => SpawnPlan::default(),
+        (ShellSetup::Integrated, ShellKind::Zsh, Some(dir)) => zsh_plan(dir, ctx),
+        (ShellSetup::Integrated, ShellKind::Bash, Some(dir)) => bash_plan(dir, ctx),
+        (ShellSetup::Integrated, ShellKind::Fish, Some(dir)) => fish_plan(dir, ctx),
         _ => title_plan(kind),
     }
 }
@@ -174,7 +184,7 @@ mod tests {
         let dir = Path::new("/data/si/v1");
         let users = |k: &str| (k == "ZDOTDIR").then(|| "/home/u/.config/zsh".to_string());
         let ctx = PlanContext { dir: Some(dir), nonce: "abc", orig_env: &users };
-        let p = plan("/bin/zsh", true, &ctx);
+        let p = plan("/bin/zsh", ShellSetup::Integrated, &ctx);
         assert!(p.integrated);
         assert!(p.args.is_empty());
         assert_eq!(env_of(&p, "ZDOTDIR"), Some(dir.join("zsh").to_str().unwrap()));
@@ -189,7 +199,7 @@ mod tests {
     fn bash_loads_the_script_as_its_rcfile() {
         let dir = Path::new("/data/si/v1");
         let ctx = PlanContext { dir: Some(dir), nonce: "abc", orig_env: &no_env };
-        let p = plan("/bin/bash", true, &ctx);
+        let p = plan("/bin/bash", ShellSetup::Integrated, &ctx);
         assert!(p.integrated);
         assert_eq!(p.args, vec!["--rcfile".to_string(), dir.join("bash/nexterm.bash").to_string_lossy().into_owned()]);
         assert_eq!(env_of(&p, "NEXTERM_SHELL_INTEGRATION"), Some("1"));
@@ -201,7 +211,7 @@ mod tests {
     fn fish_sources_the_script_after_its_config() {
         let dir = Path::new("/Users/me/Library/Application Support/it's/v1");
         let ctx = PlanContext { dir: Some(dir), nonce: "abc", orig_env: &no_env };
-        let p = plan("/opt/homebrew/bin/fish", true, &ctx);
+        let p = plan("/opt/homebrew/bin/fish", ShellSetup::Integrated, &ctx);
         assert!(p.integrated);
         let script = dir.join("fish/nexterm.fish").to_string_lossy().replace('\\', "\\\\").replace('\'', "\\'");
         assert!(script.contains(r"Support/it\'s/v1"), "{script}");
@@ -212,17 +222,17 @@ mod tests {
     #[test]
     fn other_shells_keep_the_title_setup_with_scripts_installed() {
         let ctx = PlanContext { dir: Some(Path::new("/d")), nonce: "abc", orig_env: &no_env };
-        let p = plan(r"C:\Program Files\PowerShell\7\pwsh.exe", true, &ctx);
+        let p = plan(r"C:\Program Files\PowerShell\7\pwsh.exe", ShellSetup::Integrated, &ctx);
         assert!(!p.integrated);
         assert_eq!(p.args[0], "-NoLogo");
-        assert!(!plan(r"C:\Windows\System32\cmd.exe", true, &ctx).integrated);
-        assert_eq!(plan("/bin/sh", true, &ctx), SpawnPlan::default());
+        assert!(!plan(r"C:\Windows\System32\cmd.exe", ShellSetup::Integrated, &ctx).integrated);
+        assert_eq!(plan("/bin/sh", ShellSetup::Integrated, &ctx), SpawnPlan::default());
     }
 
     #[test]
     fn zsh_marks_an_unset_zdotdir() {
         let ctx = PlanContext { dir: Some(Path::new("/d")), nonce: "abc", orig_env: &no_env };
-        let p = plan("/bin/zsh", true, &ctx);
+        let p = plan("/bin/zsh", ShellSetup::Integrated, &ctx);
         assert_eq!(env_of(&p, "NEXTERM_ORIG_ZDOTDIR"), None);
         assert_eq!(env_of(&p, "NEXTERM_ORIG_ZDOTDIR_UNSET"), Some("1"));
     }
@@ -230,7 +240,7 @@ mod tests {
     #[test]
     fn zsh_disabled_is_untouched_even_with_scripts() {
         let ctx = PlanContext { dir: Some(Path::new("/d")), nonce: "abc", orig_env: &no_env };
-        assert_eq!(plan("/bin/zsh", false, &ctx), SpawnPlan::default());
+        assert_eq!(plan("/bin/zsh", ShellSetup::None, &ctx), SpawnPlan::default());
     }
 
     fn env(pairs: &[(&str, &str)]) -> Vec<(String, String)> {
@@ -238,22 +248,34 @@ mod tests {
     }
 
     #[test]
+    fn title_only_keeps_the_title_setup_for_every_shell() {
+        let ctx = PlanContext { dir: Some(Path::new("/d")), nonce: "abc", orig_env: &no_env };
+        for shell in ["/bin/bash", "/bin/zsh", "/usr/bin/fish", r"C:\Program Files\PowerShell\7\pwsh.exe", r"C:\Windows\System32\cmd.exe"] {
+            let p = plan(shell, ShellSetup::TitleOnly, &ctx);
+            assert!(!p.integrated, "{shell}");
+            assert_eq!(p, plan(shell, ShellSetup::Integrated, &no_dir()), "{shell}");
+            assert_ne!(p, SpawnPlan::default(), "{shell}");
+        }
+        assert_eq!(plan("/bin/sh", ShellSetup::TitleOnly, &ctx), SpawnPlan::default());
+    }
+
+    #[test]
     fn disabled_changes_nothing() {
         for shell in ["/bin/bash", "/bin/zsh", "/usr/bin/fish", "pwsh.exe", "cmd.exe"] {
-            assert_eq!(plan(shell, false, &no_dir()), SpawnPlan::default(), "{shell}");
+            assert_eq!(plan(shell, ShellSetup::None, &no_dir()), SpawnPlan::default(), "{shell}");
         }
     }
 
     #[test]
     fn bash_gets_title_prompt_command() {
-        let p = plan("/opt/homebrew/bin/bash", true, &no_dir());
+        let p = plan("/opt/homebrew/bin/bash", ShellSetup::Integrated, &no_dir());
         assert!(p.args.is_empty());
         assert_eq!(p.env, env(&[("PROMPT_COMMAND", "printf \"\\033]0;%s\\007\" \"$PWD\"")]));
     }
 
     #[test]
     fn zsh_matches_previous_frontend_plan() {
-        let p = plan("/bin/zsh", true, &no_dir());
+        let p = plan("/bin/zsh", ShellSetup::Integrated, &no_dir());
         assert!(p.args.is_empty());
         assert_eq!(
             p.env,
@@ -266,7 +288,7 @@ mod tests {
 
     #[test]
     fn fish_sets_fish_title() {
-        let p = plan("/usr/local/bin/fish", true, &no_dir());
+        let p = plan("/usr/local/bin/fish", ShellSetup::Integrated, &no_dir());
         assert_eq!(p.args, strings(&["-C", "function fish_title; echo $PWD; end"]));
         assert!(p.env.is_empty());
     }
@@ -274,7 +296,7 @@ mod tests {
     #[test]
     fn powershell_sets_title_in_prompt() {
         for shell in [r"C:\Program Files\PowerShell\7\pwsh.exe", r"C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe"] {
-            let p = plan(shell, true, &no_dir());
+            let p = plan(shell, ShellSetup::Integrated, &no_dir());
             assert_eq!(p.args[..3], strings(&["-NoLogo", "-NoExit", "-Command"])[..]);
             assert!(p.args[3].contains("WindowTitle = $PWD.Path"));
             assert!(p.env.is_empty());
@@ -283,14 +305,14 @@ mod tests {
 
     #[test]
     fn cmd_sets_title_prompt() {
-        let p = plan(r"C:\Windows\System32\cmd.exe", true, &no_dir());
+        let p = plan(r"C:\Windows\System32\cmd.exe", ShellSetup::Integrated, &no_dir());
         assert_eq!(p.args, strings(&["/K", "prompt $e]0;$p$e\\$p$g"]));
     }
 
     #[test]
     fn unknown_shell_and_ssh_get_nothing() {
-        assert_eq!(plan("/bin/sh", true, &no_dir()), SpawnPlan::default());
-        assert_eq!(plan("ssh", true, &no_dir()), SpawnPlan::default());
+        assert_eq!(plan("/bin/sh", ShellSetup::Integrated, &no_dir()), SpawnPlan::default());
+        assert_eq!(plan("ssh", ShellSetup::Integrated, &no_dir()), SpawnPlan::default());
     }
 
     #[test]

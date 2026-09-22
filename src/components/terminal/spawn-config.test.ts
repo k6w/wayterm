@@ -17,12 +17,12 @@ describe("localSpawnConfig", () => {
       shell: "/bin/zsh",
       args: [],
       env: [],
-      shellIntegration: true,
+      shellSetup: "integrated",
     });
   });
 
-  it("starts the shell untouched when the setting is off", () => {
-    expect(localSpawnConfig(undefined, settingsWith({ shellIntegration: false }), "/bin/zsh").shellIntegration).toBe(false);
+  it("keeps the title-only prompt when the setting is off", () => {
+    expect(localSpawnConfig(undefined, settingsWith({ shellIntegration: false }), "/bin/zsh").shellSetup).toBe("titleOnly");
   });
 
   it("prefers the pane's shell, then the default shell setting", () => {
