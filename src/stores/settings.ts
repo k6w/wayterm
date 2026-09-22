@@ -48,6 +48,8 @@ export const defaultSettings: AppSettings = {
     bufferPersistence: false,
     shellIntegration: true,
     commandBlocks: false,
+    blockGutter: true,
+    blockDurations: true,
   },
   ssh: {
     defaultPort: 22,

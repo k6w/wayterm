@@ -56,8 +56,12 @@ export interface TerminalSettings {
   bufferPersistence: boolean;
   /** Start local shells with Nexterm's integration script (prompt, command and cwd reports). New sessions only. */
   shellIntegration: boolean;
-  /** Feature flag for the command blocks UI (not shown yet). */
+  /** Command blocks: gutter marks, selection, block actions and keys (needs shell integration). */
   commandBlocks: boolean;
+  /** Command blocks: status marks in the left gutter. */
+  blockGutter: boolean;
+  /** Command blocks: how long each command took, on its prompt row. */
+  blockDurations: boolean;
 }
 
 export interface SshSettings {

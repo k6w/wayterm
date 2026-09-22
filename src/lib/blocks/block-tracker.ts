@@ -31,6 +31,8 @@ export interface Block {
 export interface BlockTrackerOptions {
   /** Called for every OSC 7 cwd report. */
   onCwd?: (cwd: string) => void;
+  /** Called when a command reports its exit (D). */
+  onCommandEnd?: (block: Block) => void;
   maxBlocks?: number;
   now?: () => number;
 }
@@ -68,6 +70,15 @@ export class BlockTracker {
   active = false;
   /** Last cwd the shell reported. */
   cwd: string | undefined;
+  /** The pane expected the integration but no prompt mark came in time (see `markInactive`). */
+  inactive = false;
+  /** Changes on every notification; a snapshot for useSyncExternalStore. */
+  version = 0;
+  /** The pane was started with the integration script (it knows its nonce). */
+  readonly integrated: boolean;
+
+  private selAnchor: string | null = null;
+  private selFocus: string | null = null;
 
   private readonly listeners = new Set<() => void>();
   private readonly disposables: IDisposable[] = [];
@@ -81,6 +92,7 @@ export class BlockTracker {
     private readonly nonce: string | null,
     private readonly options: BlockTrackerOptions = {},
   ) {
+    this.integrated = nonce !== null;
     this.maxBlocks = options.maxBlocks ?? MAX_BLOCKS;
     this.now = options.now ?? Date.now;
     this.disposables.push(
@@ -105,6 +117,59 @@ export class BlockTracker {
     return () => {
       this.listeners.delete(fn);
     };
+  }
+
+  /** No prompt mark arrived in time: the shell runs without integration. Ignored once active. */
+  markInactive(): void {
+    if (this.active || this.inactive) return;
+    this.inactive = true;
+    this.notify();
+  }
+
+  /** Selected blocks, top to bottom (a contiguous range). */
+  get selection(): Block[] {
+    const a = this.indexOf(this.selAnchor);
+    const f = this.indexOf(this.selFocus);
+    if (a < 0 || f < 0) return [];
+    return this.blocks.slice(Math.min(a, f), Math.max(a, f) + 1);
+  }
+
+  /** Selects one block, or with `extend` the range from the current anchor to it. */
+  select(block: Block, extend = false): void {
+    if (!extend || this.indexOf(this.selAnchor) < 0) this.selAnchor = block.id;
+    this.selFocus = block.id;
+    this.notify();
+  }
+
+  clearSelection(): void {
+    if (this.selAnchor === null && this.selFocus === null) return;
+    this.selAnchor = this.selFocus = null;
+    this.notify();
+  }
+
+  /**
+   * Moves the selection one block up (-1) or down (1), or extends it with `extend`.
+   * Without a selection it starts from the last finished block. Returns the newly focused block.
+   */
+  moveSelection(direction: -1 | 1, extend = false): Block | undefined {
+    const candidates = this.blocks.filter((b) => b.state === "done" || b.state === "running");
+    if (candidates.length === 0) return undefined;
+    const focus = this.indexOf(this.selFocus);
+    let target: Block | undefined;
+    if (focus < 0) {
+      target = direction < 0 ? candidates[candidates.length - 1] : undefined;
+    } else {
+      const current = this.blocks[focus];
+      const at = candidates.indexOf(current);
+      target = candidates[at + direction] ?? (at < 0 ? undefined : current);
+    }
+    if (!target) return undefined;
+    this.select(target, extend);
+    return target;
+  }
+
+  private indexOf(id: string | null): number {
+    return id === null ? -1 : this.blocks.findIndex((b) => b.id === id);
   }
 
   /** The block whose prompt starts at or above buffer line `y` (the block containing it). */
@@ -188,6 +253,7 @@ export class BlockTracker {
 
   private onPromptStart(): void {
     this.active = true;
+    this.inactive = false;
     const line = this.cursor().line;
     // Prompts at or below this line were overwritten (clear, redraw).
     while (this.blocks.length > 0 && this.last()!.promptStart.line >= line) {
@@ -247,6 +313,7 @@ export class BlockTracker {
       b.endCol = this.term.buffer.active.cursorX;
     }
     this.notify();
+    this.options.onCommandEnd?.(b);
   }
 
   private onCwd(data: string): void {
@@ -297,6 +364,7 @@ export class BlockTracker {
   }
 
   private notify(): void {
+    this.version++;
     for (const fn of this.listeners) fn();
   }
 }

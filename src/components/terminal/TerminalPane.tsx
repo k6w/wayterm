@@ -43,6 +43,8 @@ import {
   recordNativeCopies,
 } from "../../lib/terminal-registry";
 import { BlockTracker } from "../../lib/blocks/block-tracker";
+import { BlockOverlay } from "./blocks/BlockOverlay";
+import { useTrackerVersion } from "./blocks/use-tracker";
 import {
   attachSerializeAddon,
   detachSerializeAddon,
@@ -185,6 +187,9 @@ export default function TerminalPane({
   const settings = useSettingsStore((s) => s.settings);
   const [showSearch, setShowSearch] = useState(false);
   const [sessionExited, setSessionExited] = useState(false);
+  // Command blocks of this pane (lives in the terminal cache; state here only to render).
+  const [blockTracker, setBlockTracker] = useState<BlockTracker | null>(() => getCachedTerminal(paneId)?.blocks ?? null);
+  useTrackerVersion(blockTracker);
 
   // Changed host key, found by the check before `ssh` runs (see preflightHostKey).
   const changedHostKey = useChangedHostKey();
@@ -239,6 +244,7 @@ export default function TerminalPane({
       
       container.appendChild(cached.element);
       termRef.current = cached.terminal;
+      setBlockTracker(cached.blocks);
       fitRef.current = cached.fitAddon;
       sessionRef.current = cached.sessionId;
 
@@ -456,7 +462,7 @@ export default function TerminalPane({
         useTerminalStore.getState().updatePaneSession(paneId, sessionId);
 
         // Command blocks and cwd from the shell integration, before any shell output.
-        const blocks = new BlockTracker(term, nonce, {
+        const blocks: BlockTracker = new BlockTracker(term, nonce, {
           onCwd: (cwd) => {
             if (useTerminalStore.getState().panes[paneId]?.cwd !== cwd) {
               useTerminalStore.getState().updatePaneCwd(paneId, cwd);
@@ -674,6 +680,7 @@ export default function TerminalPane({
         });
 
         // Store in cache
+        setBlockTracker(blocks);
         setCachedTerminal(paneId, {
           terminal: term,
           fitAddon,
@@ -904,6 +911,10 @@ export default function TerminalPane({
 
 
   const showDropZone = draggingTabId !== null && dragOverPaneId === paneId;
+  // Command blocks: only for panes whose shell reports them (or was started to).
+  const showBlocks =
+    settings.terminal.commandBlocks && !!blockTracker && (blockTracker.integrated || blockTracker.active);
+  const showGutter = showBlocks && settings.terminal.blockGutter;
   const showCloseBtn = paneCount > 1;
 
   // Focus is shown by the PaneFrame around this pane (unfocused panes are
@@ -938,9 +949,19 @@ export default function TerminalPane({
 
       <div
         ref={containerRef}
-        className={`h-full w-full bg-(--nx-dyn-bg) pr-1 pl-1.5 ${showCloseBtn ? "pt-7" : "pt-1.5"}`}
+        className={`h-full w-full bg-(--nx-dyn-bg) pr-1 ${showGutter ? "pl-5" : "pl-1.5"} ${showCloseBtn ? "pt-7" : "pt-1.5"}`}
         style={{ "--nx-dyn-bg": terminalTint } as CSSProperties}
       />
+
+      {showBlocks && blockTracker && termRef.current && (
+        <BlockOverlay
+          term={termRef.current}
+          tracker={blockTracker}
+          showGutter={showGutter}
+          showDurations={settings.terminal.blockDurations}
+          onGutterClick={() => termRef.current?.focus()}
+        />
+      )}
 
       <PaneNotice paneId={paneId} />
 

@@ -317,3 +317,59 @@ describe("BlockTracker memory", () => {
     expect(marker.isDisposed).toBe(true);
   });
 });
+
+describe("BlockTracker selection and status", () => {
+  it("selects, extends and moves through finished blocks", async () => {
+    const { tracker } = await track("bash5");
+    const [b0, b1, b2] = tracker.blocks;
+    expect(tracker.moveSelection(-1)).toBe(tracker.blocks[5]);
+    expect(tracker.moveSelection(-1)).toBe(tracker.blocks[4]);
+    tracker.select(b1);
+    tracker.select(b2, true);
+    expect(tracker.selection).toEqual([b1, b2]);
+    tracker.moveSelection(-1, true);
+    tracker.moveSelection(-1, true);
+    expect(tracker.selection).toEqual([b0, b1]);
+    expect(tracker.moveSelection(-1)).toBe(b0);
+    expect(tracker.selection).toEqual([b0]);
+    tracker.clearSelection();
+    expect(tracker.selection).toEqual([]);
+    expect(tracker.moveSelection(1)).toBeUndefined();
+  });
+
+  it("forgets a selection whose blocks were dropped", async () => {
+    const { term, tracker } = await track("bash5");
+    tracker.select(tracker.blocks[0]);
+    term.reset();
+    tracker.reset();
+    expect(tracker.selection).toEqual([]);
+  });
+
+  it("reports a pane whose shell never marked a prompt, until it does", async () => {
+    const term = makeTerm();
+    const tracker = new BlockTracker(term, NONCE);
+    expect(tracker.integrated).toBe(true);
+    tracker.markInactive();
+    expect(tracker.inactive).toBe(true);
+    await write(term, sign("\x1b]133;A\x07"));
+    expect(tracker.inactive).toBe(false);
+    tracker.markInactive();
+    expect(tracker.inactive).toBe(false);
+  });
+
+  it("calls onCommandEnd with the finished block", async () => {
+    const ended: Block[] = [];
+    const term = makeTerm();
+    new BlockTracker(term, NONCE, { onCommandEnd: (b) => ended.push(b) });
+    await write(term, fixture("bash5"));
+    expect(ended.map((b) => b.exitCode)).toEqual([0, 1, 0, 0, 0]);
+  });
+
+  it("bumps its version on every change", async () => {
+    const term = makeTerm();
+    const tracker = new BlockTracker(term, NONCE);
+    const v = tracker.version;
+    await write(term, sign("\x1b]133;A\x07"));
+    expect(tracker.version).toBeGreaterThan(v);
+  });
+});

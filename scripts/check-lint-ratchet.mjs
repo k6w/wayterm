@@ -121,6 +121,7 @@ const STRICT_PATHS = [
   "src/components/terminal/PaneNotice.tsx",
   "src/components/terminal/spawn-config.ts",
   "src/lib/blocks/",
+  "src/components/terminal/blocks/",
   "src/lib/cwd-tracker.ts",
   "src/lib/terminal-registry.ts",
 ];
