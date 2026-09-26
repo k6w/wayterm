@@ -17,6 +17,7 @@ export default function KeybindingsPanel() {
     id: binding.id,
     label: binding.label,
     keys: keybindings[binding.id] || binding.keys,
+    fallsThroughTo: binding.fallsThroughTo,
   }));
   const conflicts = findConflicts(rows);
   const q = query.trim().toLowerCase();

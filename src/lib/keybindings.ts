@@ -6,12 +6,24 @@ import { getDefaultShell, getPreferredShell } from "./shell-detect";
 import { isMac } from "./platform";
 import { isOverlayOpen } from "./overlays";
 import { copySelection, pasteToTerminal } from "./terminal-registry";
+import {
+  blocksWhen,
+  clearBlockSelection,
+  copySelectedBlockOutput,
+  hasBlockSelection,
+  jumpToBlock,
+  activeBlocks,
+} from "./blocks/block-keys";
 
-interface KeyAction {
+export interface KeyAction {
   id: string;
   label: string;
   keys: string;
   handler: () => void;
+  /** When present and false, the key is not taken: it goes to the next binding or the terminal. */
+  when?: () => boolean;
+  /** Shares its keys on purpose with this binding, which gets them whenever `when` is false. */
+  fallsThroughTo?: string;
 }
 
 const mod = isMac ? "Meta" : "Control";
@@ -165,6 +177,7 @@ export function getDefaultKeybindings(): KeyAction[] {
       keys: "Alt+`",
       handler: () => useTerminalStore.getState().toggleScratchpad(),
     },
+    ...blockBindings(),
     {
       id: "copy",
       label: "Copy",
@@ -196,6 +209,56 @@ export function getDefaultKeybindings(): KeyAction[] {
       handler: () => useSidebarStore.getState().activate("clipboard"),
     },
     ...selectTabBindings(),
+  ];
+}
+
+/**
+ * Command block navigation. Off macOS, Ctrl+Up/Down belong to vim and tmux, so these use
+ * Ctrl+Shift; every one applies only at the shell (see blocksWhen), never in full-screen apps.
+ */
+function blockBindings(): KeyAction[] {
+  const keys = isMac
+    ? { prev: "Meta+ArrowUp", next: "Meta+ArrowDown", extendUp: "Meta+Shift+ArrowUp", extendDown: "Meta+Shift+ArrowDown", copy: "Meta+c" }
+    : {
+        prev: "Control+Shift+ArrowUp",
+        next: "Control+Shift+ArrowDown",
+        extendUp: "Control+Alt+Shift+ArrowUp",
+        extendDown: "Control+Alt+Shift+ArrowDown",
+        copy: "Control+Shift+c",
+      };
+  return [
+    { id: "block-prev", label: "Previous Command Block", keys: keys.prev, when: blocksWhen, handler: () => jumpToBlock(-1) },
+    { id: "block-next", label: "Next Command Block", keys: keys.next, when: blocksWhen, handler: () => jumpToBlock(1) },
+    {
+      id: "block-select-extend-up",
+      label: "Extend Block Selection Up",
+      keys: keys.extendUp,
+      when: blocksWhen,
+      handler: () => jumpToBlock(-1, true),
+    },
+    {
+      id: "block-select-extend-down",
+      label: "Extend Block Selection Down",
+      keys: keys.extendDown,
+      when: blocksWhen,
+      handler: () => jumpToBlock(1, true),
+    },
+    {
+      id: "block-copy-output",
+      label: "Copy Block Output",
+      keys: keys.copy,
+      // Only with blocks selected and no text selected; otherwise the key copies text as usual.
+      when: () => blocksWhen() && hasBlockSelection() && !activeBlocks()?.term.hasSelection(),
+      fallsThroughTo: isMac ? undefined : "copy",
+      handler: copySelectedBlockOutput,
+    },
+    {
+      id: "block-clear-selection",
+      label: "Clear Block Selection",
+      keys: "Escape",
+      when: () => blocksWhen() && hasBlockSelection(),
+      handler: clearBlockSelection,
+    },
   ];
 }
 
@@ -272,6 +335,7 @@ export function setupKeybindings(): () => void {
     }
     for (const binding of bindings) {
       if (matchesKeybinding(e, binding.keys)) {
+        if (binding.when && !binding.when()) continue;
         e.preventDefault();
         e.stopPropagation();
         binding.handler();

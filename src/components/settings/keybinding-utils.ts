@@ -37,6 +37,8 @@ export interface BindingRow {
   id: string;
   label: string;
   keys: string;
+  /** Shares its keys on purpose with this action (it only takes them in some contexts). */
+  fallsThroughTo?: string;
 }
 
 /** For every action whose combo another action also uses: action id -> labels of the others. */
@@ -50,10 +52,10 @@ export function findConflicts(rows: readonly BindingRow[]): Map<string, string[]
   for (const group of byCombo.values()) {
     if (group.length < 2) continue;
     for (const row of group) {
-      conflicts.set(
-        row.id,
-        group.filter((other) => other.id !== row.id).map((other) => other.label)
+      const others = group.filter(
+        (other) => other.id !== row.id && other.fallsThroughTo !== row.id && row.fallsThroughTo !== other.id
       );
+      if (others.length > 0) conflicts.set(row.id, others.map((other) => other.label));
     }
   }
   return conflicts;

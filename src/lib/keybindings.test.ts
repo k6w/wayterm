@@ -1,6 +1,9 @@
 import { invoke } from "@tauri-apps/api/core";
 import { loadShellInfo, resetShellInfo } from "./shell-detect";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { Terminal } from "@xterm/xterm";
+import { BlockTracker } from "./blocks/block-tracker";
+import { removeCachedTerminal, setCachedTerminal, type CachedTerminal } from "./terminal-registry";
 import { getDefaultKeybindings, setupKeybindings } from "./keybindings";
 import { useTerminalStore } from "../stores/terminal";
 import { useSidebarStore } from "../stores/sidebar";
@@ -32,13 +35,15 @@ beforeEach(() => {
 });
 
 describe("default keybindings", () => {
-  it("keeps every existing binding id and adds only select-tab-1..9", () => {
+  it("keeps every existing binding id and adds select-tab-1..9 and the command block keys", () => {
     const ids = getDefaultKeybindings().map((b) => b.id);
     expect(ids).toEqual([
       "new-tab", "close-tab", "toggle-sidebar", "command-palette", "settings",
       "split-horizontal", "split-vertical", "next-tab", "prev-tab", "zoom-pane",
       "close-pane", "detach-pane", "focus-next-pane", "focus-prev-pane",
       "focus-next-pane-arrow", "focus-prev-pane-arrow", "toggle-scratchpad",
+      "block-prev", "block-next", "block-select-extend-up", "block-select-extend-down",
+      "block-copy-output", "block-clear-selection",
       "copy", "paste", "search-terminal", "clipboard-manager",
       "select-tab-1", "select-tab-2", "select-tab-3", "select-tab-4", "select-tab-5",
       "select-tab-6", "select-tab-7", "select-tab-8", "select-tab-9",
@@ -115,5 +120,95 @@ describe("new-tab shell", () => {
     useSettingsStore.setState({ settings: { ...s, general: { ...s.general, defaultShell: "/bin/bash" } } });
     getDefaultKeybindings().find((b) => b.id === "new-tab")!.handler();
     expect(addTab).toHaveBeenCalledWith("bash", "/bin/bash");
+  });
+});
+
+describe("command block keys", () => {
+  const NONCE = "n";
+  let term: Terminal;
+  let tracker: BlockTracker;
+
+  async function setup(flag = true) {
+    const s = useSettingsStore.getState().settings;
+    useSettingsStore.setState({ settings: { ...s, terminal: { ...s.terminal, commandBlocks: flag } } });
+    term = new Terminal({ cols: 80, rows: 5, allowProposedApi: true, scrollback: 100 });
+    tracker = new BlockTracker(term, NONCE);
+    const block = (cmd: string) =>
+      `\x1b]133;A;nx=${NONCE}\x07$ \x1b]133;B\x07${cmd}\r\n\x1b]133;C;nx=${NONCE}\x07out\r\n\x1b]133;D;0;nx=${NONCE}\x07`;
+    await new Promise<void>((resolve) =>
+      term.write(`${block("one")}${block("two")}${block("three")}\x1b]133;A;nx=${NONCE}\x07$ `, resolve),
+    );
+    // The terminal's own element has focus, as when the user types in it.
+    const host = document.createElement("div");
+    const focusable = document.createElement("textarea");
+    host.appendChild(focusable);
+    document.body.appendChild(host);
+    Object.defineProperty(term, "element", { value: host, configurable: true });
+    focusable.focus();
+    setCachedTerminal("pane-1", { terminal: term, sessionId: "s1", blocks: tracker } as unknown as CachedTerminal);
+    useTerminalStore.setState({ activePaneId: "pane-1" });
+  }
+
+  function key(k: string) {
+    const event = new KeyboardEvent("keydown", { key: k, ctrlKey: true, shiftKey: true, bubbles: true, cancelable: true });
+    window.dispatchEvent(event);
+    return event;
+  }
+
+  afterEach(() => {
+    removeCachedTerminal("pane-1");
+    document.body.innerHTML = "";
+  });
+
+  it("jumps between blocks at the shell", async () => {
+    await setup();
+    const teardown = setupKeybindings();
+    expect(key("ArrowUp").defaultPrevented).toBe(true);
+    expect(tracker.selection.map((b) => tracker.getCommandText(b))).toEqual(["three"]);
+    key("ArrowUp");
+    expect(tracker.selection.map((b) => tracker.getCommandText(b))).toEqual(["two"]);
+    key("ArrowDown");
+    expect(tracker.selection.map((b) => tracker.getCommandText(b))).toEqual(["three"]);
+    teardown();
+  });
+
+  it("leaves the keys to the program on the alternate screen (vim, tmux)", async () => {
+    await setup();
+    await new Promise<void>((resolve) => term.write("\x1b[?1049h", resolve));
+    const teardown = setupKeybindings();
+    expect(key("ArrowUp").defaultPrevented).toBe(false);
+    expect(tracker.selection).toEqual([]);
+    teardown();
+  });
+
+  it("leaves the keys alone with the feature off or when the terminal is not focused", async () => {
+    await setup(false);
+    const teardown = setupKeybindings();
+    expect(key("ArrowUp").defaultPrevented).toBe(false);
+    teardown();
+    await setup(true);
+    (document.activeElement as HTMLElement).blur();
+    const teardown2 = setupKeybindings();
+    expect(key("ArrowUp").defaultPrevented).toBe(false);
+    teardown2();
+  });
+
+  it("copies the selected block's output, else falls through to the normal copy", async () => {
+    await setup();
+    Object.assign(navigator, { clipboard: { writeText: vi.fn(async () => {}), readText: vi.fn(async () => "") } });
+    const teardown = setupKeybindings();
+    key("c");
+    expect(navigator.clipboard.writeText).not.toHaveBeenCalled(); // no block and no text selected
+    key("ArrowUp");
+    key("c");
+    expect(navigator.clipboard.writeText).toHaveBeenCalledWith("out");
+    const escape = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+    window.dispatchEvent(escape);
+    expect(escape.defaultPrevented).toBe(true);
+    expect(tracker.selection).toEqual([]);
+    const again = new KeyboardEvent("keydown", { key: "Escape", bubbles: true, cancelable: true });
+    window.dispatchEvent(again);
+    expect(again.defaultPrevented).toBe(false);
+    teardown();
   });
 });

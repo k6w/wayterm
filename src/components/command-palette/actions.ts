@@ -5,6 +5,7 @@ import { useSshStore } from "../../stores/ssh";
 import { useWorkspaceStore } from "../../stores/workspace";
 import { openSaveWorkspace } from "../sidebar/save-workspace";
 import { getEffectiveKeybindings } from "../../lib/keybindings";
+import { activeBlocks } from "../../lib/blocks/block-keys";
 import { getDefaultShells } from "../../lib/shell-detect";
 import { clearBuffer, getCachedTerminal, resetTerminal, writeToTerminal } from "../../lib/terminal-registry";
 import { resolveSnippetVars } from "../../lib/snippet-utils";
@@ -52,6 +53,12 @@ const KEYBINDING_ICONS: Record<string, IconComponent> = {
   "focus-prev-pane-arrow": Icons.focusPane,
   "zoom-pane": Icons.focusPane,
   "toggle-scratchpad": Icons.scratchpad,
+  "block-prev": Icons.blockPrevious,
+  "block-next": Icons.blockNext,
+  "block-select-extend-up": Icons.blockExtendUp,
+  "block-select-extend-down": Icons.blockExtendDown,
+  "block-copy-output": Icons.copyOutput,
+  "block-clear-selection": Icons.blockDeselect,
 };
 
 const SHELL_ICONS: Record<string, IconComponent> = {
@@ -99,6 +106,8 @@ export function buildPaletteActions(): PaletteAction[] {
 
   for (const binding of getEffectiveKeybindings()) {
     if (binding.id === "command-palette") continue;
+    // Command block actions only where the focused pane has blocks.
+    if (binding.id.startsWith("block-") && !activeBlocks()) continue;
     actions.push({
       id: binding.id,
       label: binding.label,

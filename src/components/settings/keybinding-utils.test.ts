@@ -55,4 +55,14 @@ describe("findConflicts", () => {
     ]);
     expect(conflicts.get("a")).toEqual(["B", "C"]);
   });
+
+  it("does not flag a contextual action that hands its keys to another on purpose", () => {
+    const conflicts = findConflicts([
+      { id: "copy", label: "Copy", keys: "Control+Shift+c" },
+      { id: "block-copy-output", label: "Copy Block Output", keys: "Control+Shift+c", fallsThroughTo: "copy" },
+      { id: "other", label: "Other", keys: "Control+Shift+c" },
+    ]);
+    expect(conflicts.get("copy")).toEqual(["Other"]);
+    expect(conflicts.get("block-copy-output")).toEqual(["Other"]);
+  });
 });
