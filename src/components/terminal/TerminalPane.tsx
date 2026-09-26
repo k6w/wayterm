@@ -45,6 +45,9 @@ import {
 import { BlockTracker } from "../../lib/blocks/block-tracker";
 import { BlockOverlay } from "./blocks/BlockOverlay";
 import { useTrackerVersion } from "./blocks/use-tracker";
+import { BlockToolbar } from "./blocks/BlockToolbar";
+import { BlockOutputDialog } from "./blocks/BlockOutputDialog";
+import { lineAtClientY } from "./blocks/use-block-frame";
 import {
   attachSerializeAddon,
   detachSerializeAddon,
@@ -190,6 +193,7 @@ export default function TerminalPane({
   // Command blocks of this pane (lives in the terminal cache; state here only to render).
   const [blockTracker, setBlockTracker] = useState<BlockTracker | null>(() => getCachedTerminal(paneId)?.blocks ?? null);
   useTrackerVersion(blockTracker);
+  const [hoveredBlockId, setHoveredBlockId] = useState<string | null>(null);
 
   // Changed host key, found by the check before `ssh` runs (see preflightHostKey).
   const changedHostKey = useChangedHostKey();
@@ -931,6 +935,14 @@ export default function TerminalPane({
       ref={wrapperRef}
       data-pane-id={paneId}
       className={`relative h-full w-full overflow-hidden ${settings.appearance.vibrancyEnabled ? "vibrancy-active" : ""}`}
+      onMouseMove={(event) => {
+        if (!showBlocks || !blockTracker || !termRef.current) return;
+        const line = lineAtClientY(termRef.current, event.clientY);
+        const block = line === null ? undefined : blockTracker.blockAtLine(line);
+        const id = block && (block.state === "done" || block.state === "running") ? block.id : null;
+        setHoveredBlockId((prev) => (prev === id ? prev : id));
+      }}
+      onMouseLeave={() => setHoveredBlockId(null)}
       onMouseDown={() => {
         setActivePane(paneId);
         // Re-focus terminal after React re-render settles
@@ -959,6 +971,8 @@ export default function TerminalPane({
           tracker={blockTracker}
           showGutter={showGutter}
           showDurations={settings.terminal.blockDurations}
+          hoveredId={hoveredBlockId}
+          renderToolbar={(block) => <BlockToolbar paneId={paneId} tracker={blockTracker} block={block} />}
           onGutterClick={() => termRef.current?.focus()}
         />
       )}
@@ -1066,6 +1080,7 @@ export default function TerminalPane({
     />
     </Suspense>
     )}
+    {showBlocks && <BlockOutputDialog paneId={paneId} onClosed={() => termRef.current?.focus()} />}
     <PaneContextMenu
       paneId={paneId}
       paneCount={paneCount}

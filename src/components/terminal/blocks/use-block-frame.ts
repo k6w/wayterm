@@ -29,6 +29,16 @@ export function measureScreen(root: HTMLElement, term: Terminal): ScreenGeometry
   return { left: s.left - r.left, top: s.top - r.top, width: s.width, cellHeight: s.height / term.rows };
 }
 
+/** Buffer line under a viewport y coordinate, or null outside the screen. */
+export function lineAtClientY(term: Terminal, clientY: number): number | null {
+  const screen = term.element?.querySelector(".xterm-screen");
+  if (!screen || term.rows === 0) return null;
+  const s = screen.getBoundingClientRect();
+  if (s.height === 0 || clientY < s.top || clientY >= s.bottom) return null;
+  const row = Math.floor((clientY - s.top) / (s.height / term.rows));
+  return term.buffer.active.viewportY + row;
+}
+
 function readFrame(
   term: Terminal,
   tracker: BlockTracker,
