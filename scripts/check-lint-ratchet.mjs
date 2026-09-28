@@ -122,6 +122,7 @@ const STRICT_PATHS = [
   "src/components/terminal/spawn-config.ts",
   "src/lib/blocks/",
   "src/components/terminal/blocks/",
+  "src/lib/command-finished.ts",
   "src/lib/cwd-tracker.ts",
   "src/lib/terminal-registry.ts",
 ];

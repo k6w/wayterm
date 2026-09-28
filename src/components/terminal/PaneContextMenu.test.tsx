@@ -133,4 +133,19 @@ describe("PaneContextMenu", () => {
     await user.click(within(menu).getByRole("menuitem", { name: /^Stop Session Log/ }));
     expect(onStopLog).toHaveBeenCalled();
   });
+
+  it("shows no command block group without a block", async () => {
+    const menu = await setup();
+    expect(within(menu).queryByText("Command block")).toBeNull();
+  });
+
+  it("offers the block actions for the clicked block", async () => {
+    const user = userEvent.setup();
+    const block = { hasOutput: true, rerunLabel: "Paste command", canRerun: false, copy: vi.fn(), rerun: vi.fn(), viewOutput: vi.fn() };
+    const menu = await setup({ block });
+    expect(within(menu).getByText("Command block")).toBeInTheDocument();
+    expect(within(menu).getByRole("menuitem", { name: /^Paste command/ })).toHaveAttribute("aria-disabled", "true");
+    await user.click(within(menu).getByRole("menuitem", { name: /^Copy Output/ }));
+    expect(block.copy).toHaveBeenCalledWith("output");
+  });
 });

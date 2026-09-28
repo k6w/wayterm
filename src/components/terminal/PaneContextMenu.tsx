@@ -9,7 +9,19 @@ import {
   resetTerminal,
   hasSelection,
 } from "../../lib/terminal-registry";
-import { ContextMenuContent, ContextMenuItem, ContextMenuSeparator } from "../../ui";
+import { ContextMenuContent, ContextMenuItem, ContextMenuLabel, ContextMenuSeparator } from "../../ui";
+
+/** The command block under the pointer (or the selection), with its actions. */
+export interface PaneBlockMenu {
+  hasOutput: boolean;
+  /** "Re-run", or "Paste command" for a command that could have been faked. */
+  rerunLabel: string;
+  /** The shell waits at a prompt. */
+  canRerun: boolean;
+  copy: (part: "command" | "output" | "both") => void;
+  rerun: () => void;
+  viewOutput: () => void;
+}
 
 interface PaneContextMenuProps {
   paneId: string;
@@ -19,6 +31,8 @@ interface PaneContextMenuProps {
   onStopLog?: () => void;
   /** Called when the menu closes, to hand focus back to the terminal. */
   onRestoreFocus?: () => void;
+  /** Command block actions, when the click landed on a block or blocks are selected. */
+  block?: PaneBlockMenu | null;
 }
 
 /** Items of a pane's right-click menu. Rendered inside <ContextMenu> by TerminalPane. */
@@ -29,6 +43,7 @@ export default function PaneContextMenu({
   onStartLog,
   onStopLog,
   onRestoreFocus,
+  block = null,
 }: PaneContextMenuProps) {
   const detachPaneToTab = useTerminalStore((s) => s.detachPaneToTab);
   const closePaneInTab = useTerminalStore((s) => s.closePaneInTab);
@@ -47,6 +62,35 @@ export default function PaneContextMenu({
         onRestoreFocus?.();
       }}
     >
+      {block && (
+        <>
+          <ContextMenuLabel>Command block</ContextMenuLabel>
+          <ContextMenuItem icon={<Icon name="copyCommand" size="sm" />} onSelect={() => block.copy("command")}>
+            Copy Command
+          </ContextMenuItem>
+          <ContextMenuItem
+            icon={<Icon name="copyOutput" size="sm" />}
+            disabled={!block.hasOutput}
+            onSelect={() => block.copy("output")}
+          >
+            Copy Output
+          </ContextMenuItem>
+          <ContextMenuItem icon={<Icon name="copyBlock" size="sm" />} onSelect={() => block.copy("both")}>
+            Copy Command and Output
+          </ContextMenuItem>
+          <ContextMenuItem icon={<Icon name="rerun" size="sm" />} disabled={!block.canRerun} onSelect={block.rerun}>
+            {block.rerunLabel}
+          </ContextMenuItem>
+          <ContextMenuItem
+            icon={<Icon name="viewOutput" size="sm" />}
+            disabled={!block.hasOutput}
+            onSelect={block.viewOutput}
+          >
+            View Output
+          </ContextMenuItem>
+          <ContextMenuSeparator />
+        </>
+      )}
       <ContextMenuItem
         icon={<Icon name="copy" size="sm" />}
         shortcut="Mod+c"

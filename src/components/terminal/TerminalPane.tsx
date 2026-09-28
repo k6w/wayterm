@@ -8,7 +8,8 @@ import { useThemeStore } from "../../stores/theme";
 import { useSettingsStore } from "../../stores/settings";
 import { useTerminalStore, collectPaneIds } from "../../stores/terminal";
 import DropZoneOverlay from "./DropZoneOverlay";
-import PaneContextMenu from "./PaneContextMenu";
+import PaneContextMenu, { type PaneBlockMenu } from "./PaneContextMenu";
+import { canRerun, copyBlocks, rerunBlock } from "../../lib/blocks/block-actions";
 import { ContextMenu, ContextMenuTrigger } from "../../ui";
 import PaneControls from "./PaneControls";
 import { SearchBar } from "../search/SearchBar";
@@ -43,10 +44,11 @@ import {
   recordNativeCopies,
 } from "../../lib/terminal-registry";
 import { BlockTracker } from "../../lib/blocks/block-tracker";
+import { notifyCommandFinished, onBlockFinished } from "../../lib/command-finished";
 import { BlockOverlay } from "./blocks/BlockOverlay";
 import { useTrackerVersion } from "./blocks/use-tracker";
-import { BlockToolbar } from "./blocks/BlockToolbar";
-import { BlockOutputDialog } from "./blocks/BlockOutputDialog";
+import { BlockToolbar, rerunLabel } from "./blocks/BlockToolbar";
+import { BlockOutputDialog, useBlockViewer } from "./blocks/BlockOutputDialog";
 import { lineAtClientY } from "./blocks/use-block-frame";
 import {
   attachSerializeAddon,
@@ -194,6 +196,7 @@ export default function TerminalPane({
   const [blockTracker, setBlockTracker] = useState<BlockTracker | null>(() => getCachedTerminal(paneId)?.blocks ?? null);
   useTrackerVersion(blockTracker);
   const [hoveredBlockId, setHoveredBlockId] = useState<string | null>(null);
+  const [menuBlockId, setMenuBlockId] = useState<string | null>(null);
 
   // Changed host key, found by the check before `ssh` runs (see preflightHostKey).
   const changedHostKey = useChangedHostKey();
@@ -467,6 +470,7 @@ export default function TerminalPane({
 
         // Command blocks and cwd from the shell integration, before any shell output.
         const blocks: BlockTracker = new BlockTracker(term, nonce, {
+          onCommandEnd: (block) => onBlockFinished(blocks, block, sessionId),
           onCwd: (cwd) => {
             if (useTerminalStore.getState().panes[paneId]?.cwd !== cwd) {
               useTerminalStore.getState().updatePaneCwd(paneId, cwd);
@@ -642,29 +646,12 @@ export default function TerminalPane({
           if (isPath) {
             // With the shell integration active, OSC 7 reports the cwd instead.
             if (!blocks.active) useTerminalStore.getState().updatePaneCwd(paneId, title);
-            // Long command notification: title change means shell returned to prompt
+            // Long command notification: title change means shell returned to prompt.
+            // With the shell integration active, the exit report (D) gives exact times instead.
             const startTime = commandStartTimeRef.current;
-            if (startTime !== null) {
-              const elapsed = (Date.now() - startTime) / 1000;
+            if (startTime !== null && !blocks.active) {
               commandStartTimeRef.current = null;
-              const s = useSettingsStore.getState().settings;
-              if (s.general.notifyOnLongCommands && elapsed >= s.general.longCommandThresholdSeconds) {
-                if (Notification.permission === "granted") {
-                  new Notification("NexTerm — Command finished", {
-                    body: `Completed in ${Math.round(elapsed)}s`,
-                    silent: true,
-                  });
-                } else if (Notification.permission !== "denied") {
-                  Notification.requestPermission().then((perm) => {
-                    if (perm === "granted") {
-                      new Notification("NexTerm — Command finished", {
-                        body: `Completed in ${Math.round(elapsed)}s`,
-                        silent: true,
-                      });
-                    }
-                  });
-                }
-              }
+              notifyCommandFinished((Date.now() - startTime) / 1000);
             }
           }
         });
@@ -919,6 +906,22 @@ export default function TerminalPane({
   const showBlocks =
     settings.terminal.commandBlocks && !!blockTracker && (blockTracker.integrated || blockTracker.active);
   const showGutter = showBlocks && settings.terminal.blockGutter;
+  const menuBlock =
+    showBlocks && blockTracker && menuBlockId ? blockTracker.blocks.find((b) => b.id === menuBlockId) : undefined;
+  const blockMenu: PaneBlockMenu | null =
+    menuBlock && blockTracker
+      ? {
+          hasOutput: !!menuBlock.outputStart,
+          rerunLabel: rerunLabel(menuBlock),
+          canRerun: canRerun(blockTracker),
+          copy: (part) => copyBlocks(paneId, part, menuBlock),
+          rerun: () => rerunBlock(paneId, menuBlock),
+          viewOutput: () =>
+            useBlockViewer
+              .getState()
+              .show(paneId, blockTracker.getCommandText(menuBlock), blockTracker.getOutputText(menuBlock)),
+        }
+      : null;
   const showCloseBtn = paneCount > 1;
 
   // Focus is shown by the PaneFrame around this pane (unfocused panes are
@@ -943,6 +946,18 @@ export default function TerminalPane({
         setHoveredBlockId((prev) => (prev === id ? prev : id));
       }}
       onMouseLeave={() => setHoveredBlockId(null)}
+      onContextMenu={(event) => {
+        if (!showBlocks || !blockTracker || !termRef.current) {
+          setMenuBlockId(null);
+          return;
+        }
+        const line = lineAtClientY(termRef.current, event.clientY);
+        const hit = line === null ? undefined : blockTracker.blockAtLine(line);
+        const block = hit && (hit.state === "done" || hit.state === "running") ? hit : undefined;
+        // A right-click on a block outside the selection acts on that block alone.
+        if (block && !blockTracker.selection.includes(block)) blockTracker.select(block);
+        setMenuBlockId(block?.id ?? blockTracker.selection[0]?.id ?? null);
+      }}
       onMouseDown={() => {
         setActivePane(paneId);
         // Re-focus terminal after React re-render settles
@@ -1088,6 +1103,7 @@ export default function TerminalPane({
       onStartLog={handleStartLog}
       onStopLog={handleStopLog}
       onRestoreFocus={() => termRef.current?.focus()}
+      block={blockMenu}
     />
     </ContextMenu>
   );
