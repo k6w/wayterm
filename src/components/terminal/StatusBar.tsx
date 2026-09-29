@@ -2,6 +2,7 @@ import { Suspense, useState } from "react";
 import { Icon } from "../../ui/icons";
 import { useTerminalStore, collectPaneIds } from "../../stores/terminal";
 import { useThemeStore } from "../../stores/theme";
+import { useSettingsStore } from "../../stores/settings";
 import { useSshStore } from "../../stores/ssh";
 import { getDefaultShell, getDefaultShells } from "../../lib/shell-detect";
 import { shortenPath } from "../../lib/format";
@@ -30,6 +31,7 @@ export default function StatusBar() {
   const broadcastMode = useTerminalStore((s) => s.broadcastMode);
   const toggleBroadcastMode = useTerminalStore((s) => s.toggleBroadcastMode);
   const isLogging = useTerminalStore((s) => (activePaneId ? s.loggingPanes.has(activePaneId) : false));
+  const commandBlocks = useSettingsStore((s) => s.settings.terminal.commandBlocks);
 
   const [copiedFlash, setCopiedFlash] = useState(false);
   const [bellEnabled, setBellEnabled] = useState(true);
@@ -144,6 +146,14 @@ export default function StatusBar() {
       )}
 
       <ToolbarSpacer />
+
+      {commandBlocks && pane.integrationInactive && (
+        <Tooltip content="This shell sent no prompt reports, so it has no command blocks. Its config may replace the integration's hooks.">
+          <Badge tone="warning" className="mr-1">
+            Shell integration: inactive
+          </Badge>
+        </Tooltip>
+      )}
 
       {isLogging && (
         <Badge tone="danger" className="mr-1" aria-label="Session logging active">

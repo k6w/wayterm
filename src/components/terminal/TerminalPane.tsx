@@ -102,6 +102,9 @@ function hasVisibleContent(data: number[]): boolean {
 }
 
 
+/** How long after its first output an integrated shell may take to mark its first prompt. */
+const INTEGRATION_TIMEOUT_MS = 5000;
+
 export class SshConnectionNotFoundError extends Error {
   constructor(connectionId: string) {
     super(`SSH connection with ID "${connectionId}" not found`);
@@ -518,9 +521,27 @@ export default function TerminalPane({
           );
         }
 
+        // A shell started with the integration should mark its first prompt soon after it prints.
+        let integrationTimer: ReturnType<typeof setTimeout> | null = null;
+        const watchIntegration = () => {
+          if (integrationTimer || !blocks.integrated || blocks.active) return;
+          integrationTimer = setTimeout(() => {
+            if (blocks.active || cancelled) return;
+            blocks.markInactive();
+            useTerminalStore.getState().updatePane(paneId, { integrationInactive: true });
+            const unsubscribe = blocks.subscribe(() => {
+              if (!blocks.active) return;
+              unsubscribe();
+              useTerminalStore.getState().updatePane(paneId, { integrationInactive: undefined });
+            });
+          }, INTEGRATION_TIMEOUT_MS);
+          sshTimers.push(integrationTimer);
+        };
+
         const unlistenOutput = await onTerminalOutput(
           sessionId,
           (data: number[]) => {
+            watchIntegration();
             // Feature: Session logging — capture output
             if (isLoggingRef.current) {
               logBufferRef.current.push(new Uint8Array(data));

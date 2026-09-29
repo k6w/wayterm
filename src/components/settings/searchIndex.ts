@@ -48,6 +48,11 @@ export const SETTINGS_SEARCH_INDEX: SettingEntry[] = [
   { panel: "terminal", label: "Bracketed paste", keywords: "safe paste" },
   { panel: "terminal", label: "Scroll to bottom on input", keywords: "autoscroll" },
   { panel: "terminal", label: "Buffer persistence", keywords: "restore scrollback restart" },
+  { panel: "terminal", label: "Shell integration", keywords: "osc 133 prompt cwd folder bash zsh fish" },
+  { panel: "terminal", label: "Command blocks", keywords: "blocks rerun re-run copy output select" },
+  { panel: "terminal", label: "Command status in gutter", keywords: "blocks exit code failed succeeded" },
+  { panel: "terminal", label: "Command durations", keywords: "blocks time elapsed" },
+  { panel: "terminal", label: "Remote hosts", keywords: "ssh snippet bashrc zshrc config.fish blocks" },
 
   // Keybindings
   { panel: "keybindings", label: "Keyboard shortcuts", keywords: "hotkeys bindings keys" },

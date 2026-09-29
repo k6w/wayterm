@@ -1,0 +1,6 @@
+]133;D;0]7;file://host/home/user]133;A[?2004h~ $ ]133;Becho hello
+[?2004l]133;Chello
+]133;D;0]7;file://host/home/user]133;A[?2004h~ $ ]133;Bfalse
+[?2004l]133;C]133;D;1]7;file://host/home/user]133;A[?2004h~ $ ]133;Bcd 'my dir'
+[?2004l]133;C]133;D;0]7;file://host/home/user/my%20dir]133;A[?2004h~/my dir $ ]133;Bexit
+[?2004l]133;Cexit

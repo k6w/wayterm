@@ -1,11 +1,21 @@
+import { useState } from "react";
 import { useSettingsStore } from "../../stores/settings";
-import { Input, Section, SegmentedControl, Select, Switch } from "../../ui";
+import { IconButton, Input, Section, SegmentedControl, Select, Switch, Textarea } from "../../ui";
+import { Icon } from "../../ui/icons";
+import { copyText } from "../../lib/blocks/block-actions";
+import { remoteSnippet, type RemoteShell } from "../../lib/blocks/remote-snippet";
 import { NumberInput, SettingRow, SettingsCard } from "./SettingRow";
 import type { BellStyle, RightClickBehavior } from "../../types/settings";
 
 const RIGHT_CLICK_OPTIONS: { value: RightClickBehavior; label: string }[] = [
   { value: "context-menu", label: "Menu" },
   { value: "paste", label: "Paste" },
+];
+
+const REMOTE_SHELL_OPTIONS: { value: RemoteShell; label: string }[] = [
+  { value: "bash", label: "bash" },
+  { value: "zsh", label: "zsh" },
+  { value: "fish", label: "fish" },
 ];
 
 const BELL_OPTIONS: { value: BellStyle; label: string }[] = [
@@ -17,6 +27,8 @@ const BELL_OPTIONS: { value: BellStyle; label: string }[] = [
 export default function TerminalPanel() {
   const settings = useSettingsStore((s) => s.settings.terminal);
   const update = useSettingsStore((s) => s.update);
+  const [remoteShell, setRemoteShell] = useState<RemoteShell>("bash");
+  const snippet = remoteSnippet(remoteShell);
 
   return (
     <div className="flex flex-col gap-6">
@@ -84,6 +96,74 @@ export default function TerminalPanel() {
                 onCheckedChange={(v) => update("terminal", { scrollToBottomOnInput: v })}
               />
             )}
+          </SettingRow>
+        </SettingsCard>
+      </Section>
+
+      <Section title="Shell integration">
+        <SettingsCard>
+          <SettingRow
+            label="Shell integration"
+            description="Local bash, zsh and fish report prompts, commands and the folder. Applies to new sessions."
+          >
+            {(control) => (
+              <Switch
+                {...control}
+                checked={settings.shellIntegration}
+                onCheckedChange={(v) => update("terminal", { shellIntegration: v })}
+              />
+            )}
+          </SettingRow>
+          <SettingRow label="Command blocks" description="Select, copy and re-run whole commands with their output">
+            {(control) => (
+              <Switch
+                {...control}
+                checked={settings.commandBlocks}
+                onCheckedChange={(v) => update("terminal", { commandBlocks: v })}
+              />
+            )}
+          </SettingRow>
+          <SettingRow label="Command status in gutter" description="Running, succeeded or failed, left of each command">
+            {(control) => (
+              <Switch
+                {...control}
+                disabled={!settings.commandBlocks}
+                checked={settings.blockGutter}
+                onCheckedChange={(v) => update("terminal", { blockGutter: v })}
+              />
+            )}
+          </SettingRow>
+          <SettingRow label="Command durations" description="How long each command took, on its prompt line">
+            {(control) => (
+              <Switch
+                {...control}
+                disabled={!settings.commandBlocks}
+                checked={settings.blockDurations}
+                onCheckedChange={(v) => update("terminal", { blockDurations: v })}
+              />
+            )}
+          </SettingRow>
+          <SettingRow
+            stacked
+            label="Remote hosts"
+            description="Add this to the shell config on an SSH host to get command blocks there too"
+          >
+            <div className="flex flex-col gap-2">
+              <div className="flex items-center justify-between gap-2">
+                <SegmentedControl
+                  aria-label="Remote shell"
+                  value={remoteShell}
+                  onValueChange={setRemoteShell}
+                  options={REMOTE_SHELL_OPTIONS}
+                />
+                <IconButton
+                  label="Copy snippet"
+                  icon={<Icon name="copy" size="sm" />}
+                  onClick={() => copyText(snippet)}
+                />
+              </div>
+              <Textarea readOnly code rows={10} aria-label={`Remote ${remoteShell} snippet`} value={snippet} />
+            </div>
           </SettingRow>
         </SettingsCard>
       </Section>

@@ -1,0 +1,6 @@
+[1m[7m%[27m[1m[0m                                                                                ]133;D;0]7;file://host/home/user]133;A[0m[27m[24m[J~ % ]133;B[K[?2004heecho hello[?2004l
+]133;Chello
+[1m[7m%[27m[1m[0m                                                                                ]133;D;0]7;file://host/home/user]133;A[0m[27m[24m[J~ % ]133;B[K[?2004hffalse[?2004l
+]133;C[1m[7m%[27m[1m[0m                                                                                ]133;D;1]7;file://host/home/user]133;A[0m[27m[24m[J~ % ]133;B[K[?2004hccd 'my dir'[?2004l
+]133;C[1m[7m%[27m[1m[0m                                                                                ]133;D;0]7;file://host/home/user/my%20dir]133;A[0m[27m[24m[J~/my dir % ]133;B[K[?2004heexit[?2004l
+]133;C

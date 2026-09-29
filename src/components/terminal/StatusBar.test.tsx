@@ -139,4 +139,14 @@ describe("StatusBar git branch", () => {
     expect(label.parentElement).toHaveClass("whitespace-nowrap", "min-w-0", "max-w-48");
     expect(label.closest("[data-git-branch]")).toHaveClass("whitespace-nowrap", "shrink-0");
   });
+
+  it("says when a pane's shell integration is inactive, with command blocks on", () => {
+    useTerminalStore.setState((s) => ({ panes: { p1: { ...s.panes.p1, integrationInactive: true } } }));
+    const { rerender } = render(<StatusBar />);
+    expect(screen.queryByText("Shell integration: inactive")).toBeNull();
+    const settings = useSettingsStore.getState().settings;
+    useSettingsStore.setState({ settings: { ...settings, terminal: { ...settings.terminal, commandBlocks: true } } });
+    rerender(<StatusBar />);
+    expect(screen.getByText("Shell integration: inactive")).toBeInTheDocument();
+  });
 });

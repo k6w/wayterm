@@ -29,6 +29,8 @@ export interface TerminalPane {
   startupCommands?: string[];
   /** Short note shown in the pane (e.g. a restored folder that no longer exists). */
   notice?: string;
+  /** Started with the shell integration, but the shell never reported a prompt. */
+  integrationInactive?: boolean;
 }
 
 export interface SerialConfig {
