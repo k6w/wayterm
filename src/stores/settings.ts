@@ -47,7 +47,7 @@ export const defaultSettings: AppSettings = {
     scrollToBottomOnInput: true,
     bufferPersistence: false,
     shellIntegration: true,
-    commandBlocks: false,
+    commandBlocks: true,
     blockGutter: true,
     blockDurations: true,
   },

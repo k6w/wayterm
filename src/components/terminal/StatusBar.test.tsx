@@ -143,10 +143,10 @@ describe("StatusBar git branch", () => {
   it("says when a pane's shell integration is inactive, with command blocks on", () => {
     useTerminalStore.setState((s) => ({ panes: { p1: { ...s.panes.p1, integrationInactive: true } } }));
     const { rerender } = render(<StatusBar />);
-    expect(screen.queryByText("Shell integration: inactive")).toBeNull();
-    const settings = useSettingsStore.getState().settings;
-    useSettingsStore.setState({ settings: { ...settings, terminal: { ...settings.terminal, commandBlocks: true } } });
-    rerender(<StatusBar />);
     expect(screen.getByText("Shell integration: inactive")).toBeInTheDocument();
+    const settings = useSettingsStore.getState().settings;
+    useSettingsStore.setState({ settings: { ...settings, terminal: { ...settings.terminal, commandBlocks: false } } });
+    rerender(<StatusBar />);
+    expect(screen.queryByText("Shell integration: inactive")).toBeNull();
   });
 });

@@ -32,8 +32,10 @@ describe("localSpawnConfig", () => {
 });
 
 describe("terminal settings defaults", () => {
-  it("turns shell integration on and keeps command blocks behind their flag", () => {
+  it("turns shell integration and command blocks on", () => {
     expect(defaultSettings.terminal.shellIntegration).toBe(true);
-    expect(defaultSettings.terminal.commandBlocks).toBe(false);
+    expect(defaultSettings.terminal.commandBlocks).toBe(true);
+    expect(defaultSettings.terminal.blockGutter).toBe(true);
+    expect(defaultSettings.terminal.blockDurations).toBe(true);
   });
 });

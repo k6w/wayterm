@@ -49,10 +49,10 @@ describe("TerminalPanel", () => {
     render(<TerminalPanel />);
     const blocks = screen.getByRole("switch", { name: "Command blocks" });
     const gutter = screen.getByRole("switch", { name: "Command status in gutter" });
-    expect(gutter).toHaveAttribute("data-disabled");
-    await user.click(blocks);
-    expect(terminal().commandBlocks).toBe(true);
     expect(gutter).not.toHaveAttribute("data-disabled");
+    await user.click(blocks);
+    expect(terminal().commandBlocks).toBe(false);
+    expect(gutter).toHaveAttribute("data-disabled");
     await user.click(screen.getByRole("switch", { name: "Shell integration" }));
     expect(terminal().shellIntegration).toBe(false);
   });
