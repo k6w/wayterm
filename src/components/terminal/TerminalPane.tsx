@@ -29,6 +29,7 @@ import { resolveRestoredCwd } from "../../lib/workspace-snapshot";
 import PaneNotice from "./PaneNotice";
 import { getDefaultShell } from "../../lib/shell-detect";
 import { localSpawnConfig, type SpawnConfig } from "./spawn-config";
+import { fitTerminal, isLaidOut } from "./fit-terminal";
 import { preflightHostKey } from "../ssh/host-key-preflight";
 import { useChangedHostKey } from "../ssh/useChangedHostKey";
 import { lazyWithPreload, useEverTrue } from "../../lib/lazy";
@@ -264,7 +265,8 @@ export default function TerminalPane({
       
       requestAnimationFrame(() => {
         requestAnimationFrame(() => {
-          if (cancelled) return;
+          // A pane remounted in a background tab is fitted when its tab shows (resize observer).
+          if (cancelled || !isLaidOut(container)) return;
           try {
             cached.fitAddon.fit();
             if (cached.sessionId) {
@@ -372,7 +374,7 @@ export default function TerminalPane({
           }
         }
 
-        fitAddon.fit();
+        fitTerminal(term, fitAddon, container);
         termRef.current = term;
         fitRef.current = fitAddon;
 
@@ -813,8 +815,12 @@ export default function TerminalPane({
       settings.appearance.cursorStyle;
     termRef.current.options.cursorBlink =
       settings.appearance.cursorBlink;
-    if (fitRef.current) fitRef.current.fit();
-  }, [settings.appearance]);
+    const container = containerRef.current;
+    if (fitRef.current && container && fitTerminal(termRef.current, fitRef.current, container)) {
+      const sessionId = getCachedTerminal(paneId)?.sessionId;
+      if (sessionId) terminalResize(sessionId, termRef.current.rows, termRef.current.cols).catch(() => {});
+    }
+  }, [settings.appearance, paneId]);
 
   // ── Focus when active ──
   useEffect(() => {
