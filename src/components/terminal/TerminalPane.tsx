@@ -1024,7 +1024,9 @@ export default function TerminalPane({
           showGutter={showGutter}
           showDurations={settings.terminal.blockDurations}
           hoveredId={hoveredBlockId}
-          renderToolbar={(block) => <BlockToolbar paneId={paneId} tracker={blockTracker} block={block} />}
+          renderToolbar={(block, duration) => (
+            <BlockToolbar paneId={paneId} tracker={blockTracker} block={block} duration={duration} />
+          )}
           onGutterClick={() => termRef.current?.focus()}
         />
       )}

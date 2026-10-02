@@ -58,3 +58,14 @@ export function visibleBlocks<B extends Lined>(
   }
   return out;
 }
+
+/** Empty cells kept between a prompt line's text and its duration label. */
+const DURATION_GAP = 2;
+
+/**
+ * An inline duration label fits on a prompt line of `usedCells` cells: the line does not wrap
+ * and leaves the label's width plus a gap free at the right. Otherwise it would cover text.
+ */
+export function inlineDurationFits(usedCells: number, wrapped: boolean, cols: number, label: string): boolean {
+  return !wrapped && usedCells + DURATION_GAP + label.length <= cols;
+}

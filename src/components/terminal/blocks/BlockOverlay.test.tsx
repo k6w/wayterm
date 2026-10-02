@@ -73,4 +73,37 @@ describe("BlockOverlay", () => {
     await frame();
     expect(screen.queryByLabelText(/Command block/)).toBeNull();
   });
+
+  it("shows a duration on the prompt line only where the line leaves room for it", async () => {
+    const long = "x".repeat(76);
+    const { term, tracker } = await setup(
+      `${A}$ ${B}short\r\n${C}${D(0)}${A}$ ${B}${long}\r\n${C}${D(0)}${A}$ ${B}${"y".repeat(90)}\r\n${C}${D(0)}${A}$ `,
+    );
+    const [, fills, wraps] = tracker.blocks;
+    const toolbarDurations: Record<string, string | null> = {};
+    const { rerender } = render(
+      <BlockOverlay term={term} tracker={tracker} showGutter showDurations measure={measure} />,
+    );
+    await frame();
+    // Only the short command has room; the others keep it for the hover toolbar and gutter tooltip.
+    expect(screen.getAllByText("1.5s")).toHaveLength(1);
+    for (const block of [fills, wraps]) {
+      rerender(
+        <BlockOverlay
+          term={term}
+          tracker={tracker}
+          showGutter
+          showDurations
+          measure={measure}
+          hoveredId={block.id}
+          renderToolbar={(b, duration) => {
+            toolbarDurations[b.id] = duration;
+            return null;
+          }}
+        />,
+      );
+      await frame();
+    }
+    expect(toolbarDurations).toEqual({ [fills.id]: "1.5s", [wraps.id]: "1.5s" });
+  });
 });

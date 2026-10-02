@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { blockLastLine, visibleBlocks } from "./layout";
+import { blockLastLine, inlineDurationFits, visibleBlocks } from "./layout";
 
 const at = (...lines: number[]) => lines.map((line, i) => ({ id: i, promptStart: { line } }));
 
@@ -31,5 +31,13 @@ describe("visibleBlocks", () => {
     for (let y = 0; y < 30_000; y += 30) visibleBlocks(blocks, y, 40, 30_000);
     const perCall = (performance.now() - t0) / 1000;
     expect(perCall).toBeLessThan(0.5);
+  });
+});
+
+describe("inlineDurationFits", () => {
+  it("needs the label and a two-cell gap free on an unwrapped line", () => {
+    expect(inlineDurationFits(74, false, 80, "1.5s")).toBe(true);
+    expect(inlineDurationFits(75, false, 80, "1.5s")).toBe(false);
+    expect(inlineDurationFits(10, true, 80, "1.5s")).toBe(false);
   });
 });

@@ -54,4 +54,12 @@ describe("BlockToolbar", () => {
     render(<BlockToolbar paneId="p1" tracker={tracker} block={tracker.blocks[0]} />);
     expect(screen.getByRole("button", { name: "Paste command" })).toBeEnabled();
   });
+
+  it("shows the duration the prompt line had no room for", async () => {
+    const tracker = await setup(`${A}$ ${B}ls\r\n${C}${D}${A}$ `);
+    const { rerender } = render(<BlockToolbar paneId="p1" tracker={tracker} block={tracker.blocks[0]} duration="2.0s" />);
+    expect(screen.getByRole("toolbar")).toHaveTextContent("2.0s");
+    rerender(<BlockToolbar paneId="p1" tracker={tracker} block={tracker.blocks[0]} duration={null} />);
+    expect(screen.getByRole("toolbar")).not.toHaveTextContent("2.0s");
+  });
 });

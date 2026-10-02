@@ -8,6 +8,8 @@ export interface BlockToolbarProps {
   paneId: string;
   tracker: BlockTracker;
   block: Block;
+  /** Duration label, when the prompt line has no room to show it. */
+  duration?: string | null;
 }
 
 /** Re-run runs only commands our script reported (trusted); others are pasted for review. */
@@ -16,7 +18,7 @@ export function rerunLabel(block: Block): string {
 }
 
 /** Actions for one command block, shown while the mouse is over it. */
-export function BlockToolbar({ paneId, tracker, block }: BlockToolbarProps) {
+export function BlockToolbar({ paneId, tracker, block, duration = null }: BlockToolbarProps) {
   const hasOutput = !!block.outputStart;
   const idle = canRerun(tracker);
   return (
@@ -30,6 +32,7 @@ export function BlockToolbar({ paneId, tracker, block }: BlockToolbarProps) {
         event.stopPropagation();
       }}
     >
+      {duration && <span className="px-1.5 font-mono text-2xs text-fg-muted">{duration}</span>}
       <IconButton
         size="xs"
         label="Copy command"

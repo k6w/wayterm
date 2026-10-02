@@ -1,7 +1,7 @@
 import { useRef, type ReactNode } from "react";
 import type { Terminal } from "@xterm/xterm";
 import type { Block, BlockTracker } from "../../../lib/blocks/block-tracker";
-import { visibleBlocks } from "../../../lib/blocks/layout";
+import { inlineDurationFits, visibleBlocks } from "../../../lib/blocks/layout";
 import { formatDuration } from "../../../lib/format";
 import { Spinner, Tooltip, cn } from "../../../ui";
 import { measureScreen, useBlockFrame, type ScreenGeometry } from "./use-block-frame";
@@ -14,14 +14,26 @@ export interface BlockOverlayProps {
   tracker: BlockTracker;
   showGutter: boolean;
   showDurations: boolean;
-  /** Toolbar for the hovered block, positioned by the overlay. */
-  renderToolbar?: (block: Block) => ReactNode;
+  /**
+   * Toolbar for the hovered block, positioned by the overlay. `duration` is the block's duration
+   * label when the prompt line has no room to show it, else null.
+   */
+  renderToolbar?: (block: Block, duration: string | null) => ReactNode;
   /** Block under the mouse (the pane tracks it from mouse moves over the terminal). */
   hoveredId?: string | null;
   /** Called after a gutter click changed the selection, to hand focus back to the terminal. */
   onGutterClick?: () => void;
   /** Tests: where the screen sits. */
   measure?: (root: HTMLElement, term: Terminal) => ScreenGeometry | null;
+}
+
+/** Whether the block's prompt line has room for its duration label at the right. */
+function durationFitsInline(term: Terminal, block: Block, label: string): boolean {
+  const buf = term.buffer.active;
+  const line = buf.getLine(block.promptStart.line);
+  if (!line) return false;
+  const wrapped = !!buf.getLine(block.promptStart.line + 1)?.isWrapped;
+  return inlineDurationFits(line.translateToString(true).length, wrapped, term.cols, label);
 }
 
 function statusLabel(block: Block): string {
@@ -63,6 +75,9 @@ export function BlockOverlay({
           const duration =
             done && block.startedAt !== undefined && block.endedAt !== undefined ? block.endedAt - block.startedAt : null;
           const showMark = block.state === "running" || done;
+          const durationLabel = showDurations && duration !== null ? formatDuration(duration) : null;
+          const inlineDuration =
+            durationLabel !== null && promptVisible && durationFitsInline(term, block, durationLabel);
           return (
             <div key={block.id}>
               {selected.has(block.id) && (
@@ -73,7 +88,10 @@ export function BlockOverlay({
                 />
               )}
               {showGutter && showMark && (
-                <Tooltip content={statusLabel(block)} side="right">
+                <Tooltip
+                  content={durationLabel ? `${statusLabel(block)} in ${durationLabel}` : statusLabel(block)}
+                  side="right"
+                >
                   <button
                     type="button"
                     tabIndex={-1}
@@ -100,12 +118,12 @@ export function BlockOverlay({
                   </button>
                 </Tooltip>
               )}
-              {showDurations && duration !== null && promptVisible && (
+              {inlineDuration && (
                 <span
                   className="absolute text-right font-mono text-2xs text-fg-muted"
                   style={{ top: y, height: g.cellHeight, left: g.left, width: g.width - 4 }}
                 >
-                  {formatDuration(duration)}
+                  {durationLabel}
                 </span>
               )}
               {renderToolbar && hoveredId === block.id && (
@@ -113,7 +131,7 @@ export function BlockOverlay({
                   className="pointer-events-auto absolute flex justify-end"
                   style={{ top: Math.max(y - 2, g.top), left: g.left, width: g.width - 4 }}
                 >
-                  {renderToolbar(block)}
+                  {renderToolbar(block, inlineDuration ? null : durationLabel)}
                 </div>
               )}
             </div>
