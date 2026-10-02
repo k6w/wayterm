@@ -135,6 +135,25 @@ async function started() {
 }
 
 describe("TerminalPane sizing", () => {
+  it("starts an integrated shell with the columns left beside the block gutter", async () => {
+    const { container } = render(<Tab hidden={false} />);
+    const term = await started();
+
+    expect(container.querySelector(".pl-5")).not.toBeNull();
+    expect(vi.mocked(terminalSpawn).mock.calls[0][0].cols).toBe(98);
+    expect(term.cols).toBe(98);
+  });
+
+  it("starts without the gutter when command blocks are off", async () => {
+    useSettingsStore.setState({
+      settings: { ...defaultSettings, terminal: { ...defaultSettings.terminal, commandBlocks: false } },
+    });
+    render(<Tab hidden={false} />);
+    await started();
+
+    expect(vi.mocked(terminalSpawn).mock.calls[0][0].cols).toBe(100);
+  });
+
   it("leaves a hidden tab's terminal alone when the font changes", async () => {
     const { rerender } = render(<Tab hidden={false} />);
     const term = await started();
@@ -145,7 +164,7 @@ describe("TerminalPane sizing", () => {
       useSettingsStore.setState({ settings: { ...s, appearance: { ...s.appearance, terminalFontSize: 16 } } });
     });
 
-    expect(term.cols).toBe(100);
+    expect(term.cols).toBe(98);
     expect(terminalResize).not.toHaveBeenCalled();
   });
 

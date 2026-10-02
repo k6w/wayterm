@@ -1,4 +1,5 @@
 import { Suspense, useEffect, useRef, useState, useCallback, type CSSProperties } from "react";
+import { flushSync } from "react-dom";
 import { Terminal } from "@xterm/xterm";
 import { WebglAddon } from "@xterm/addon-webgl";
 import { FitAddon } from "@xterm/addon-fit";
@@ -199,6 +200,8 @@ export default function TerminalPane({
   // Command blocks of this pane (lives in the terminal cache; state here only to render).
   const [blockTracker, setBlockTracker] = useState<BlockTracker | null>(() => getCachedTerminal(paneId)?.blocks ?? null);
   useTrackerVersion(blockTracker);
+  // Until the shell has started, whether it is started with the integration (and so gets the gutter).
+  const [integrationExpected, setIntegrationExpected] = useState(false);
   const [hoveredBlockId, setHoveredBlockId] = useState<string | null>(null);
   const [menuBlockId, setMenuBlockId] = useState<string | null>(null);
 
@@ -452,6 +455,11 @@ export default function TerminalPane({
           spawnCwd = resolved.cwd;
           useTerminalStore.getState().updatePane(paneId, { checkCwd: undefined, cwd: resolved.cwd, notice: resolved.notice });
         }
+
+        // The gutter padding narrows the terminal: apply it before measuring, so the shell starts
+        // with the columns it keeps (zsh marks a partial line with `%` when they shrink at once).
+        flushSync(() => setIntegrationExpected(spawnSetup === "integrated"));
+        fitTerminal(term, fitAddon, container);
 
         const { sessionId, nonce } = await terminalSpawn({
           shell: spawnShell,
@@ -933,6 +941,8 @@ export default function TerminalPane({
   const showBlocks =
     settings.terminal.commandBlocks && !!blockTracker && (blockTracker.integrated || blockTracker.active);
   const showGutter = showBlocks && settings.terminal.blockGutter;
+  // The gutter's room is kept from before the shell starts (see the spawn), so its columns do not change.
+  const padGutter = blockTracker ? showGutter : settings.terminal.commandBlocks && settings.terminal.blockGutter && integrationExpected;
   const menuBlock =
     showBlocks && blockTracker && menuBlockId ? blockTracker.blocks.find((b) => b.id === menuBlockId) : undefined;
   const blockMenu: PaneBlockMenu | null =
@@ -1003,7 +1013,7 @@ export default function TerminalPane({
 
       <div
         ref={containerRef}
-        className={`h-full w-full bg-(--nx-dyn-bg) pr-1 ${showGutter ? "pl-5" : "pl-1.5"} ${showCloseBtn ? "pt-7" : "pt-1.5"}`}
+        className={`h-full w-full bg-(--nx-dyn-bg) pr-1 ${padGutter ? "pl-5" : "pl-1.5"} ${showCloseBtn ? "pt-7" : "pt-1.5"}`}
         style={{ "--nx-dyn-bg": terminalTint } as CSSProperties}
       />
 
