@@ -8,6 +8,8 @@ import { measureScreen, useBlockFrame, type ScreenGeometry } from "./use-block-f
 
 /** Gutter width left of the screen; matches the pane's `pl-5` padding. */
 const GUTTER = 20;
+/** Room between the selection's left border and the text. */
+const SELECTION_INSET = 8;
 
 export interface BlockOverlayProps {
   term: Terminal;
@@ -84,7 +86,7 @@ export function BlockOverlay({
                 <div
                   data-testid="block-selection"
                   className="absolute border-l-2 border-accent bg-accent-subtle/60"
-                  style={{ top: y, height, left: g.left - 4, width: g.width + 4 }}
+                  style={{ top: y, height, left: g.left - SELECTION_INSET, width: g.width + SELECTION_INSET }}
                 />
               )}
               {showGutter && showMark && (
