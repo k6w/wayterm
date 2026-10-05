@@ -10,7 +10,7 @@ import { useSettingsStore } from "../../stores/settings";
 import { useTerminalStore, collectPaneIds } from "../../stores/terminal";
 import DropZoneOverlay from "./DropZoneOverlay";
 import PaneContextMenu, { type PaneBlockMenu } from "./PaneContextMenu";
-import { canRerun, copyBlocks, rerunBlock } from "../../lib/blocks/block-actions";
+import { canRerun, copyBlocks, rerunBlock, shareBlock } from "../../lib/blocks/block-actions";
 import { ContextMenu, ContextMenuTrigger } from "../../ui";
 import PaneControls from "./PaneControls";
 import { SearchBar } from "../search/SearchBar";
@@ -953,6 +953,7 @@ export default function TerminalPane({
           canRerun: canRerun(blockTracker),
           copy: (part) => copyBlocks(paneId, part, menuBlock),
           rerun: () => rerunBlock(paneId, menuBlock),
+          share: () => shareBlock(paneId, menuBlock),
           viewOutput: () =>
             useBlockViewer
               .getState()

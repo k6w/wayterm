@@ -21,6 +21,8 @@ export interface PaneBlockMenu {
   copy: (part: "command" | "output" | "both") => void;
   rerun: () => void;
   viewOutput: () => void;
+  /** Copies the command and output as text to share. */
+  share: () => void;
 }
 
 interface PaneContextMenuProps {
@@ -87,6 +89,9 @@ export default function PaneContextMenu({
             onSelect={block.viewOutput}
           >
             View Output
+          </ContextMenuItem>
+          <ContextMenuItem icon={<Icon name="share" size="sm" />} onSelect={block.share}>
+            Copy as Text to Share
           </ContextMenuItem>
           <ContextMenuSeparator />
         </>

@@ -141,11 +141,35 @@ describe("PaneContextMenu", () => {
 
   it("offers the block actions for the clicked block", async () => {
     const user = userEvent.setup();
-    const block = { hasOutput: true, rerunLabel: "Paste command", canRerun: false, copy: vi.fn(), rerun: vi.fn(), viewOutput: vi.fn() };
+    const block = {
+      hasOutput: true,
+      rerunLabel: "Paste command",
+      canRerun: false,
+      copy: vi.fn(),
+      rerun: vi.fn(),
+      viewOutput: vi.fn(),
+      share: vi.fn(),
+    };
     const menu = await setup({ block });
     expect(within(menu).getByText("Command block")).toBeInTheDocument();
     expect(within(menu).getByRole("menuitem", { name: /^Paste command/ })).toHaveAttribute("aria-disabled", "true");
     await user.click(within(menu).getByRole("menuitem", { name: /^Copy Output/ }));
     expect(block.copy).toHaveBeenCalledWith("output");
+  });
+
+  it("copies the block as text to share, like the toolbar", async () => {
+    const user = userEvent.setup();
+    const block = {
+      hasOutput: true,
+      rerunLabel: "Re-run",
+      canRerun: true,
+      copy: vi.fn(),
+      rerun: vi.fn(),
+      viewOutput: vi.fn(),
+      share: vi.fn(),
+    };
+    const menu = await setup({ block });
+    await user.click(within(menu).getByRole("menuitem", { name: /^Copy as Text to Share/ }));
+    expect(block.share).toHaveBeenCalled();
   });
 });
