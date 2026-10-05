@@ -114,10 +114,18 @@ export default function TerminalPanel() {
               />
             )}
           </SettingRow>
-          <SettingRow label="Command blocks" description="Select, copy and re-run whole commands with their output">
+          <SettingRow
+            label="Command blocks"
+            description={
+              settings.shellIntegration
+                ? "Select, copy and re-run whole commands with their output"
+                : "Turn on Shell integration to use command blocks"
+            }
+          >
             {(control) => (
               <Switch
                 {...control}
+                disabled={!settings.shellIntegration}
                 checked={settings.commandBlocks}
                 onCheckedChange={(v) => update("terminal", { commandBlocks: v })}
               />
@@ -127,7 +135,7 @@ export default function TerminalPanel() {
             {(control) => (
               <Switch
                 {...control}
-                disabled={!settings.commandBlocks}
+                disabled={!settings.shellIntegration || !settings.commandBlocks}
                 checked={settings.blockGutter}
                 onCheckedChange={(v) => update("terminal", { blockGutter: v })}
               />
@@ -137,7 +145,7 @@ export default function TerminalPanel() {
             {(control) => (
               <Switch
                 {...control}
-                disabled={!settings.commandBlocks}
+                disabled={!settings.shellIntegration || !settings.commandBlocks}
                 checked={settings.blockDurations}
                 onCheckedChange={(v) => update("terminal", { blockDurations: v })}
               />

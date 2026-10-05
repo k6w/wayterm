@@ -57,6 +57,18 @@ describe("TerminalPanel", () => {
     expect(terminal().shellIntegration).toBe(false);
   });
 
+  it("disables the command block switches while shell integration is off", async () => {
+    const user = userEvent.setup();
+    render(<TerminalPanel />);
+    const blocks = screen.getByRole("switch", { name: "Command blocks" });
+    expect(blocks).not.toHaveAttribute("data-disabled");
+    await user.click(screen.getByRole("switch", { name: "Shell integration" }));
+    for (const name of ["Command blocks", "Command status in gutter", "Command durations"]) {
+      expect(screen.getByRole("switch", { name })).toHaveAttribute("data-disabled");
+    }
+    expect(blocks).toHaveAccessibleDescription("Turn on Shell integration to use command blocks");
+  });
+
   it("shows a copyable snippet for remote hosts per shell", async () => {
     const user = userEvent.setup();
     const writeText = vi.spyOn(navigator.clipboard, "writeText");
