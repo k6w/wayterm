@@ -4,14 +4,14 @@
 
 a terminal that also does your ssh, sftp, git and database work, so you can stop juggling five apps.
 
-[![release](https://img.shields.io/badge/release-v0.8.0-5b95ff?style=flat-square)](https://github.com/k6w/nexterm-terminal-app/releases/latest)
+[![release](https://img.shields.io/badge/release-v0.9.0-5b95ff?style=flat-square)](https://github.com/k6w/nexterm-terminal-app/releases/latest)
 [![ci](https://github.com/k6w/nexterm-terminal-app/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/k6w/nexterm-terminal-app/actions/workflows/ci.yml)
 [![platforms](https://img.shields.io/badge/platforms-macos%20%7C%20windows%20%7C%20linux-3a3d44?style=flat-square)](#install)
 [![built with tauri](https://img.shields.io/badge/built%20with-tauri%202-24c8db?style=flat-square)](https://tauri.app)
 
 <br>
 
-<img src=".github/assets/screenshots/hero.png" alt="nexterm with three split panes and the git panel open" width="900">
+<img src=".github/assets/screenshots/hero.png" alt="nexterm with command blocks in a zsh split and the git panel open" width="900">
 
 </div>
 
@@ -32,6 +32,16 @@ nexterm is a desktop terminal built with tauri, react and rust. on top of a fast
 - a scratchpad that drops down over everything (`` ⌥` ``)
 - tracks the working directory of each pane, so new splits open where you are
 - scrollback survives restarts, and you can pick new tab, restore or a workspace on launch
+
+**command blocks**
+- every command and its output becomes a block. a gutter on the left shows whether it's running, succeeded or failed, and the prompt line shows how long it took
+- click the gutter to select a block, shift+click to select a range, or jump between blocks from the keyboard (`⌘↑` / `⌘↓`)
+- hover a block to copy the command, the output or both, re-run it, open the output in a viewer, or copy it as text to share. the right-click menu has the same actions
+- re-run only types at an idle prompt, and anything nexterm can't vouch for is pasted for you to check instead of run
+- block keys only work at the shell prompt, so vim and tmux keep theirs
+- it runs on shell integration for zsh, bash and fish, which nexterm sets up for local shells without touching your dotfiles. the marks are signed per session, so a program's output can't fake a block
+- on a server, paste the snippet from settings, terminal into your shell's rc file to get blocks over ssh too
+- both shell integration and command blocks can be turned off in settings, terminal
 
 **ssh**
 - saved connections with folders, color tags, startup commands and env vars
@@ -54,9 +64,15 @@ nexterm is a desktop terminal built with tauri, react and rust. on top of a fast
 - postgres, mysql, sqlite and mongodb
 - query editor with history, a results grid and csv or json export
 
+**workspaces**
+- save your open tabs and splits as a workspace: local shells with their folders, ssh and sftp sessions and serial ports
+- open one to replace your tabs or add to them, from the sidebar or the command palette
+- give any pane startup commands that run once its shell is ready
+- rename, duplicate or update a workspace from the current layout, and see when you last opened it
+- pick a workspace (or your last session) to come back on launch
+
 **everything else**
-- command palette with commands, connections, snippets and themes (`⌘⇧P`)
-- workspaces: save your tabs and splits, open them again later
+- command palette with commands, connections, workspaces, snippets and themes (`⌘⇧P`)
 - clipboard history (`⌘⇧V`)
 - snippets with variables like `{{host}}`, `{{cwd}}` and `{{date}}`
 - serial ports for when you're talking to a board
@@ -68,8 +84,16 @@ nexterm is a desktop terminal built with tauri, react and rust. on top of a fast
 
 <table>
   <tr>
-    <td width="50%"><img src=".github/assets/screenshots/split-drop-zones.png" alt="dragging a tab onto a pane shows split drop zones"></td>
-    <td width="50%"><img src=".github/assets/screenshots/command-palette.png" alt="command palette"></td>
+    <td width="50%"><img src=".github/assets/screenshots/command-blocks.png" alt="command blocks with the hover toolbar"></td>
+    <td width="50%"><img src=".github/assets/screenshots/workspaces.png" alt="saved workspaces in the sidebar"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>command blocks and their hover toolbar</sub></td>
+    <td align="center"><sub>saved workspaces</sub></td>
+  </tr>
+  <tr>
+    <td><img src=".github/assets/screenshots/split-drop-zones.png" alt="dragging a tab onto a pane shows split drop zones"></td>
+    <td><img src=".github/assets/screenshots/command-palette.png" alt="command palette"></td>
   </tr>
   <tr>
     <td align="center"><sub>drag a tab onto a pane to split it</sub></td>
@@ -155,12 +179,16 @@ on windows and linux, read `⌘` as `ctrl`.
 | move pane to its own tab | `⌘⇧T` | `ctrl+shift+t` |
 | focus next / previous pane | `⌥]` / `⌥[` | `alt+]` / `alt+[` |
 | find in terminal | `⌘F` | `ctrl+f` |
+| previous / next command block | `⌘↑` / `⌘↓` | `ctrl+shift+↑` / `ctrl+shift+↓` |
+| extend block selection | `⌘⇧↑` / `⌘⇧↓` | `ctrl+alt+shift+↑` / `ctrl+alt+shift+↓` |
+| copy selected block output | `⌘C` | `ctrl+shift+c` |
+| clear block selection | `esc` | `esc` |
 | clipboard history | `⌘⇧V` | `ctrl+shift+v` |
 | scratchpad | `` ⌥` `` | `` alt+` `` |
 | toggle sidebar | `⌘B` | `ctrl+b` |
 | settings | `⌘,` | `ctrl+,` |
 
-copy and paste in the terminal are `ctrl+shift+c` and `ctrl+shift+v` on windows and linux. on macos the usual `⌘C` and `⌘V` work. you can rebind any of these in settings, keybindings.
+copy and paste in the terminal are `ctrl+shift+c` and `ctrl+shift+v` on windows and linux. on macos the usual `⌘C` and `⌘V` work. the command block keys only kick in at the shell prompt, so full-screen apps like vim and tmux keep them, and copy still copies selected text when there is some. you can rebind any of these in settings, keybindings.
 
 ## themes
 
@@ -210,13 +238,15 @@ src/                     react front end
 │                        clipboard, serial, welcome
 ├── ui/                  the design kit: buttons, dialogs, menus, inputs
 ├── stores/              zustand state (tabs and panes, settings, theme, ssh…)
-├── lib/                 keybindings, ipc wrappers, theme schema, helpers
+├── lib/                 keybindings, command blocks, workspace snapshots,
+│                        ipc wrappers, theme schema, helpers
 ├── themes/              the four built-in themes as json
 └── types/               shared typescript types
 
 src-tauri/src/           rust back end
 ├── commands/            tauri commands the front end calls
 ├── pty/                 local shells and cwd tracking
+├── shell_integration/   zsh, bash and fish scripts for command blocks
 ├── sftp/                sftp sessions over russh
 ├── port_forward/        local, remote and dynamic tunnels
 ├── known_hosts/         reading and safely rewriting known_hosts
@@ -232,6 +262,7 @@ src-tauri/src/           rust back end
 - **host keys.** before an ssh or sftp session starts, nexterm checks the server key against your own `~/.ssh/known_hosts`. new hosts ask you to trust the fingerprint. a changed key stops the connection and shows both fingerprints. it's only replaced after you type the end of the new fingerprint, and only if the file still holds the key you were shown. a backup of `known_hosts` is written first.
 - **ssh passwords are never saved.** there's no column for them. ssh asks each time, or you use a key or your agent.
 - **keys stay where they are.** keys picked up from `~/.ssh/config` are stored as a path and read at connect time. if you paste a private key into settings, keys, it's stored in the app database encrypted with aes-gcm. that key is derived from the machine, so treat it as protection against casual reading, not against someone with access to your account.
+- **shell integration leaves your dotfiles alone.** its scripts live in a `shell-integration` folder inside the app data folder and are loaded at launch (through `ZDOTDIR` for zsh, `--rcfile` for bash, `-C` for fish), and they source your own config as usual. each session gets a random secret that the prompt and exit marks have to carry, so output from a program can't pose as a command block, and a re-run never runs a command it didn't see you type.
 - **database passwords are saved** in the local app database so the client can reconnect. keep that in mind on shared machines.
 - **where things live.** settings, connections, history and scrollback are in `nexterm.db` inside the app data folder (`~/Library/Application Support/com.nexterm.terminal` on macos, `%APPDATA%\com.nexterm.terminal` on windows, `~/.local/share/com.nexterm.terminal` on linux).
 - **updates** are signed and checked against a public key built into the app.
@@ -242,10 +273,14 @@ src-tauri/src/           rust back end
 - [x] lazy-loaded panels for a faster start
 - [x] `~/.ssh/config` import and quick connect from the palette
 - [x] safe in-place host key replacement
-- [ ] full workspace restore, including ssh sessions and panels (in progress)
-- [ ] command blocks: each command and its output as its own block (planned)
+- [x] full workspace restore, including ssh, sftp and serial panes and startup commands
+- [x] command blocks with shell integration for zsh, bash and fish
+- [ ] collapse a command block's output
+- [ ] fish integration checked on more versions and setups (it works, but has had the least real use)
+- [ ] secrets in the system keychain instead of the app database
+- [ ] encrypted sync of connections and settings between machines
+- [ ] ai help for writing and explaining commands
 - [ ] notarized macos builds
-- [ ] v0.9.0 release
 
 ## contributing
 
