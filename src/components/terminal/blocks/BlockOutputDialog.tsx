@@ -38,6 +38,7 @@ export function BlockOutputDialog({ paneId, onClosed }: { paneId: string; onClos
           size="lg"
           surface="solid"
           flush
+          hints={[{ shortcut: "Escape", label: "Close" }]}
           footer={
             <>
               <Button variant="ghost" onClick={() => copyText(view.output)} disabled={!view.output}>

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Terminal } from "@xterm/xterm";
 import { BlockTracker } from "../../../lib/blocks/block-tracker";
@@ -40,7 +40,10 @@ describe("BlockToolbar", () => {
     expect(navigator.clipboard.writeText).toHaveBeenLastCalledWith("$ ls\na.txt");
     fireEvent.click(screen.getByRole("button", { name: "View output" }));
     expect(await screen.findByText("a.txt")).toBeInTheDocument();
-    expect(screen.getByRole("dialog", { name: "Command output" })).toBeInTheDocument();
+    const dialog = screen.getByRole("dialog", { name: "Command output" });
+    // Escape closes the read-only viewer, it does not cancel anything.
+    expect(within(dialog).queryByText("Cancel")).toBeNull();
+    expect(within(dialog).getAllByText("Close")).toHaveLength(2);
   });
 
   it("offers re-run only while the shell waits at a prompt", async () => {
