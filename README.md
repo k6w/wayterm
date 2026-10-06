@@ -1,291 +1,315 @@
-<div align="center">
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset=".github/assets/brand/banner-dark.png">
+    <source media="(prefers-color-scheme: light)" srcset=".github/assets/brand/banner-light.png">
+    <img src=".github/assets/brand/banner-light.png" alt="nexterm logo and wordmark, with a terminal window showing three command blocks: one succeeded, one failed and one still running" width="100%">
+  </picture>
+</p>
 
-# nexterm
+<p align="center">
+  A desktop terminal with saved SSH connections, an SFTP browser, a Git panel and a database client built in.<br>
+  Made with Tauri, React and Rust.
+</p>
 
-a terminal that also does your ssh, sftp, git and database work, so you can stop juggling five apps.
+<p align="center">
+  <a href="https://github.com/k6w/nexterm-terminal-app/releases/latest"><img src="https://img.shields.io/badge/release-v0.9.0-2f6be0?style=flat-square" alt="Release v0.9.0"></a>
+  <a href="https://github.com/k6w/nexterm-terminal-app/actions/workflows/ci.yml"><img src="https://github.com/k6w/nexterm-terminal-app/actions/workflows/ci.yml/badge.svg?branch=master" alt="CI status"></a>
+  <a href="#download"><img src="https://img.shields.io/badge/platforms-macOS%20%7C%20Windows%20%7C%20Linux-3a3d44?style=flat-square" alt="Platforms: macOS, Windows and Linux"></a>
+  <a href="https://tauri.app"><img src="https://img.shields.io/badge/built%20with-Tauri%202-24c8db?style=flat-square" alt="Built with Tauri 2"></a>
+  <a href="https://www.rust-lang.org"><img src="https://img.shields.io/badge/backend-Rust-b7410e?style=flat-square" alt="Backend: Rust"></a>
+  <a href="https://react.dev"><img src="https://img.shields.io/badge/frontend-React%20%2B%20TypeScript-3178c6?style=flat-square" alt="Frontend: React and TypeScript"></a>
+</p>
 
-[![release](https://img.shields.io/badge/release-v0.9.0-5b95ff?style=flat-square)](https://github.com/k6w/nexterm-terminal-app/releases/latest)
-[![ci](https://github.com/k6w/nexterm-terminal-app/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/k6w/nexterm-terminal-app/actions/workflows/ci.yml)
-[![platforms](https://img.shields.io/badge/platforms-macos%20%7C%20windows%20%7C%20linux-3a3d44?style=flat-square)](#install)
-[![built with tauri](https://img.shields.io/badge/built%20with-tauri%202-24c8db?style=flat-square)](https://tauri.app)
+<p align="center">
+  <a href="#download"><b>Download</b></a> ·
+  <a href="#features"><b>Features</b></a> ·
+  <a href="#screenshots"><b>Screenshots</b></a> ·
+  <a href="#build-from-source"><b>Build from source</b></a> ·
+  <a href="CHANGELOG.md"><b>Changelog</b></a>
+</p>
 
 <br>
 
-<img src=".github/assets/screenshots/hero.png" alt="nexterm with command blocks in a zsh split and the git panel open" width="900">
+<p align="center">
+  <img src=".github/assets/screenshots/hero.png" alt="Nexterm with command blocks in a zsh split pane and the Git panel open on the right" width="100%">
+  <br>
+  <sub>Command blocks in a split pane, with the Git panel docked on the right (Graphite theme).</sub>
+</p>
 
-</div>
+## Why Nexterm
 
-<br>
+Most working days look the same: a few local shells, a couple of servers, a repository and a database.
+Nexterm keeps all of them in one window, behind one command palette and one set of shortcuts.
+It uses the system webview instead of bundling a browser, so it stays small and starts quickly.
 
-## what it is
-
-nexterm is a desktop terminal built with tauri, react and rust. on top of a fast terminal with splits and tabs, it has saved ssh connections, a dual-pane sftp browser, a git panel, a small database client and a command palette that reaches all of it.
-
-**why:** most days look the same. a few local shells, a couple of servers, a repo, a database. nexterm keeps those in one window with one set of shortcuts, and stays small because it uses the system webview instead of bundling a browser.
-
-## features
-
-**terminal**
-- gpu rendering through xterm.js webgl, tabs and nested split panes
-- drag a tab onto a pane to split it, with drop zones for each side
-- find in terminal with a match count (`⌘F`)
-- a scratchpad that drops down over everything (`` ⌥` ``)
-- tracks the working directory of each pane, so new splits open where you are
-- scrollback survives restarts, and you can pick new tab, restore or a workspace on launch
-
-**command blocks**
-- every command and its output becomes a block. a gutter on the left shows whether it's running, succeeded or failed, and the prompt line shows how long it took
-- click the gutter to select a block, shift+click to select a range, or jump between blocks from the keyboard (`⌘↑` / `⌘↓`)
-- hover a block to copy the command, the output or both, re-run it, open the output in a viewer, or copy it as text to share. the right-click menu has the same actions
-- re-run only types at an idle prompt, and anything nexterm can't vouch for is pasted for you to check instead of run
-- block keys only work at the shell prompt, so vim and tmux keep theirs
-- it runs on shell integration for zsh, bash and fish, which nexterm sets up for local shells without touching your dotfiles. the marks are signed per session, so a program's output can't fake a block
-- on a server, paste the snippet from settings, terminal into your shell's rc file to get blocks over ssh too
-- both shell integration and command blocks can be turned off in settings, terminal
-
-**ssh**
-- saved connections with folders, color tags, startup commands and env vars
-- password, key or agent auth. key files in `~/.ssh` are referenced by path, not copied
-- import hosts from `~/.ssh/config`
-- quick connect: type `user@host:port` straight into the command palette
-- jump hosts and port forwarding (local, remote and dynamic socks)
-- host keys are checked against your `known_hosts` before connecting. if a key changes, nexterm shows the old and new fingerprints side by side and only replaces the saved key after you confirm the new one
-
-**sftp**
-- dual-pane browser, local on one side and remote on the other
-- sortable file table, breadcrumbs, a transfer queue and a conflict dialog
-
-**git**
-- staged and unstaged changes, commit box, branches, history and stash
-- unified or split diff viewer
-- picks up the repo of the active pane, subfolders included. no repo yet? there's a button for that
-
-**database**
-- postgres, mysql, sqlite and mongodb
-- query editor with history, a results grid and csv or json export
-
-**workspaces**
-- save your open tabs and splits as a workspace: local shells with their folders, ssh and sftp sessions and serial ports
-- open one to replace your tabs or add to them, from the sidebar or the command palette
-- give any pane startup commands that run once its shell is ready
-- rename, duplicate or update a workspace from the current layout, and see when you last opened it
-- pick a workspace (or your last session) to come back on launch
-
-**everything else**
-- command palette with commands, connections, workspaces, snippets and themes (`⌘⇧P`)
-- clipboard history (`⌘⇧V`)
-- snippets with variables like `{{host}}`, `{{cwd}}` and `{{date}}`
-- serial ports for when you're talking to a board
-- four themes (graphite, frost, ember and paper), window vibrancy with a blur intensity slider, and compact or comfortable density
-- keyboard first. every shortcut is listed and editable in settings, with conflict warnings
-- system tray, launch on startup and signed auto updates
-
-## screenshots
+## Features
 
 <table>
   <tr>
-    <td width="50%"><img src=".github/assets/screenshots/command-blocks.png" alt="command blocks with the hover toolbar"></td>
-    <td width="50%"><img src=".github/assets/screenshots/workspaces.png" alt="saved workspaces in the sidebar"></td>
+    <td width="33%" valign="top">
+      <b>Terminal and command blocks</b><br>
+      GPU rendering through xterm.js WebGL, tabs and nested splits. Every command and its output becomes a block you can select, copy, re-run or share.
+    </td>
+    <td width="33%" valign="top">
+      <b>SSH and connections</b><br>
+      Saved hosts with folders and color tags, <code>~/.ssh/config</code> import, quick connect from the palette, jump hosts and local, remote or SOCKS forwarding.
+    </td>
+    <td width="33%" valign="top">
+      <b>Host key verification</b><br>
+      Keys are checked against your <code>known_hosts</code> before connecting. A changed key shows both fingerprints and is only replaced after you confirm.
+    </td>
   </tr>
   <tr>
-    <td align="center"><sub>command blocks and their hover toolbar</sub></td>
-    <td align="center"><sub>saved workspaces</sub></td>
+    <td valign="top">
+      <b>SFTP</b><br>
+      A dual-pane browser, local on one side and remote on the other, with a sortable file table, breadcrumbs, a transfer queue and a conflict dialog.
+    </td>
+    <td valign="top">
+      <b>Git</b><br>
+      Staged and unstaged changes, a commit box, branches, history and stash, and a unified or split diff viewer. Follows the repository of the active pane.
+    </td>
+    <td valign="top">
+      <b>Database client</b><br>
+      PostgreSQL, MySQL, SQLite and MongoDB. A query editor with history, a dense results grid and CSV or JSON export.
+    </td>
   </tr>
   <tr>
-    <td><img src=".github/assets/screenshots/split-drop-zones.png" alt="dragging a tab onto a pane shows split drop zones"></td>
-    <td><img src=".github/assets/screenshots/command-palette.png" alt="command palette"></td>
-  </tr>
-  <tr>
-    <td align="center"><sub>drag a tab onto a pane to split it</sub></td>
-    <td align="center"><sub>the command palette</sub></td>
-  </tr>
-  <tr>
-    <td><img src=".github/assets/screenshots/quick-connect.png" alt="quick connect from the command palette"></td>
-    <td><img src=".github/assets/screenshots/new-connection.png" alt="new ssh connection dialog"></td>
-  </tr>
-  <tr>
-    <td align="center"><sub>quick connect from the palette</sub></td>
-    <td align="center"><sub>saving a connection</sub></td>
-  </tr>
-  <tr>
-    <td><img src=".github/assets/screenshots/git-panel.png" alt="git panel with staged and unstaged changes"></td>
-    <td><img src=".github/assets/screenshots/git-diff.png" alt="git diff viewer"></td>
-  </tr>
-  <tr>
-    <td align="center"><sub>git changes and commit box</sub></td>
-    <td align="center"><sub>the diff viewer</sub></td>
-  </tr>
-  <tr>
-    <td><img src=".github/assets/screenshots/database.png" alt="database panel querying a sqlite file"></td>
-    <td><img src=".github/assets/screenshots/settings-appearance.png" alt="appearance settings"></td>
-  </tr>
-  <tr>
-    <td align="center"><sub>querying a sqlite file</sub></td>
-    <td align="center"><sub>settings, appearance</sub></td>
+    <td valign="top">
+      <b>Workspaces</b><br>
+      Save tabs and splits, including SSH, SFTP and serial panes and per-pane startup commands, then reopen them in one step or on launch.
+    </td>
+    <td valign="top">
+      <b>Command palette</b><br>
+      Commands, connections, workspaces, snippets and themes in one list (<kbd>⌘</kbd><kbd>⇧</kbd><kbd>P</kbd>). Type <code>user@host:port</code> to connect straight away.
+    </td>
+    <td valign="top">
+      <b>Themes and appearance</b><br>
+      Four built-in themes, window vibrancy with a blur intensity slider, compact or comfortable density, and imports from Windows Terminal and iTerm2.
+    </td>
   </tr>
 </table>
 
-### the four themes
+**Keyboard first.** Every shortcut is listed and editable in Settings, with conflict warnings.
+
+**Also included:** clipboard history, snippets with variables such as `{{host}}`, `{{cwd}}` and `{{date}}`, a drop-down scratchpad, find in terminal with a match count, serial ports, scrollback that survives restarts, a system tray icon, launch on startup and signed automatic updates.
+
+## Screenshots
 
 <table>
   <tr>
-    <td width="50%"><img src=".github/assets/screenshots/theme-graphite.png" alt="graphite theme"></td>
-    <td width="50%"><img src=".github/assets/screenshots/theme-frost.png" alt="frost theme"></td>
+    <td width="50%"><img src=".github/assets/screenshots/command-blocks.png" alt="Command blocks with the hover toolbar showing copy, re-run and view actions"></td>
+    <td width="50%"><img src=".github/assets/screenshots/workspaces.png" alt="Saved workspaces listed in the sidebar"></td>
   </tr>
   <tr>
-    <td align="center"><sub>graphite (default)</sub></td>
-    <td align="center"><sub>frost</sub></td>
+    <td align="center"><sub>Command blocks and their hover toolbar</sub></td>
+    <td align="center"><sub>Saved workspaces</sub></td>
   </tr>
   <tr>
-    <td><img src=".github/assets/screenshots/theme-ember.png" alt="ember theme"></td>
-    <td><img src=".github/assets/screenshots/theme-paper.png" alt="paper theme"></td>
+    <td><img src=".github/assets/screenshots/command-palette.png" alt="The command palette with suggested commands and recent items"></td>
+    <td><img src=".github/assets/screenshots/quick-connect.png" alt="Quick connect: typing user@host into the command palette"></td>
   </tr>
   <tr>
-    <td align="center"><sub>ember</sub></td>
-    <td align="center"><sub>paper, the light one</sub></td>
+    <td align="center"><sub>The command palette</sub></td>
+    <td align="center"><sub>Quick connect from the palette</sub></td>
+  </tr>
+  <tr>
+    <td><img src=".github/assets/screenshots/new-connection.png" alt="The new SSH connection dialog with a live address preview"></td>
+    <td><img src=".github/assets/screenshots/split-drop-zones.png" alt="Dragging a tab onto a pane shows drop zones for each side"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Saving an SSH connection</sub></td>
+    <td align="center"><sub>Drag a tab onto a pane to split it</sub></td>
+  </tr>
+  <tr>
+    <td><img src=".github/assets/screenshots/git-panel.png" alt="Git panel with staged and unstaged changes and a commit box"></td>
+    <td><img src=".github/assets/screenshots/git-diff.png" alt="Git diff viewer showing a split diff"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Git changes and the commit box</sub></td>
+    <td align="center"><sub>The diff viewer</sub></td>
+  </tr>
+  <tr>
+    <td><img src=".github/assets/screenshots/database.png" alt="Database panel running a query against a SQLite file"></td>
+    <td><img src=".github/assets/screenshots/settings-appearance.png" alt="Appearance settings with theme cards, opacity and blur sliders"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Querying a SQLite file</sub></td>
+    <td align="center"><sub>Settings: Appearance</sub></td>
   </tr>
 </table>
 
-## install
+## Download
 
-grab the latest build for your os from the [releases page](https://github.com/k6w/nexterm-terminal-app/releases/latest):
+Get the latest build for your system from the [releases page](https://github.com/k6w/nexterm-terminal-app/releases/latest).
 
-| os | file |
-|---|---|
-| macos (apple silicon) | `Nexterm_<version>_aarch64.dmg` |
-| macos (intel) | `Nexterm_<version>_x64.dmg` |
-| windows | `.msi`, or the `-setup.exe` installer |
-| linux | `.AppImage`, `.deb` or `.rpm` |
+| Platform | File |
+| --- | --- |
+| macOS (Apple silicon) | `Nexterm_<version>_aarch64.dmg` |
+| macOS (Intel) | `Nexterm_<version>_x64.dmg` |
+| Windows | `.msi`, or the `-setup.exe` installer |
+| Linux | `.AppImage`, `.deb` or `.rpm` |
 
-the macos builds aren't notarized yet, so the first launch needs a right click on the app and then **open**. after that, nexterm updates itself.
+> [!NOTE]
+> The macOS builds are not signed or notarized yet, so Gatekeeper blocks the first launch. Right-click Nexterm in Applications, choose **Open**, then confirm. After that, Nexterm updates itself; updates are signed and checked against a public key built into the app.
 
-there's no homebrew tap or other package manager listing yet.
+There is no Homebrew tap or other package manager listing yet.
 
-## keyboard shortcuts
+## Keyboard shortcuts
 
-on windows and linux, read `⌘` as `ctrl`.
+| Action | macOS | Windows / Linux |
+| --- | --- | --- |
+| Command palette | <kbd>⌘</kbd><kbd>⇧</kbd><kbd>P</kbd> | <kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>P</kbd> |
+| New tab | <kbd>⌘</kbd><kbd>T</kbd> | <kbd>Ctrl</kbd><kbd>T</kbd> |
+| Close tab | <kbd>⌘</kbd><kbd>W</kbd> | <kbd>Ctrl</kbd><kbd>W</kbd> |
+| Next / previous tab | <kbd>⌘</kbd><kbd>⇥</kbd> / <kbd>⌘</kbd><kbd>⇧</kbd><kbd>⇥</kbd> | <kbd>Ctrl</kbd><kbd>Tab</kbd> / <kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>Tab</kbd> |
+| Go to tab 1 to 9 | <kbd>⌘</kbd><kbd>1</kbd> … <kbd>⌘</kbd><kbd>9</kbd> | <kbd>Ctrl</kbd><kbd>1</kbd> … <kbd>Ctrl</kbd><kbd>9</kbd> |
+| Split side by side | <kbd>⌘</kbd><kbd>⇧</kbd><kbd>D</kbd> | <kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>D</kbd> |
+| Split top and bottom | <kbd>⌘</kbd><kbd>⇧</kbd><kbd>E</kbd> | <kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>E</kbd> |
+| Close pane | <kbd>⌘</kbd><kbd>⇧</kbd><kbd>W</kbd> | <kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>W</kbd> |
+| Zoom pane | <kbd>⌘</kbd><kbd>⇧</kbd><kbd>↩</kbd> | <kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>Enter</kbd> |
+| Move pane to its own tab | <kbd>⌘</kbd><kbd>⇧</kbd><kbd>T</kbd> | <kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>T</kbd> |
+| Focus next / previous pane | <kbd>⌥</kbd><kbd>]</kbd> / <kbd>⌥</kbd><kbd>[</kbd> | <kbd>Alt</kbd><kbd>]</kbd> / <kbd>Alt</kbd><kbd>[</kbd> |
+| Find in terminal | <kbd>⌘</kbd><kbd>F</kbd> | <kbd>Ctrl</kbd><kbd>F</kbd> |
+| Previous / next command block | <kbd>⌘</kbd><kbd>↑</kbd> / <kbd>⌘</kbd><kbd>↓</kbd> | <kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>↑</kbd> / <kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>↓</kbd> |
+| Extend block selection | <kbd>⌘</kbd><kbd>⇧</kbd><kbd>↑</kbd> / <kbd>⌘</kbd><kbd>⇧</kbd><kbd>↓</kbd> | <kbd>Ctrl</kbd><kbd>Alt</kbd><kbd>Shift</kbd><kbd>↑</kbd> / <kbd>↓</kbd> |
+| Copy selected block output | <kbd>⌘</kbd><kbd>C</kbd> | <kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>C</kbd> |
+| Clear block selection | <kbd>Esc</kbd> | <kbd>Esc</kbd> |
+| Clipboard history | <kbd>⌘</kbd><kbd>⇧</kbd><kbd>V</kbd> | <kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>V</kbd> |
+| Scratchpad | <kbd>⌥</kbd><kbd>`</kbd> | <kbd>Alt</kbd><kbd>`</kbd> |
+| Toggle sidebar | <kbd>⌘</kbd><kbd>B</kbd> | <kbd>Ctrl</kbd><kbd>B</kbd> |
+| Settings | <kbd>⌘</kbd><kbd>,</kbd> | <kbd>Ctrl</kbd><kbd>,</kbd> |
 
-| action | macos | windows / linux |
-|---|---|---|
-| command palette | `⌘⇧P` | `ctrl+shift+p` |
-| new tab | `⌘T` | `ctrl+t` |
-| close tab | `⌘W` | `ctrl+w` |
-| next / previous tab | `⌘⇥` / `⌘⇧⇥` | `ctrl+tab` / `ctrl+shift+tab` |
-| go to tab 1 to 9 | `⌘1` … `⌘9` | `ctrl+1` … `ctrl+9` |
-| split side by side | `⌘⇧D` | `ctrl+shift+d` |
-| split top and bottom | `⌘⇧E` | `ctrl+shift+e` |
-| close pane | `⌘⇧W` | `ctrl+shift+w` |
-| zoom pane | `⌘⇧↩` | `ctrl+shift+enter` |
-| move pane to its own tab | `⌘⇧T` | `ctrl+shift+t` |
-| focus next / previous pane | `⌥]` / `⌥[` | `alt+]` / `alt+[` |
-| find in terminal | `⌘F` | `ctrl+f` |
-| previous / next command block | `⌘↑` / `⌘↓` | `ctrl+shift+↑` / `ctrl+shift+↓` |
-| extend block selection | `⌘⇧↑` / `⌘⇧↓` | `ctrl+alt+shift+↑` / `ctrl+alt+shift+↓` |
-| copy selected block output | `⌘C` | `ctrl+shift+c` |
-| clear block selection | `esc` | `esc` |
-| clipboard history | `⌘⇧V` | `ctrl+shift+v` |
-| scratchpad | `` ⌥` `` | `` alt+` `` |
-| toggle sidebar | `⌘B` | `ctrl+b` |
-| settings | `⌘,` | `ctrl+,` |
+On Windows and Linux, terminal copy and paste are <kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>C</kbd> and <kbd>Ctrl</kbd><kbd>Shift</kbd><kbd>V</kbd>; on macOS the usual <kbd>⌘</kbd><kbd>C</kbd> and <kbd>⌘</kbd><kbd>V</kbd> work. Copy still copies selected text when there is some. Every binding can be changed in **Settings → Keybindings**.
 
-copy and paste in the terminal are `ctrl+shift+c` and `ctrl+shift+v` on windows and linux. on macos the usual `⌘C` and `⌘V` work. the command block keys only kick in at the shell prompt, so full-screen apps like vim and tmux keep them, and copy still copies selected text when there is some. you can rebind any of these in settings, keybindings.
+## Command blocks
 
-## themes
+Each command you run and its output become a block. A gutter on the left shows whether the command is running, succeeded or failed, and the prompt line shows how long it took.
 
-nexterm ships four themes: graphite (the default), frost, ember and paper. each one covers both the app and the terminal palette, and each passes wcag aa contrast, which a test enforces.
+- Click the gutter to select a block, <kbd>Shift</kbd>-click to select a range, or move between blocks from the keyboard.
+- Hover a block to copy the command, the output or both, re-run it, open the output in a viewer, or copy it as text to share. The right-click menu has the same actions.
+- Re-run only types at an idle prompt. Anything Nexterm can't vouch for is pasted for you to review instead of being run.
+- Block shortcuts only apply at the shell prompt, so Vim, tmux and other full-screen apps keep their keys.
 
-you can also bring your own. go to settings, appearance, **import theme…** and pick a file. nexterm reads its own `.json` format, windows terminal color schemes (`.json`) and iterm2 `.itermcolors`. the easiest way to write one is to copy `src/themes/graphite.json` (or `paper.json` for a light theme), change the `id` and `name`, and edit the colors. [THEMES.md](THEMES.md) lists every token and the rules a theme has to follow.
+Blocks run on shell integration for zsh, bash and fish. Nexterm sets it up for local shells automatically without touching your dotfiles, and signs the prompt and exit marks with a per-session secret so program output can't fake a block.
 
-## build from source
+**On remote hosts**, open **Settings → Terminal → Shell integration → Remote hosts**, pick your shell and paste the snippet into the server's rc file (for example `~/.bashrc` or `~/.zshrc`). Shell integration and command blocks are on by default, and both can be turned off on the same page.
 
-you'll need:
+## Themes
 
-- [node](https://nodejs.org/) 22 (what ci uses)
-- [rust](https://rustup.rs/) stable
-- the [tauri prerequisites](https://v2.tauri.app/start/prerequisites/) for your os. on macos that's the xcode command line tools, on windows the msvc build tools and webview2. on debian or ubuntu:
+Nexterm ships four themes. Each covers both the app and the terminal palette, and each passes WCAG AA contrast, which a test enforces.
+
+<table>
+  <tr>
+    <td width="50%"><img src=".github/assets/screenshots/theme-graphite.png" alt="Nexterm in the Graphite theme"></td>
+    <td width="50%"><img src=".github/assets/screenshots/theme-frost.png" alt="Nexterm in the Frost theme"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub><b>Graphite</b>, the default</sub></td>
+    <td align="center"><sub><b>Frost</b></sub></td>
+  </tr>
+  <tr>
+    <td><img src=".github/assets/screenshots/theme-ember.png" alt="Nexterm in the Ember theme"></td>
+    <td><img src=".github/assets/screenshots/theme-paper.png" alt="Nexterm in the Paper theme"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub><b>Ember</b></sub></td>
+    <td align="center"><sub><b>Paper</b>, the light theme</sub></td>
+  </tr>
+</table>
+
+To use your own, go to **Settings → Appearance → Import theme…** and pick a file. Nexterm reads its own `.json` format, Windows Terminal color schemes (`.json`) and iTerm2 `.itermcolors`. The quickest start is to copy `src/themes/graphite.json` (or `paper.json` for a light theme), change the `id` and `name`, and edit the colors. [THEMES.md](THEMES.md) lists every token and the rules a theme has to follow.
+
+## Security and privacy
+
+- **Host keys.** Before an SSH or SFTP session starts, the server key is checked against your own `~/.ssh/known_hosts`. New hosts ask you to trust the fingerprint. A changed key stops the connection and shows both fingerprints; it is only replaced after you type the end of the new fingerprint, and only if the file still holds the key you were shown. A backup of `known_hosts` is written first.
+- **SSH passwords are never saved.** There is no column for them. Nexterm asks each time, or you use a key or your SSH agent.
+- **Key files stay where they are.** Keys from `~/.ssh` and `~/.ssh/config` are stored as a path and read at connect time. A private key pasted into **Settings → Keys** is stored in the app database, encrypted with AES-GCM using a key derived from the machine. Treat that as protection against casual reading, not against someone with access to your account.
+- **Database passwords are stored unencrypted** in the local app database so the client can reconnect. Keep that in mind on shared machines; moving them to the system keychain is on the roadmap.
+- **Shell integration leaves your dotfiles alone.** Its scripts live in a `shell-integration` folder inside the app data folder and are loaded at launch (through `ZDOTDIR` for zsh, `--rcfile` for bash and `-C` for fish), and they source your own config as usual.
+- **Where data lives.** Settings, connections, history and scrollback are kept in `nexterm.db` inside the app data folder: `~/Library/Application Support/com.nexterm.terminal` on macOS, `%APPDATA%\com.nexterm.terminal` on Windows and `~/.local/share/com.nexterm.terminal` on Linux.
+- **Updates** are signed and verified against a public key built into the app.
+
+## Build from source
+
+**Prerequisites**
+
+- [Node.js](https://nodejs.org/) 22 (the version CI uses)
+- [Rust](https://rustup.rs/) stable
+- The [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) for your OS: the Xcode Command Line Tools on macOS, the MSVC build tools and WebView2 on Windows. On Debian or Ubuntu:
 
 ```bash
 sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libudev-dev pkg-config
 ```
 
-then:
+**Run and build**
 
 ```bash
 npm ci
-npm run tauri dev      # run it locally with hot reload
+npm run tauri dev      # run locally with hot reload
 npm run tauri build    # build installers into src-tauri/target/release/bundle
 ```
 
-checks, the same ones ci runs:
+**Checks** (the same ones CI runs on macOS, Windows and Linux)
 
 ```bash
-npm run lint           # eslint plus the lint ratchet
+npm run lint           # ESLint plus the lint ratchet
 npm run typecheck      # tsc --noEmit
-npm test               # vitest
+npm test               # Vitest
 
 cd src-tauri
 cargo clippy -- -D warnings
 cargo test
 ```
 
-## project structure
+<details>
+<summary><b>Project structure</b></summary>
 
 ```
-src/                     react front end
+src/                     React front end
 ├── app/                 app shell, providers, update notice
-├── components/          features: terminal, titlebar, sidebar, ssh, sftp,
-│                        git, database, command-palette, settings, search,
-│                        clipboard, serial, welcome
-├── ui/                  the design kit: buttons, dialogs, menus, inputs
-├── stores/              zustand state (tabs and panes, settings, theme, ssh…)
-├── lib/                 keybindings, command blocks, workspace snapshots,
-│                        ipc wrappers, theme schema, helpers
-├── themes/              the four built-in themes as json
-└── types/               shared typescript types
+├── components/          terminal, titlebar, sidebar, ssh, sftp, git, database,
+│                        command-palette, settings, search, clipboard, serial, welcome
+├── ui/                  design kit: buttons, dialogs, menus, inputs
+├── stores/              Zustand state (tabs and panes, settings, theme, SSH)
+├── lib/                 keybindings, command blocks, workspace snapshots, IPC, helpers
+├── themes/              the four built-in themes as JSON
+└── types/               shared TypeScript types
 
-src-tauri/src/           rust back end
-├── commands/            tauri commands the front end calls
-├── pty/                 local shells and cwd tracking
+src-tauri/src/           Rust back end
+├── commands/            Tauri commands the front end calls
+├── pty/                 local shells and working directory tracking
 ├── shell_integration/   zsh, bash and fish scripts for command blocks
-├── sftp/                sftp sessions over russh
+├── sftp/                SFTP sessions over russh
 ├── port_forward/        local, remote and dynamic tunnels
 ├── known_hosts/         reading and safely rewriting known_hosts
 ├── ssh_config/          ~/.ssh/config parsing and import
-├── db/                  sqlite storage and migrations
-├── theme/               native theme bits
-├── window/              vibrancy and macos window chrome
+├── db/                  SQLite storage and migrations
+├── theme/               native theme support
+├── window/              vibrancy and macOS window chrome
 └── crypto.rs            at-rest encryption for keys stored in the app
 ```
 
-## security notes
+</details>
 
-- **host keys.** before an ssh or sftp session starts, nexterm checks the server key against your own `~/.ssh/known_hosts`. new hosts ask you to trust the fingerprint. a changed key stops the connection and shows both fingerprints. it's only replaced after you type the end of the new fingerprint, and only if the file still holds the key you were shown. a backup of `known_hosts` is written first.
-- **ssh passwords are never saved.** there's no column for them. ssh asks each time, or you use a key or your agent.
-- **keys stay where they are.** keys picked up from `~/.ssh/config` are stored as a path and read at connect time. if you paste a private key into settings, keys, it's stored in the app database encrypted with aes-gcm. that key is derived from the machine, so treat it as protection against casual reading, not against someone with access to your account.
-- **shell integration leaves your dotfiles alone.** its scripts live in a `shell-integration` folder inside the app data folder and are loaded at launch (through `ZDOTDIR` for zsh, `--rcfile` for bash, `-C` for fish), and they source your own config as usual. each session gets a random secret that the prompt and exit marks have to carry, so output from a program can't pose as a command block, and a re-run never runs a command it didn't see you type.
-- **database passwords are saved** in the local app database so the client can reconnect. keep that in mind on shared machines.
-- **where things live.** settings, connections, history and scrollback are in `nexterm.db` inside the app data folder (`~/Library/Application Support/com.nexterm.terminal` on macos, `%APPDATA%\com.nexterm.terminal` on windows, `~/.local/share/com.nexterm.terminal` on linux).
-- **updates** are signed and checked against a public key built into the app.
+## Roadmap
 
-## roadmap
-
-- [x] four new themes and a full ui redesign
-- [x] lazy-loaded panels for a faster start
+- [x] Full UI redesign with four new themes
+- [x] Lazy-loaded panels for a faster start
 - [x] `~/.ssh/config` import and quick connect from the palette
-- [x] safe in-place host key replacement
-- [x] full workspace restore, including ssh, sftp and serial panes and startup commands
-- [x] command blocks with shell integration for zsh, bash and fish
-- [ ] collapse a command block's output
-- [ ] fish integration checked on more versions and setups (it works, but has had the least real use)
-- [ ] secrets in the system keychain instead of the app database
-- [ ] encrypted sync of connections and settings between machines
-- [ ] ai help for writing and explaining commands
-- [ ] notarized macos builds
+- [x] Safe in-place host key replacement
+- [x] Full workspace restore, including SSH, SFTP and serial panes and startup commands
+- [x] Command blocks with shell integration for zsh, bash and fish
+- [ ] Collapse (fold) a command block's output
+- [ ] Verify fish integration on more versions and setups (it works, but has seen the least real use)
+- [ ] Secrets in the system keychain instead of the app database
+- [ ] Encrypted sync of connections and settings between machines
+- [ ] AI help for writing and explaining commands
+- [ ] Signed and notarized macOS builds
 
-## contributing
+## Contributing
 
-issues and pull requests are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) covers setup, commit style and the checks a pr needs to pass. what changed between versions is in [CHANGELOG.md](CHANGELOG.md).
+Issues and pull requests are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) covers setup, commit style and the checks a pull request needs to pass. Changes between versions are listed in [CHANGELOG.md](CHANGELOG.md).
 
-## license
+## License
 
-there's no open source license file in the repo yet, so for now the code is copyright 2026 nexterm, all rights reserved. a license will be added before it's encouraged to fork.
+The repository doesn't include an open source license yet. Copyright © 2026 Nexterm. All rights reserved.
