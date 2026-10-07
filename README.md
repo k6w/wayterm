@@ -31,9 +31,9 @@
 <br>
 
 <p align="center">
-  <img src=".github/assets/screenshots/hero.png" alt="Nexterm with command blocks in a zsh split pane and the Git panel open on the right" width="100%">
+  <img src=".github/assets/screenshots/showcase.png" alt="Nexterm on macOS with vibrancy: a local zsh pane with command blocks, an SFTP browser below it, and an SSH session running neofetch on the right" width="100%">
   <br>
-  <sub>Command blocks in a split pane, with the Git panel docked on the right (Graphite theme).</sub>
+  <sub>A local shell with command blocks, an SFTP browser and an SSH session side by side, with vibrancy on (Graphite theme).</sub>
 </p>
 
 ## Why Nexterm
