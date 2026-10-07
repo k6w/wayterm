@@ -58,7 +58,6 @@ import {
 } from "../../lib/buffer-persistence";
 import { useWorkspaceStore } from "../../stores/workspace";
 import { hexToRgba } from "../../lib/color";
-import { vibrancyAlpha } from "../../lib/platform";
 import { isOverlayOpen } from "../../lib/overlays";
 import "@xterm/xterm/css/xterm.css";
 
@@ -965,8 +964,10 @@ export default function TerminalPane({
   // Focus is shown by the PaneFrame around this pane (unfocused panes are
   // dimmed), so the pane itself has no border.
   // Theme-derived terminal tint, handed to CSS as a --nx-dyn-* property.
+  // Under vibrancy the pane adds no tint of its own: the PaneFrame's glass
+  // backing (same as the sidebar) is the one shared backdrop for every pane type.
   const terminalTint = settings.appearance.vibrancyEnabled
-    ? hexToRgba(theme.terminal.background, vibrancyAlpha(settings.appearance.windowOpacity) * 0.7)
+    ? "transparent"
     : hexToRgba(theme.terminal.background, 0.85);
 
   return (

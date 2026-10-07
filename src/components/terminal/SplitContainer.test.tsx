@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { cleanup, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import SplitContainer from "./SplitContainer";
 import { useTerminalStore } from "../../stores/terminal";
@@ -12,8 +12,8 @@ vi.mock("./TerminalPane", () => ({
     <div data-testid={`pane-${paneId}`} data-active={String(isActive)} />
   ),
 }));
-vi.mock("./SerialPane", () => ({ default: () => <div /> }));
-vi.mock("../sftp/SftpPane", () => ({ default: () => <div /> }));
+vi.mock("./SerialPane", () => ({ default: ({ paneId }: { paneId: string }) => <div data-testid={`pane-${paneId}`} /> }));
+vi.mock("../sftp/SftpPane", () => ({ default: ({ paneId }: { paneId: string }) => <div data-testid={`pane-${paneId}`} /> }));
 
 const split: SplitNode = {
   type: "split",
@@ -103,6 +103,47 @@ describe("SplitContainer", () => {
     setup(split, "p1", "p2");
     expect(screen.queryByTestId("pane-p1")).not.toBeInTheDocument();
     expect(screen.getByTestId("pane-p2")).toHaveAttribute("data-active", "true");
-    expect(screen.queryByTestId("pane-dim")).not.toBeInTheDocument();
+    expect(dimVar("p2")).toBe("0");
+  });
+});
+
+describe("pane backing", () => {
+  const frameOf = (paneId: string) => screen.getByTestId(`pane-${paneId}`).closest("[data-pane-frame]")!;
+
+  it("puts every pane in the same sidebar glass backing, focused or not", () => {
+    setup(split, "p1");
+    for (const id of ["p1", "p2"]) {
+      expect(frameOf(id)).toHaveClass("bg-panel-glass", "nx-blur");
+    }
+  });
+
+  it("gives SFTP and serial panes the same backing as terminals", async () => {
+    setup(split, "p1");
+    useTerminalStore.setState((st) => ({
+      panes: { ...st.panes, p1: { ...st.panes.p1, shellType: "sftp" }, p2: { ...st.panes.p2, shellType: "serial" } },
+    }));
+    cleanup();
+    render(<SplitContainer node={split} />);
+    for (const id of ["p1", "p2"]) {
+      expect((await screen.findByTestId(`pane-${id}`)).closest("[data-pane-frame]")).toHaveClass("bg-panel-glass");
+    }
+  });
+
+  it("keeps the backing for a lone pane and a zoomed pane", () => {
+    setup({ type: "pane", paneId: "p1" });
+    expect(frameOf("p1")).toHaveClass("bg-panel-glass");
+  });
+
+  it("keeps the backing when a pane is zoomed", () => {
+    setup(split, "p1", "p2");
+    expect(frameOf("p2")).toHaveClass("bg-panel-glass");
+  });
+
+  it("keeps the backing with dimming off", () => {
+    useSettingsStore.setState((s) => ({
+      settings: { ...s.settings, appearance: { ...s.settings.appearance, dimInactivePanes: false } },
+    }));
+    setup(split, "p1");
+    expect(frameOf("p2")).toHaveClass("bg-panel-glass");
   });
 });

@@ -59,7 +59,11 @@ export default function SplitContainer({ node, depth = 0, totalPaneCount }: Spli
   if (zoomedPaneId && depth === 0) {
     const zoomedNode = findPaneNode(node, zoomedPaneId);
     if (zoomedNode?.paneId) {
-      return <PaneView paneId={zoomedNode.paneId} isActive paneCount={1} />;
+      return (
+        <PaneFrame active split={false}>
+          <PaneView paneId={zoomedNode.paneId} isActive paneCount={1} />
+        </PaneFrame>
+      );
     }
   }
 

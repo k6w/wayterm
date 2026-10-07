@@ -10,7 +10,9 @@ interface PaneFrameProps {
 }
 
 /**
- * Wraps one pane of a split. Unfocused panes are dimmed by a non-interactive
+ * Wraps every pane (terminal, SSH, SFTP, serial) in the same glass backing as
+ * the sidebar, so panes look identical whatever their type or focus. In a
+ * split, unfocused panes are dimmed. Unfocused panes are dimmed by a non-interactive
  * scrim (strength from the Appearance settings), so the focused pane stands
  * out without a border. The fade is 150ms and is disabled under
  * prefers-reduced-motion (global rule in styles.css). With dimming off no
@@ -21,7 +23,7 @@ export default function PaneFrame({ active, split, children }: PaneFrameProps) {
   const strength = useSettingsStore((s) => s.settings.appearance.inactivePaneDim);
   const dimmed = split && !active;
   return (
-    <div data-pane-frame data-active={active || undefined} className="group/pane relative h-full w-full">
+    <div data-pane-frame data-active={active || undefined} className="group/pane nx-blur relative h-full w-full bg-panel-glass">
       {children}
       {enabled && (
         <div

@@ -7,7 +7,6 @@ import { useSettingsStore } from "../../stores/settings";
 import { useTerminalStore } from "../../stores/terminal";
 import { serialOpen, serialWrite, serialClose, onSerialOutput, onSerialExit } from "../../lib/ipc";
 import { hexToRgba } from "../../lib/color";
-import { vibrancyAlpha } from "../../lib/platform";
 import type { SerialConfig } from "../../types/terminal";
 import "@xterm/xterm/css/xterm.css";
 
@@ -17,12 +16,12 @@ interface SerialPaneProps {
   paneCount?: number;
 }
 
-function makeXtermTheme(theme: ReturnType<typeof useThemeStore.getState>["active"], vibrancy: boolean, opacity: number) {
+function makeXtermTheme(theme: ReturnType<typeof useThemeStore.getState>["active"], vibrancy: boolean) {
   const [black, red, green, yellow, blue, magenta, cyan, white,
          brightBlack, brightRed, brightGreen, brightYellow,
          brightBlue, brightMagenta, brightCyan, brightWhite] = theme.terminal.ansi;
   return {
-    background: vibrancy ? hexToRgba(theme.terminal.background, vibrancyAlpha(opacity)) : theme.terminal.background,
+    background: vibrancy ? hexToRgba(theme.terminal.background, 0) : theme.terminal.background,
     foreground: theme.terminal.foreground,
     cursor: theme.terminal.cursor,
     cursorAccent: theme.terminal.cursorAccent ?? theme.terminal.background,
@@ -47,10 +46,9 @@ export default function SerialPane({ paneId }: SerialPaneProps) {
   const [exited, setExited] = useState(false);
 
   const vibrancy = settings.appearance.vibrancyEnabled;
-  const opacity = settings.appearance.windowOpacity;
 
   const bgColor = vibrancy
-    ? hexToRgba(theme.terminal.background, vibrancyAlpha(opacity))
+    ? "transparent"
     : theme.terminal.background;
 
   const reconnect = async (config: SerialConfig) => {
@@ -93,8 +91,7 @@ export default function SerialPane({ paneId }: SerialPaneProps) {
     const settings = useSettingsStore.getState().settings;
     const theme = useThemeStore.getState().active;
     const vibrancy = settings.appearance.vibrancyEnabled;
-    const opacity = settings.appearance.windowOpacity;
-
+  
     const config = pane.serialConfig;
     let cancelled = false;
 
@@ -106,7 +103,7 @@ export default function SerialPane({ paneId }: SerialPaneProps) {
       scrollback: settings.terminal.scrollbackLines,
       allowProposedApi: true,
       allowTransparency: true,
-      theme: makeXtermTheme(theme, vibrancy, opacity),
+      theme: makeXtermTheme(theme, vibrancy),
     });
 
     const fitAddon = new FitAddon();
