@@ -261,36 +261,6 @@ cargo clippy -- -D warnings
 cargo test
 ```
 
-<details>
-<summary><b>Project structure</b></summary>
-
-```
-src/                     React front end
-├── app/                 app shell, providers, update notice
-├── components/          terminal, titlebar, sidebar, ssh, sftp, git, database,
-│                        command-palette, settings, search, clipboard, serial, welcome
-├── ui/                  design kit: buttons, dialogs, menus, inputs
-├── stores/              Zustand state (tabs and panes, settings, theme, SSH)
-├── lib/                 keybindings, command blocks, workspace snapshots, IPC, helpers
-├── themes/              the four built-in themes as JSON
-└── types/               shared TypeScript types
-
-src-tauri/src/           Rust back end
-├── commands/            Tauri commands the front end calls
-├── pty/                 local shells and working directory tracking
-├── shell_integration/   zsh, bash and fish scripts for command blocks
-├── sftp/                SFTP sessions over russh
-├── port_forward/        local, remote and dynamic tunnels
-├── known_hosts/         reading and safely rewriting known_hosts
-├── ssh_config/          ~/.ssh/config parsing and import
-├── db/                  SQLite storage and migrations
-├── theme/               native theme support
-├── window/              vibrancy and macOS window chrome
-└── crypto.rs            at-rest encryption for keys stored in the app
-```
-
-</details>
-
 ## Roadmap
 
 - [x] Full UI redesign with four new themes
