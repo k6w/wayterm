@@ -347,6 +347,27 @@ export default function AppearancePanel() {
               options={TAB_POSITION_OPTIONS}
             />
           </SettingRow>
+          <SettingRow label="Dim inactive panes" description="Fade split panes that don't have focus">
+            {(control) => (
+              <Switch
+                {...control}
+                checked={settings.dimInactivePanes}
+                onCheckedChange={(v) => update("appearance", { dimInactivePanes: v })}
+              />
+            )}
+          </SettingRow>
+          <SettingRow label="Dim strength">
+            <Slider
+              aria-label="Dim strength"
+              value={settings.inactivePaneDim}
+              min={0}
+              max={0.6}
+              step={0.05}
+              disabled={!settings.dimInactivePanes}
+              format={percent}
+              onValueChange={(v) => updateLive("appearance", { inactivePaneDim: v })}
+            />
+          </SettingRow>
           <SettingRow label="Window decorations" description="Reloads the window">
             <SegmentedControl
               aria-label="Window decorations"

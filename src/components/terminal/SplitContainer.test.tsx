@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import SplitContainer from "./SplitContainer";
 import { useTerminalStore } from "../../stores/terminal";
+import { useSettingsStore } from "../../stores/settings";
 import type { SplitNode, TerminalTab } from "../../types/terminal";
 
 // The real panes spawn PTYs and xterm; render a labelled stub instead.
@@ -42,7 +43,10 @@ function setup(tree: SplitNode, activePaneId = "p1", zoomedPaneId: string | null
 const dimOf = (paneId: string) =>
   screen.getByTestId(`pane-${paneId}`).closest("[data-pane-frame]")!.querySelector('[data-testid="pane-dim"]')!;
 
+const dimVar = (paneId: string) => (dimOf(paneId) as HTMLElement).style.getPropertyValue("--nx-dyn-pane-dim");
+
 beforeEach(() => {
+  useSettingsStore.setState(useSettingsStore.getInitialState(), true);
   useTerminalStore.setState({ zoomedPaneId: null });
 });
 
@@ -55,14 +59,30 @@ describe("SplitContainer", () => {
 
   it("dims the unfocused pane and not the focused one", () => {
     setup(split, "p2");
-    expect(dimOf("p1")).toHaveClass("opacity-30");
-    expect(dimOf("p2")).toHaveClass("opacity-0");
+    expect(dimVar("p1")).toBe("0.15");
+    expect(dimVar("p2")).toBe("0");
     expect(dimOf("p1")).toHaveClass("pointer-events-none");
+  });
+
+  it("uses the dim strength setting as the scrim opacity", () => {
+    useSettingsStore.setState((s) => ({
+      settings: { ...s.settings, appearance: { ...s.settings.appearance, inactivePaneDim: 0.4 } },
+    }));
+    setup(split, "p2");
+    expect(dimVar("p1")).toBe("0.4");
+  });
+
+  it("renders no scrim when dimming is off", () => {
+    useSettingsStore.setState((s) => ({
+      settings: { ...s.settings, appearance: { ...s.settings.appearance, dimInactivePanes: false } },
+    }));
+    setup(split, "p2");
+    expect(screen.queryByTestId("pane-dim")).not.toBeInTheDocument();
   });
 
   it("never dims a lone pane", () => {
     setup({ type: "pane", paneId: "p1" }, "p2");
-    expect(dimOf("p1")).toHaveClass("opacity-0");
+    expect(dimVar("p1")).toBe("0");
     expect(screen.queryByRole("separator")).not.toBeInTheDocument();
   });
 

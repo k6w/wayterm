@@ -65,3 +65,20 @@ describe("updateLive", () => {
     expect(useSettingsStore.getState().settings.appearance.blurIntensity).toBe(0.75);
   });
 });
+
+describe("pane dimming settings", () => {
+  it("defaults to a subtle dim, on", () => {
+    const a = useSettingsStore.getInitialState().settings.appearance;
+    expect(a.dimInactivePanes).toBe(true);
+    expect(a.inactivePaneDim).toBe(0.15);
+  });
+
+  it("falls back to the defaults when saved settings predate the keys", async () => {
+    vi.mocked(invoke).mockImplementationOnce(async () => ({ "appearance.density": "comfortable" }));
+    await useSettingsStore.getState().load();
+    const a = useSettingsStore.getState().settings.appearance;
+    expect(a.density).toBe("comfortable");
+    expect(a.dimInactivePanes).toBe(true);
+    expect(a.inactivePaneDim).toBe(0.15);
+  });
+});

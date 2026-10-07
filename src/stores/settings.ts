@@ -31,6 +31,8 @@ export const defaultSettings: AppSettings = {
     accentColorOverride: null,
     compactMode: false,
     density: "compact",
+    dimInactivePanes: true,
+    inactivePaneDim: 0.15,
     tabPosition: "top",
     windowDecorations: "custom",
     sidebarCollapsed: true,

@@ -1,4 +1,5 @@
-import type { ReactNode } from "react";
+import type { CSSProperties, ReactNode } from "react";
+import { useSettingsStore } from "../../stores/settings";
 
 interface PaneFrameProps {
   /** This pane has focus. */
@@ -10,21 +11,26 @@ interface PaneFrameProps {
 
 /**
  * Wraps one pane of a split. Unfocused panes are dimmed by a non-interactive
- * scrim, so the focused pane stands out without a border. The fade is 150ms
- * and is disabled under prefers-reduced-motion (global rule in styles.css).
+ * scrim (strength from the Appearance settings), so the focused pane stands
+ * out without a border. The fade is 150ms and is disabled under
+ * prefers-reduced-motion (global rule in styles.css). With dimming off no
+ * scrim is rendered.
  */
 export default function PaneFrame({ active, split, children }: PaneFrameProps) {
+  const enabled = useSettingsStore((s) => s.settings.appearance.dimInactivePanes);
+  const strength = useSettingsStore((s) => s.settings.appearance.inactivePaneDim);
   const dimmed = split && !active;
   return (
     <div data-pane-frame data-active={active || undefined} className="group/pane relative h-full w-full">
       {children}
-      <div
-        aria-hidden
-        data-testid="pane-dim"
-        className={`pointer-events-none absolute inset-0 z-[5] bg-canvas transition-opacity duration-150 ease-out ${
-          dimmed ? "opacity-30" : "opacity-0"
-        }`}
-      />
+      {enabled && (
+        <div
+          aria-hidden
+          data-testid="pane-dim"
+          style={{ "--nx-dyn-pane-dim": dimmed ? strength : 0 } as CSSProperties}
+          className="pointer-events-none absolute inset-0 z-[5] bg-canvas opacity-(--nx-dyn-pane-dim) transition-opacity duration-150 ease-out"
+        />
+      )}
     </div>
   );
 }

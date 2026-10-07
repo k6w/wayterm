@@ -22,6 +22,15 @@ beforeEach(() => {
 });
 
 describe("buildPaletteActions", () => {
+  it("toggles inactive pane dimming", () => {
+    const run = () => buildPaletteActions().find((a) => a.id === "toggle-pane-dimming")!.handler();
+    expect(useSettingsStore.getState().settings.appearance.dimInactivePanes).toBe(true);
+    run();
+    expect(useSettingsStore.getState().settings.appearance.dimInactivePanes).toBe(false);
+    run();
+    expect(useSettingsStore.getState().settings.appearance.dimInactivePanes).toBe(true);
+  });
+
   it("lists keybinding actions with their shortcut, but not the palette itself", () => {
     const actions = buildPaletteActions();
     expect(actions.find((a) => a.id === "split-horizontal")).toMatchObject({

@@ -36,6 +36,10 @@ export interface AppearanceSettings {
   /** @deprecated Replaced by `density` (Phase 5). Still loaded, no longer shown or applied. */
   compactMode: boolean;
   density: Density;
+  /** Fade split panes that do not have focus. */
+  dimInactivePanes: boolean;
+  /** Scrim strength over unfocused split panes, 0..1. */
+  inactivePaneDim: number;
   tabPosition: "top" | "bottom" | "left" | "right";
   windowDecorations: "custom" | "native";
   /** Side panel hidden (only the activity bar shows). */

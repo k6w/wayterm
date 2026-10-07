@@ -35,6 +35,8 @@ export const SETTINGS_SEARCH_INDEX: SettingEntry[] = [
   { panel: "appearance", label: "Window opacity", keywords: "transparency alpha" },
   { panel: "appearance", label: "Blur intensity", keywords: "vibrancy backdrop" },
   { panel: "appearance", label: "UI scale", keywords: "zoom size" },
+  { panel: "appearance", label: "Dim inactive panes", keywords: "split focus fade unfocused scrim" },
+  { panel: "appearance", label: "Dim strength", keywords: "inactive pane intensity focus fade" },
   { panel: "appearance", label: "Tab position", keywords: "top bottom left right" },
   { panel: "appearance", label: "Window decorations", keywords: "titlebar native custom" },
 

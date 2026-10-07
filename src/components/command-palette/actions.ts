@@ -174,6 +174,16 @@ export function buildPaletteActions(): PaletteAction[] {
       handler: () => {},
     },
     {
+      id: "toggle-pane-dimming",
+      label: "Toggle inactive pane dimming",
+      icon: Icons.focusPane,
+      category: "Appearance",
+      handler: () => {
+        const { settings, update } = useSettingsStore.getState();
+        void update("appearance", { dimInactivePanes: !settings.appearance.dimInactivePanes });
+      },
+    },
+    {
       id: "toggle-scratchpad",
       label: "Toggle Scratchpad Terminal",
       icon: Icons.scratchpad,

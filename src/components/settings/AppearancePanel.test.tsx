@@ -213,3 +213,47 @@ describe("AppearancePanel blur intensity", () => {
     }
   });
 });
+
+describe("AppearancePanel pane dimming", () => {
+  const dimWrites = () =>
+    vi.mocked(invoke).mock.calls.filter(
+      ([cmd, args]) => cmd === "settings_set" && (args as { key: string }).key === "appearance.inactivePaneDim"
+    );
+
+  it("shows the switch on and a 15% strength by default, 0-60% range", () => {
+    render(<AppearancePanel />);
+    expect(screen.getByRole("switch", { name: "Dim inactive panes" })).toBeChecked();
+    const slider = screen.getByRole("slider", { name: "Dim strength" });
+    expect(slider).toHaveAttribute("aria-valuemin", "0");
+    expect(slider).toHaveAttribute("aria-valuemax", "0.6");
+    expect(slider).toHaveAttribute("aria-valuetext", "15%");
+  });
+
+  it("disables the strength slider when the switch is off", async () => {
+    const user = userEvent.setup();
+    render(<AppearancePanel />);
+    await user.click(screen.getByRole("switch", { name: "Dim inactive panes" }));
+    expect(appearance().dimInactivePanes).toBe(false);
+    expect(screen.getByRole("slider", { name: "Dim strength" })).toHaveAttribute("data-disabled");
+  });
+
+  it("updates live but persists once after settling", async () => {
+    render(<AppearancePanel />);
+    vi.mocked(invoke).mockClear();
+    const slider = screen.getByRole("slider", { name: "Dim strength" });
+    slider.focus();
+    vi.useFakeTimers({ shouldAdvanceTime: false });
+    try {
+      for (let i = 0; i < 3; i++) fireEvent.keyDown(slider, { key: "ArrowRight" });
+      expect(appearance().inactivePaneDim).toBeCloseTo(0.3);
+      expect(dimWrites()).toHaveLength(0);
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(1000);
+      });
+      expect(dimWrites()).toHaveLength(1);
+      expect(dimWrites()[0][1]).toMatchObject({ key: "appearance.inactivePaneDim" });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
