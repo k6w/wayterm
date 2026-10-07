@@ -9,7 +9,6 @@ import type { AppearanceSettings } from "../../types/settings";
 
 const toggleCommandPalette = vi.fn();
 const toggleSettings = vi.fn();
-const splitPane = vi.fn();
 
 function setTabPosition(tabPosition: AppearanceSettings["tabPosition"]) {
   useSettingsStore.setState((s) => ({
@@ -27,7 +26,6 @@ beforeEach(() => {
     activePaneId: "p1",
     toggleCommandPalette,
     toggleSettings,
-    splitPane,
   });
 });
 
@@ -56,25 +54,12 @@ describe("Titlebar", () => {
     expect(within(trigger).getByLabelText("Ctrl+Shift+P")).toBeVisible();
   });
 
-  it("splits the active pane and opens settings", async () => {
+  it("has no split button, and opens settings", async () => {
     const user = userEvent.setup();
     render(<Titlebar />);
-    await user.click(screen.getByRole("button", { name: "Split pane right" }));
-    expect(splitPane).toHaveBeenCalledWith("p1", "horizontal", expect.objectContaining({ cwd: "/tmp" }));
+    expect(screen.queryByRole("button", { name: /Split pane/ })).not.toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Settings" }));
     expect(toggleSettings).toHaveBeenCalledTimes(1);
-  });
-
-  it("disables split when there is no pane", () => {
-    useTerminalStore.setState({ tabs: [], activeTabId: null, activePaneId: null });
-    render(<Titlebar />);
-    expect(screen.getByRole("button", { name: "Split pane right" })).toBeDisabled();
-  });
-
-  it("disables split when no tab is open even if a stale pane id remains", () => {
-    useTerminalStore.setState({ tabs: [], activeTabId: null, activePaneId: "p1" });
-    render(<Titlebar />);
-    expect(screen.getByRole("button", { name: "Split pane right" })).toBeDisabled();
   });
 
   it("moves between its actions with the arrow keys", async () => {
@@ -82,17 +67,7 @@ describe("Titlebar", () => {
     render(<Titlebar />);
     screen.getByRole("button", { name: /Search or run…/ }).focus();
     await user.keyboard("{ArrowRight}");
-    expect(screen.getByRole("button", { name: "Split pane right" })).toHaveFocus();
-    await user.keyboard("{ArrowRight}");
     expect(screen.getByRole("button", { name: "Settings" })).toHaveFocus();
-  });
-
-  it("shows the split shortcut in its tooltip", async () => {
-    const user = userEvent.setup();
-    render(<Titlebar />);
-    screen.getByRole("button", { name: /Search or run…/ }).focus();
-    await user.keyboard("{ArrowRight}");
-    expect(await screen.findByRole("tooltip")).toHaveTextContent(/^Split pane right\s*Ctrl\s*Shift\s*D$/);
   });
 
   it("has window controls off macOS", () => {

@@ -4,7 +4,6 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import { useSettingsStore } from "../../stores/settings";
 import { useTerminalStore } from "../../stores/terminal";
 import { isMac, MAC_TRAFFIC_LIGHT_INSET } from "../../lib/platform";
-import { splitActivePane } from "../../lib/keybindings";
 import { shortcutFor } from "../../lib/shortcut-hints";
 import { Button, IconButton, Toolbar, ToolbarButton } from "../../ui";
 import TabStrip from "./TabStrip";
@@ -12,14 +11,13 @@ import WindowControls from "./WindowControls";
 
 /**
  * The unified 36px title bar: macOS traffic-light inset, the tab strip (when
- * tabs sit along the top), the command palette trigger, split and settings,
+ * tabs sit along the top), the command palette trigger and settings,
  * and on Windows/Linux the window controls. It is always the top row of the
  * window; tabs placed left/right/bottom render in TabRail instead.
  */
 export default function Titlebar() {
   const tabPosition = useSettingsStore((s) => s.settings.appearance.tabPosition);
   const uiScale = useSettingsStore((s) => s.settings.appearance.uiScale);
-  const hasActivePane = useTerminalStore((s) => s.tabs.length > 0 && s.activePaneId !== null);
   const toggleCommandPalette = useTerminalStore((s) => s.toggleCommandPalette);
   const toggleSettings = useTerminalStore((s) => s.toggleSettings);
 
@@ -59,16 +57,6 @@ export default function Titlebar() {
           >
             <span className="flex-1 truncate text-left font-normal text-fg-muted">Search or run…</span>
           </Button>
-        </ToolbarButton>
-        <ToolbarButton>
-          <IconButton
-            label="Split pane right"
-            icon={<Icon name="splitHorizontal" size="sm" />}
-            shortcut={shortcutFor("split-horizontal")}
-            tooltipSide="bottom"
-            disabled={!hasActivePane}
-            onClick={() => splitActivePane("horizontal")}
-          />
         </ToolbarButton>
         <ToolbarButton>
           <IconButton
