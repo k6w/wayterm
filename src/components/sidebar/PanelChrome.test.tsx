@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { render, screen, within } from "@testing-library/react";
-import { PanelContent, PanelGroup, PanelToolbar } from "./PanelChrome";
+import { PanelButton, PanelContent, PanelGroup, PanelToolbar } from "./PanelChrome";
 
 describe("panel chrome", () => {
   it("renders a labelled toolbar, a scrolling body and a titled group with a count", () => {
@@ -27,5 +27,31 @@ describe("panel chrome", () => {
   it("leaves the count out when none is given", () => {
     render(<PanelGroup title="Workspaces" />);
     expect(screen.getByRole("region", { name: "Workspaces" }).textContent).toBe("Workspaces");
+  });
+});
+
+describe("PanelButton", () => {
+  const renderButton = (width: number) =>
+    render(
+      <div className={`w-[${width}px]`}>
+        <PanelToolbar aria-label="Actions">
+          <PanelButton label="New terminal" icon={<span />} shortcut="Control+Shift+t" />
+        </PanelToolbar>
+      </div>
+    );
+
+  it.each([200, 260, 400])("keeps the label as accessible name at %ipx", (width) => {
+    renderButton(width);
+    const button = screen.getByRole("button", { name: "New terminal" });
+    expect(button.querySelector("kbd")).not.toBeNull();
+  });
+
+  it("collapses by container width: chip hides below 280px, label below 230px", () => {
+    renderButton(260);
+    expect(screen.getByRole("toolbar", { name: "Actions" })).toHaveClass("@container");
+    const button = screen.getByRole("button", { name: "New terminal" });
+    expect(button.querySelector("kbd")).toHaveClass("@max-[280px]:hidden");
+    expect(screen.getByText("New terminal")).toHaveClass("@max-[230px]:sr-only");
+    expect(button).toHaveClass("@max-[230px]:px-0");
   });
 });

@@ -3,9 +3,9 @@ import { useTerminalStore } from "../../stores/terminal";
 import { useSettingsStore } from "../../stores/settings";
 import { getPreferredShell } from "../../lib/shell-detect";
 import { shortcutFor } from "../../lib/shortcut-hints";
-import { Button, IconButton, ToolbarButton } from "../../ui";
+import { IconButton, ToolbarButton } from "../../ui";
 import { openSshConfigImport } from "../ssh/ssh-config-import";
-import { PanelToolbar } from "./PanelChrome";
+import { PanelButton, PanelToolbar } from "./PanelChrome";
 
 interface QuickActionsProps {
   onNewSsh?: () => void;
@@ -19,18 +19,16 @@ export default function QuickActions({ onNewSsh }: QuickActionsProps) {
   return (
     <PanelToolbar aria-label="Connection actions">
       <ToolbarButton>
-        <Button
+        <PanelButton
           variant="ghost"
-          size="sm"
-          leadingIcon={<Icon name="newTerminal" size="sm" />}
+          label="New terminal"
+          icon={<Icon name="newTerminal" size="sm" />}
           shortcut={shortcutFor("new-tab")}
           onClick={() => {
             const shell = getPreferredShell(defaultShellPath);
             addTab(shell.type, shell.path);
           }}
-        >
-          New terminal
-        </Button>
+        />
       </ToolbarButton>
       <ToolbarButton>
         <IconButton label="New SSH" icon={<Icon name="add" size="sm" />} size="md" tooltipSide="bottom" onClick={() => onNewSsh?.()} />

@@ -3,8 +3,8 @@ import { lazyWithPreload, useEverTrue } from "../../lib/lazy";
 import { Icon } from "../../ui/icons";
 import { plural } from "../../lib/plural";
 import { EMPTY_WORKSPACE, useDatabaseStore, type QueryWorkspace } from "../../stores/database";
-import { Badge, Button, EmptyState, IconButton, ListRow, ToolbarButton, ToolbarSpacer } from "../../ui";
-import { PanelContent, PanelGroup, PanelToolbar } from "../sidebar/PanelChrome";
+import { Badge, EmptyState, IconButton, ListRow, ToolbarButton, ToolbarSpacer } from "../../ui";
+import { PanelButton, PanelContent, PanelGroup, PanelToolbar } from "../sidebar/PanelChrome";
 import QueryEditor from "./QueryEditor";
 import ResultsGrid from "./ResultsGrid";
 
@@ -71,9 +71,7 @@ export function DatabasePanel() {
       <>
         <PanelToolbar aria-label="Database actions">
           <ToolbarButton>
-            <Button size="sm" variant="ghost" leadingIcon={<Icon name="add" size="sm" />} onClick={() => setDialogOpen(true)}>
-              New connection
-            </Button>
+            <PanelButton variant="ghost" label="New connection" icon={<Icon name="add" size="sm" />} onClick={() => setDialogOpen(true)} />
           </ToolbarButton>
         </PanelToolbar>
         <PanelContent>
@@ -117,9 +115,7 @@ export function DatabasePanel() {
         {activeConnection && <Badge>{activeConnection.type}</Badge>}
         <ToolbarSpacer />
         <ToolbarButton>
-          <Button size="xs" variant="danger" leadingIcon={<Icon name="disconnect" size="sm" />} onClick={() => void handleDisconnect()}>
-            Disconnect
-          </Button>
+          <PanelButton size="xs" variant="danger" label="Disconnect" icon={<Icon name="disconnect" size="sm" />} onClick={() => void handleDisconnect()} />
         </ToolbarButton>
       </PanelToolbar>
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto p-1">

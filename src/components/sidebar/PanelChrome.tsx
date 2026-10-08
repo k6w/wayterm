@@ -1,5 +1,5 @@
 import { useId, type ComponentPropsWithRef, type ReactNode } from "react";
-import { Badge, Toolbar, cn } from "../../ui";
+import { Badge, Button, Kbd, Toolbar, Tooltip, cn, type ButtonProps } from "../../ui";
 
 /**
  * Building blocks every side panel shares, under the frame header that
@@ -9,7 +9,37 @@ import { Badge, Toolbar, cn } from "../../ui";
 
 /** The panel's action row. Wrap each IconButton or Button in a ToolbarButton. */
 export function PanelToolbar({ className, ...rest }: ComponentPropsWithRef<typeof Toolbar>) {
-  return <Toolbar className={cn("h-9 shrink-0 gap-1 border-b border-border px-2", className)} {...rest} />;
+  return <Toolbar className={cn("@container h-9 shrink-0 gap-1 border-b border-border px-2", className)} {...rest} />;
+}
+
+export interface PanelButtonProps extends Omit<ButtonProps, "children" | "leadingIcon" | "aria-label" | "shortcut"> {
+  label: string;
+  icon: ReactNode;
+  /** Keybindings-format shortcut: a chip when wide, in the tooltip otherwise. */
+  shortcut?: string;
+}
+
+/**
+ * A text button that adapts to the side panel width (container queries on the
+ * enclosing PanelToolbar, or any `@container` ancestor): label and shortcut
+ * chip when wide, label only below 280px, icon only below 230px. The label is
+ * always the accessible name and the tooltip.
+ */
+export function PanelButton({ label, icon, shortcut, className, size = "sm", ...rest }: PanelButtonProps) {
+  return (
+    <Tooltip content={label} shortcut={shortcut} side="bottom">
+      <Button
+        aria-label={label}
+        size={size}
+        leadingIcon={icon}
+        className={cn("@max-[230px]:aspect-square @max-[230px]:px-0", className)}
+        {...rest}
+      >
+        <span className="@max-[230px]:sr-only">{label}</span>
+        {shortcut && <Kbd shortcut={shortcut} className="ml-1 @max-[280px]:hidden" />}
+      </Button>
+    </Tooltip>
+  );
 }
 
 /** Scrolling panel body. An EmptyState inside it sits at the top, like in every other panel. */
