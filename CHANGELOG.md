@@ -36,9 +36,11 @@ The big one. Nexterm got a full redesign, a proper design kit underneath it, com
 - A three-step welcome wizard on first launch
 
 ### Window and terminal
-- A unified 36px title bar with the palette, split and settings buttons
+- A unified 36px title bar with the command palette and settings (splitting lives in the status bar)
 - An activity bar with a docked, resizable side panel that remembers its width
-- Hairline split panes with focus dimming and a wider divider hit area
+- Side panel toolbars adapt to the panel's width, down to icon-only buttons with tooltips
+- Hairline split panes with a wider divider hit area. Every pane shares the same glass backing as the sidebar
+- Inactive pane dimming is softer by default and can be turned off or tuned in Settings > Appearance
 - Dragging a tab onto a pane splits it, with drop zones for each side
 - Pane controls (detach, close) show on hover and stay out of the way of your output
 - Each pane tracks its working directory from the shell's foreground process, so it works in zsh and every other shell
@@ -56,6 +58,7 @@ The big one. Nexterm got a full redesign, a proper design kit underneath it, com
 - If a host key changes, a new dialog shows the saved and the presented fingerprints side by side. You confirm by typing the end of the new fingerprint; Nexterm backs up `known_hosts`, replaces only that key and reconnects
 - Redesigned connection, host key and port forward dialogs, with inline validation and a live preview of the address
 - Saving a connection with environment variables works again, and save errors show up in the dialog
+- Nexterm no longer types a `PROMPT_COMMAND` line into remote shells when you connect. Add the snippet from Settings > Terminal to your server's shell config for command blocks and folder tracking over SSH
 
 ### Panels
 - Command palette rebuilt: suggested items, recents, highlighted matches, drill-in lists and theme swatches
