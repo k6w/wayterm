@@ -16,6 +16,8 @@ describe("remote snippets", () => {
       expect(snippet).toContain("133;A");
       expect(snippet).toContain("133;C");
       expect(snippet).toContain("133;D");
+      expect(snippet).toContain("]7;file://");
+      expect(snippet).toContain("]0;%s");
     }
   });
 

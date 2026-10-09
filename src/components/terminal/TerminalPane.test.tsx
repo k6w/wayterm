@@ -3,10 +3,12 @@ import { act, render, waitFor } from "@testing-library/react";
 import TerminalPane from "./TerminalPane";
 import { useTerminalStore } from "../../stores/terminal";
 import { defaultSettings, useSettingsStore } from "../../stores/settings";
-import { terminalResize, terminalSpawn } from "../../lib/ipc";
+import { onTerminalOutput, terminalResize, terminalSpawn, terminalWrite } from "../../lib/ipc";
+import { useSshStore } from "../../stores/ssh";
+import type { SshConnection } from "../../types/ssh";
 import { getCachedTerminal, removeCachedTerminal } from "../../lib/terminal-registry";
 
-const terms = vi.hoisted(() => [] as { cols: number; rows: number; options: { fontSize?: number } }[]);
+const terms = vi.hoisted(() => [] as { cols: number; rows: number; options: { fontSize?: number }; written: string[] }[]);
 
 // A terminal without a renderer: enough for the pane to open it, start a shell and fit it.
 vi.mock("@xterm/xterm", () => {
@@ -39,7 +41,10 @@ vi.mock("@xterm/xterm", () => {
     onScroll = disposable;
     onRender = disposable;
     onResize = disposable;
-    write() {}
+    written: string[] = [];
+    write(data: string | Uint8Array) {
+      this.written.push(typeof data === "string" ? data : new TextDecoder().decode(data));
+    }
     refresh() {}
     focus() {}
     hasSelection() {
@@ -80,6 +85,7 @@ vi.mock("@xterm/addon-search", () => ({ SearchAddon: class {} }));
 vi.mock("@xterm/xterm/css/xterm.css", () => ({}));
 vi.mock("../../lib/buffer-persistence", () => ({ attachSerializeAddon: () => {}, detachSerializeAddon: () => {} }));
 vi.mock("./blocks/BlockOverlay", () => ({ BlockOverlay: () => null }));
+vi.mock("../ssh/host-key-preflight", () => ({ preflightHostKey: async () => true }));
 vi.mock("../../lib/shell-detect", () => ({ getDefaultShell: () => ({ type: "zsh", path: "/bin/zsh", label: "Zsh" }) }));
 vi.mock("../../lib/ipc", async (importOriginal) => ({
   ...(await importOriginal<typeof import("../../lib/ipc")>()),
@@ -179,5 +185,55 @@ describe("TerminalPane sizing", () => {
 
     expect(term.cols).toBe(96);
     expect(terminalResize).toHaveBeenCalledWith("s1", 30, 96);
+  });
+});
+
+describe("TerminalPane SSH session", () => {
+  const conn = {
+    id: "c1",
+    name: "box",
+    host: "box.example",
+    port: 22,
+    username: "drwn",
+    authMethod: "agent",
+    privateKeyId: null,
+    jumpHostId: null,
+    startupCommands: null,
+  } as unknown as SshConnection;
+
+  async function connect(startupCommands?: string[]) {
+    useSshStore.setState({ connections: [conn] });
+    useTerminalStore.setState({
+      panes: { p1: { id: "p1", sessionId: "", isActive: true, cwd: "", shellType: "zsh", sshConnectionId: "c1", startupCommands } },
+    });
+    vi.mocked(terminalWrite).mockClear();
+    vi.mocked(onTerminalOutput).mockClear();
+    render(<Tab hidden={false} />);
+    const term = await started();
+    await waitFor(() => expect(onTerminalOutput).toHaveBeenCalled());
+    const emit = vi.mocked(onTerminalOutput).mock.calls[0][1] as (data: number[]) => void;
+    const bytes = (text: string) => Array.from(new TextEncoder().encode(text));
+    return { term, send: (text: string) => act(() => emit(bytes(text))) };
+  }
+
+  it("never types into the remote shell on connect and passes output through once", async () => {
+    const { term, send } = await connect();
+    send("Welcome to box\r\n");
+    send("[drwn@box ~] $ ");
+    await new Promise((r) => setTimeout(r, 1000));
+    send("later output");
+
+    expect(terminalWrite).not.toHaveBeenCalled();
+    expect(term.written.join("")).toBe("Welcome to box\r\n[drwn@box ~] $ later output");
+  });
+
+  it("runs workspace startup commands once after the session is established", async () => {
+    const { send } = await connect(["cd /srv", "ls"]);
+    send("[drwn@box ~] $ ");
+
+    await waitFor(() => expect(terminalWrite).toHaveBeenCalledTimes(2));
+    const sent = vi.mocked(terminalWrite).mock.calls.map((c) => new TextDecoder().decode(new Uint8Array(c[1])));
+    expect(sent).toEqual(["cd /srv\r", "ls\r"]);
+    expect(sent.join("")).not.toContain("PROMPT_COMMAND");
   });
 });

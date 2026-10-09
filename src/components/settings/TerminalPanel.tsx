@@ -154,7 +154,7 @@ export default function TerminalPanel() {
           <SettingRow
             stacked
             label="Remote hosts"
-            description="Add this to the shell config on an SSH host to get command blocks there too"
+            description="Add this to your server's shell config to get command blocks and folder tracking over SSH"
           >
             <div className="flex flex-col gap-2">
               <div className="flex items-center justify-between gap-2">

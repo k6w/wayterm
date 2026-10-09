@@ -520,7 +520,7 @@ export default function TerminalPane({
         
         
         
-        let sshPhase: "overlay" | "settling" | "done" = isSsh ? "overlay" : "done";
+        let sshPhase: "overlay" | "done" = isSsh ? "overlay" : "done";
         const sshBuffer: Uint8Array[] = [];
 
         
@@ -564,61 +564,19 @@ export default function TerminalPane({
               return;
             }
 
-            
-            if (sshPhase === "settling") {
-              sshBuffer.push(new Uint8Array(data));
-              return;
-            }
-
-            
+            // Hold the first output (connection chatter) behind the overlay until it shows
+            // either an auth prompt or the session itself. Nothing is ever typed into the remote shell.
+            sshBuffer.push(new Uint8Array(data));
             if (!hasVisibleContent(data)) return;
 
-            
-            sshBuffer.push(new Uint8Array(data));
-
-            
             const text = new TextDecoder().decode(new Uint8Array(data));
-            if (/password|passphrase|yes\/no|verification/i.test(text)) {
-              
-              for (const chunk of sshBuffer) term.write(chunk);
-              sshBuffer.length = 0;
-              sshPhase = "done";
-              setSshOverlay(false);
-              startupRunner?.authPrompt();
-              return;
-            }
-
-            
-            sshPhase = "settling";
-            setSshStep("Preparing session...");
-            const encoder = new TextEncoder();
-
-            sshTimers.push(
-              setTimeout(() => {
-                
-                
-                const cmd =
-                  ' PROMPT_COMMAND=\'printf "\\033]0;%s\\007" "$PWD"\'\n';
-                terminalWrite(
-                  sessionId,
-                  Array.from(encoder.encode(cmd))
-                );
-
-                sshTimers.push(
-                  setTimeout(() => {
-                    
-                    
-                    
-                    for (const chunk of sshBuffer) term.write(chunk);
-                    sshBuffer.length = 0;
-                    term.write("\x1b[A\x1b[M");
-                    sshPhase = "done";
-                    setSshOverlay(false);
-                    startupRunner?.connected();
-                  }, 350)
-                );
-              }, 400)
-            );
+            const asksForAuth = /password|passphrase|yes\/no|verification/i.test(text);
+            for (const chunk of sshBuffer) term.write(chunk);
+            sshBuffer.length = 0;
+            sshPhase = "done";
+            setSshOverlay(false);
+            if (asksForAuth) startupRunner?.authPrompt();
+            else startupRunner?.connected();
           }
         );
 

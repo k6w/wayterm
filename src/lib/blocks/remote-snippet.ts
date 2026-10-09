@@ -1,6 +1,6 @@
 /**
  * Shell code for remote hosts (`~/.zshrc`, `~/.bashrc`, `config.fish`) that reports prompts,
- * commands, exit codes and the folder to Nexterm over SSH. Remote marks carry no nonce, so
+ * commands, exit codes and the folder (OSC 7 and the title) to Nexterm over SSH. Remote marks carry no nonce, so
  * their commands are only ever pasted, never re-run directly.
  */
 export type RemoteShell = "bash" | "zsh" | "fish";
@@ -15,7 +15,7 @@ ${GUARD_NOTE}
 if [[ "$TERM_PROGRAM" == nexterm && $- == *i* ]]; then
   _nx_precmd() {
     local s=$?
-    printf '\\e]133;D;%s\\a\\e]7;file://%s%s\\a\\e]133;A\\a' "$s" "$HOSTNAME" "\${PWD// /%20}"
+    printf '\\e]133;D;%s\\a\\e]7;file://%s%s\\a\\e]0;%s\\a\\e]133;A\\a' "$s" "$HOSTNAME" "\${PWD// /%20}" "$PWD"
     [[ "$PS1" == *'\\[\\e]133;B\\a\\]' ]] || PS1="$PS1"'\\[\\e]133;B\\a\\]'
   }
   PROMPT_COMMAND="_nx_precmd\${PROMPT_COMMAND:+;$PROMPT_COMMAND}"
@@ -27,7 +27,7 @@ ${GUARD_NOTE}
 if [[ "$TERM_PROGRAM" == nexterm && -o interactive ]]; then
   _nx_precmd() {
     local s=$? mark=$'%{\\e]133;B\\a%}'
-    printf '\\e]133;D;%s\\a\\e]7;file://%s%s\\a\\e]133;A\\a' "$s" "$HOST" "\${PWD// /%20}"
+    printf '\\e]133;D;%s\\a\\e]7;file://%s%s\\a\\e]0;%s\\a\\e]133;A\\a' "$s" "$HOST" "\${PWD// /%20}" "$PWD"
     [[ "$PS1" == *"$mark" ]] || PS1="$PS1$mark"
   }
   _nx_preexec() { printf '\\e]133;C\\a'; }
@@ -49,7 +49,7 @@ if test "$TERM_PROGRAM" = nexterm; and status is-interactive
         printf '\\e]133;D;%s\\a' $status
     end
     function _nx_cwd --on-variable PWD
-        printf '\\e]7;file://%s%s\\a' $hostname (string escape --style=url -- $PWD)
+        printf '\\e]7;file://%s%s\\a\\e]0;%s\\a' $hostname (string escape --style=url -- $PWD) $PWD
     end
 end
 `,
