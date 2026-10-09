@@ -6,7 +6,27 @@ on:
       - 'v*'
 
 jobs:
+  # One job creates the release as a draft, so the build jobs don't race to create it.
+  create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      release_id: ${{ steps.create.outputs.release_id }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: create
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          node scripts/release/manifest.mjs --notes "${TAG#v}" > notes.md
+          gh release create "$TAG" --draft --title "Nexterm $TAG" --notes-file notes.md --verify-tag
+          echo "release_id=$(gh release view "$TAG" --json databaseId --jq .databaseId)" >> "$GITHUB_OUTPUT"
+
   release:
+    needs: create-release
     permissions:
       contents: write
     strategy:
@@ -59,9 +79,27 @@ jobs:
           # APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
           # APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         with:
-          tagName: v__VERSION__
-          releaseName: 'Nexterm v__VERSION__'
-          releaseBody: 'See the assets below to download and install.'
-          releaseDraft: false
-          prerelease: false
+          releaseId: ${{ needs.create-release.outputs.release_id }}
+          # latest.json is written once by the publish job; concurrent per-job
+          # updates raced and dropped platforms (v0.9.0 lost its macOS entries).
+          includeUpdaterJson: false
           args: ${{ matrix.args }}
+
+  # After every build has uploaded, write latest.json from the .sig assets and publish.
+  publish:
+    needs: [create-release, release]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          mkdir sigs
+          gh release download "$TAG" --pattern '*.sig' --dir sigs
+          node scripts/release/manifest.mjs "$TAG" sigs latest.json
+          gh release upload "$TAG" latest.json --clobber
+          gh release edit "$TAG" --draft=false --latest
