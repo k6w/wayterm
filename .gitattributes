@@ -12,3 +12,6 @@ src-tauri/src/shell_integration/** text eol=lf
 
 # Recorded terminal output (escape sequences): compare raw bytes.
 src/lib/blocks/__fixtures__/** -text
+
+*.mjs text eol=lf
+*.js text eol=lf

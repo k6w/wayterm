@@ -1,4 +1,3 @@
-#!/usr/bin/env node
 // Builds the Tauri updater manifest (latest.json) once, after every platform's
 // build has uploaded its bundles and signatures to the draft release.
 //
@@ -10,7 +9,8 @@
 //      node scripts/release/manifest.mjs --notes <version>   (prints the CHANGELOG section)
 
 import { readFileSync, readdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 
 /** Updater keys, each mapped to the bundle the updater should download for it. */
 const PLATFORMS = [
@@ -79,4 +79,5 @@ function main(argv) {
   console.log(`latest.json: ${Object.keys(manifest.platforms).length} platforms for ${tag}`);
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) main(process.argv.slice(2));
+// pathToFileURL keeps this check right on Windows (drive letters, backslashes).
+if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) main(process.argv.slice(2));
