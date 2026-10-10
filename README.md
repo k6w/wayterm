@@ -14,6 +14,7 @@
 <p align="center">
   <a href="https://github.com/k6w/nexterm-terminal-app/releases/latest"><img src="https://img.shields.io/badge/release-v0.9.0-2f6be0?style=flat-square" alt="Release v0.9.0"></a>
   <a href="https://github.com/k6w/nexterm-terminal-app/actions/workflows/ci.yml"><img src="https://github.com/k6w/nexterm-terminal-app/actions/workflows/ci.yml/badge.svg?branch=master" alt="CI status"></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-3a3d44?style=flat-square" alt="License: Apache 2.0"></a>
   <a href="#download"><img src="https://img.shields.io/badge/platforms-macOS%20%7C%20Windows%20%7C%20Linux-3a3d44?style=flat-square" alt="Platforms: macOS, Windows and Linux"></a>
   <a href="https://tauri.app"><img src="https://img.shields.io/badge/built%20with-Tauri%202-24c8db?style=flat-square" alt="Built with Tauri 2"></a>
   <a href="https://www.rust-lang.org"><img src="https://img.shields.io/badge/backend-Rust-b7410e?style=flat-square" alt="Backend: Rust"></a>
@@ -282,4 +283,4 @@ Issues and pull requests are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) covers 
 
 ## License
 
-The repository doesn't include an open source license yet. Copyright © 2026 Nexterm. All rights reserved.
+Nexterm is open source under the [Apache License 2.0](LICENSE). You can use, modify and redistribute it, including in commercial products, as long as you keep the copyright notice and the [NOTICE](NOTICE) file, credit the Nexterm project, and mark the files you changed.
