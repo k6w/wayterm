@@ -1,6 +1,6 @@
-# nexterm themes
+# wayterm themes
 
-nexterm ships four built-in themes and imports custom themes from JSON. A theme has two parts: `chrome` (the app UI) and `terminal` (the terminal palette).
+wayterm ships four built-in themes and imports custom themes from JSON. A theme has two parts: `chrome` (the app UI) and `terminal` (the terminal palette).
 
 ## built-in themes
 
@@ -15,7 +15,7 @@ Every built-in theme passes WCAG AA: body text reaches at least 4.5:1 on every s
 
 ### removed themes
 
-The redesign replaced the 18 older built-ins (Nexterm Dark/Light, Dracula, Nord, Monokai Pro, Solarized Dark/Light, One Dark Pro, Catppuccin Mocha, Tokyo Night, Gruvbox Dark/Light, Rose Pine, Everforest Dark, Kanagawa, GitHub Dark, Vibrant Dark/Light). If you were using one, nexterm switches you to Graphite on first launch and tells you once. Custom themes you imported earlier keep working.
+The redesign replaced the 18 older built-ins (the original Dark/Light defaults, Dracula, Nord, Monokai Pro, Solarized Dark/Light, One Dark Pro, Catppuccin Mocha, Tokyo Night, Gruvbox Dark/Light, Rose Pine, Everforest Dark, Kanagawa, GitHub Dark, Vibrant Dark/Light). If you were using one, wayterm switches you to Graphite on first launch and tells you once. Custom themes you imported earlier keep working.
 
 ## creating a custom theme
 
@@ -152,8 +152,8 @@ index  name           usage
 2. Click **Import JSON** in the custom themes section and pick your file.
 3. The theme is applied and saved in the app database, so it survives updates.
 
-The same section also imports Windows Terminal color schemes (`.json`) and iTerm2 presets (`.itermcolors`); nexterm derives the `chrome` tokens from the terminal colors.
+The same section also imports Windows Terminal color schemes (`.json`) and iTerm2 presets (`.itermcolors`); wayterm derives the `chrome` tokens from the terminal colors.
 
 ### older theme files
 
-Theme files made for nexterm before the redesign use a 13-color `ui` block instead of `chrome`. They still import: nexterm converts `ui` to `chrome` (translucent `rgba()` values are flattened onto the background). New themes should use `chrome`.
+Theme files made for wayterm before the redesign use a 13-color `ui` block instead of `chrome`. They still import: wayterm converts `ui` to `chrome` (translucent `rgba()` values are flattened onto the background). New themes should use `chrome`.

@@ -1,4 +1,4 @@
-# Contributing to Nexterm
+# Contributing to Wayterm
 
 Thanks for wanting to help. This page is short on purpose: how to get the app running, how we write commits, and what a pull request needs before it can merge.
 
@@ -13,8 +13,8 @@ sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev 
 Then:
 
 ```bash
-git clone https://github.com/k6w/nexterm-terminal-app.git
-cd nexterm-terminal-app
+git clone https://github.com/k6w/wayterm.git
+cd wayterm
 npm ci
 npm run tauri dev
 ```

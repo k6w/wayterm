@@ -2,7 +2,7 @@
   <picture>
     <source media="(prefers-color-scheme: dark)" srcset=".github/assets/brand/banner-dark.png">
     <source media="(prefers-color-scheme: light)" srcset=".github/assets/brand/banner-light.png">
-    <img src=".github/assets/brand/banner-light.png" alt="nexterm logo and wordmark, with a terminal window showing three command blocks: one succeeded, one failed and one still running" width="100%">
+    <img src=".github/assets/brand/banner-light.png" alt="wayterm logo and wordmark, with a terminal window showing three command blocks: one succeeded, one failed and one still running" width="100%">
   </picture>
 </p>
 
@@ -12,8 +12,8 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/k6w/nexterm-terminal-app/releases/latest"><img src="https://img.shields.io/badge/release-v0.9.0-2f6be0?style=flat-square" alt="Release v0.9.0"></a>
-  <a href="https://github.com/k6w/nexterm-terminal-app/actions/workflows/ci.yml"><img src="https://github.com/k6w/nexterm-terminal-app/actions/workflows/ci.yml/badge.svg?branch=master" alt="CI status"></a>
+  <a href="https://github.com/k6w/wayterm/releases/latest"><img src="https://img.shields.io/badge/release-v0.9.0-2f6be0?style=flat-square" alt="Release v0.9.0"></a>
+  <a href="https://github.com/k6w/wayterm/actions/workflows/ci.yml"><img src="https://github.com/k6w/wayterm/actions/workflows/ci.yml/badge.svg?branch=master" alt="CI status"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-3a3d44?style=flat-square" alt="License: Apache 2.0"></a>
   <a href="#download"><img src="https://img.shields.io/badge/platforms-macOS%20%7C%20Windows%20%7C%20Linux-3a3d44?style=flat-square" alt="Platforms: macOS, Windows and Linux"></a>
   <a href="https://tauri.app"><img src="https://img.shields.io/badge/built%20with-Tauri%202-24c8db?style=flat-square" alt="Built with Tauri 2"></a>
@@ -32,15 +32,15 @@
 <br>
 
 <p align="center">
-  <img src=".github/assets/screenshots/showcase.png" alt="Nexterm on macOS with vibrancy: a local zsh pane with command blocks, an SFTP browser below it, and an SSH session running neofetch on the right" width="100%">
+  <img src=".github/assets/screenshots/showcase.png" alt="Wayterm on macOS with vibrancy: a local zsh pane with command blocks, an SFTP browser below it, and an SSH session running neofetch on the right" width="100%">
   <br>
   <sub>A local shell with command blocks, an SFTP browser and an SSH session side by side, with vibrancy on (Graphite theme).</sub>
 </p>
 
-## Why Nexterm
+## Why Wayterm
 
 Most working days look the same: a few local shells, a couple of servers, a repository and a database.
-Nexterm keeps all of them in one window, behind one command palette and one set of shortcuts.
+Wayterm keeps all of them in one window, behind one command palette and one set of shortcuts.
 It uses the system webview instead of bundling a browser, so it stays small and starts quickly.
 
 ## Features
@@ -141,17 +141,17 @@ It uses the system webview instead of bundling a browser, so it stays small and 
 
 ## Download
 
-Get the latest build for your system from the [releases page](https://github.com/k6w/nexterm-terminal-app/releases/latest).
+Get the latest build for your system from the [releases page](https://github.com/k6w/wayterm/releases/latest).
 
 | Platform | File |
 | --- | --- |
-| macOS (Apple silicon) | `Nexterm_<version>_aarch64.dmg` |
-| macOS (Intel) | `Nexterm_<version>_x64.dmg` |
+| macOS (Apple silicon) | `Wayterm_<version>_aarch64.dmg` |
+| macOS (Intel) | `Wayterm_<version>_x64.dmg` |
 | Windows | `.msi`, or the `-setup.exe` installer |
 | Linux | `.AppImage`, `.deb` or `.rpm` |
 
 > [!NOTE]
-> The macOS builds are not signed or notarized yet, so Gatekeeper blocks the first launch. Right-click Nexterm in Applications, choose **Open**, then confirm. After that, Nexterm updates itself; updates are signed and checked against a public key built into the app.
+> The macOS builds are not signed or notarized yet, so Gatekeeper blocks the first launch. Right-click Wayterm in Applications, choose **Open**, then confirm. After that, Wayterm updates itself; updates are signed and checked against a public key built into the app.
 
 There is no Homebrew tap or other package manager listing yet.
 
@@ -188,29 +188,29 @@ Each command you run and its output become a block. A gutter on the left shows w
 
 - Click the gutter to select a block, <kbd>Shift</kbd>-click to select a range, or move between blocks from the keyboard.
 - Hover a block to copy the command, the output or both, re-run it, open the output in a viewer, or copy it as text to share. The right-click menu has the same actions.
-- Re-run only types at an idle prompt. Anything Nexterm can't vouch for is pasted for you to review instead of being run.
+- Re-run only types at an idle prompt. Anything Wayterm can't vouch for is pasted for you to review instead of being run.
 - Block shortcuts only apply at the shell prompt, so Vim, tmux and other full-screen apps keep their keys.
 
-Blocks run on shell integration for zsh, bash and fish. Nexterm sets it up for local shells automatically without touching your dotfiles, and signs the prompt and exit marks with a per-session secret so program output can't fake a block.
+Blocks run on shell integration for zsh, bash and fish. Wayterm sets it up for local shells automatically without touching your dotfiles, and signs the prompt and exit marks with a per-session secret so program output can't fake a block.
 
 **On remote hosts**, open **Settings → Terminal → Shell integration → Remote hosts**, pick your shell and paste the snippet into the server's rc file (for example `~/.bashrc` or `~/.zshrc`). Shell integration and command blocks are on by default, and both can be turned off on the same page.
 
 ## Themes
 
-Nexterm ships four themes. Each covers both the app and the terminal palette, and each passes WCAG AA contrast, which a test enforces.
+Wayterm ships four themes. Each covers both the app and the terminal palette, and each passes WCAG AA contrast, which a test enforces.
 
 <table>
   <tr>
-    <td width="50%"><img src=".github/assets/screenshots/theme-graphite.png" alt="Nexterm in the Graphite theme"></td>
-    <td width="50%"><img src=".github/assets/screenshots/theme-frost.png" alt="Nexterm in the Frost theme"></td>
+    <td width="50%"><img src=".github/assets/screenshots/theme-graphite.png" alt="Wayterm in the Graphite theme"></td>
+    <td width="50%"><img src=".github/assets/screenshots/theme-frost.png" alt="Wayterm in the Frost theme"></td>
   </tr>
   <tr>
     <td align="center"><sub><b>Graphite</b>, the default</sub></td>
     <td align="center"><sub><b>Frost</b></sub></td>
   </tr>
   <tr>
-    <td><img src=".github/assets/screenshots/theme-ember.png" alt="Nexterm in the Ember theme"></td>
-    <td><img src=".github/assets/screenshots/theme-paper.png" alt="Nexterm in the Paper theme"></td>
+    <td><img src=".github/assets/screenshots/theme-ember.png" alt="Wayterm in the Ember theme"></td>
+    <td><img src=".github/assets/screenshots/theme-paper.png" alt="Wayterm in the Paper theme"></td>
   </tr>
   <tr>
     <td align="center"><sub><b>Ember</b></sub></td>
@@ -218,16 +218,16 @@ Nexterm ships four themes. Each covers both the app and the terminal palette, an
   </tr>
 </table>
 
-To use your own, go to **Settings → Appearance → Import theme…** and pick a file. Nexterm reads its own `.json` format, Windows Terminal color schemes (`.json`) and iTerm2 `.itermcolors`. The quickest start is to copy `src/themes/graphite.json` (or `paper.json` for a light theme), change the `id` and `name`, and edit the colors. [THEMES.md](THEMES.md) lists every token and the rules a theme has to follow.
+To use your own, go to **Settings → Appearance → Import theme…** and pick a file. Wayterm reads its own `.json` format, Windows Terminal color schemes (`.json`) and iTerm2 `.itermcolors`. The quickest start is to copy `src/themes/graphite.json` (or `paper.json` for a light theme), change the `id` and `name`, and edit the colors. [THEMES.md](THEMES.md) lists every token and the rules a theme has to follow.
 
 ## Security and privacy
 
 - **Host keys.** Before an SSH or SFTP session starts, the server key is checked against your own `~/.ssh/known_hosts`. New hosts ask you to trust the fingerprint. A changed key stops the connection and shows both fingerprints; it is only replaced after you type the end of the new fingerprint, and only if the file still holds the key you were shown. A backup of `known_hosts` is written first.
-- **SSH passwords are never saved.** There is no column for them. Nexterm asks each time, or you use a key or your SSH agent.
+- **SSH passwords are never saved.** There is no column for them. Wayterm asks each time, or you use a key or your SSH agent.
 - **Key files stay where they are.** Keys from `~/.ssh` and `~/.ssh/config` are stored as a path and read at connect time. A private key pasted into **Settings → Keys** is stored in the app database, encrypted with AES-GCM using a key derived from the machine. Treat that as protection against casual reading, not against someone with access to your account.
 - **Database passwords are stored unencrypted** in the local app database so the client can reconnect. Keep that in mind on shared machines; moving them to the system keychain is on the roadmap.
 - **Shell integration leaves your dotfiles alone.** Its scripts live in a `shell-integration` folder inside the app data folder and are loaded at launch (through `ZDOTDIR` for zsh, `--rcfile` for bash and `-C` for fish), and they source your own config as usual.
-- **Where data lives.** Settings, connections, history and scrollback are kept in `nexterm.db` inside the app data folder: `~/Library/Application Support/com.nexterm.terminal` on macOS, `%APPDATA%\com.nexterm.terminal` on Windows and `~/.local/share/com.nexterm.terminal` on Linux.
+- **Where data lives.** Settings, connections, history and scrollback are kept in `wayterm.db` inside the app data folder: `~/Library/Application Support/com.wayterm.terminal` on macOS, `%APPDATA%\com.wayterm.terminal` on Windows and `~/.local/share/com.wayterm.terminal` on Linux.
 - **Updates** are signed and verified against a public key built into the app.
 
 ## Build from source
@@ -281,6 +281,8 @@ cargo test
 
 Issues and pull requests are welcome. [CONTRIBUTING.md](CONTRIBUTING.md) covers setup, commit style and the checks a pull request needs to pass. Changes between versions are listed in [CHANGELOG.md](CHANGELOG.md).
 
+Wayterm was called Nexterm until v0.9.0. On first start it copies your data from the old Nexterm folder, which it leaves untouched.
+
 ## License
 
-Nexterm is open source under the [Apache License 2.0](LICENSE). You can use, modify and redistribute it, including in commercial products, as long as you keep the copyright notice and the [NOTICE](NOTICE) file, credit the Nexterm project, and mark the files you changed.
+Wayterm is open source under the [Apache License 2.0](LICENSE). You can use, modify and redistribute it, including in commercial products, as long as you keep the copyright notice and the [NOTICE](NOTICE) file, credit the Wayterm project, and mark the files you changed.

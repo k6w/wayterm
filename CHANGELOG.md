@@ -1,8 +1,16 @@
 # Changelog
 
-Notable changes to Nexterm, newest first. Versions follow [Semantic Versioning](https://semver.org).
+Notable changes to Wayterm, newest first. Versions follow [Semantic Versioning](https://semver.org).
+
+## Unreleased
+
+- Nexterm is now Wayterm. The app, its installers and the repository (now [k6w/wayterm](https://github.com/k6w/wayterm)) carry the new name
+- On first start Wayterm copies your settings, connections, keys, history and scrollback from the old Nexterm data folder, which it leaves untouched
+- Shells started by Wayterm see `TERM_PROGRAM=wayterm`. If you added the remote snippet from Settings > Terminal to a server, replace it with the new one
 
 ## 0.9.0 - 2026-10-09
+
+Released as Nexterm, before the rename to Wayterm.
 
 The big one. Nexterm got a full redesign, a proper design kit underneath it, command blocks, workspaces that bring back everything you had open, and a round of SSH work that makes connecting to servers safer and quicker.
 
@@ -88,4 +96,4 @@ The big one. Nexterm got a full redesign, a proper design kit underneath it, com
 
 ## 0.8.0 and earlier
 
-See the [releases page](https://github.com/k6w/nexterm-terminal-app/releases) for older notes.
+See the [releases page](https://github.com/k6w/wayterm/releases) for older notes.
