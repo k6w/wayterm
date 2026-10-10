@@ -18,7 +18,7 @@ export function PopoverContent({ className, sideOffset = 6, align = "center", ..
         align={align}
         collisionPadding={8}
         className={cn(
-          "z-[var(--z-dropdown)] min-w-48 animate-nx-fade-in rounded-lg border border-border bg-raised-glass nx-blur p-3 text-body text-fg shadow-popover outline-none",
+          "z-[var(--z-dropdown)] min-w-48 animate-wt-fade-in rounded-lg border border-border bg-raised-glass wt-blur p-3 text-body text-fg shadow-popover outline-none",
           className
         )}
         {...rest}

@@ -1,15 +1,15 @@
 [package]
-name = "nexterm"
+name = "wayterm"
 version = "0.9.0"
 license = "Apache-2.0"
 edition = "2021"
 
 [lib]
-name = "nexterm_lib"
+name = "wayterm_lib"
 crate-type = ["lib", "cdylib", "staticlib"]
 
 [[bin]]
-name = "nexterm"
+name = "wayterm"
 path = "src/main.rs"
 
 [dependencies]

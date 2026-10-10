@@ -114,8 +114,8 @@ export default function TabContextMenuContent({ tabId, tabIndex, onStartRename }
               <ContextMenuRadioItem key={color.value} value={color.value}>
                 <span
                   aria-hidden
-                  className="size-2.5 shrink-0 rounded-full bg-(--nx-dyn-tag)"
-                  style={{ "--nx-dyn-tag": color.value } as CSSProperties}
+                  className="size-2.5 shrink-0 rounded-full bg-(--wt-dyn-tag)"
+                  style={{ "--wt-dyn-tag": color.value } as CSSProperties}
                 />
                 {color.label}
               </ContextMenuRadioItem>

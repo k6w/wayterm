@@ -16,9 +16,12 @@ use std::sync::Arc;
 
 pub type DbPool = Arc<Mutex<Connection>>;
 
+/// The database file inside the app data dir.
+pub const DB_FILE: &str = "wayterm.db";
+
 pub fn init(app_data_dir: &PathBuf) -> Result<DbPool, String> {
     std::fs::create_dir_all(app_data_dir).map_err(|e| e.to_string())?;
-    let db_path = app_data_dir.join("nexterm.db");
+    let db_path = app_data_dir.join(DB_FILE);
     let conn = Connection::open(&db_path).map_err(|e| e.to_string())?;
     conn.execute_batch("PRAGMA journal_mode=WAL; PRAGMA foreign_keys=ON;")
         .map_err(|e| e.to_string())?;

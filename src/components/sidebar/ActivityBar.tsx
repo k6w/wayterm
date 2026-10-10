@@ -19,7 +19,7 @@ export default function ActivityBar() {
     <Toolbar
       orientation="vertical"
       aria-label="Side panels"
-      className="nx-blur h-full w-11 shrink-0 flex-col gap-1 border-r border-border bg-panel-glass py-2"
+      className="wt-blur h-full w-11 shrink-0 flex-col gap-1 border-r border-border bg-panel-glass py-2"
     >
       {SIDEBAR_SECTIONS.map(({ id, label, icon: Icon, shortcutId }) => {
         const active = !settingsOpen && !collapsed && section === id;

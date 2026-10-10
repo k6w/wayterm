@@ -1,9 +1,9 @@
 /**
- * nexterm/no-inline-style
+ * wayterm/no-inline-style
  *
  * Bans `style={...}` on JSX elements, except object literals whose keys are
  * all dynamic layout properties (pane sizes, offsets, virtualized positions)
- * or `--nx-dyn-*` custom properties carrying user data (e.g. a tab color tag).
+ * or `--wt-dyn-*` custom properties carrying user data (e.g. a tab color tag).
  */
 export const LAYOUT_KEYS = new Set([
   "width", "height", "minWidth", "maxWidth", "minHeight", "maxHeight",
@@ -13,7 +13,7 @@ export const LAYOUT_KEYS = new Set([
   "gridTemplateColumns", "gridTemplateRows", "gridColumn", "gridRow",
 ]);
 
-export const DYNAMIC_PREFIX = "--nx-dyn-";
+export const DYNAMIC_PREFIX = "--wt-dyn-";
 
 function unwrap(expression) {
   let current = expression;
@@ -42,12 +42,12 @@ export default {
     type: "problem",
     docs: {
       description:
-        "Disallow inline styles except dynamic layout values and --nx-dyn-* custom properties",
+        "Disallow inline styles except dynamic layout values and --wt-dyn-* custom properties",
     },
     schema: [],
     messages: {
       notObject:
-        "Inline style must be an object literal of layout values ({{allowed}}) or --nx-dyn-* properties. Use tokens and Tailwind classes instead.",
+        "Inline style must be an object literal of layout values ({{allowed}}) or --wt-dyn-* properties. Use tokens and Tailwind classes instead.",
       disallowedKey:
         "Inline style key '{{key}}' is not a dynamic layout value. Use tokens and Tailwind classes instead.",
     },

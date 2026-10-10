@@ -118,10 +118,10 @@ pub(crate) fn assert_reports_false_with(sh: &Shell, c_report: Option<&str>) {
     sh.run("false");
     let out = sh.text();
     assert!(out.contains("\x1b]133;B"), "no command start: {out:?}");
-    assert!(out.contains(&format!("\x1b]133;A;nx={NONCE}\x07")), "no signed prompt start: {out:?}");
-    let c = c_report.map(str::to_string).unwrap_or_else(|| format!("cmdline_url=false;nx={NONCE}"));
+    assert!(out.contains(&format!("\x1b]133;A;wt={NONCE}\x07")), "no signed prompt start: {out:?}");
+    let c = c_report.map(str::to_string).unwrap_or_else(|| format!("cmdline_url=false;wt={NONCE}"));
     assert!(out.contains(&format!("\x1b]133;C;{c}\x07")), "no command report: {out:?}");
-    assert!(out.contains(&format!("\x1b]133;D;1;nx={NONCE}\x07")), "no exit status: {out:?}");
+    assert!(out.contains(&format!("\x1b]133;D;1;wt={NONCE}\x07")), "no exit status: {out:?}");
     assert!(out.contains("\x1b]7;file://"), "no cwd report: {out:?}");
 }
 
@@ -186,10 +186,10 @@ mod zsh {
         let home = home_with_rc();
         let sh = Shell::start(&zsh, home.path(), &[], &no_env);
         assert!(sh.wait_for("\x1b]133;A"));
-        sh.run("echo ENV=:$(env | grep -c NEXTERM_):");
+        sh.run("echo ENV=:$(env | grep -c WAYTERM_):");
         assert!(sh.text().contains("ENV=:0:"), "{:?}", sh.text());
         sh.run(&format!(
-            "{} -ic 'echo NESTED ZD=:${{ZDOTDIR-unset}}:; whence _nx_precmd || echo NESTED-PLAIN'",
+            "{} -ic 'echo NESTED ZD=:${{ZDOTDIR-unset}}:; whence _wt_precmd || echo NESTED-PLAIN'",
             zsh.display()
         ));
         let out = sh.text();
@@ -208,7 +208,7 @@ mod zsh {
         let sh = Shell::start(&zsh, home.path(), &[], &no_env);
         assert_reports_false(&sh);
         sh.run("(exit 3)");
-        assert!(sh.text().contains(&format!("\x1b]133;D;3;nx={NONCE}\x07")), "{:?}", sh.text());
+        assert!(sh.text().contains(&format!("\x1b]133;D;3;wt={NONCE}\x07")), "{:?}", sh.text());
     }
 
     #[test]
@@ -232,7 +232,7 @@ mod zsh {
         let sh = Shell::start(&zsh, home.path(), &[], &no_env);
         assert!(sh.wait_for("\x1b]133;A"));
         sh.run("echo 'a b;c' é");
-        let want = format!("cmdline_url=echo%20%27a%20b%3Bc%27%20%C3%A9;nx={NONCE}");
+        let want = format!("cmdline_url=echo%20%27a%20b%3Bc%27%20%C3%A9;wt={NONCE}");
         assert!(sh.text().contains(&want), "{:?}", sh.text());
     }
 }
@@ -257,7 +257,7 @@ mod bash {
 
     /// bash 4.4+ reports C from PS0, older bash from a DEBUG trap; neither has the command line.
     fn c_report() -> String {
-        format!("nx={NONCE}")
+        format!("wt={NONCE}")
     }
 
     fn home_with(bashrc: &str) -> tempfile::TempDir {
@@ -277,7 +277,7 @@ mod bash {
             // that line gets no C there (D still arrives).
             sh.run("sh -c 'exit 3'");
             let out = sh.text();
-            assert!(out.contains(&format!("\x1b]133;D;3;nx={NONCE}\x07")), "{}: {out:?}", bash.display());
+            assert!(out.contains(&format!("\x1b]133;D;3;wt={NONCE}\x07")), "{}: {out:?}", bash.display());
             assert!(out.contains("SENTINEL-BASHRC"), "{}: {out:?}", bash.display());
             // Non-login, exactly as before.
             assert!(!out.contains("SENTINEL-BASH-PROFILE"), "{}: {out:?}", bash.display());
@@ -349,9 +349,9 @@ mod bash {
             let home = home_with("echo SENTINEL-BASHRC\nPS1='$ '\n");
             let sh = Shell::start(&bash, home.path(), &[], &no_env);
             assert!(sh.wait_for("\x1b]133;A"));
-            sh.run("echo \"ENV=:$(env | grep -c NEXTERM_):\"");
+            sh.run("echo \"ENV=:$(env | grep -c WAYTERM_):\"");
             assert!(sh.text().contains("ENV=:0:"), "{}: {:?}", bash.display(), sh.text());
-            sh.run(&format!("{} -ic 'declare -F _nx_precmd || echo NESTED-PLAIN'", bash.display()));
+            sh.run(&format!("{} -ic 'declare -F _wt_precmd || echo NESTED-PLAIN'", bash.display()));
             let out = sh.text();
             assert!(out.contains("NESTED-PLAIN"), "{}: {out:?}", bash.display());
             assert_eq!(out.matches("SENTINEL-BASHRC\r").count(), 2, "{}: {out:?}", bash.display());
@@ -378,7 +378,7 @@ mod bash {
             sh.run("trap -p DEBUG");
             let out = sh.text();
             assert!(out.contains("USER_TRAP=1"), "{}: {out:?}", bash.display());
-            assert!(out.contains(&format!("\x1b]133;D;0;nx={NONCE}\x07")), "{}: {out:?}", bash.display());
+            assert!(out.contains(&format!("\x1b]133;D;0;wt={NONCE}\x07")), "{}: {out:?}", bash.display());
         }
     }
 
@@ -453,9 +453,9 @@ mod fish {
         assert!(sh.wait_for("\x1b]133;A"), "{:?}", sh.text());
         sh.run("false");
         let out = sh.text();
-        assert!(out.contains(&format!("\x1b]133;C;cmdline_url=false;nx={NONCE}\x07")), "{out:?}");
-        assert!(out.contains(&format!("\x1b]133;D;1;nx={NONCE}\x07")), "{out:?}");
-        assert!(out.contains(&format!("\x1b]133;A;nx={NONCE}\x07")), "{out:?}");
+        assert!(out.contains(&format!("\x1b]133;C;cmdline_url=false;wt={NONCE}\x07")), "{out:?}");
+        assert!(out.contains(&format!("\x1b]133;D;1;wt={NONCE}\x07")), "{out:?}");
+        assert!(out.contains(&format!("\x1b]133;A;wt={NONCE}\x07")), "{out:?}");
         assert!(out.contains("\x1b]7;file://"), "{out:?}");
         assert!(out.contains("SENTINEL-FISH-CONFIG"), "{out:?}");
     }
@@ -466,7 +466,7 @@ mod fish {
         let home = home_with_config();
         let sh = start(&fish, home.path());
         assert!(sh.wait_for("\x1b]133;A"), "{:?}", sh.text());
-        sh.run("echo ENV=:(env | grep -c NEXTERM_):");
+        sh.run("echo ENV=:(env | grep -c WAYTERM_):");
         assert!(sh.text().contains("ENV=:0:"), "{:?}", sh.text());
     }
 }

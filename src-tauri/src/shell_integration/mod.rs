@@ -7,7 +7,7 @@ mod pty_tests;
 
 use std::path::Path;
 
-/// How much Nexterm adds to a shell it starts.
+/// How much Wayterm adds to a shell it starts.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, serde::Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum ShellSetup {
@@ -25,7 +25,7 @@ pub enum ShellSetup {
 pub struct SpawnPlan {
     pub args: Vec<String>,
     pub env: Vec<(String, String)>,
-    /// The shell loads Nexterm's integration script and reports with the nonce.
+    /// The shell loads Wayterm's integration script and reports with the nonce.
     pub integrated: bool,
 }
 
@@ -92,7 +92,7 @@ fn title_plan(kind: ShellKind) -> SpawnPlan {
         },
         ShellKind::Bash => SpawnPlan { env: vec![prompt_command()], ..Default::default() },
         ShellKind::Zsh => SpawnPlan {
-            env: vec![("NEXTERM_ZSH_INTEGRATION".to_string(), "1".to_string()), prompt_command()],
+            env: vec![("WAYTERM_ZSH_INTEGRATION".to_string(), "1".to_string()), prompt_command()],
             ..Default::default()
         },
         ShellKind::Fish => SpawnPlan {
@@ -106,8 +106,8 @@ fn title_plan(kind: ShellKind) -> SpawnPlan {
 
 fn session_env(ctx: &PlanContext) -> Vec<(String, String)> {
     vec![
-        ("NEXTERM_SHELL_INTEGRATION".to_string(), "1".to_string()),
-        ("NEXTERM_SI_NONCE".to_string(), ctx.nonce.to_string()),
+        ("WAYTERM_SHELL_INTEGRATION".to_string(), "1".to_string()),
+        ("WAYTERM_SI_NONCE".to_string(), ctx.nonce.to_string()),
     ]
 }
 
@@ -119,8 +119,8 @@ fn dir_str(dir: &Path, sub: &str) -> String {
 fn zsh_plan(dir: &Path, ctx: &PlanContext) -> SpawnPlan {
     let mut env = vec![("ZDOTDIR".to_string(), dir_str(dir, "zsh"))];
     match (ctx.orig_env)("ZDOTDIR") {
-        Some(orig) => env.push(("NEXTERM_ORIG_ZDOTDIR".to_string(), orig)),
-        None => env.push(("NEXTERM_ORIG_ZDOTDIR_UNSET".to_string(), "1".to_string())),
+        Some(orig) => env.push(("WAYTERM_ORIG_ZDOTDIR".to_string(), orig)),
+        None => env.push(("WAYTERM_ORIG_ZDOTDIR_UNSET".to_string(), "1".to_string())),
     }
     env.extend(session_env(ctx));
     SpawnPlan { args: Vec::new(), env, integrated: true }
@@ -129,7 +129,7 @@ fn zsh_plan(dir: &Path, ctx: &PlanContext) -> SpawnPlan {
 /// `bash --rcfile` replaces ~/.bashrc with ours, which sources it.
 fn bash_plan(dir: &Path, ctx: &PlanContext) -> SpawnPlan {
     SpawnPlan {
-        args: vec!["--rcfile".to_string(), dir_str(dir, "bash/nexterm.bash")],
+        args: vec!["--rcfile".to_string(), dir_str(dir, "bash/wayterm.bash")],
         env: session_env(ctx),
         integrated: true,
     }
@@ -143,7 +143,7 @@ fn fish_quote(s: &str) -> String {
 /// `fish -C` runs after config.fish; the script also defines the title.
 fn fish_plan(dir: &Path, ctx: &PlanContext) -> SpawnPlan {
     SpawnPlan {
-        args: vec!["-C".to_string(), format!("source {}", fish_quote(&dir_str(dir, "fish/nexterm.fish")))],
+        args: vec!["-C".to_string(), format!("source {}", fish_quote(&dir_str(dir, "fish/wayterm.fish")))],
         env: session_env(ctx),
         integrated: true,
     }
@@ -188,10 +188,10 @@ mod tests {
         assert!(p.integrated);
         assert!(p.args.is_empty());
         assert_eq!(env_of(&p, "ZDOTDIR"), Some(dir.join("zsh").to_str().unwrap()));
-        assert_eq!(env_of(&p, "NEXTERM_ORIG_ZDOTDIR"), Some("/home/u/.config/zsh"));
-        assert_eq!(env_of(&p, "NEXTERM_ORIG_ZDOTDIR_UNSET"), None);
-        assert_eq!(env_of(&p, "NEXTERM_SHELL_INTEGRATION"), Some("1"));
-        assert_eq!(env_of(&p, "NEXTERM_SI_NONCE"), Some("abc"));
+        assert_eq!(env_of(&p, "WAYTERM_ORIG_ZDOTDIR"), Some("/home/u/.config/zsh"));
+        assert_eq!(env_of(&p, "WAYTERM_ORIG_ZDOTDIR_UNSET"), None);
+        assert_eq!(env_of(&p, "WAYTERM_SHELL_INTEGRATION"), Some("1"));
+        assert_eq!(env_of(&p, "WAYTERM_SI_NONCE"), Some("abc"));
         assert_eq!(env_of(&p, "PROMPT_COMMAND"), None);
     }
 
@@ -201,9 +201,9 @@ mod tests {
         let ctx = PlanContext { dir: Some(dir), nonce: "abc", orig_env: &no_env };
         let p = plan("/bin/bash", ShellSetup::Integrated, &ctx);
         assert!(p.integrated);
-        assert_eq!(p.args, vec!["--rcfile".to_string(), dir.join("bash/nexterm.bash").to_string_lossy().into_owned()]);
-        assert_eq!(env_of(&p, "NEXTERM_SHELL_INTEGRATION"), Some("1"));
-        assert_eq!(env_of(&p, "NEXTERM_SI_NONCE"), Some("abc"));
+        assert_eq!(p.args, vec!["--rcfile".to_string(), dir.join("bash/wayterm.bash").to_string_lossy().into_owned()]);
+        assert_eq!(env_of(&p, "WAYTERM_SHELL_INTEGRATION"), Some("1"));
+        assert_eq!(env_of(&p, "WAYTERM_SI_NONCE"), Some("abc"));
         assert_eq!(env_of(&p, "PROMPT_COMMAND"), None);
     }
 
@@ -213,10 +213,10 @@ mod tests {
         let ctx = PlanContext { dir: Some(dir), nonce: "abc", orig_env: &no_env };
         let p = plan("/opt/homebrew/bin/fish", ShellSetup::Integrated, &ctx);
         assert!(p.integrated);
-        let script = dir.join("fish/nexterm.fish").to_string_lossy().replace('\\', "\\\\").replace('\'', "\\'");
+        let script = dir.join("fish/wayterm.fish").to_string_lossy().replace('\\', "\\\\").replace('\'', "\\'");
         assert!(script.contains(r"Support/it\'s/v1"), "{script}");
         assert_eq!(p.args, vec!["-C".to_string(), format!("source '{script}'")]);
-        assert_eq!(env_of(&p, "NEXTERM_SI_NONCE"), Some("abc"));
+        assert_eq!(env_of(&p, "WAYTERM_SI_NONCE"), Some("abc"));
     }
 
     #[test]
@@ -233,8 +233,8 @@ mod tests {
     fn zsh_marks_an_unset_zdotdir() {
         let ctx = PlanContext { dir: Some(Path::new("/d")), nonce: "abc", orig_env: &no_env };
         let p = plan("/bin/zsh", ShellSetup::Integrated, &ctx);
-        assert_eq!(env_of(&p, "NEXTERM_ORIG_ZDOTDIR"), None);
-        assert_eq!(env_of(&p, "NEXTERM_ORIG_ZDOTDIR_UNSET"), Some("1"));
+        assert_eq!(env_of(&p, "WAYTERM_ORIG_ZDOTDIR"), None);
+        assert_eq!(env_of(&p, "WAYTERM_ORIG_ZDOTDIR_UNSET"), Some("1"));
     }
 
     #[test]
@@ -280,7 +280,7 @@ mod tests {
         assert_eq!(
             p.env,
             env(&[
-                ("NEXTERM_ZSH_INTEGRATION", "1"),
+                ("WAYTERM_ZSH_INTEGRATION", "1"),
                 ("PROMPT_COMMAND", "printf \"\\033]0;%s\\007\" \"$PWD\""),
             ])
         );

@@ -20,7 +20,7 @@ export const CHEAT_SHEET: readonly { id: string; label: string }[] = [
 ];
 
 const STEPS = [
-  { title: "Welcome to nexterm", description: "A terminal with SSH, SFTP and Git built in. Pick a theme to start; you can change it any time." },
+  { title: "Welcome to wayterm", description: "A terminal with SSH, SFTP and Git built in. Pick a theme to start; you can change it any time." },
   { title: "Shell and font", description: "Used for every new local terminal." },
   { title: "You're all set", description: "A few shortcuts to get you going. Every action is also in the command palette." },
 ] as const;
@@ -191,7 +191,7 @@ export function WelcomeWizard({ onDismiss }: WelcomeWizardProps) {
               <span />
             )}
             <Button variant="primary" onClick={() => void next()}>
-              {step === STEPS.length - 1 ? "Start using nexterm" : "Continue"}
+              {step === STEPS.length - 1 ? "Start using wayterm" : "Continue"}
             </Button>
           </footer>
         </section>

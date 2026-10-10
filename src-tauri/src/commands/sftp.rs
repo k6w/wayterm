@@ -540,7 +540,7 @@ mod tests {
     use russh::keys::ssh_key::LineEnding;
 
     fn write_key(encrypt: bool) -> (std::path::PathBuf, std::path::PathBuf) {
-        let dir = std::env::temp_dir().join(format!("nexterm_sftpkey_{}", Uuid::new_v4()));
+        let dir = std::env::temp_dir().join(format!("wayterm_sftpkey_{}", Uuid::new_v4()));
         std::fs::create_dir_all(&dir).unwrap();
         let mut key = PrivateKey::random(&mut rand::rngs::OsRng, Algorithm::Ed25519).unwrap();
         if encrypt {

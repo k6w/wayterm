@@ -49,7 +49,7 @@ describe("UpdateNotification", () => {
     vi.mocked(check).mockResolvedValue(fakeUpdate());
     render(<UpdateNotification />);
     await runCheck();
-    expect(screen.getByRole("status")).toHaveTextContent("nexterm v0.9.0 is available");
+    expect(screen.getByRole("status")).toHaveTextContent("wayterm v0.9.0 is available");
     act(() => screen.getByRole("button", { name: "Dismiss update" }).click());
     expect(screen.queryByText(/is available/)).not.toBeInTheDocument();
   });

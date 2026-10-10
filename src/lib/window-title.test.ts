@@ -14,9 +14,9 @@ const tab = (id: string, title: string): TerminalTab => ({
 describe("windowTitleFor", () => {
   it("names the active tab, or just the app", () => {
     const tabs = [tab("a", "zsh"), tab("b", "logs")];
-    expect(windowTitleFor(tabs, "b")).toBe("logs — NexTerm");
-    expect(windowTitleFor(tabs, null)).toBe("NexTerm");
-    expect(windowTitleFor([], "gone")).toBe("NexTerm");
+    expect(windowTitleFor(tabs, "b")).toBe("logs — Wayterm");
+    expect(windowTitleFor(tabs, null)).toBe("Wayterm");
+    expect(windowTitleFor([], "gone")).toBe("Wayterm");
   });
 });
 
@@ -24,20 +24,20 @@ describe("createTitleSync", () => {
   it("applies only changes", () => {
     const apply = vi.fn(async () => {});
     const sync = createTitleSync(apply);
-    sync("zsh — NexTerm");
-    sync("zsh — NexTerm");
-    sync("zsh — NexTerm");
-    sync("logs — NexTerm");
-    expect(apply.mock.calls).toEqual([["zsh — NexTerm"], ["logs — NexTerm"]]);
+    sync("zsh — Wayterm");
+    sync("zsh — Wayterm");
+    sync("zsh — Wayterm");
+    sync("logs — Wayterm");
+    expect(apply.mock.calls).toEqual([["zsh — Wayterm"], ["logs — Wayterm"]]);
   });
 
   it("retries a title whose apply failed", async () => {
     const apply = vi.fn().mockRejectedValueOnce(new Error("no window")).mockResolvedValue(undefined);
     const sync = createTitleSync(apply);
-    sync("zsh — NexTerm");
+    sync("zsh — Wayterm");
     await Promise.resolve();
     await Promise.resolve();
-    sync("zsh — NexTerm");
+    sync("zsh — Wayterm");
     expect(apply).toHaveBeenCalledTimes(2);
   });
 });

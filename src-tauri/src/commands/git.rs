@@ -111,7 +111,7 @@ fn write_temp_key(pool: &DbPool, key_id: &str) -> Result<String, String> {
     } else {
         format!("{}\n", normalized)
     };
-    let path = std::env::temp_dir().join(format!("nexterm_key_{}", key_id));
+    let path = std::env::temp_dir().join(format!("wayterm_key_{}", key_id));
     std::fs::write(&path, content.as_bytes()).map_err(|e| e.to_string())?;
     
     #[cfg(unix)]
@@ -870,7 +870,7 @@ mod tests {
 
     impl TempRepo {
         fn new(name: &str) -> Self {
-            let dir = std::env::temp_dir().join(format!("nexterm_git_{}_{}", name, std::process::id()));
+            let dir = std::env::temp_dir().join(format!("wayterm_git_{}_{}", name, std::process::id()));
             let _ = std::fs::remove_dir_all(&dir);
             std::fs::create_dir_all(&dir).unwrap();
             let repo = TempRepo(dir);
@@ -906,7 +906,7 @@ mod tests {
     }
 
     fn plain_dir(name: &str) -> std::path::PathBuf {
-        let dir = std::env::temp_dir().join(format!("nexterm_git_{}_{}", name, std::process::id()));
+        let dir = std::env::temp_dir().join(format!("wayterm_git_{}_{}", name, std::process::id()));
         let _ = std::fs::remove_dir_all(&dir);
         std::fs::create_dir_all(&dir).unwrap();
         dir
@@ -935,7 +935,7 @@ mod tests {
 
     #[test]
     fn init_repo_rejects_a_missing_folder() {
-        assert!(init_repo("/definitely/not/here/nexterm").is_err());
+        assert!(init_repo("/definitely/not/here/wayterm").is_err());
     }
 
     #[test]

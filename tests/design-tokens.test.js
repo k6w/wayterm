@@ -30,8 +30,8 @@ describe("design tokens (src/styles.css)", () => {
   });
 
   it("defaults to compact 28px controls with a comfortable option", () => {
-    expect(css).toMatch(/--nx-control-h:\s*28px/);
-    expect(css).toMatch(/\[data-density="comfortable"\]\s*\{[^}]*--nx-control-h:\s*32px/);
+    expect(css).toMatch(/--wt-control-h:\s*28px/);
+    expect(css).toMatch(/\[data-density="comfortable"\]\s*\{[^}]*--wt-control-h:\s*32px/);
   });
 
   it("disables motion under prefers-reduced-motion", () => {
@@ -39,8 +39,8 @@ describe("design tokens (src/styles.css)", () => {
   });
 
   it("keeps the legacy aliases for un-migrated screens", () => {
-    expect(css).toContain("--color-bg-primary: var(--nx-canvas)");
-    expect(css).toContain("--color-text-primary: var(--nx-text)");
+    expect(css).toContain("--color-bg-primary: var(--wt-canvas)");
+    expect(css).toContain("--color-text-primary: var(--wt-text)");
   });
 
   it("stacks dropdowns above dialogs and below toasts", () => {

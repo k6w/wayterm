@@ -4,7 +4,7 @@ use std::fs;
 struct Tmp(PathBuf);
 impl Tmp {
     fn new() -> Self {
-        let p = std::env::temp_dir().join(format!("nexterm_sshcfg_{}", uuid::Uuid::new_v4()));
+        let p = std::env::temp_dir().join(format!("wayterm_sshcfg_{}", uuid::Uuid::new_v4()));
         fs::create_dir_all(p.join(".ssh")).unwrap();
         Tmp(p)
     }

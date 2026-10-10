@@ -23,7 +23,7 @@ if it's visual, these help a lot. please blur hostnames, ips and anything privat
 
 **your setup**
 
-- nexterm version:
+- wayterm version:
 - os and version:
 - shell:
 - theme:

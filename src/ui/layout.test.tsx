@@ -28,7 +28,7 @@ describe("Panel", () => {
       </>
     );
     expect(screen.getByTestId("solid")).toHaveClass("bg-panel", "border-border");
-    expect(screen.getByTestId("glass")).toHaveClass("bg-raised-glass", "nx-blur");
+    expect(screen.getByTestId("glass")).toHaveClass("bg-raised-glass", "wt-blur");
     expect(screen.getByTestId("glass")).not.toHaveClass("bg-raised");
   });
 });

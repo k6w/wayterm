@@ -1,8 +1,8 @@
 {
   "$schema": "https://raw.githubusercontent.com/tauri-apps/tauri/dev/crates/tauri-config-schema/schema.json",
-  "productName": "Nexterm",
+  "productName": "Wayterm",
   "version": "0.9.0",
-  "identifier": "com.nexterm.terminal",
+  "identifier": "com.wayterm.terminal",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://localhost:1420",
@@ -13,7 +13,7 @@
     "macOSPrivateApi": true,
     "windows": [
       {
-        "title": "Nexterm",
+        "title": "Wayterm",
         "width": 1200,
         "height": 800,
         "minWidth": 800,
@@ -40,8 +40,8 @@
       "icons/icon.ico"
     ],
     "shortDescription": "Modern terminal emulator with SSH management",
-    "longDescription": "Nexterm is a cross-platform terminal emulator featuring split panes, SSH connection management, SFTP file transfers, port forwarding, Git integration, 18 built-in themes, and glassmorphism design.",
-    "copyright": "Copyright 2026 Nexterm",
+    "longDescription": "Wayterm is a cross-platform terminal emulator featuring split panes, SSH connection management, SFTP file transfers, port forwarding, Git integration, 18 built-in themes, and glassmorphism design.",
+    "copyright": "Copyright 2026 drwn",
     "category": "DeveloperTool",
     "windows": {
       "webviewInstallMode": {
@@ -68,7 +68,7 @@
     "updater": {
       "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDJBQTFFQ0NFRUYxOTU5M0QKUldROVdSbnZ6dXloS3JkZjZuR0xKeTl5OTdxYTNtckF3a2srdFR3ZHRES1hPRXJPZWJCbEZaQ04K",
       "endpoints": [
-        "https://github.com/k6w/nexterm-terminal-app/releases/latest/download/latest.json"
+        "https://github.com/k6w/wayterm/releases/latest/download/latest.json"
       ]
     }
   }

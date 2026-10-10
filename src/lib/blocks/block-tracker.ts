@@ -40,7 +40,7 @@ export interface BlockTrackerOptions {
 const MAX_BLOCKS = 5000;
 const MAX_COMMAND_LENGTH = 4096;
 
-/** `key=value` pairs after the mark letter, e.g. `C;cmdline_url=ls;nx=abc`. */
+/** `key=value` pairs after the mark letter, e.g. `C;cmdline_url=ls;wt=abc`. */
 function parseParams(parts: string[]): Map<string, string> {
   const params = new Map<string, string>();
   for (const part of parts) {
@@ -227,7 +227,7 @@ export class BlockTracker {
     if (this.disposed) return;
     const [mark, ...rest] = data.split(";");
     const params = parseParams(rest);
-    const signed = this.nonce !== null && params.get("nx") === this.nonce;
+    const signed = this.nonce !== null && params.get("wt") === this.nonce;
     // A pane started with our script knows its nonce: then only marks carrying
     // it count, so command output cannot fake prompts, commands or exits.
     // (B carries none; it is only taken at a prompt, when nothing else prints.)

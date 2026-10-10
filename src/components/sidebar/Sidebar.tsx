@@ -39,7 +39,7 @@ export default function Sidebar({ onNewSsh, onEditSsh }: SidebarProps) {
   const info = SIDEBAR_SECTIONS.find((s) => s.id === section) ?? SIDEBAR_SECTIONS[0];
 
   return (
-    <aside aria-label={info.label} className="nx-blur flex h-full flex-col bg-panel-glass">
+    <aside aria-label={info.label} className="wt-blur flex h-full flex-col bg-panel-glass">
       <Toolbar
         aria-label={`${info.label} panel`}
         className="h-9 shrink-0 gap-1 border-b border-border pl-3 pr-1.5"

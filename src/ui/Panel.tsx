@@ -5,7 +5,7 @@ import { cn } from "./utils";
 export const panelVariants = cva("rounded-lg border border-border", {
   variants: {
     elevation: { canvas: "", panel: "", raised: "" },
-    glass: { true: "nx-blur", false: "" },
+    glass: { true: "wt-blur", false: "" },
     padding: { none: "", sm: "p-2", md: "p-3" },
   },
   compoundVariants: [

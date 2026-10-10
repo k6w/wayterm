@@ -1,6 +1,6 @@
 import tseslint from "typescript-eslint";
 import reactHooks from "eslint-plugin-react-hooks";
-import nexterm from "./eslint-rules/index.js";
+import wayterm from "./eslint-rules/index.js";
 
 /**
  * Lint ratchet (see docs in scripts/check-lint-ratchet.mjs):
@@ -24,12 +24,12 @@ export default [
   },
   {
     files: ["src/**/*.{ts,tsx}"],
-    plugins: { "react-hooks": reactHooks, nexterm },
+    plugins: { "react-hooks": reactHooks, wayterm },
     rules: {
       "react-hooks/rules-of-hooks": "error",
       "react-hooks/exhaustive-deps": "error",
-      "nexterm/no-inline-style": "error",
-      "nexterm/no-color-literals": "error",
+      "wayterm/no-inline-style": "error",
+      "wayterm/no-color-literals": "error",
       "no-restricted-syntax": [
         "error",
         {
@@ -67,6 +67,6 @@ export default [
       "src/**/*.test.{ts,tsx}",
       "src/test/**",
     ],
-    rules: { "nexterm/no-color-literals": "off" },
+    rules: { "wayterm/no-color-literals": "off" },
   },
 ];

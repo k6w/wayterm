@@ -13,13 +13,13 @@ describe("downloadTextFile", () => {
     vi.stubGlobal("URL", {
       createObjectURL: (blob: Blob) => {
         created.push(blob);
-        return "blob:nexterm/1";
+        return "blob:wayterm/1";
       },
       revokeObjectURL: revoke,
     });
     const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (this: HTMLAnchorElement) {
       expect(this.download).toBe("rows.csv");
-      expect(this.getAttribute("href")).toBe("blob:nexterm/1");
+      expect(this.getAttribute("href")).toBe("blob:wayterm/1");
     });
 
     downloadTextFile("rows.csv", "a,b\n1,2", "text/csv");
@@ -27,6 +27,6 @@ describe("downloadTextFile", () => {
     expect(click).toHaveBeenCalledTimes(1);
     expect(created[0].type).toBe("text/csv");
     expect(created[0].size).toBe(7);
-    expect(revoke).toHaveBeenCalledWith("blob:nexterm/1");
+    expect(revoke).toHaveBeenCalledWith("blob:wayterm/1");
   });
 });

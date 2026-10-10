@@ -58,7 +58,7 @@ export interface TerminalSettings {
   bracketedPaste: boolean;
   scrollToBottomOnInput: boolean;
   bufferPersistence: boolean;
-  /** Start local shells with Nexterm's integration script (prompt, command and cwd reports). New sessions only. */
+  /** Start local shells with Wayterm's integration script (prompt, command and cwd reports). New sessions only. */
   shellIntegration: boolean;
   /** Command blocks: gutter marks, selection, block actions and keys (needs shell integration). */
   commandBlocks: boolean;

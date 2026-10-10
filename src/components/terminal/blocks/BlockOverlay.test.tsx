@@ -5,10 +5,10 @@ import { BlockTracker } from "../../../lib/blocks/block-tracker";
 import { BlockOverlay } from "./BlockOverlay";
 
 const NONCE = "n";
-const A = `\x1b]133;A;nx=${NONCE}\x07`;
+const A = `\x1b]133;A;wt=${NONCE}\x07`;
 const B = "\x1b]133;B\x07";
-const C = `\x1b]133;C;nx=${NONCE}\x07`;
-const D = (code: number) => `\x1b]133;D;${code};nx=${NONCE}\x07`;
+const C = `\x1b]133;C;wt=${NONCE}\x07`;
+const D = (code: number) => `\x1b]133;D;${code};wt=${NONCE}\x07`;
 
 const measure = () => ({ left: 20, top: 6, width: 640, cellHeight: 16 });
 

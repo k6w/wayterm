@@ -18,7 +18,7 @@ function recorder() {
 }
 
 describe("importThemeFile", () => {
-  it("passes a nexterm theme through unchanged", async () => {
+  it("passes a wayterm theme through unchanged", async () => {
     const { importTheme } = recorder();
     const native = JSON.stringify({ ...toThemeFile(BUILTIN_THEME_MAP.frost), id: "my-frost", name: "My Frost" });
     await importThemeFile(fakeFile("my-frost.json", native), importTheme);

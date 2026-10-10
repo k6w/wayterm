@@ -21,7 +21,7 @@ const MISMATCH: HostKeyMismatch = {
 };
 
 const TEXT = "HOST KEY CHANGED for example.com:22! This could indicate a man-in-the-middle attack. The connection was not made.";
-const ERROR = `${TEXT}\nnexterm-host-key-mismatch:${JSON.stringify(MISMATCH)}`;
+const ERROR = `${TEXT}\nwayterm-host-key-mismatch:${JSON.stringify(MISMATCH)}`;
 
 describe("isHostKeyChanged", () => {
   it("recognizes the backend's changed-key error and nothing else", () => {
@@ -40,12 +40,12 @@ describe("parseHostKeyMismatch", () => {
 
   it("returns null without a payload or with a malformed one", () => {
     expect(parseHostKeyMismatch(TEXT)).toBeNull();
-    expect(parseHostKeyMismatch(`${TEXT}\nnexterm-host-key-mismatch:{not json`)).toBeNull();
+    expect(parseHostKeyMismatch(`${TEXT}\nwayterm-host-key-mismatch:{not json`)).toBeNull();
     const partial: Partial<HostKeyMismatch> = { ...MISMATCH };
     delete partial.newKeyB64;
-    expect(parseHostKeyMismatch(`${TEXT}\nnexterm-host-key-mismatch:${JSON.stringify(partial)}`)).toBeNull();
+    expect(parseHostKeyMismatch(`${TEXT}\nwayterm-host-key-mismatch:${JSON.stringify(partial)}`)).toBeNull();
     expect(
-      parseHostKeyMismatch(`${TEXT}\nnexterm-host-key-mismatch:${JSON.stringify({ ...MISMATCH, oldKeys: [] })}`)
+      parseHostKeyMismatch(`${TEXT}\nwayterm-host-key-mismatch:${JSON.stringify({ ...MISMATCH, oldKeys: [] })}`)
     ).toBeNull();
   });
 });

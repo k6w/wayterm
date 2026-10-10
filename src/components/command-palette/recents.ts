@@ -1,4 +1,4 @@
-const KEY = "nexterm.palette.recents";
+const KEY = "wayterm.palette.recents";
 export const MAX_RECENTS = 5;
 
 // Used when localStorage is unavailable (private windows, blocked site data).

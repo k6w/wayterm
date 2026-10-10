@@ -21,7 +21,7 @@ tester.run("no-inline-style", rule, {
     "<div style={{ width: size, height: 20 }} />",
     "<div style={{ flexBasis: `${ratio * 100}%`, flexGrow: 0, flexShrink: 0 }} />",
     "<div style={{ top: y, left: x, transform: t }} />",
-    "<span style={{ '--nx-dyn-tag': color } as React.CSSProperties} />",
+    "<span style={{ '--wt-dyn-tag': color } as React.CSSProperties} />",
     "<div style={{}} />",
   ],
   invalid: [

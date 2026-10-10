@@ -122,7 +122,7 @@ pub async fn ssh_get_key_temp_path(
     };
 
     let temp_dir = std::env::temp_dir();
-    let path = temp_dir.join(format!("nexterm_key_{}", key_id));
+    let path = temp_dir.join(format!("wayterm_key_{}", key_id));
 
     let mut file = std::fs::File::create(&path).map_err(|e| e.to_string())?;
     file.write_all(pem.as_bytes()).map_err(|e| e.to_string())?;
@@ -160,7 +160,7 @@ pub fn write_key_to_temp(pool: &DbPool, key_id: &str) -> Result<PathBuf, String>
     let pem = if normalized.ends_with('\n') { normalized } else { format!("{}\n", normalized) };
 
     let temp_dir = std::env::temp_dir();
-    let path = temp_dir.join(format!("nexterm_key_{}", key_id));
+    let path = temp_dir.join(format!("wayterm_key_{}", key_id));
 
     let mut file = std::fs::File::create(&path).map_err(|e| e.to_string())?;
     file.write_all(pem.as_bytes()).map_err(|e| e.to_string())?;
@@ -190,7 +190,7 @@ pub fn write_key_to_temp(pool: &DbPool, key_id: &str) -> Result<PathBuf, String>
 #[allow(dead_code)]
 pub fn cleanup_temp_key(key_id: &str) {
     let temp_dir = std::env::temp_dir();
-    let path = temp_dir.join(format!("nexterm_key_{}", key_id));
+    let path = temp_dir.join(format!("wayterm_key_{}", key_id));
     let _ = std::fs::remove_file(path);
 }
 

@@ -308,10 +308,10 @@ mod shell_tests {
     fn dir_exists_only_for_directories() {
         let dir = std::env::temp_dir();
         assert!(dir_exists(dir.to_str().unwrap()));
-        assert!(!dir_exists(dir.join("nexterm-no-such-dir-9f3a").to_str().unwrap()));
+        assert!(!dir_exists(dir.join("wayterm-no-such-dir-9f3a").to_str().unwrap()));
         assert!(!dir_exists(""));
         assert!(!dir_exists("   "));
-        let file = dir.join(format!("nexterm-dir-exists-{}.txt", std::process::id()));
+        let file = dir.join(format!("wayterm-dir-exists-{}.txt", std::process::id()));
         std::fs::write(&file, b"x").unwrap();
         assert!(!dir_exists(file.to_str().unwrap()));
         std::fs::remove_file(&file).unwrap();

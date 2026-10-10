@@ -167,7 +167,7 @@ function ConnectionForm({ onClose, onSave, editConnection }: ConnectionFormProps
   return (
     <DialogContent
       title={editConnection ? "Edit connection" : "New connection"}
-      description={editConnection ? "Change how nexterm reaches this host." : "Save a host you can open in one click."}
+      description={editConnection ? "Change how wayterm reaches this host." : "Save a host you can open in one click."}
       icon={<Icon name="server" size="md" />}
       hints={[
         { shortcut: "Escape", label: "Cancel" },
@@ -458,8 +458,8 @@ function ColorTagPicker({ value, onChange }: ColorTagPickerProps) {
           className={cn(dot, value === color.name && selected)}
         >
           <span
-            style={{ "--nx-dyn-tag": color.value } as CSSProperties}
-            className="size-4 rounded-full bg-(--nx-dyn-tag)"
+            style={{ "--wt-dyn-tag": color.value } as CSSProperties}
+            className="size-4 rounded-full bg-(--wt-dyn-tag)"
           />
         </button>
       ))}

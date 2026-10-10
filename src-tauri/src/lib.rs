@@ -2,6 +2,7 @@ mod commands;
 mod crypto;
 mod db;
 mod known_hosts;
+mod legacy_data;
 mod pty;
 mod port_forward;
 mod shell_integration;
@@ -114,6 +115,7 @@ pub fn run() {
                 .path()
                 .app_data_dir()
                 .expect("failed to resolve app data dir");
+            legacy_data::migrate_on_startup(&app_data);
             let pool = db::init(&app_data).expect("failed to init database");
             app.manage(pool);
             let integration_dir = match shell_integration::install::install(&app_data) {
@@ -131,11 +133,11 @@ pub fn run() {
             window::setup(app.get_webview_window("main").as_ref());
 
             // ── System tray ──
-            let show_item = MenuItem::with_id(app, "show", "Show Nexterm", true, None::<&str>)?;
+            let show_item = MenuItem::with_id(app, "show", "Show Wayterm", true, None::<&str>)?;
             let quit_item = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&show_item, &quit_item])?;
 
-            let tray_builder = TrayIconBuilder::new().tooltip("Nexterm")
+            let tray_builder = TrayIconBuilder::new().tooltip("Wayterm")
                 .menu(&menu)
                 .show_menu_on_left_click(false)
                 .on_menu_event(|app, event| match event.id.as_ref() {

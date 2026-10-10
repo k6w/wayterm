@@ -235,8 +235,8 @@ export default function ConnectionTree({ onAddConnection, onEditConnection }: Co
                     {tag && (
                       <span
                         data-testid="tag-dot"
-                        className="size-2 rounded-full bg-(--nx-dyn-tag)"
-                        style={{ "--nx-dyn-tag": tag } as CSSProperties}
+                        className="size-2 rounded-full bg-(--wt-dyn-tag)"
+                        style={{ "--wt-dyn-tag": tag } as CSSProperties}
                       />
                     )}
                   </span>

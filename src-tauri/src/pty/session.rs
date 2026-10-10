@@ -22,7 +22,7 @@ fn apply_env(cmd: &mut CommandBuilder, env: &[(String, String)], version: &str) 
     if cmd.get_env("__CFBundleIdentifier").is_some_and(|v| v == "com.apple.Terminal") {
         cmd.env_remove("__CFBundleIdentifier");
     }
-    cmd.env("TERM_PROGRAM", "nexterm");
+    cmd.env("TERM_PROGRAM", "wayterm");
     cmd.env("TERM_PROGRAM_VERSION", version);
 }
 
@@ -130,7 +130,7 @@ mod tests {
         cmd.env("TERM_SESSION_ID", "ABC-123");
         cmd.env("__CFBundleIdentifier", "com.apple.Terminal");
         apply_env(&mut cmd, &[], "1.2.3");
-        assert_eq!(get(&cmd, "TERM_PROGRAM").as_deref(), Some("nexterm"));
+        assert_eq!(get(&cmd, "TERM_PROGRAM").as_deref(), Some("wayterm"));
         assert_eq!(get(&cmd, "TERM_PROGRAM_VERSION").as_deref(), Some("1.2.3"));
         assert_eq!(get(&cmd, "TERM_SESSION_ID"), None);
         assert_eq!(get(&cmd, "__CFBundleIdentifier"), None);

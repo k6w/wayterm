@@ -134,9 +134,9 @@ describe("command block keys", () => {
     term = new Terminal({ cols: 80, rows: 5, allowProposedApi: true, scrollback: 100 });
     tracker = new BlockTracker(term, NONCE);
     const block = (cmd: string) =>
-      `\x1b]133;A;nx=${NONCE}\x07$ \x1b]133;B\x07${cmd}\r\n\x1b]133;C;nx=${NONCE}\x07out\r\n\x1b]133;D;0;nx=${NONCE}\x07`;
+      `\x1b]133;A;wt=${NONCE}\x07$ \x1b]133;B\x07${cmd}\r\n\x1b]133;C;wt=${NONCE}\x07out\r\n\x1b]133;D;0;wt=${NONCE}\x07`;
     await new Promise<void>((resolve) =>
-      term.write(`${block("one")}${block("two")}${block("three")}\x1b]133;A;nx=${NONCE}\x07$ `, resolve),
+      term.write(`${block("one")}${block("two")}${block("three")}\x1b]133;A;wt=${NONCE}\x07$ `, resolve),
     );
     // The terminal's own element has focus, as when the user types in it.
     const host = document.createElement("div");

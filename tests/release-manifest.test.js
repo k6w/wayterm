@@ -3,24 +3,24 @@ import { describe, expect, it } from "vitest";
 import { buildManifest, changelogSection } from "../scripts/release/manifest.mjs";
 
 const ASSETS = [
-  "Nexterm_aarch64.app.tar.gz",
-  "Nexterm_aarch64.app.tar.gz.sig",
-  "Nexterm_x64.app.tar.gz",
-  "Nexterm_x64.app.tar.gz.sig",
-  "Nexterm_0.9.0_aarch64.dmg",
-  "Nexterm_0.9.0_amd64.AppImage",
-  "Nexterm_0.9.0_amd64.AppImage.sig",
-  "Nexterm_0.9.0_amd64.deb",
-  "Nexterm_0.9.0_amd64.deb.sig",
-  "Nexterm-0.9.0-1.x86_64.rpm",
-  "Nexterm-0.9.0-1.x86_64.rpm.sig",
-  "Nexterm_0.9.0_x64-setup.exe",
-  "Nexterm_0.9.0_x64-setup.exe.sig",
-  "Nexterm_0.9.0_x64_en-US.msi",
-  "Nexterm_0.9.0_x64_en-US.msi.sig",
+  "Wayterm_aarch64.app.tar.gz",
+  "Wayterm_aarch64.app.tar.gz.sig",
+  "Wayterm_x64.app.tar.gz",
+  "Wayterm_x64.app.tar.gz.sig",
+  "Wayterm_0.9.0_aarch64.dmg",
+  "Wayterm_0.9.0_amd64.AppImage",
+  "Wayterm_0.9.0_amd64.AppImage.sig",
+  "Wayterm_0.9.0_amd64.deb",
+  "Wayterm_0.9.0_amd64.deb.sig",
+  "Wayterm-0.9.0-1.x86_64.rpm",
+  "Wayterm-0.9.0-1.x86_64.rpm.sig",
+  "Wayterm_0.9.0_x64-setup.exe",
+  "Wayterm_0.9.0_x64-setup.exe.sig",
+  "Wayterm_0.9.0_x64_en-US.msi",
+  "Wayterm_0.9.0_x64_en-US.msi.sig",
 ];
 const sigOf = (name) => `sig-of:${name}`;
-const BASE = "https://github.com/k6w/nexterm-terminal-app/releases/download/v0.9.0/";
+const BASE = "https://github.com/k6w/wayterm/releases/download/v0.9.0/";
 
 describe("buildManifest", () => {
   const manifest = buildManifest({
@@ -50,25 +50,25 @@ describe("buildManifest", () => {
 
   it("points each platform at the right file and its signature", () => {
     expect(manifest.platforms["darwin-aarch64"]).toEqual({
-      url: `${BASE}Nexterm_aarch64.app.tar.gz`,
-      signature: "sig-of:Nexterm_aarch64.app.tar.gz.sig",
+      url: `${BASE}Wayterm_aarch64.app.tar.gz`,
+      signature: "sig-of:Wayterm_aarch64.app.tar.gz.sig",
     });
-    expect(manifest.platforms["darwin-x86_64"].url).toBe(`${BASE}Nexterm_x64.app.tar.gz`);
-    expect(manifest.platforms["linux-x86_64"].url).toBe(`${BASE}Nexterm_0.9.0_amd64.AppImage`);
-    expect(manifest.platforms["windows-x86_64"].url).toBe(`${BASE}Nexterm_0.9.0_x64_en-US.msi`);
-    expect(manifest.platforms["windows-x86_64-nsis"].url).toBe(`${BASE}Nexterm_0.9.0_x64-setup.exe`);
+    expect(manifest.platforms["darwin-x86_64"].url).toBe(`${BASE}Wayterm_x64.app.tar.gz`);
+    expect(manifest.platforms["linux-x86_64"].url).toBe(`${BASE}Wayterm_0.9.0_amd64.AppImage`);
+    expect(manifest.platforms["windows-x86_64"].url).toBe(`${BASE}Wayterm_0.9.0_x64_en-US.msi`);
+    expect(manifest.platforms["windows-x86_64-nsis"].url).toBe(`${BASE}Wayterm_0.9.0_x64-setup.exe`);
     expect(manifest).toMatchObject({ version: "0.9.0", notes: "notes", pub_date: "2026-10-09T18:00:00.000Z" });
   });
 
   it("refuses to publish a manifest with a platform missing", () => {
-    const withoutIntelMac = ASSETS.filter((a) => !a.startsWith("Nexterm_x64.app"));
+    const withoutIntelMac = ASSETS.filter((a) => !a.startsWith("Wayterm_x64.app"));
     expect(() =>
       buildManifest({ assets: withoutIntelMac, signature: sigOf, version: "0.9.0", notes: "", pubDate: "", baseUrl: BASE })
     ).toThrow(/darwin-x86_64/);
   });
 
   it("ignores bundles that have no signature", () => {
-    const unsigned = ASSETS.filter((a) => a !== "Nexterm_0.9.0_amd64.deb.sig");
+    const unsigned = ASSETS.filter((a) => a !== "Wayterm_0.9.0_amd64.deb.sig");
     expect(() =>
       buildManifest({ assets: unsigned, signature: sigOf, version: "0.9.0", notes: "", pubDate: "", baseUrl: BASE })
     ).toThrow(/linux-x86_64-deb/);

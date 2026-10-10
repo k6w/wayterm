@@ -2,7 +2,7 @@ export type ThemeVariant = "dark" | "light";
 
 /**
  * Every chrome (UI) token a theme defines, in the order THEMES.md documents
- * them. Each token reaches CSS as a --nx-* custom property (see chromeCssVar in
+ * them. Each token reaches CSS as a --wt-* custom property (see chromeCssVar in
  * src/lib/theme-schema.ts) and Tailwind as a color utility (src/styles.css).
  */
 export const CHROME_KEYS = [

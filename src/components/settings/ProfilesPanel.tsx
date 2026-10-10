@@ -324,7 +324,7 @@ export default function ProfilesPanel() {
           <EmptyState
             icon={<Icon name="terminal" size="md" />}
             title="No shells detected"
-            description="nexterm could not find any shells on this system."
+            description="wayterm could not find any shells on this system."
           />
         ) : (
           <div className="grid grid-cols-2 gap-2">

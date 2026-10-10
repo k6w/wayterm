@@ -43,7 +43,7 @@ interface SettingsSurfaceProps {
  */
 function SettingsPanelFrame({ children }: { children: ReactNode }) {
   return (
-    <div data-settings-frame className="mx-auto max-w-[720px] animate-nx-fade-in px-6 py-6">
+    <div data-settings-frame className="mx-auto max-w-[720px] animate-wt-fade-in px-6 py-6">
       {children}
     </div>
   );
@@ -97,9 +97,9 @@ function SettingsSurface({ activePanel, onSelectPanel, onClose }: SettingsSurfac
   return (
     <section
       aria-label="Settings"
-      className="absolute inset-0 z-[var(--z-modal)] flex animate-nx-fade-in"
+      className="absolute inset-0 z-[var(--z-modal)] flex animate-wt-fade-in"
     >
-      <div className="nx-blur flex w-[232px] shrink-0 flex-col border-r border-border bg-panel-glass">
+      <div className="wt-blur flex w-[232px] shrink-0 flex-col border-r border-border bg-panel-glass">
         <div className="flex flex-col gap-3 px-3 pb-2 pt-3">
           <h1 className="px-1 text-title font-semibold text-fg">Settings</h1>
           <div
@@ -168,7 +168,7 @@ function SettingsSurface({ activePanel, onSelectPanel, onClose }: SettingsSurfac
         </nav>
       </div>
 
-      <div className="nx-blur flex min-w-0 flex-1 flex-col bg-surface-glass">
+      <div className="wt-blur flex min-w-0 flex-1 flex-col bg-surface-glass">
         <header className="flex h-12 shrink-0 items-center justify-between gap-3 border-b border-border px-6">
           <h2 className="text-title font-semibold text-fg">{PANEL_LABEL[activePanel]}</h2>
           <IconButton label="Close settings" shortcut="Escape" icon={<Icon name="close" size="md" />} onClick={onClose} />

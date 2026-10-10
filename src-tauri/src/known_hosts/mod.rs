@@ -18,10 +18,10 @@ use std::path::{Path, PathBuf};
 use std::sync::Mutex;
 
 /// Separates the human-readable "HOST KEY CHANGED" message from its JSON payload.
-pub const MISMATCH_MARKER: &str = "\nnexterm-host-key-mismatch:";
+pub const MISMATCH_MARKER: &str = "\nwayterm-host-key-mismatch:";
 
 /// Name of the single backup written next to known_hosts before a replacement.
-const BACKUP_SUFFIX: &str = ".nexterm-bak";
+const BACKUP_SUFFIX: &str = ".wayterm-bak";
 
 pub mod pending;
 pub mod resolve;
@@ -577,7 +577,7 @@ struct Rewrite<R> {
 
 /// The one way this app writes known_hosts. Under a process-wide lock it reads
 /// the file (following a symlink to the real file), lets `transform` compute the
-/// new content, optionally saves the old content to `known_hosts.nexterm-bak`
+/// new content, optionally saves the old content to `known_hosts.wayterm-bak`
 /// (only the latest backup is kept), writes and fsyncs a temp file with the
 /// original permissions in the same directory, checks the file did not change
 /// meanwhile, and renames the temp file over it.
@@ -678,7 +678,7 @@ pub(crate) fn replace_file_with_hook(
             Ok(Rewrite {
                 content: replaced.content.clone(),
                 backup_header: Some(format!(
-                    "# nexterm backup of known_hosts taken {} before replacing the key for {subject}",
+                    "# wayterm backup of known_hosts taken {} before replacing the key for {subject}",
                     utc_timestamp()
                 )),
                 result: replaced,
@@ -724,7 +724,7 @@ pub fn clear_file(path: &Path) -> Result<(), String> {
         |_| {
             Ok(Rewrite {
                 content: String::new(),
-                backup_header: Some(format!("# nexterm backup of known_hosts taken {} before clearing it", utc_timestamp())),
+                backup_header: Some(format!("# wayterm backup of known_hosts taken {} before clearing it", utc_timestamp())),
                 result: (),
             })
         },

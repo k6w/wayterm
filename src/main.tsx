@@ -10,6 +10,9 @@ import "@fontsource/jetbrains-mono/700.css";
 import App from "./app/App";
 import "./styles.css";
 import { loadAppFonts } from "./lib/fonts";
+import { migrateLegacyStorage } from "./lib/legacy-storage";
+
+migrateLegacyStorage();
 
 // Render after the fonts are ready (capped at 1.5s) so xterm.js measures
 // JetBrains Mono rather than a fallback font.

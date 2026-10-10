@@ -81,7 +81,7 @@ describe("ConnectionTree", () => {
     render(<ConnectionTree />);
     expect(screen.getByRole("treeitem", { name: /laptop/ })).toContainElement(screen.getByRole("img", { name: "Open in a tab" }));
     expect(screen.getByRole("treeitem", { name: /web/ }).querySelector("[data-testid=tag-dot]")).toHaveStyle({
-      "--nx-dyn-tag": "#ef4444",
+      "--wt-dyn-tag": "#ef4444",
     });
   });
 

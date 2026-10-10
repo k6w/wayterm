@@ -22,8 +22,8 @@ const PLACEMENT = {
 } as const;
 
 const SURFACE = {
-  solid: "animate-nx-fade-in rounded-lg bg-panel shadow-popover",
-  glass: "animate-nx-palette-in rounded-xl bg-dialog-glass nx-blur shadow-palette",
+  solid: "animate-wt-fade-in rounded-lg bg-panel shadow-popover",
+  glass: "animate-wt-palette-in rounded-xl bg-dialog-glass wt-blur shadow-palette",
 } as const;
 
 /** Tint of the header icon tile: the dialog's purpose. */
@@ -107,7 +107,7 @@ export function DialogContent({
   const hasBody = children !== undefined && children !== null && children !== false;
   return (
     <DialogPrimitive.Portal>
-      <DialogPrimitive.Overlay className="fixed inset-0 z-[var(--z-modal)] animate-nx-fade-in bg-scrim" />
+      <DialogPrimitive.Overlay className="fixed inset-0 z-[var(--z-modal)] animate-wt-fade-in bg-scrim" />
       <DialogPrimitive.Content
         {...(description ? {} : { "aria-describedby": undefined })}
         className={cn(

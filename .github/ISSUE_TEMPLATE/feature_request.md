@@ -1,6 +1,6 @@
 ---
 name: feature request
-about: an idea that would make nexterm better
+about: an idea that would make wayterm better
 title: ""
 labels: enhancement
 ---

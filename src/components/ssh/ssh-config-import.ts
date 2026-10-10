@@ -3,7 +3,7 @@ import type { ToastVariant } from "../../stores/toast";
 import { plural } from "../../lib/plural";
 
 /** Window event that opens the import dialog; the toolbar, the palette and Settings send it. */
-export const OPEN_SSH_CONFIG_IMPORT = "nexterm:open-ssh-config-import";
+export const OPEN_SSH_CONFIG_IMPORT = "wayterm:open-ssh-config-import";
 
 export function openSshConfigImport(): void {
   window.dispatchEvent(new Event(OPEN_SSH_CONFIG_IMPORT));

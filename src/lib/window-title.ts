@@ -1,9 +1,9 @@
 import type { TerminalTab } from "../types/terminal";
 
-/** "zsh — NexTerm" for the active tab, "NexTerm" with no tabs. */
+/** "zsh — Wayterm" for the active tab, "Wayterm" with no tabs. */
 export function windowTitleFor(tabs: readonly TerminalTab[], activeTabId: string | null): string {
   const tab = tabs.find((t) => t.id === activeTabId);
-  return tab ? `${tab.title} — NexTerm` : "NexTerm";
+  return tab ? `${tab.title} — Wayterm` : "Wayterm";
 }
 
 /**

@@ -60,7 +60,7 @@ export default function UpdateNotification() {
       <span className="flex items-center gap-2">
         <Icon name="download" size="sm" aria-hidden className="text-accent-fg" />
         <span>
-          nexterm <strong className="font-semibold">v{update.version}</strong> is available
+          wayterm <strong className="font-semibold">v{update.version}</strong> is available
         </span>
       </span>
       {installing ? (

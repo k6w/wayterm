@@ -78,9 +78,9 @@ describe("buildPaletteActions", () => {
 
   it("opens the serial dialog through its window event", () => {
     const listener = vi.fn();
-    window.addEventListener("nexterm:open-serial", listener);
+    window.addEventListener("wayterm:open-serial", listener);
     buildPaletteActions().find((a) => a.id === "new-serial-tab")?.handler();
-    window.removeEventListener("nexterm:open-serial", listener);
+    window.removeEventListener("wayterm:open-serial", listener);
     expect(listener).toHaveBeenCalledTimes(1);
   });
 });

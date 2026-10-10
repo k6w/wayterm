@@ -4,11 +4,11 @@ import { Terminal } from "@xterm/xterm";
 import { BlockTracker } from "./block-tracker";
 import { remoteSnippet } from "./remote-snippet";
 
-// Recorded with the snippets below in plain bash and zsh (no Nexterm integration), via `script -q`.
+// Recorded with the snippets below in plain bash and zsh (no Wayterm integration), via `script -q`.
 const fixtures = import.meta.glob<string>("./__fixtures__/remote-*.txt", { query: "?raw", import: "default", eager: true });
 
 describe("remote snippets", () => {
-  it("are guarded to Nexterm and explain the ssh environment caveat", () => {
+  it("are guarded to Wayterm and explain the ssh environment caveat", () => {
     for (const shell of ["bash", "zsh", "fish"] as const) {
       const snippet = remoteSnippet(shell);
       expect(snippet).toContain('"$TERM_PROGRAM"');

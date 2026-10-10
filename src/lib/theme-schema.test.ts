@@ -95,11 +95,11 @@ describe("parseThemeFile", () => {
 });
 
 describe("chromeCssVar", () => {
-  it("maps camelCase tokens to --nx-kebab-case properties", () => {
-    expect(chromeCssVar("canvas")).toBe("--nx-canvas");
-    expect(chromeCssVar("borderStrong")).toBe("--nx-border-strong");
-    expect(chromeCssVar("textOnAccent")).toBe("--nx-text-on-accent");
-    expect(chromeCssVar("scrollbarThumbHover")).toBe("--nx-scrollbar-thumb-hover");
+  it("maps camelCase tokens to --wt-kebab-case properties", () => {
+    expect(chromeCssVar("canvas")).toBe("--wt-canvas");
+    expect(chromeCssVar("borderStrong")).toBe("--wt-border-strong");
+    expect(chromeCssVar("textOnAccent")).toBe("--wt-text-on-accent");
+    expect(chromeCssVar("scrollbarThumbHover")).toBe("--wt-scrollbar-thumb-hover");
   });
 
   it("gives every token a distinct property", () => {

@@ -60,7 +60,7 @@ export function changelogSection(changelog, version) {
 function main(argv) {
   if (argv[0] === "--notes") {
     const section = changelogSection(readFileSync("CHANGELOG.md", "utf8"), argv[1]);
-    process.stdout.write(section ?? `Nexterm ${argv[1]}`);
+    process.stdout.write(section ?? `Wayterm ${argv[1]}`);
     return;
   }
   const [tag, dir, out] = argv;

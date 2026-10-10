@@ -25,9 +25,9 @@ describe("SettingsView surface", () => {
     expect(root.className).not.toMatch(/\bbg-canvas\b/);
     const nav = root.firstElementChild as HTMLElement;
     const content = root.lastElementChild as HTMLElement;
-    expect(nav).toHaveClass("bg-panel-glass", "nx-blur");
+    expect(nav).toHaveClass("bg-panel-glass", "wt-blur");
     // Not canvas-glass: that follows the window opacity freely with no text floor.
-    expect(content).toHaveClass("bg-surface-glass", "nx-blur");
+    expect(content).toHaveClass("bg-surface-glass", "wt-blur");
   });
 });
 

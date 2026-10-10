@@ -5,7 +5,7 @@ import { visibleBlocks } from "./layout";
 
 const N = "n";
 const block = (cmd: string, out: string) =>
-  `\x1b]133;A;nx=${N}\x07$ \x1b]133;B\x07${cmd}\r\n\x1b]133;C;nx=${N}\x07${out}\x1b]133;D;0;nx=${N}\x07`;
+  `\x1b]133;A;wt=${N}\x07$ \x1b]133;B\x07${cmd}\r\n\x1b]133;C;wt=${N}\x07${out}\x1b]133;D;0;wt=${N}\x07`;
 
 function write(term: Terminal, data: string): Promise<void> {
   return new Promise((resolve) => term.write(data, resolve));
@@ -24,7 +24,7 @@ describe("command blocks at 10k lines", () => {
   const seq = Array.from({ length: 10_000 }, (_, i) => `${i + 1}\r\n`).join("");
 
   it("parses a 10k-line command output without extra cost per line", async () => {
-    const data = block("seq 10000", seq) + `\x1b]133;A;nx=${N}\x07$ `;
+    const data = block("seq 10000", seq) + `\x1b]133;A;wt=${N}\x07$ `;
     const plain = await timeWrite(false, data);
     const tracked = await timeWrite(true, data);
     const tracker = tracked.tracker!;

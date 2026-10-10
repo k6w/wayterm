@@ -1,5 +1,5 @@
 /**
- * nexterm/no-color-literals
+ * wayterm/no-color-literals
  *
  * Bans hex (#rgb, #rgba, #rrggbb, #rrggbbaa), rgb()/rgba() and hsl()/hsla()
  * color literals in string literals and template literals. Colors live in

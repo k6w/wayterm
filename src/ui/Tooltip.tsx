@@ -51,7 +51,7 @@ export function Tooltip({
             align={align}
             sideOffset={6}
             collisionPadding={8}
-            className="z-[var(--z-tooltip)] flex max-w-72 animate-nx-fade-in items-center gap-2 rounded-md border border-border bg-tooltip px-2 py-1 text-label text-tooltip-fg shadow-popover"
+            className="z-[var(--z-tooltip)] flex max-w-72 animate-wt-fade-in items-center gap-2 rounded-md border border-border bg-tooltip px-2 py-1 text-label text-tooltip-fg shadow-popover"
           >
             <span>{content}</span>
             {shortcut && <Kbd shortcut={shortcut} />}

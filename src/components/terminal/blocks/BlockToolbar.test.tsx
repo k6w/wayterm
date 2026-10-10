@@ -6,10 +6,10 @@ import { removeCachedTerminal, setCachedTerminal, type CachedTerminal } from "..
 import { BlockToolbar } from "./BlockToolbar";
 import { BlockOutputDialog, useBlockViewer } from "./BlockOutputDialog";
 
-const A = "\x1b]133;A;nx=n\x07";
+const A = "\x1b]133;A;wt=n\x07";
 const B = "\x1b]133;B\x07";
-const C = "\x1b]133;C;cmdline_url=ls;nx=n\x07";
-const D = "\x1b]133;D;0;nx=n\x07";
+const C = "\x1b]133;C;cmdline_url=ls;wt=n\x07";
+const D = "\x1b]133;D;0;wt=n\x07";
 
 async function setup(data: string, nonce: string | null = "n") {
   const term = new Terminal({ cols: 80, rows: 24, allowProposedApi: true });
@@ -47,7 +47,7 @@ describe("BlockToolbar", () => {
   });
 
   it("offers re-run only while the shell waits at a prompt", async () => {
-    const tracker = await setup(`${A}$ ${B}ls\r\n${C}${D}${A}$ ${B}sleep 9\r\n\x1b]133;C;nx=n\x07`);
+    const tracker = await setup(`${A}$ ${B}ls\r\n${C}${D}${A}$ ${B}sleep 9\r\n\x1b]133;C;wt=n\x07`);
     render(<BlockToolbar paneId="p1" tracker={tracker} block={tracker.blocks[0]} />);
     expect(screen.getByRole("button", { name: "Re-run (the shell is busy)" })).toBeDisabled();
   });

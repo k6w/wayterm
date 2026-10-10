@@ -192,8 +192,8 @@ export default function SerialPane({ paneId }: SerialPaneProps) {
   // Focus is shown by the PaneFrame around this pane, so no border here.
   return (
     <div
-      className="relative flex h-full w-full flex-col overflow-hidden bg-(--nx-dyn-bg)"
-      style={{ "--nx-dyn-bg": bgColor } as CSSProperties}
+      className="relative flex h-full w-full flex-col overflow-hidden bg-(--wt-dyn-bg)"
+      style={{ "--wt-dyn-bg": bgColor } as CSSProperties}
       onMouseDown={() => setActivePane(paneId)}
     >
       {/* Header bar */}

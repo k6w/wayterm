@@ -138,7 +138,7 @@ mod tests {
 
     #[test]
     fn import_stores_the_key_path_and_never_touches_the_key_store() {
-        let dir = std::env::temp_dir().join(format!("nexterm_import_{}", Uuid::new_v4()));
+        let dir = std::env::temp_dir().join(format!("wayterm_import_{}", Uuid::new_v4()));
         std::fs::create_dir_all(&dir).unwrap();
         let key = dir.join("id_ed25519");
         std::fs::write(&key, "-----BEGIN OPENSSH PRIVATE KEY-----\nsecret\n-----END OPENSSH PRIVATE KEY-----\n").unwrap();

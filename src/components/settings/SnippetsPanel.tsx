@@ -99,7 +99,7 @@ export default function SnippetsPanel() {
                 variant="ghost"
                 leadingIcon={<Icon name="export" size="sm" />}
                 disabled={snippets.length === 0}
-                onClick={() => downloadTextFile("nexterm-snippets.json", JSON.stringify(snippets, null, 2), "application/json")}
+                onClick={() => downloadTextFile("wayterm-snippets.json", JSON.stringify(snippets, null, 2), "application/json")}
               >
                 Export
               </Button>

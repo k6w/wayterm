@@ -35,8 +35,8 @@ describe("ThemePicker", () => {
     render(<Harness />);
     const swatch = screen.getByRole("radio", { name: /Paper/ }).firstElementChild as HTMLElement;
     const paper = BUILTIN_THEMES.find((t) => t.id === "paper")!;
-    expect(swatch.style.getPropertyValue("--nx-dyn-term-bg")).toBe(paper.terminal.background);
-    expect(swatch.style.getPropertyValue("--nx-dyn-accent")).toBe(paper.chrome.accent);
+    expect(swatch.style.getPropertyValue("--wt-dyn-term-bg")).toBe(paper.terminal.background);
+    expect(swatch.style.getPropertyValue("--wt-dyn-accent")).toBe(paper.chrome.accent);
   });
 
   it("picks with a click and with the arrow keys", async () => {

@@ -7,13 +7,19 @@ use rand::Rng;
 
 const NONCE_LEN: usize = 12;
 
-fn derive_key() -> [u8; 32] {
+/// Key-derivation tag for data written by this build.
+const KEY_TAG: &str = "wayterm-key-encryption-v1";
+/// Tag used before the app was renamed from Nexterm. Only read, so keys stored by
+/// an older build (and copied over by the data-dir migration) still decrypt.
+const LEGACY_KEY_TAG: &str = "nexterm-key-encryption-v1";
+
+fn derive_key(tag: &str) -> [u8; 32] {
     let mut seed = String::new();
 
     if let Some(data_dir) = dirs::data_dir() {
         seed.push_str(&data_dir.to_string_lossy());
     }
-    seed.push_str("nexterm-key-encryption-v1");
+    seed.push_str(tag);
     if let Ok(hostname) = std::env::var("COMPUTERNAME")
         .or_else(|_| std::env::var("HOSTNAME"))
     {
@@ -27,7 +33,11 @@ fn derive_key() -> [u8; 32] {
 }
 
 pub fn encrypt(plaintext: &[u8]) -> Result<Vec<u8>, String> {
-    let key = derive_key();
+    encrypt_with(plaintext, KEY_TAG)
+}
+
+fn encrypt_with(plaintext: &[u8], tag: &str) -> Result<Vec<u8>, String> {
+    let key = derive_key(tag);
     let cipher = Aes256Gcm::new_from_slice(&key)
         .map_err(|e| format!("Encryption init failed: {e}"))?;
 
@@ -50,16 +60,20 @@ pub fn decrypt(data: &[u8]) -> Result<Vec<u8>, String> {
         return Err("Encrypted data too short".to_string());
     }
 
-    let key = derive_key();
+    decrypt_with(data, KEY_TAG)
+        .or_else(|_| decrypt_with(data, LEGACY_KEY_TAG))
+        .map_err(|_| "Decryption failed: data may be corrupted or from a different machine".to_string())
+}
+
+fn decrypt_with(data: &[u8], tag: &str) -> Result<Vec<u8>, String> {
+    let key = derive_key(tag);
     let cipher = Aes256Gcm::new_from_slice(&key)
         .map_err(|e| format!("Decryption init failed: {e}"))?;
 
     let nonce = Nonce::from_slice(&data[..NONCE_LEN]);
     let ciphertext = &data[NONCE_LEN..];
 
-    cipher
-        .decrypt(nonce, ciphertext)
-        .map_err(|_| "Decryption failed: data may be corrupted or from a different machine".to_string())
+    cipher.decrypt(nonce, ciphertext).map_err(|_| "decryption failed".to_string())
 }
 
 pub fn is_encrypted(data: &[u8]) -> bool {
@@ -97,6 +111,14 @@ mod tests {
             *last ^= 0xFF;
         }
         assert!(decrypt(&encrypted).is_err());
+    }
+
+    #[test]
+    fn data_encrypted_before_the_rename_still_decrypts() {
+        let plaintext = b"-----BEGIN OPENSSH PRIVATE KEY-----\nold\n-----END OPENSSH PRIVATE KEY-----\n";
+        let legacy = encrypt_with(plaintext, LEGACY_KEY_TAG).expect("encryption should succeed");
+        assert_eq!(decrypt(&legacy).expect("legacy data should decrypt"), plaintext);
+        assert_ne!(derive_key(KEY_TAG), derive_key(LEGACY_KEY_TAG));
     }
 
     #[test]

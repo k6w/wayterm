@@ -19,7 +19,7 @@ export default function TabRail() {
       data-tauri-drag-region
       data-testid="tab-rail"
       className={cn(
-        "nx-blur flex shrink-0 border-border bg-tabbar-glass",
+        "wt-blur flex shrink-0 border-border bg-tabbar-glass",
         BORDER[tabPosition],
         vertical ? "h-full w-50 flex-col py-1" : "h-9 w-full items-center px-1"
       )}

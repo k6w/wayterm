@@ -40,7 +40,7 @@ export function resolveStartupTheme(
 }
 
 export function retiredThemeNotice(name: string): string {
-  return `The "${name}" theme was retired in this update, so nexterm switched you to Graphite. Pick another theme in Settings > Appearance.`;
+  return `The "${name}" theme was retired in this update, so wayterm switched you to Graphite. Pick another theme in Settings > Appearance.`;
 }
 
 /**

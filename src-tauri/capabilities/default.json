@@ -1,6 +1,6 @@
 {
   "identifier": "default",
-  "description": "Default capabilities for Nexterm",
+  "description": "Default capabilities for Wayterm",
   "windows": ["main"],
   "permissions": [
     "core:default",

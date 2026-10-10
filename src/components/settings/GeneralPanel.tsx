@@ -74,7 +74,7 @@ export default function GeneralPanel() {
       connections: savedConnections(useSshStore.getState().connections),
     };
     downloadTextFile(
-      `nexterm-settings-${new Date().toISOString().slice(0, 10)}.json`,
+      `wayterm-settings-${new Date().toISOString().slice(0, 10)}.json`,
       JSON.stringify(data, null, 2),
       "application/json"
     );

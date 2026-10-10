@@ -818,10 +818,10 @@ export default function TerminalPane({
     };
     
     window.addEventListener('keydown', handleKeyDown, true);
-    window.addEventListener('nexterm:open-search', handleOpenSearch);
+    window.addEventListener('wayterm:open-search', handleOpenSearch);
     return () => {
       window.removeEventListener('keydown', handleKeyDown, true);
-      window.removeEventListener('nexterm:open-search', handleOpenSearch);
+      window.removeEventListener('wayterm:open-search', handleOpenSearch);
     };
   }, [isActive, showSearch]);
 
@@ -863,7 +863,7 @@ export default function TerminalPane({
     const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, -5);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `nexterm-session-${ts}.log`;
+    a.download = `wayterm-session-${ts}.log`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 10000);
   }, [paneId]);
@@ -921,7 +921,7 @@ export default function TerminalPane({
 
   // Focus is shown by the PaneFrame around this pane (unfocused panes are
   // dimmed), so the pane itself has no border.
-  // Theme-derived terminal tint, handed to CSS as a --nx-dyn-* property.
+  // Theme-derived terminal tint, handed to CSS as a --wt-dyn-* property.
   // Under vibrancy the pane adds no tint of its own: the PaneFrame's glass
   // backing (same as the sidebar) is the one shared backdrop for every pane type.
   const terminalTint = settings.appearance.vibrancyEnabled
@@ -973,8 +973,8 @@ export default function TerminalPane({
 
       <div
         ref={containerRef}
-        className={`h-full w-full bg-(--nx-dyn-bg) pr-1 ${padGutter ? "pl-5" : "pl-1.5"} ${showCloseBtn ? "pt-7" : "pt-1.5"}`}
-        style={{ "--nx-dyn-bg": terminalTint } as CSSProperties}
+        className={`h-full w-full bg-(--wt-dyn-bg) pr-1 ${padGutter ? "pl-5" : "pl-1.5"} ${showCloseBtn ? "pt-7" : "pt-1.5"}`}
+        style={{ "--wt-dyn-bg": terminalTint } as CSSProperties}
       />
 
       {showBlocks && blockTracker && termRef.current && (
@@ -995,27 +995,27 @@ export default function TerminalPane({
 
       {sshOverlay && (
         <div
-          className={`absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 bg-(--nx-dyn-bg) ${
+          className={`absolute inset-0 z-20 flex flex-col items-center justify-center gap-4 bg-(--wt-dyn-bg) ${
             showSearch ? "rounded-b-lg" : "rounded-lg"
           }`}
           style={
             {
-              "--nx-dyn-bg": terminalTint,
-              "--nx-dyn-fg-strong": theme.terminal.foreground + "b0",
-              "--nx-dyn-fg-faint": theme.terminal.foreground + "50",
+              "--wt-dyn-bg": terminalTint,
+              "--wt-dyn-fg-strong": theme.terminal.foreground + "b0",
+              "--wt-dyn-fg-faint": theme.terminal.foreground + "50",
             } as CSSProperties
           }
         >
           <div className="h-8 w-8 animate-spin rounded-full border-[2.5px] border-accent/15 border-t-accent" />
           <div className="flex flex-col items-center gap-1.5">
             <span
-              className="text-xs tracking-wide text-(--nx-dyn-fg-strong)"
+              className="text-xs tracking-wide text-(--wt-dyn-fg-strong)"
             >
               Connecting to {sshInfo?.hostLabel ?? "remote host"}
             </span>
             {sshStep && (
               <span
-                className="text-[11px] tracking-wide text-(--nx-dyn-fg-faint)"
+                className="text-[11px] tracking-wide text-(--wt-dyn-fg-faint)"
               >
                 {sshStep}
               </span>

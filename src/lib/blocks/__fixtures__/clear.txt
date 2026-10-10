@@ -1,7 +1,7 @@
-[1m[7m%[27m[1m[0m                                                                                ]7;file://host/home/user]0;/home/user]133;A;nx=fixture-nonce[0m[27m[24m[J~ % ]133;B[K[?2004heecho one[?2004l
-]133;C;cmdline_url=echo%20one;nx=fixture-nonceone
-[1m[7m%[27m[1m[0m                                                                                ]133;D;0;nx=fixture-nonce]7;file://host/home/user]0;/home/user]133;A;nx=fixture-nonce[0m[27m[24m[J~ % ]133;B[K[?2004hcclear[?2004l
-]133;C;cmdline_url=clear;nx=fixture-nonce[3J[H[2J[1m[7m%[27m[1m[0m                                                                                ]133;D;0;nx=fixture-nonce]7;file://host/home/user]0;/home/user]133;A;nx=fixture-nonce[0m[27m[24m[J~ % ]133;B[K[?2004heecho two[?2004l
-]133;C;cmdline_url=echo%20two;nx=fixture-noncetwo
-[1m[7m%[27m[1m[0m                                                                                ]133;D;0;nx=fixture-nonce]7;file://host/home/user]0;/home/user]133;A;nx=fixture-nonce[0m[27m[24m[J~ % ]133;B[K[?2004heexit[?2004l
-]133;C;cmdline_url=exit;nx=fixture-nonce
+[1m[7m%[27m[1m[0m                                                                                ]7;file://host/home/user]0;/home/user]133;A;wt=fixture-nonce[0m[27m[24m[J~ % ]133;B[K[?2004heecho one[?2004l
+]133;C;cmdline_url=echo%20one;wt=fixture-nonceone
+[1m[7m%[27m[1m[0m                                                                                ]133;D;0;wt=fixture-nonce]7;file://host/home/user]0;/home/user]133;A;wt=fixture-nonce[0m[27m[24m[J~ % ]133;B[K[?2004hcclear[?2004l
+]133;C;cmdline_url=clear;wt=fixture-nonce[3J[H[2J[1m[7m%[27m[1m[0m                                                                                ]133;D;0;wt=fixture-nonce]7;file://host/home/user]0;/home/user]133;A;wt=fixture-nonce[0m[27m[24m[J~ % ]133;B[K[?2004heecho two[?2004l
+]133;C;cmdline_url=echo%20two;wt=fixture-noncetwo
+[1m[7m%[27m[1m[0m                                                                                ]133;D;0;wt=fixture-nonce]7;file://host/home/user]0;/home/user]133;A;wt=fixture-nonce[0m[27m[24m[J~ % ]133;B[K[?2004heexit[?2004l
+]133;C;cmdline_url=exit;wt=fixture-nonce

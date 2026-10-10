@@ -5,7 +5,7 @@ import { useTerminalStore } from "../../stores/terminal";
 import { useWorkspaceStore } from "../../stores/workspace";
 import { OPEN_SAVE_WORKSPACE } from "./save-workspace";
 
-/** Asks for a name and saves the open layout as a workspace. Opened by the `nexterm:save-workspace` event. */
+/** Asks for a name and saves the open layout as a workspace. Opened by the `wayterm:save-workspace` event. */
 export default function SaveWorkspaceDialog() {
   const [open, setOpen] = useState(false);
   const count = useWorkspaceStore((s) => s.workspaces.filter((w) => w.id !== "__session__").length);

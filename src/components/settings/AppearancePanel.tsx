@@ -133,7 +133,7 @@ export default function AppearancePanel() {
 
       <Section
         title="Custom themes"
-        description="nexterm (.json), Windows Terminal (.json) or iTerm2 (.itermcolors)"
+        description="wayterm (.json), Windows Terminal (.json) or iTerm2 (.itermcolors)"
         actions={importButton}
       >
         {importError && (

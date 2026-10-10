@@ -71,7 +71,7 @@ export default function StatusBar() {
   return (
     <Toolbar
       aria-label="Status bar"
-      className="nx-blur h-6 shrink-0 select-none gap-0.5 border-t border-border bg-statusbar-glass px-2 text-caption text-fg-muted"
+      className="wt-blur h-6 shrink-0 select-none gap-0.5 border-t border-border bg-statusbar-glass px-2 text-caption text-fg-muted"
     >
       <Tooltip content={`Shell: ${paneShell.path}`}>
         <ToolbarButton>
@@ -177,7 +177,7 @@ export default function StatusBar() {
           label="Search in terminal"
           icon={<Icon name="search" size="sm" />}
           shortcut={shortcutFor("search-terminal")}
-          onClick={() => window.dispatchEvent(new CustomEvent("nexterm:open-search"))}
+          onClick={() => window.dispatchEvent(new CustomEvent("wayterm:open-search"))}
         />
       </ToolbarButton>
       <ToolbarButton>

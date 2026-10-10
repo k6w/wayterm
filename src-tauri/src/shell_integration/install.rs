@@ -4,15 +4,15 @@ use std::fs;
 use std::io::{self, Write};
 use std::path::{Path, PathBuf};
 
-/// Bump whenever any script changes, so shells started by an older Nexterm keep
+/// Bump whenever any script changes, so shells started by an older Wayterm keep
 /// reading the files they were started with.
-pub const SCRIPT_VERSION: u32 = 2;
+pub const SCRIPT_VERSION: u32 = 3;
 
 /// Script path (relative to the versioned directory) and contents.
 pub const SCRIPTS: &[(&str, &str)] = &[
     ("zsh/.zshenv", include_str!("zsh/.zshenv")),
-    ("bash/nexterm.bash", include_str!("bash/nexterm.bash")),
-    ("fish/nexterm.fish", include_str!("fish/nexterm.fish")),
+    ("bash/wayterm.bash", include_str!("bash/wayterm.bash")),
+    ("fish/wayterm.fish", include_str!("fish/wayterm.fish")),
 ];
 
 /// Directory the scripts of this version live in.
@@ -46,7 +46,7 @@ pub fn install(app_data: &Path) -> io::Result<PathBuf> {
 /// A new file next to the target, unique to this process and attempt.
 fn tempfile_in(dir: &Path) -> io::Result<(PathBuf, fs::File)> {
     for attempt in 0..100u32 {
-        let path = dir.join(format!(".nexterm-{}-{attempt}.tmp", std::process::id()));
+        let path = dir.join(format!(".wayterm-{}-{attempt}.tmp", std::process::id()));
         match fs::OpenOptions::new().write(true).create_new(true).open(&path) {
             Ok(file) => return Ok((path, file)),
             Err(err) if err.kind() == io::ErrorKind::AlreadyExists => continue,
@@ -61,9 +61,9 @@ mod tests {
     use super::*;
     use sha2::{Digest, Sha256};
 
-    /// Changing a script without bumping SCRIPT_VERSION would let two Nexterm
+    /// Changing a script without bumping SCRIPT_VERSION would let two Wayterm
     /// builds overwrite each other's files. Update both together.
-    const SCRIPTS_SHA256: &str = "84f67f230f2d739f2851137a5b13857e7a9c59a6e82ac153b54ac43e08942ddd";
+    const SCRIPTS_SHA256: &str = "962d3f66ed5f38bf8a316d554ae2b96c4454bd78a1e299e68eca39185fad3d59";
 
     #[test]
     fn script_version_is_bumped_with_the_scripts() {
@@ -143,14 +143,14 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn bash_script_parses() {
-        syntax_check("bash", "bash/nexterm.bash");
+        syntax_check("bash", "bash/wayterm.bash");
         // macOS ships bash 3.2 as /bin/bash.
-        syntax_check("/bin/bash", "bash/nexterm.bash");
+        syntax_check("/bin/bash", "bash/wayterm.bash");
     }
 
     #[cfg(unix)]
     #[test]
     fn fish_script_parses() {
-        syntax_check("fish", "fish/nexterm.fish");
+        syntax_check("fish", "fish/wayterm.fish");
     }
 }

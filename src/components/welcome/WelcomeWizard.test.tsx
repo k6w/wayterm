@@ -29,7 +29,7 @@ const continueButton = () => screen.getByRole("button", { name: "Continue" });
 describe("WelcomeWizard", () => {
   it("starts on the theme step with the title focused", () => {
     render(<WelcomeWizard onDismiss={vi.fn()} />);
-    expect(screen.getByRole("heading", { name: "Welcome to nexterm" })).toHaveFocus();
+    expect(screen.getByRole("heading", { name: "Welcome to wayterm" })).toHaveFocus();
     expect(screen.getByText("Step 1 of 3")).toBeInTheDocument();
     expect(screen.getAllByRole("radio")).toHaveLength(4);
     expect(screen.queryByRole("button", { name: "Back" })).not.toBeInTheDocument();
@@ -78,7 +78,7 @@ describe("WelcomeWizard", () => {
     // jsdom is not macOS, so Mod is Ctrl.
     expect(within(screen.getByText("New tab").parentElement!).getByLabelText("Ctrl+T")).toBeInTheDocument();
     expect(within(screen.getByText("Command palette").parentElement!).getByLabelText("Ctrl+Shift+P")).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: "Start using nexterm" }));
+    await user.click(screen.getByRole("button", { name: "Start using wayterm" }));
     expect(onDismiss).toHaveBeenCalledTimes(1);
   });
 
@@ -88,7 +88,7 @@ describe("WelcomeWizard", () => {
     render(<WelcomeWizard onDismiss={onDismiss} />);
     await user.click(continueButton());
     await user.click(screen.getByRole("button", { name: "Back" }));
-    expect(screen.getByRole("heading", { name: "Welcome to nexterm" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Welcome to wayterm" })).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Skip" }));
     expect(onDismiss).toHaveBeenCalledTimes(1);
     expect(useSettingsStore.getState().settings.general.defaultShell).toBe("");

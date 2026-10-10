@@ -136,7 +136,7 @@ export const useThemeStore = create<ThemeState>((set, get) => ({
 }));
 
 /**
- * Writes a theme to the document: every chrome token as its --nx-* custom
+ * Writes a theme to the document: every chrome token as its --wt-* custom
  * property, plus the legacy variables that un-migrated screens read.
  * applyAppearanceToDom (src/lib/appearance.ts) must run afterwards to re-apply
  * the accent override and glass surfaces.

@@ -164,7 +164,7 @@ export function PreviewChip({ label, dot, children, className }: PreviewChipProp
         className
       )}
     >
-      {dot && <span aria-hidden style={{ "--nx-dyn-dot": dot } as CSSProperties} className="size-2 shrink-0 rounded-full bg-(--nx-dyn-dot)" />}
+      {dot && <span aria-hidden style={{ "--wt-dyn-dot": dot } as CSSProperties} className="size-2 shrink-0 rounded-full bg-(--wt-dyn-dot)" />}
       <span className="min-w-0 truncate">{children}</span>
     </div>
   );

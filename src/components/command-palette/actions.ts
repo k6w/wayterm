@@ -205,7 +205,7 @@ export function buildPaletteActions(): PaletteAction[] {
       icon: Icons.terminal,
       category: "New Tab",
       handler: () => {
-        window.dispatchEvent(new Event("nexterm:open-serial"));
+        window.dispatchEvent(new Event("wayterm:open-serial"));
       },
     }
   );

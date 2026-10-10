@@ -1,5 +1,6 @@
 {
-  "name": "nexterm",
+  "name": "wayterm",
+  "description": "Wayterm: a terminal with SSH, SFTP, Git and databases in one window",
   "private": true,
   "version": "0.9.0",
   "license": "Apache-2.0",

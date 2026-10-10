@@ -2,7 +2,7 @@ import { useSettingsStore } from "../stores/settings";
 import type { Block, BlockTracker } from "./blocks/block-tracker";
 import { historyAdd } from "./ipc";
 
-const TITLE = "NexTerm — Command finished";
+const TITLE = "Wayterm — Command finished";
 
 function show(body: string) {
   new Notification(TITLE, { body, silent: true });

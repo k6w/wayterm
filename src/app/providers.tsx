@@ -71,7 +71,7 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       }
 
 
-      if (useTerminalStore.getState().tabs.length === 0 && localStorage.getItem("nexterm-welcomed")) {
+      if (useTerminalStore.getState().tabs.length === 0 && localStorage.getItem("wayterm-welcomed")) {
         const shell = getPreferredShell(defaultShellPath);
         useTerminalStore.getState().addTab(shell.type, shell.path);
       }

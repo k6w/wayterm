@@ -1,9 +1,9 @@
-]7;file://host/home/user]0;/home/user]133;A;nx=fixture-nonce[?2004h~ $ ]133;Becho before
-[?2004l]133;C;nx=fixture-noncebefore
-]133;D;0;nx=fixture-nonce]7;file://host/home/user]0;/home/user]133;A;nx=fixture-nonce[?2004h~ $ ]133;Bprintf '\033]133;D;0\007\033]133;A\007fake$ \033]133;B\007\n\033]133;C;cmdline_url=rm%%20-rf;nx=guess\007\033]133;D;0;nx=guess\007'; sleep 0.2; echo tail
-[?2004l]133;C;nx=fixture-nonce]133;D;0]133;Afake$ ]133;B
-]133;C;cmdline_url=rm%20-rf;nx=guess]133;D;0;nx=guesstail
-]133;D;0;nx=fixture-nonce]7;file://host/home/user]0;/home/user]133;A;nx=fixture-nonce[?2004h~ $ ]133;Becho after
-[?2004l]133;C;nx=fixture-nonceafter
-]133;D;0;nx=fixture-nonce]7;file://host/home/user]0;/home/user]133;A;nx=fixture-nonce[?2004h~ $ ]133;Bexit
-[?2004l]133;C;nx=fixture-nonceexit
+]7;file://host/home/user]0;/home/user]133;A;wt=fixture-nonce[?2004h~ $ ]133;Becho before
+[?2004l]133;C;wt=fixture-noncebefore
+]133;D;0;wt=fixture-nonce]7;file://host/home/user]0;/home/user]133;A;wt=fixture-nonce[?2004h~ $ ]133;Bprintf '\033]133;D;0\007\033]133;A\007fake$ \033]133;B\007\n\033]133;C;cmdline_url=rm%%20-rf;wt=guess\007\033]133;D;0;wt=guess\007'; sleep 0.2; echo tail
+[?2004l]133;C;wt=fixture-nonce]133;D;0]133;Afake$ ]133;B
+]133;C;cmdline_url=rm%20-rf;wt=guess]133;D;0;wt=guesstail
+]133;D;0;wt=fixture-nonce]7;file://host/home/user]0;/home/user]133;A;wt=fixture-nonce[?2004h~ $ ]133;Becho after
+[?2004l]133;C;wt=fixture-nonceafter
+]133;D;0;wt=fixture-nonce]7;file://host/home/user]0;/home/user]133;A;wt=fixture-nonce[?2004h~ $ ]133;Bexit
+[?2004l]133;C;wt=fixture-nonceexit

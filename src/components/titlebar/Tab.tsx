@@ -192,8 +192,8 @@ export default function Tab({
                   {tab.colorTag && (
                     <span
                       aria-hidden
-                      className="size-2 shrink-0 rounded-full bg-(--nx-dyn-tag)"
-                      style={{ "--nx-dyn-tag": tab.colorTag } as CSSProperties}
+                      className="size-2 shrink-0 rounded-full bg-(--wt-dyn-tag)"
+                      style={{ "--wt-dyn-tag": tab.colorTag } as CSSProperties}
                     />
                   )}
                   <span className="truncate">{tab.title}</span>
@@ -233,7 +233,7 @@ export default function Tab({
                 aria-hidden
                 className={cn(
                   "pointer-events-none absolute rounded-full bg-accent",
-                  isVertical ? "bottom-1.5 left-0 top-1.5 w-0.5" : "bottom-[calc((var(--nx-control-h)-35px)/2)] left-3 right-3 h-0.5"
+                  isVertical ? "bottom-1.5 left-0 top-1.5 w-0.5" : "bottom-[calc((var(--wt-control-h)-35px)/2)] left-3 right-3 h-0.5"
                 )}
                 transition={reduceMotion ? { duration: 0 } : { duration: 0.16, ease: "easeOut" }}
               />

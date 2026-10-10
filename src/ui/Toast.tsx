@@ -36,7 +36,7 @@ export function Toast({ tone = "info", title, message, className, ...rest }: Toa
   return (
     <ToastPrimitive.Root
       className={cn(
-        "flex items-start gap-2 rounded-lg border border-border bg-raised px-3 py-2 shadow-popover animate-nx-fade-in",
+        "flex items-start gap-2 rounded-lg border border-border bg-raised px-3 py-2 shadow-popover animate-wt-fade-in",
         className
       )}
       {...rest}

@@ -41,29 +41,29 @@ export function ThemePicker({ themes, value, onValueChange, onPreview, className
             focusRing
           )}
         >
-          {/* The theme's own colors reach the swatch through --nx-dyn-* properties (no literals in code). */}
+          {/* The theme's own colors reach the swatch through --wt-dyn-* properties (no literals in code). */}
           <span
             aria-hidden
             style={
               {
-                "--nx-dyn-panel": theme.chrome.panel,
-                "--nx-dyn-border": theme.chrome.border,
-                "--nx-dyn-accent": theme.chrome.accent,
-                "--nx-dyn-term-bg": theme.terminal.background,
-                "--nx-dyn-term-fg": theme.terminal.foreground,
-                "--nx-dyn-green": theme.terminal.ansi[2],
-                "--nx-dyn-blue": theme.terminal.ansi[4],
+                "--wt-dyn-panel": theme.chrome.panel,
+                "--wt-dyn-border": theme.chrome.border,
+                "--wt-dyn-accent": theme.chrome.accent,
+                "--wt-dyn-term-bg": theme.terminal.background,
+                "--wt-dyn-term-fg": theme.terminal.foreground,
+                "--wt-dyn-green": theme.terminal.ansi[2],
+                "--wt-dyn-blue": theme.terminal.ansi[4],
               } as CSSProperties
             }
-            className="flex h-16 w-full flex-col bg-(--nx-dyn-term-bg)"
+            className="flex h-16 w-full flex-col bg-(--wt-dyn-term-bg)"
           >
-            <span className="flex h-3.5 items-center gap-1 border-b border-(--nx-dyn-border) bg-(--nx-dyn-panel) px-1.5">
-              <span className="size-1.5 rounded-full bg-(--nx-dyn-accent)" />
+            <span className="flex h-3.5 items-center gap-1 border-b border-(--wt-dyn-border) bg-(--wt-dyn-panel) px-1.5">
+              <span className="size-1.5 rounded-full bg-(--wt-dyn-accent)" />
             </span>
             <span className="flex flex-col gap-1 px-2 pt-2">
-              <span className="h-1 w-10 rounded-full bg-(--nx-dyn-green)" />
-              <span className="h-1 w-14 rounded-full bg-(--nx-dyn-term-fg) opacity-60" />
-              <span className="h-1 w-8 rounded-full bg-(--nx-dyn-blue)" />
+              <span className="h-1 w-10 rounded-full bg-(--wt-dyn-green)" />
+              <span className="h-1 w-14 rounded-full bg-(--wt-dyn-term-fg) opacity-60" />
+              <span className="h-1 w-8 rounded-full bg-(--wt-dyn-blue)" />
             </span>
           </span>
           <span className="flex items-center justify-between gap-2 border-t border-border px-2 py-1.5">

@@ -3,10 +3,10 @@ import { importItermColorsTheme, importWindowsTerminalTheme } from "../../lib/th
 import { toThemeFile } from "../../lib/theme-schema";
 import { downloadTextFile } from "../../lib/download-file";
 
-/** File types the theme import accepts: nexterm themes, Windows Terminal schemes (.json) and iTerm2 presets. */
+/** File types the theme import accepts: wayterm themes, Windows Terminal schemes (.json) and iTerm2 presets. */
 export const THEME_FILE_ACCEPT = ".json,.itermcolors";
 
-function isNexTermThemeJson(text: string): boolean {
+function isWaytermThemeJson(text: string): boolean {
   try {
     const raw: unknown = JSON.parse(text);
     return typeof raw === "object" && raw !== null && ("chrome" in raw || "ui" in raw);
@@ -17,10 +17,10 @@ function isNexTermThemeJson(text: string): boolean {
 
 /**
  * Imports a theme file through the theme store's `importTheme` (which
- * validates it, refuses built-in ids, saves it and registers it). nexterm
+ * validates it, refuses built-in ids, saves it and registers it). wayterm
  * themes (they have `chrome`, or the pre-redesign `ui`) load as they are;
  * other .json files are read as Windows Terminal schemes and .itermcolors as
- * iTerm2 presets, then converted to the nexterm schema.
+ * iTerm2 presets, then converted to the wayterm schema.
  * @throws Error with a user-facing message.
  */
 export async function importThemeFile(
@@ -33,7 +33,7 @@ export async function importThemeFile(
     return importTheme(JSON.stringify(toThemeFile(importItermColorsTheme(text))));
   }
   if (ext !== "json") throw new Error(`Unsupported file type: .${ext}. Use .json or .itermcolors`);
-  if (isNexTermThemeJson(text)) return importTheme(text);
+  if (isWaytermThemeJson(text)) return importTheme(text);
   return importTheme(JSON.stringify(toThemeFile(importWindowsTerminalTheme(text))));
 }
 

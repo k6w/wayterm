@@ -43,7 +43,7 @@ function setup(tree: SplitNode, activePaneId = "p1", zoomedPaneId: string | null
 const dimOf = (paneId: string) =>
   screen.getByTestId(`pane-${paneId}`).closest("[data-pane-frame]")!.querySelector('[data-testid="pane-dim"]')!;
 
-const dimVar = (paneId: string) => (dimOf(paneId) as HTMLElement).style.getPropertyValue("--nx-dyn-pane-dim");
+const dimVar = (paneId: string) => (dimOf(paneId) as HTMLElement).style.getPropertyValue("--wt-dyn-pane-dim");
 
 beforeEach(() => {
   useSettingsStore.setState(useSettingsStore.getInitialState(), true);
@@ -113,7 +113,7 @@ describe("pane backing", () => {
   it("puts every pane in the same sidebar glass backing, focused or not", () => {
     setup(split, "p1");
     for (const id of ["p1", "p2"]) {
-      expect(frameOf(id)).toHaveClass("bg-panel-glass", "nx-blur");
+      expect(frameOf(id)).toHaveClass("bg-panel-glass", "wt-blur");
     }
   });
 

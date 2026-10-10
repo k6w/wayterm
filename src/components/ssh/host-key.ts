@@ -5,7 +5,7 @@
 // by MISMATCH_MARKER and a JSON HostKeyMismatch.
 import type { HostKeyMismatch, SavedHostKey } from "../../lib/ipc";
 
-const MISMATCH_MARKER = "\nnexterm-host-key-mismatch:";
+const MISMATCH_MARKER = "\nwayterm-host-key-mismatch:";
 
 /** True when a connect error says the saved host key no longer matches. */
 export function isHostKeyChanged(message: string): boolean {

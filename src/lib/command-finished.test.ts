@@ -58,7 +58,7 @@ describe("onBlockFinished", () => {
   it("notifies with the exact duration and records trusted commands in history", async () => {
     const [tracker, block] = await finished(
       "n",
-      "\x1b]7;file://h/srv\x07\x1b]133;A;nx=n\x07$ \x1b]133;B\x07make\r\n\x1b]133;C;nx=n\x07\x1b]133;D;2;nx=n\x07",
+      "\x1b]7;file://h/srv\x07\x1b]133;A;wt=n\x07$ \x1b]133;B\x07make\r\n\x1b]133;C;wt=n\x07\x1b]133;D;2;wt=n\x07",
     );
     onBlockFinished(tracker, block, "s1");
     expect(notifications.map((n) => n.body)).toEqual(["Failed (exit 2) after 20s"]);
@@ -76,7 +76,7 @@ describe("onBlockFinished", () => {
 
   it("records nothing while command blocks are off", async () => {
     settings({ notifyOnLongCommands: false, longCommandThresholdSeconds: 10 }, false);
-    const [tracker, block] = await finished("n", "\x1b]133;A;nx=n\x07$ \x1b]133;B\x07ls\r\n\x1b]133;C;nx=n\x07\x1b]133;D;0;nx=n\x07");
+    const [tracker, block] = await finished("n", "\x1b]133;A;wt=n\x07$ \x1b]133;B\x07ls\r\n\x1b]133;C;wt=n\x07\x1b]133;D;0;wt=n\x07");
     onBlockFinished(tracker, block, "s1");
     expect(historyAdd).not.toHaveBeenCalled();
   });

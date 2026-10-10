@@ -267,14 +267,14 @@ export default function Scratchpad() {
 
   return (
     <div
-      className="fixed z-[300] flex flex-col rounded-xl border border-border shadow-2xl overflow-hidden bg-(--nx-dyn-bg)"
+      className="fixed z-[300] flex flex-col rounded-xl border border-border shadow-2xl overflow-hidden bg-(--wt-dyn-bg)"
       style={
         {
           top: pos.y,
           left: pos.x,
           width: size.w,
           height: size.h,
-          "--nx-dyn-bg": hexToRgba(theme.ui.bgPrimary, 0.97),
+          "--wt-dyn-bg": hexToRgba(theme.ui.bgPrimary, 0.97),
         } as CSSProperties
       }
     >
@@ -297,8 +297,8 @@ export default function Scratchpad() {
       {/* Terminal area */}
       <div
         ref={containerRef}
-        className="flex-1 min-h-0 bg-(--nx-dyn-bg) pt-1 pr-1 pl-1.5"
-        style={{ "--nx-dyn-bg": hexToRgba(theme.terminal.background, 0.85) } as CSSProperties}
+        className="flex-1 min-h-0 bg-(--wt-dyn-bg) pt-1 pr-1 pl-1.5"
+        style={{ "--wt-dyn-bg": hexToRgba(theme.terminal.background, 0.85) } as CSSProperties}
       />
 
       {/* Resize handle */}

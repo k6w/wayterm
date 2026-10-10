@@ -26,15 +26,15 @@ export function applyAppearanceToDom(a: AppearanceSettings, theme: ThemeDefiniti
     a.accentColorOverride && HEX6.test(a.accentColorOverride) ? a.accentColorOverride : null;
   root.style.setProperty("--accent", override ?? c.accent);
   root.style.setProperty("--accent-hover", override ?? c.accentHover);
-  root.style.setProperty("--nx-accent", override ?? c.accent);
-  root.style.setProperty("--nx-accent-hover", override ?? c.accentHover);
-  root.style.setProperty("--nx-accent-active", override ?? c.accentActive);
-  root.style.setProperty("--nx-accent-subtle", override ? hexToRgba(override, 0.2) : c.accentSubtle);
-  root.style.setProperty("--nx-accent-text", override ?? c.accentText);
-  root.style.setProperty("--nx-focus-ring", override ?? c.focusRing);
+  root.style.setProperty("--wt-accent", override ?? c.accent);
+  root.style.setProperty("--wt-accent-hover", override ?? c.accentHover);
+  root.style.setProperty("--wt-accent-active", override ?? c.accentActive);
+  root.style.setProperty("--wt-accent-subtle", override ? hexToRgba(override, 0.2) : c.accentSubtle);
+  root.style.setProperty("--wt-accent-text", override ?? c.accentText);
+  root.style.setProperty("--wt-focus-ring", override ?? c.focusRing);
 
   // Glass surfaces: translucent only while vibrancy is on. Backdrop blur is
-  // keyed off data-vibrancy (see .nx-blur in styles.css).
+  // keyed off data-vibrancy (see .wt-blur in styles.css).
   // The canvas sits behind the terminal, so it follows the window opacity
   // freely. Surfaces that carry text never drop below a readable floor
   // (src/lib/glass.ts), whatever the opacity slider says.
@@ -42,14 +42,14 @@ export function applyAppearanceToDom(a: AppearanceSettings, theme: ThemeDefiniti
   const chrome = a.vibrancyEnabled ? chromeAlpha(theme, userAlpha) : 1;
   const overlay = a.vibrancyEnabled ? overlayAlpha(theme, userAlpha) : 1;
   const glass = (color: string, alpha: number) => (alpha >= 1 ? color : hexToRgba(color, alpha));
-  root.style.setProperty("--nx-glass-canvas", glass(c.canvas, userAlpha));
-  root.style.setProperty("--nx-glass-panel", glass(c.panel, chrome));
+  root.style.setProperty("--wt-glass-canvas", glass(c.canvas, userAlpha));
+  root.style.setProperty("--wt-glass-panel", glass(c.panel, chrome));
   // Canvas tone at the chrome floor: full-window surfaces that carry text (Settings).
-  root.style.setProperty("--nx-glass-surface", glass(c.canvas, chrome));
-  root.style.setProperty("--nx-glass-tab-bar", glass(c.tabBar, chrome));
-  root.style.setProperty("--nx-glass-status-bar", glass(c.statusBar, chrome));
-  root.style.setProperty("--nx-glass-raised", glass(c.raised, overlay));
-  root.style.setProperty("--nx-glass-dialog", glass(c.panel, overlay));
+  root.style.setProperty("--wt-glass-surface", glass(c.canvas, chrome));
+  root.style.setProperty("--wt-glass-tab-bar", glass(c.tabBar, chrome));
+  root.style.setProperty("--wt-glass-status-bar", glass(c.statusBar, chrome));
+  root.style.setProperty("--wt-glass-raised", glass(c.raised, overlay));
+  root.style.setProperty("--wt-glass-dialog", glass(c.panel, overlay));
   if (a.vibrancyEnabled) root.setAttribute("data-vibrancy", "on");
   else root.removeAttribute("data-vibrancy");
 

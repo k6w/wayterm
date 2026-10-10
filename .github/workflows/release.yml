@@ -22,7 +22,7 @@ jobs:
           TAG: ${{ github.ref_name }}
         run: |
           node scripts/release/manifest.mjs --notes "${TAG#v}" > notes.md
-          gh release create "$TAG" --draft --title "Nexterm $TAG" --notes-file notes.md --verify-tag
+          gh release create "$TAG" --draft --title "Wayterm $TAG" --notes-file notes.md --verify-tag
           echo "release_id=$(gh release view "$TAG" --json databaseId --jq .databaseId)" >> "$GITHUB_OUTPUT"
 
   release:

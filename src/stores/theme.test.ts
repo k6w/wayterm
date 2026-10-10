@@ -151,9 +151,9 @@ describe("applyThemeToDom", () => {
     const paper = useThemeStore.getState().themes.paper;
     applyThemeToDom(paper);
     const style = document.documentElement.style;
-    expect(style.getPropertyValue("--nx-canvas")).toBe(paper.chrome.canvas);
-    expect(style.getPropertyValue("--nx-border-strong")).toBe(paper.chrome.borderStrong);
-    expect(style.getPropertyValue("--nx-text-on-accent")).toBe(paper.chrome.textOnAccent);
+    expect(style.getPropertyValue("--wt-canvas")).toBe(paper.chrome.canvas);
+    expect(style.getPropertyValue("--wt-border-strong")).toBe(paper.chrome.borderStrong);
+    expect(style.getPropertyValue("--wt-text-on-accent")).toBe(paper.chrome.textOnAccent);
     expect(style.getPropertyValue("--bg-primary")).toBe(paper.chrome.canvas);
     expect(document.documentElement.getAttribute("data-theme")).toBe("light");
   });

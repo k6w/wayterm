@@ -12,7 +12,7 @@ const MISMATCH: HostKeyMismatch = {
   newFingerprint: "SHA256:new",
   newKeyB64: "AAAA",
 };
-const CHANGED = `HOST KEY CHANGED for example.com:2222! ...\nnexterm-host-key-mismatch:${JSON.stringify(MISMATCH)}`;
+const CHANGED = `HOST KEY CHANGED for example.com:2222! ...\nwayterm-host-key-mismatch:${JSON.stringify(MISMATCH)}`;
 
 const conn = { host: "example.com", port: 2222, jumpHostId: null };
 

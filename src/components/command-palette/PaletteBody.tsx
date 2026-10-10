@@ -334,7 +334,7 @@ export default function PaletteBody() {
       <div className="flex h-8 shrink-0 items-center justify-between border-t border-border px-4 text-label text-fg-muted">
         <span className="inline-flex items-center gap-1.5">
           <Icon name="newTerminal" size="sm" aria-hidden />
-          nexterm
+          wayterm
         </span>
         <span className="inline-flex items-center gap-4" data-testid="palette-hints">
           <FooterHint keys="↑↓" label="Navigate" />

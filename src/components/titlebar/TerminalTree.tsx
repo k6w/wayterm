@@ -36,8 +36,8 @@ function TreeNode({
 
     return (
       <div
-        className="flex items-center gap-1.5 py-0.5 pl-[calc(var(--nx-dyn-depth)*12px)] text-text-primary"
-        style={{ "--nx-dyn-depth": depth } as CSSProperties}
+        className="flex items-center gap-1.5 py-0.5 pl-[calc(var(--wt-dyn-depth)*12px)] text-text-primary"
+        style={{ "--wt-dyn-depth": depth } as CSSProperties}
       >
         <Icon name="terminal" className="size-3 shrink-0 text-text-muted" />
         <span className="truncate text-xs">{label}</span>
@@ -52,8 +52,8 @@ function TreeNode({
   return (
     <div>
       <div
-        className="flex items-center gap-1.5 py-0.5 pl-[calc(var(--nx-dyn-depth)*12px)] text-text-muted"
-        style={{ "--nx-dyn-depth": depth } as CSSProperties}
+        className="flex items-center gap-1.5 py-0.5 pl-[calc(var(--wt-dyn-depth)*12px)] text-text-muted"
+        style={{ "--wt-dyn-depth": depth } as CSSProperties}
       >
         <DirectionIcon className="size-3 shrink-0" />
         <span className="truncate text-xs">{directionLabel}</span>

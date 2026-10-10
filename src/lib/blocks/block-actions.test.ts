@@ -9,10 +9,10 @@ vi.mock("../ipc", () => ({ terminalWrite: vi.fn(async () => {}), bufferSaveBatch
 import { terminalWrite } from "../ipc";
 
 const NONCE = "n";
-const A = `\x1b]133;A;nx=${NONCE}\x07`;
+const A = `\x1b]133;A;wt=${NONCE}\x07`;
 const B = "\x1b]133;B\x07";
-const C = (cmd?: string) => `\x1b]133;C;${cmd ? `cmdline_url=${encodeURIComponent(cmd)};` : ""}nx=${NONCE}\x07`;
-const D = (code: number) => `\x1b]133;D;${code};nx=${NONCE}\x07`;
+const C = (cmd?: string) => `\x1b]133;C;${cmd ? `cmdline_url=${encodeURIComponent(cmd)};` : ""}wt=${NONCE}\x07`;
+const D = (code: number) => `\x1b]133;D;${code};wt=${NONCE}\x07`;
 
 async function setup(data: string) {
   const term = new Terminal({ cols: 80, rows: 24, allowProposedApi: true });

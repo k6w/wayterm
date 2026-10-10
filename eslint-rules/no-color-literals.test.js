@@ -21,7 +21,7 @@ tester.run("no-color-literals", rule, {
     "const label = 'Pane #12';",
     "const id = 'tab-#a';",
     "const re = /#[0-9a-f]{6}/;",
-    "const v = `var(--nx-accent)`;",
+    "const v = `var(--wt-accent)`;",
     "const s = 'rgbaish';",
   ],
   invalid: [

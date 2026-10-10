@@ -4,7 +4,7 @@
  * Design tokens (redesign Phase 1).
  *
  * Colors: applyThemeToDom (src/stores/theme.ts) writes every theme chrome token
- * to a --nx-* custom property; applyAppearanceToDom (src/lib/appearance.ts)
+ * to a --wt-* custom property; applyAppearanceToDom (src/lib/appearance.ts)
  * then re-applies the accent override and the glass surfaces. The block below
  * exposes them to Tailwind: bg-canvas, text-fg-muted, border-border-strong,
  * outline-focus, bg-statusbar-glass, ...
@@ -15,75 +15,75 @@
  */
 @theme {
   /* Surfaces */
-  --color-canvas: var(--nx-canvas);
-  --color-panel: var(--nx-panel);
-  --color-raised: var(--nx-raised);
-  --color-hover: var(--nx-hover);
-  --color-active: var(--nx-active);
-  --color-scrim: var(--nx-scrim);
-  --color-canvas-glass: var(--nx-glass-canvas);
-  --color-panel-glass: var(--nx-glass-panel);
-  --color-surface-glass: var(--nx-glass-surface);
-  --color-raised-glass: var(--nx-glass-raised);
-  --color-dialog-glass: var(--nx-glass-dialog);
-  --color-tabbar-glass: var(--nx-glass-tab-bar);
-  --color-statusbar-glass: var(--nx-glass-status-bar);
+  --color-canvas: var(--wt-canvas);
+  --color-panel: var(--wt-panel);
+  --color-raised: var(--wt-raised);
+  --color-hover: var(--wt-hover);
+  --color-active: var(--wt-active);
+  --color-scrim: var(--wt-scrim);
+  --color-canvas-glass: var(--wt-glass-canvas);
+  --color-panel-glass: var(--wt-glass-panel);
+  --color-surface-glass: var(--wt-glass-surface);
+  --color-raised-glass: var(--wt-glass-raised);
+  --color-dialog-glass: var(--wt-glass-dialog);
+  --color-tabbar-glass: var(--wt-glass-tab-bar);
+  --color-statusbar-glass: var(--wt-glass-status-bar);
 
   /* Borders */
-  --color-border: var(--nx-border);
-  --color-border-strong: var(--nx-border-strong);
-  --color-border-subtle: var(--nx-border-subtle);
+  --color-border: var(--wt-border);
+  --color-border-strong: var(--wt-border-strong);
+  --color-border-subtle: var(--wt-border-subtle);
 
   /* Text */
-  --color-fg: var(--nx-text);
-  --color-fg-strong: var(--nx-text);
-  --color-fg-secondary: var(--nx-text-secondary);
-  --color-fg-muted: var(--nx-text-muted);
-  --color-fg-disabled: var(--nx-text-disabled);
-  --color-fg-on-accent: var(--nx-text-on-accent);
+  --color-fg: var(--wt-text);
+  --color-fg-strong: var(--wt-text);
+  --color-fg-secondary: var(--wt-text-secondary);
+  --color-fg-muted: var(--wt-text-muted);
+  --color-fg-disabled: var(--wt-text-disabled);
+  --color-fg-on-accent: var(--wt-text-on-accent);
 
   /* Accent: focus, selection and the primary action only */
-  --color-accent: var(--nx-accent);
-  --color-accent-hover: var(--nx-accent-hover);
-  --color-accent-active: var(--nx-accent-active);
-  --color-accent-subtle: var(--nx-accent-subtle);
-  --color-accent-fg: var(--nx-accent-text);
-  --color-focus: var(--nx-focus-ring);
-  --color-selection: var(--nx-selection);
+  --color-accent: var(--wt-accent);
+  --color-accent-hover: var(--wt-accent-hover);
+  --color-accent-active: var(--wt-accent-active);
+  --color-accent-subtle: var(--wt-accent-subtle);
+  --color-accent-fg: var(--wt-accent-text);
+  --color-focus: var(--wt-focus-ring);
+  --color-selection: var(--wt-selection);
 
   /* Semantic */
-  --color-success: var(--nx-success);
-  --color-success-subtle: var(--nx-success-subtle);
-  --color-warning: var(--nx-warning);
-  --color-warning-subtle: var(--nx-warning-subtle);
-  --color-danger: var(--nx-danger);
-  --color-danger-subtle: var(--nx-danger-subtle);
-  --color-info: var(--nx-info);
-  --color-info-subtle: var(--nx-info-subtle);
+  --color-success: var(--wt-success);
+  --color-success-subtle: var(--wt-success-subtle);
+  --color-warning: var(--wt-warning);
+  --color-warning-subtle: var(--wt-warning-subtle);
+  --color-danger: var(--wt-danger);
+  --color-danger-subtle: var(--wt-danger-subtle);
+  --color-info: var(--wt-info);
+  --color-info-subtle: var(--wt-info-subtle);
 
   /* Component surfaces */
-  --color-input: var(--nx-input-bg);
-  --color-input-border: var(--nx-input-border);
-  --color-tabbar: var(--nx-tab-bar);
-  --color-tab-active: var(--nx-tab-active);
-  --color-statusbar: var(--nx-status-bar);
-  --color-tooltip: var(--nx-tooltip-bg);
-  --color-tooltip-fg: var(--nx-tooltip-text);
-  --color-kbd: var(--nx-kbd-bg);
-  --color-kbd-fg: var(--nx-kbd-text);
-  --color-scrollbar: var(--nx-scrollbar-thumb);
-  --color-scrollbar-hover: var(--nx-scrollbar-thumb-hover);
-  --color-shadow: var(--nx-shadow);
+  --color-input: var(--wt-input-bg);
+  --color-input-border: var(--wt-input-border);
+  --color-tabbar: var(--wt-tab-bar);
+  --color-tab-active: var(--wt-tab-active);
+  --color-statusbar: var(--wt-status-bar);
+  --color-tooltip: var(--wt-tooltip-bg);
+  --color-tooltip-fg: var(--wt-tooltip-text);
+  --color-kbd: var(--wt-kbd-bg);
+  --color-kbd-fg: var(--wt-kbd-text);
+  --color-scrollbar: var(--wt-scrollbar-thumb);
+  --color-scrollbar-hover: var(--wt-scrollbar-thumb-hover);
+  --color-shadow: var(--wt-shadow);
 
   /* Legacy aliases for un-migrated screens (removed in Phase 5) */
-  --color-bg-primary: var(--nx-canvas);
-  --color-bg-secondary: var(--nx-panel);
-  --color-bg-tertiary: var(--nx-raised);
-  --color-text-primary: var(--nx-text);
-  --color-text-secondary: var(--nx-text-secondary);
-  --color-text-muted: var(--nx-text-muted);
-  --color-border-focus: var(--nx-focus-ring);
-  --color-error: var(--nx-danger);
+  --color-bg-primary: var(--wt-canvas);
+  --color-bg-secondary: var(--wt-panel);
+  --color-bg-tertiary: var(--wt-raised);
+  --color-text-primary: var(--wt-text);
+  --color-text-secondary: var(--wt-text-secondary);
+  --color-text-muted: var(--wt-text-muted);
+  --color-border-focus: var(--wt-focus-ring);
+  --color-error: var(--wt-danger);
   --color-overlay: rgb(var(--overlay));
 
   /* Typography: Inter for UI at 13px; scale 11 / 12 / 13 / 15 / 20 */
@@ -105,8 +105,8 @@
   --text-palette--line-height: 24px;
 
   /* Density: 4px grid; rows and controls are 28px (compact default) */
-  --spacing-control: var(--nx-control-h);
-  --spacing-row: var(--nx-row-h);
+  --spacing-control: var(--wt-control-h);
+  --spacing-row: var(--wt-row-h);
   --spacing-row-x: 12px;
   --spacing-row-y: 8px;
   --spacing-panel: 12px;
@@ -119,14 +119,14 @@
   --radius-xl: 12px;
 
   /* Elevation: hairline borders separate surfaces; only floating overlays cast a shadow */
-  --shadow-popover: 0 8px 24px var(--nx-shadow);
-  --shadow-palette: 0 24px 64px var(--nx-shadow), 0 4px 12px var(--nx-shadow);
+  --shadow-popover: 0 8px 24px var(--wt-shadow);
+  --shadow-palette: 0 24px 64px var(--wt-shadow), 0 4px 12px var(--wt-shadow);
 
   /* Motion: 120-180ms ease-out, no bounce */
-  --animate-nx-fade-in: nx-fade-in 120ms ease-out;
-  --animate-nx-palette-in: nx-palette-in 150ms ease-out;
+  --animate-wt-fade-in: wt-fade-in 120ms ease-out;
+  --animate-wt-palette-in: wt-palette-in 150ms ease-out;
 
-  @keyframes nx-palette-in {
+  @keyframes wt-palette-in {
     from {
       opacity: 0;
       scale: 0.98;
@@ -137,7 +137,7 @@
     }
   }
 
-  @keyframes nx-fade-in {
+  @keyframes wt-fade-in {
     from {
       opacity: 0;
       transform: translateY(2px);
@@ -153,21 +153,21 @@
 :root {
   --ui-font-family: Inter, system-ui, sans-serif;
   --blur-intensity: 1;
-  --nx-control-h: 28px;
-  --nx-row-h: 28px;
-  --nx-glass-canvas: var(--nx-canvas);
-  --nx-glass-panel: var(--nx-panel);
-  --nx-glass-surface: var(--nx-canvas);
-  --nx-glass-raised: var(--nx-raised);
-  --nx-glass-dialog: var(--nx-panel);
-  --nx-glass-tab-bar: var(--nx-tab-bar);
-  --nx-glass-status-bar: var(--nx-status-bar);
+  --wt-control-h: 28px;
+  --wt-row-h: 28px;
+  --wt-glass-canvas: var(--wt-canvas);
+  --wt-glass-panel: var(--wt-panel);
+  --wt-glass-surface: var(--wt-canvas);
+  --wt-glass-raised: var(--wt-raised);
+  --wt-glass-dialog: var(--wt-panel);
+  --wt-glass-tab-bar: var(--wt-tab-bar);
+  --wt-glass-status-bar: var(--wt-status-bar);
 }
 
 /* Comfortable density (Settings > Appearance > Density). */
 :root[data-density="comfortable"] {
-  --nx-control-h: 32px;
-  --nx-row-h: 32px;
+  --wt-control-h: 32px;
+  --wt-row-h: 32px;
   --spacing-row-y: 12px;
 }
 
@@ -196,7 +196,7 @@ body {
 }
 
 /* Glass: blur the backdrop only while vibrancy is on (data-vibrancy is set by applyAppearanceToDom). */
-:root[data-vibrancy="on"] .nx-blur {
+:root[data-vibrancy="on"] .wt-blur {
   backdrop-filter: blur(calc(20px * var(--blur-intensity))) saturate(1.3);
   -webkit-backdrop-filter: blur(calc(20px * var(--blur-intensity))) saturate(1.3);
 }
@@ -210,12 +210,12 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--nx-scrollbar-thumb);
+  background: var(--wt-scrollbar-thumb);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--nx-scrollbar-thumb-hover);
+  background: var(--wt-scrollbar-thumb-hover);
 }
 
 /* Hide scrollbar but keep scroll functionality */
@@ -245,7 +245,7 @@ body {
 }
 
 .xterm-viewport::-webkit-scrollbar-thumb {
-  background: var(--nx-scrollbar-thumb);
+  background: var(--wt-scrollbar-thumb);
   border-radius: 3px;
 }
 
@@ -257,12 +257,12 @@ body {
 }
 
 /* Settings search: flash the row a result points at. The reduced-motion rule below shortens it to nothing. */
-@keyframes nx-row-highlight {
+@keyframes wt-row-highlight {
   from { background-color: var(--color-accent-subtle); }
   to { background-color: transparent; }
 }
 [data-setting][data-highlight] {
-  animation: nx-row-highlight 1.6s ease-out;
+  animation: wt-row-highlight 1.6s ease-out;
 }
 
 /* Motion: honor prefers-reduced-motion everywhere. */

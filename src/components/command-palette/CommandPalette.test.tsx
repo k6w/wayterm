@@ -106,22 +106,22 @@ describe("CommandPalette", () => {
 
   it("runs the chosen command with Enter and closes", async () => {
     const opened = vi.fn();
-    window.addEventListener("nexterm:open-serial", opened);
+    window.addEventListener("wayterm:open-serial", opened);
     const { user, input } = await openPalette();
     await user.type(input, "serial");
     await user.keyboard("{Enter}");
     expect(useTerminalStore.getState().commandPaletteOpen).toBe(false);
     await waitFor(() => expect(opened).toHaveBeenCalledTimes(1));
-    window.removeEventListener("nexterm:open-serial", opened);
+    window.removeEventListener("wayterm:open-serial", opened);
   });
 
   it("runs a command on click", async () => {
     const opened = vi.fn();
-    window.addEventListener("nexterm:open-serial", opened);
+    window.addEventListener("wayterm:open-serial", opened);
     const { user } = await openPalette();
     await user.click(screen.getByRole("option", { name: /New Serial/ }));
     await waitFor(() => expect(opened).toHaveBeenCalledTimes(1));
-    window.removeEventListener("nexterm:open-serial", opened);
+    window.removeEventListener("wayterm:open-serial", opened);
   });
 
   it("highlights the matched characters of a title", async () => {
@@ -161,13 +161,13 @@ describe("CommandPalette", () => {
 
   it("lists recently run commands under Suggested when the query is empty", async () => {
     const opened = vi.fn();
-    window.addEventListener("nexterm:open-serial", opened);
+    window.addEventListener("wayterm:open-serial", opened);
     const first = await openPalette();
     expect(screen.queryByRole("group", { name: "Suggested" })).not.toBeInTheDocument();
     await first.user.type(first.input, "serial");
     await first.user.keyboard("{Enter}");
     await waitFor(() => expect(opened).toHaveBeenCalledTimes(1));
-    window.removeEventListener("nexterm:open-serial", opened);
+    window.removeEventListener("wayterm:open-serial", opened);
 
     act(() => useTerminalStore.setState({ commandPaletteOpen: false }));
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());

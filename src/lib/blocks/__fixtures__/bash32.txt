@@ -2,14 +2,14 @@
 The default interactive shell is now zsh.
 To update your account to use zsh, please run `chsh -s /bin/zsh`.
 For more details, please visit https://support.apple.com/kb/HT208050.
-]7;file://host/home/user]0;/home/user]133;A;nx=fixture-nonce[?1034h~ $ ]133;Becho hello
-]133;C;nx=fixture-noncehello
-]133;D;0;nx=fixture-nonce]7;file://host/home/user]0;/home/user]133;A;nx=fixture-nonce~ $ ]133;Bfalse
-]133;C;nx=fixture-nonce]133;D;1;nx=fixture-nonce]7;file://host/home/user]0;/home/user]133;A;nx=fixture-nonce~ $ ]133;Bcd 'my dir'
-]133;C;nx=fixture-nonce]133;D;0;nx=fixture-nonce]7;file://host/home/user/my%20dir]0;/home/user/my dir]133;A;nx=fixture-nonce~/my dir $ ]133;Bprintf 'one\ntwo\nthree\n'
-]133;C;nx=fixture-nonceone
+]7;file://host/home/user]0;/home/user]133;A;wt=fixture-nonce[?1034h~ $ ]133;Becho hello
+]133;C;wt=fixture-noncehello
+]133;D;0;wt=fixture-nonce]7;file://host/home/user]0;/home/user]133;A;wt=fixture-nonce~ $ ]133;Bfalse
+]133;C;wt=fixture-nonce]133;D;1;wt=fixture-nonce]7;file://host/home/user]0;/home/user]133;A;wt=fixture-nonce~ $ ]133;Bcd 'my dir'
+]133;C;wt=fixture-nonce]133;D;0;wt=fixture-nonce]7;file://host/home/user/my%20dir]0;/home/user/my dir]133;A;wt=fixture-nonce~/my dir $ ]133;Bprintf 'one\ntwo\nthree\n'
+]133;C;wt=fixture-nonceone
 two
 three
-]133;D;0;nx=fixture-nonce]7;file://host/home/user/my%20dir]0;/home/user/my dir]133;A;nx=fixture-nonce~/my dir $ ]133;Bcd
-]133;C;nx=fixture-nonce]133;D;0;nx=fixture-nonce]7;file://host/home/user]0;/home/user]133;A;nx=fixture-nonce~ $ ]133;Bexit
-]133;C;nx=fixture-nonceexit
+]133;D;0;wt=fixture-nonce]7;file://host/home/user/my%20dir]0;/home/user/my dir]133;A;wt=fixture-nonce~/my dir $ ]133;Bcd
+]133;C;wt=fixture-nonce]133;D;0;wt=fixture-nonce]7;file://host/home/user]0;/home/user]133;A;wt=fixture-nonce~ $ ]133;Bexit
+]133;C;wt=fixture-nonceexit

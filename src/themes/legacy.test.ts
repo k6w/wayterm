@@ -5,7 +5,7 @@ import { legacyUiToChrome, normalizeTheme } from "./legacy";
 
 // The pre-redesign "Nexterm Dark" built-in, as users may still have it saved
 // as a custom theme or a JSON file.
-const LEGACY_NEXTERM_DARK = {
+const LEGACY_WAYTERM_DARK = {
   id: "nexterm-dark-copy",
   name: "Nexterm Dark Copy",
   variant: "dark",
@@ -43,7 +43,7 @@ const LEGACY_NEXTERM_DARK = {
 
 describe("normalizeTheme with a pre-redesign theme", () => {
   it("upgrades the ui block to a complete, valid chrome set", () => {
-    const theme = normalizeTheme(LEGACY_NEXTERM_DARK);
+    const theme = normalizeTheme(LEGACY_WAYTERM_DARK);
     for (const key of CHROME_KEYS) expect(theme.chrome[key]).toMatch(/^#[0-9a-f]{6}([0-9a-f]{2})?$/);
     expect(theme.chrome.canvas).toBe("#0a0a0f");
     expect(theme.chrome.panel).toBe("#12121a");
@@ -51,40 +51,40 @@ describe("normalizeTheme with a pre-redesign theme", () => {
   });
 
   it("composites translucent legacy colors into opaque tokens", () => {
-    const theme = normalizeTheme(LEGACY_NEXTERM_DARK);
+    const theme = normalizeTheme(LEGACY_WAYTERM_DARK);
     // rgba(255,255,255,0.08) over the #12121a panel
     expect(theme.chrome.border).toBe("#25252c");
     expect(theme.terminal.selection).toBe("#528bff40");
   });
 
   it("keeps the legacy ui view equal to the original opaque values", () => {
-    const theme = normalizeTheme(LEGACY_NEXTERM_DARK);
+    const theme = normalizeTheme(LEGACY_WAYTERM_DARK);
     expect(theme.ui.bgPrimary).toBe("#0a0a0f");
     expect(theme.ui.accent).toBe("#528bff");
     expect(theme.ui.error).toBe("#f38ba8");
   });
 
   it("fills optional terminal fields", () => {
-    const { cursor: _c, cursorAccent: _a, selection: _s, ...terminal } = LEGACY_NEXTERM_DARK.terminal;
-    const theme = normalizeTheme({ ...LEGACY_NEXTERM_DARK, terminal });
+    const { cursor: _c, cursorAccent: _a, selection: _s, ...terminal } = LEGACY_WAYTERM_DARK.terminal;
+    const theme = normalizeTheme({ ...LEGACY_WAYTERM_DARK, terminal });
     expect(theme.terminal.cursor).toBe("#d4d4d4");
     expect(theme.terminal.cursorAccent).toBe("#0a0a0f");
     expect(theme.terminal.selection).toBe("#528bff40");
   });
 
   it("names the missing or unparseable legacy field", () => {
-    const { accent: _accent, ...noAccent } = LEGACY_NEXTERM_DARK.ui;
-    expect(() => normalizeTheme({ ...LEGACY_NEXTERM_DARK, ui: noAccent })).toThrow(ThemeValidationError);
-    expect(() => normalizeTheme({ ...LEGACY_NEXTERM_DARK, ui: noAccent })).toThrow(/^ui\.accent is missing/);
+    const { accent: _accent, ...noAccent } = LEGACY_WAYTERM_DARK.ui;
+    expect(() => normalizeTheme({ ...LEGACY_WAYTERM_DARK, ui: noAccent })).toThrow(ThemeValidationError);
+    expect(() => normalizeTheme({ ...LEGACY_WAYTERM_DARK, ui: noAccent })).toThrow(/^ui\.accent is missing/);
     expect(() =>
-      normalizeTheme({ ...LEGACY_NEXTERM_DARK, ui: { ...LEGACY_NEXTERM_DARK.ui, textPrimary: "white" } })
+      normalizeTheme({ ...LEGACY_WAYTERM_DARK, ui: { ...LEGACY_WAYTERM_DARK.ui, textPrimary: "white" } })
     ).toThrow(/^ui\.textPrimary/);
   });
 });
 
 describe("normalizeTheme with the current schema", () => {
   it("is the same as parseThemeFile + toThemeDefinition", () => {
-    const upgraded = normalizeTheme(LEGACY_NEXTERM_DARK);
+    const upgraded = normalizeTheme(LEGACY_WAYTERM_DARK);
     const file = { ...upgraded, ui: undefined };
     expect(normalizeTheme(file)).toEqual(toThemeDefinition(parseThemeFile(file)));
   });
@@ -92,7 +92,7 @@ describe("normalizeTheme with the current schema", () => {
 
 describe("legacyUiToChrome", () => {
   it("picks readable text for the accent", () => {
-    expect(legacyUiToChrome({ ...LEGACY_NEXTERM_DARK.ui, accent: "#1d4ed8" }, "dark").textOnAccent).toBe("#ffffff");
-    expect(legacyUiToChrome({ ...LEGACY_NEXTERM_DARK.ui, accent: "#f9e2af" }, "dark").textOnAccent).toBe("#111111");
+    expect(legacyUiToChrome({ ...LEGACY_WAYTERM_DARK.ui, accent: "#1d4ed8" }, "dark").textOnAccent).toBe("#ffffff");
+    expect(legacyUiToChrome({ ...LEGACY_WAYTERM_DARK.ui, accent: "#f9e2af" }, "dark").textOnAccent).toBe("#111111");
   });
 });

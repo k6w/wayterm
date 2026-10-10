@@ -2,7 +2,7 @@
 
 /** Surface styles without a min-width, for lists that size themselves (Select matches its trigger). */
 export const menuSurfaceClass =
-  "z-[var(--z-dropdown)] overflow-hidden rounded-lg border border-border bg-raised-glass nx-blur p-1 shadow-popover outline-none animate-nx-fade-in";
+  "z-[var(--z-dropdown)] overflow-hidden rounded-lg border border-border bg-raised-glass wt-blur p-1 shadow-popover outline-none animate-wt-fade-in";
 
 export const menuContentClass = `${menuSurfaceClass} min-w-44`;
 

@@ -23,14 +23,14 @@ export default function PaneFrame({ active, split, children }: PaneFrameProps) {
   const strength = useSettingsStore((s) => s.settings.appearance.inactivePaneDim);
   const dimmed = split && !active;
   return (
-    <div data-pane-frame data-active={active || undefined} className="group/pane nx-blur relative h-full w-full bg-panel-glass">
+    <div data-pane-frame data-active={active || undefined} className="group/pane wt-blur relative h-full w-full bg-panel-glass">
       {children}
       {enabled && (
         <div
           aria-hidden
           data-testid="pane-dim"
-          style={{ "--nx-dyn-pane-dim": dimmed ? strength : 0 } as CSSProperties}
-          className="pointer-events-none absolute inset-0 z-[5] bg-canvas opacity-(--nx-dyn-pane-dim) transition-opacity duration-150 ease-out"
+          style={{ "--wt-dyn-pane-dim": dimmed ? strength : 0 } as CSSProperties}
+          className="pointer-events-none absolute inset-0 z-[5] bg-canvas opacity-(--wt-dyn-pane-dim) transition-opacity duration-150 ease-out"
         />
       )}
     </div>

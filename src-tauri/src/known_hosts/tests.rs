@@ -275,9 +275,9 @@ fn replace_file_writes_atomically_with_backup_and_permissions() {
     assert_eq!(written, out.content);
     assert_eq!(check_ed(&written, "example.com", 22, NEW_B64), HostKeyCheck::Trusted);
 
-    let backup = std::fs::read_to_string(dir.path().join("known_hosts.nexterm-bak")).unwrap();
+    let backup = std::fs::read_to_string(dir.path().join("known_hosts.wayterm-bak")).unwrap();
     let mut backup_lines = backup.splitn(2, '\n');
-    assert!(backup_lines.next().unwrap().starts_with("# nexterm backup of known_hosts taken "));
+    assert!(backup_lines.next().unwrap().starts_with("# wayterm backup of known_hosts taken "));
     assert_eq!(backup_lines.next().unwrap(), PLAIN);
 
     #[cfg(unix)]
@@ -285,7 +285,7 @@ fn replace_file_writes_atomically_with_backup_and_permissions() {
         use std::os::unix::fs::PermissionsExt;
         let mode = |p: &Path| std::fs::metadata(p).unwrap().permissions().mode() & 0o777;
         assert_eq!(mode(&path), 0o600);
-        assert_eq!(mode(&dir.path().join("known_hosts.nexterm-bak")), 0o600);
+        assert_eq!(mode(&dir.path().join("known_hosts.wayterm-bak")), 0o600);
     }
     // No temp files left behind.
     let names: Vec<_> = std::fs::read_dir(dir.path()).unwrap().map(|e| e.unwrap().file_name()).collect();
@@ -300,7 +300,7 @@ fn replace_file_preserves_other_permissions() {
     let path = write_fixture(dir.path(), PLAIN, 0o644);
     replace_file(&path, "example.com", 22, OLD_FP, ED, NEW_B64).unwrap();
     assert_eq!(std::fs::metadata(&path).unwrap().permissions().mode() & 0o777, 0o644);
-    let bak = dir.path().join("known_hosts.nexterm-bak");
+    let bak = dir.path().join("known_hosts.wayterm-bak");
     assert_eq!(std::fs::metadata(bak).unwrap().permissions().mode() & 0o777, 0o600);
 }
 
@@ -311,7 +311,7 @@ fn replace_file_keeps_only_the_latest_backup() {
     replace_file(&path, "example.com", 22, OLD_FP, ED, NEW_B64).unwrap();
     let after_first = std::fs::read_to_string(&path).unwrap();
     replace_file(&path, "example.com", 22, NEW_FP, ED, OLD_B64).unwrap();
-    let backup = std::fs::read_to_string(dir.path().join("known_hosts.nexterm-bak")).unwrap();
+    let backup = std::fs::read_to_string(dir.path().join("known_hosts.wayterm-bak")).unwrap();
     assert_eq!(backup.split_once('\n').unwrap().1, after_first);
     let count = std::fs::read_dir(dir.path()).unwrap().count();
     assert_eq!(count, 2);
@@ -323,7 +323,7 @@ fn replace_file_refuses_stale_fingerprint_and_leaves_file_untouched() {
     let path = write_fixture(dir.path(), PLAIN, 0o600);
     assert!(replace_file(&path, "example.com", 22, OTHER_FP, ED, NEW_B64).is_err());
     assert_eq!(std::fs::read_to_string(&path).unwrap(), PLAIN);
-    assert!(!dir.path().join("known_hosts.nexterm-bak").exists());
+    assert!(!dir.path().join("known_hosts.wayterm-bak").exists());
 }
 
 #[test]
@@ -406,14 +406,14 @@ fn backup_header_does_not_reveal_a_hashed_host() {
     let path = write_fixture(dir.path(), HASHED, 0o600);
     let out = replace_file(&path, "example.com", 22, OLD_FP, ED, NEW_B64).unwrap();
     assert!(out.hashed);
-    let backup = std::fs::read_to_string(dir.path().join("known_hosts.nexterm-bak")).unwrap();
+    let backup = std::fs::read_to_string(dir.path().join("known_hosts.wayterm-bak")).unwrap();
     assert!(!backup.contains("example.com"), "{backup}");
     assert!(backup.lines().next().unwrap().contains("hashed host entry"));
 
     let dir = tempfile::tempdir().unwrap();
     let path = write_fixture(dir.path(), PLAIN, 0o600);
     assert!(!replace_file(&path, "example.com", 22, OLD_FP, ED, NEW_B64).unwrap().hashed);
-    let backup = std::fs::read_to_string(dir.path().join("known_hosts.nexterm-bak")).unwrap();
+    let backup = std::fs::read_to_string(dir.path().join("known_hosts.wayterm-bak")).unwrap();
     assert!(backup.lines().next().unwrap().contains("example.com"));
 }
 
@@ -515,7 +515,7 @@ fn clear_file_empties_atomically_and_keeps_a_backup() {
     let path = write_fixture(dir.path(), PLAIN, 0o600);
     clear_file(&path).unwrap();
     assert_eq!(std::fs::read_to_string(&path).unwrap(), "");
-    let backup = std::fs::read_to_string(dir.path().join("known_hosts.nexterm-bak")).unwrap();
+    let backup = std::fs::read_to_string(dir.path().join("known_hosts.wayterm-bak")).unwrap();
     assert_eq!(backup.split_once('\n').unwrap().1, PLAIN);
 }
 

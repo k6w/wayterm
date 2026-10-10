@@ -52,7 +52,7 @@ function AppContent() {
   const serialDialogMounted = useEverTrue(serialDialogOpen);
   const [sshConfigImportOpen, setSshConfigImportOpen] = useState(false);
   const sshConfigImportMounted = useEverTrue(sshConfigImportOpen);
-  const [showWelcome, setShowWelcome] = useState(() => !localStorage.getItem("nexterm-welcomed"));
+  const [showWelcome, setShowWelcome] = useState(() => !localStorage.getItem("wayterm-welcomed"));
 
   // Apply the non-theme appearance settings (UI font, accent override, blur,
   // density, zoom) whenever they or the active theme change, and keep the macOS
@@ -150,8 +150,8 @@ function AppContent() {
   // Allow command palette and other components to trigger the serial dialog
   useEffect(() => {
     const handler = () => setSerialDialogOpen(true);
-    window.addEventListener("nexterm:open-serial", handler);
-    return () => window.removeEventListener("nexterm:open-serial", handler);
+    window.addEventListener("wayterm:open-serial", handler);
+    return () => window.removeEventListener("wayterm:open-serial", handler);
   }, []);
 
   // The Connections toolbar, the palette and Settings open the ~/.ssh/config import this way.
@@ -200,7 +200,7 @@ function AppContent() {
                     <Suspense fallback={<PanelFallback />}>
                       <WelcomeWizard
                         onDismiss={() => {
-                          localStorage.setItem("nexterm-welcomed", "1");
+                          localStorage.setItem("wayterm-welcomed", "1");
                           setShowWelcome(false);
                           newTerminal();
                         }}

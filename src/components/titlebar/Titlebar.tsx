@@ -32,7 +32,7 @@ export default function Titlebar() {
     <header
       data-tauri-drag-region
       onDoubleClick={handleDoubleClick}
-      className="nx-blur flex h-9 w-full shrink-0 items-center border-b border-border bg-tabbar-glass"
+      className="wt-blur flex h-9 w-full shrink-0 items-center border-b border-border bg-tabbar-glass"
     >
       {/* Divide by the zoom so the gap stays the native width of the
           (unscaled) traffic lights. */}

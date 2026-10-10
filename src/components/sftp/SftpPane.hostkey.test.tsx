@@ -48,7 +48,7 @@ const MISMATCH: HostKeyMismatch = {
 
 const CHANGED_ERROR =
   "HOST KEY CHANGED for example.com:22! This could indicate a man-in-the-middle attack. The connection was not made." +
-  `\nnexterm-host-key-mismatch:${JSON.stringify(MISMATCH)}`;
+  `\nwayterm-host-key-mismatch:${JSON.stringify(MISMATCH)}`;
 
 const connect = vi.fn();
 
@@ -85,7 +85,7 @@ describe("SftpPane host keys", () => {
     await user.click(screen.getByRole("button", { name: "Cancel" }));
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
     expect(screen.getByText(/HOST KEY CHANGED for example\.com/)).toBeInTheDocument();
-    expect(screen.queryByText(/nexterm-host-key-mismatch/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/wayterm-host-key-mismatch/)).not.toBeInTheDocument();
     expect(invoke).not.toHaveBeenCalled();
     expect(connect).toHaveBeenCalledTimes(1);
   });

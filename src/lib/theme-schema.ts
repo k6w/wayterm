@@ -49,9 +49,9 @@ export const OPAQUE_CHROME_KEYS: ReadonlySet<ChromeKey> = new Set<ChromeKey>([
 export const DEFAULT_BLUR: ThemeBlur = { sidebar: 20, blocks: 4, inputBar: 12, overlay: 30 };
 export const DEFAULT_OPACITY: ThemeOpacity = { sidebar: 0.4, blocks: 0.05, inputBar: 0.08 };
 
-/** CSS custom property carrying a chrome token: borderStrong -> --nx-border-strong. */
+/** CSS custom property carrying a chrome token: borderStrong -> --wt-border-strong. */
 export function chromeCssVar(key: ChromeKey): string {
-  return `--nx-${key.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`)}`;
+  return `--wt-${key.replace(/[A-Z]/g, (m) => `-${m.toLowerCase()}`)}`;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

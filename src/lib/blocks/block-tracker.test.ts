@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import { Terminal } from "@xterm/xterm";
 import { BlockTracker, parseOsc7, type Block } from "./block-tracker";
 
-// Fixtures are raw `script -q` recordings of Nexterm's integration scripts in
+// Fixtures are raw `script -q` recordings of Wayterm's integration scripts in
 // real shells (80x24, HOME=/home/user, nonce "fixture-nonce").
 const NONCE = "fixture-nonce";
 
@@ -38,7 +38,7 @@ function sign(data: string): string {
     ...marks.map((m) => {
       const end = m.indexOf("\x07");
       const body = m.slice(0, end);
-      return "ACD".includes(m[0]) && !body.includes("nx=") ? `${body};nx=${NONCE}${m.slice(end)}` : m;
+      return "ACD".includes(m[0]) && !body.includes("wt=") ? `${body};wt=${NONCE}${m.slice(end)}` : m;
     }),
   ].join("\x1b]133;");
 }
@@ -158,8 +158,8 @@ describe("BlockTracker trust", () => {
   it("ignores a spoofed command report printed by a running command", async () => {
     const term = makeTerm();
     const tracker = new BlockTracker(term, NONCE);
-    await write(term, sign("\x1b]133;A\x07$ \x1b]133;B\x07cat evil\r\n\x1b]133;C;cmdline_url=cat%20evil;nx=fixture-nonce\x07"));
-    await write(term, "\x1b]133;C;cmdline_url=rm%20-rf%20~;nx=guess\x07text\r\n");
+    await write(term, sign("\x1b]133;A\x07$ \x1b]133;B\x07cat evil\r\n\x1b]133;C;cmdline_url=cat%20evil;wt=fixture-nonce\x07"));
+    await write(term, "\x1b]133;C;cmdline_url=rm%20-rf%20~;wt=guess\x07text\r\n");
     expect(tracker.blocks).toHaveLength(1);
     expect(tracker.getCommandText(tracker.blocks[0])).toBe("cat evil");
     expect(tracker.blocks[0].trusted).toBe(true);
@@ -168,9 +168,9 @@ describe("BlockTracker trust", () => {
   it("uses only the signed marks when the shell also sends its own (fish 4)", async () => {
     const term = makeTerm();
     const tracker = new BlockTracker(term, NONCE);
-    await write(term, `\x1b]133;A;click_events=1\x07\x1b]133;A;nx=${NONCE}\x07> \x1b]133;B\x07ls\r\n`);
-    await write(term, `\x1b]133;C;cmdline_url=ls\x07\x1b]133;C;cmdline_url=ls;nx=${NONCE}\x07a b\r\n`);
-    await write(term, `\x1b]133;D;0\x07\x1b]133;D;0;nx=${NONCE}\x07\x1b]133;A;click_events=1\x07\x1b]133;A;nx=${NONCE}\x07> `);
+    await write(term, `\x1b]133;A;click_events=1\x07\x1b]133;A;wt=${NONCE}\x07> \x1b]133;B\x07ls\r\n`);
+    await write(term, `\x1b]133;C;cmdline_url=ls\x07\x1b]133;C;cmdline_url=ls;wt=${NONCE}\x07a b\r\n`);
+    await write(term, `\x1b]133;D;0\x07\x1b]133;D;0;wt=${NONCE}\x07\x1b]133;A;click_events=1\x07\x1b]133;A;wt=${NONCE}\x07> `);
     expect(tracker.blocks.map((b) => summary(tracker, b))).toEqual([
       { command: "ls", output: "a b", exitCode: 0, state: "done" },
       { command: "", output: "", exitCode: undefined, state: "prompt" },
@@ -181,7 +181,7 @@ describe("BlockTracker trust", () => {
   it("caps the stored command line", async () => {
     const term = makeTerm();
     const tracker = new BlockTracker(term, NONCE);
-    await write(term, sign(`\x1b]133;A\x07$ \x1b]133;C;cmdline_url=${"x".repeat(5000)};nx=${NONCE}\x07`));
+    await write(term, sign(`\x1b]133;A\x07$ \x1b]133;C;cmdline_url=${"x".repeat(5000)};wt=${NONCE}\x07`));
     expect(tracker.blocks[0].command).toHaveLength(4096);
   });
 });
@@ -229,7 +229,7 @@ describe("BlockTracker state machine", () => {
   it("records only times on the alternate screen", async () => {
     const term = makeTerm();
     const tracker = new BlockTracker(term, NONCE);
-    await write(term, sign("\x1b]133;A\x07$ \x1b]133;B\x07vim\r\n\x1b]133;C;cmdline_url=vim;nx=fixture-nonce\x07\x1b[?1049h"));
+    await write(term, sign("\x1b]133;A\x07$ \x1b]133;B\x07vim\r\n\x1b]133;C;cmdline_url=vim;wt=fixture-nonce\x07\x1b[?1049h"));
     await write(term, sign("\x1b]133;A\x07\x1b]133;D;2\x07"));
     expect(tracker.blocks).toHaveLength(1);
     expect(tracker.blocks[0].exitCode).toBe(2);
@@ -265,7 +265,7 @@ describe("BlockTracker memory", () => {
   it("drops blocks and their markers when scrollback trims them", async () => {
     const term = makeTerm(50);
     const tracker = new BlockTracker(term, NONCE);
-    await write(term, sign("\x1b]133;A\x07$ \x1b]133;B\x07seq\r\n\x1b]133;C;nx=fixture-nonce\x07"));
+    await write(term, sign("\x1b]133;A\x07$ \x1b]133;B\x07seq\r\n\x1b]133;C;wt=fixture-nonce\x07"));
     const first = tracker.blocks[0];
     await write(term, Array.from({ length: 200 }, (_, i) => `${i}\r\n`).join(""));
     await write(term, sign("\x1b]133;D;0\x07\x1b]133;A\x07$ "));
@@ -301,7 +301,7 @@ describe("BlockTracker memory", () => {
     const term = makeTerm();
     const tracker = new BlockTracker(term, NONCE, { maxBlocks: 3 });
     for (let i = 0; i < 5; i++) {
-      await write(term, sign(`\x1b]133;A\x07$ \x1b]133;B\x07c${i}\r\n\x1b]133;C;nx=fixture-nonce\x07\x1b]133;D;0\x07`));
+      await write(term, sign(`\x1b]133;A\x07$ \x1b]133;B\x07c${i}\r\n\x1b]133;C;wt=fixture-nonce\x07\x1b]133;D;0\x07`));
     }
     expect(tracker.blocks.map((b) => tracker.getCommandText(b))).toEqual(["c2", "c3", "c4"]);
   });
