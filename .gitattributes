@@ -15,3 +15,6 @@ src/lib/blocks/__fixtures__/** -text
 
 *.mjs text eol=lf
 *.js text eol=lf
+
+# Cargo.toml is read by tests whose regexes expect LF.
+*.toml text eol=lf
