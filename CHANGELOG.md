@@ -2,9 +2,14 @@
 
 Notable changes to Wayterm, newest first. Versions follow [Semantic Versioning](https://semver.org).
 
-## Unreleased
+## 0.10.0 - 2026-10-10
+
+The first release as Wayterm.
 
 - Nexterm is now Wayterm. The app, its installers and the repository (now [k6w/wayterm](https://github.com/k6w/wayterm)) carry the new name
+- Wayterm is open source under the Apache License 2.0. Keep the NOTICE file and credit the project when you reuse it
+- Releases are published in one step after every platform has built, so the update feed always lists every platform
+- If you use Nexterm 0.9.0, install Wayterm 0.10.0 once from the releases page. It's a new app identity, so it won't arrive through Nexterm's updater, and it brings your data over on first start
 - On first start Wayterm copies your settings, connections, keys, history and scrollback from the old Nexterm data folder, which it leaves untouched
 - Shells started by Wayterm see `TERM_PROGRAM=wayterm`. If you added the remote snippet from Settings > Terminal to a server, replace it with the new one
 
