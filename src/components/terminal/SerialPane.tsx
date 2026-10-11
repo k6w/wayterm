@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
-import { WebglAddon } from "@xterm/addon-webgl";
 import { useThemeStore } from "../../stores/theme";
 import { useSettingsStore } from "../../stores/settings";
 import { useTerminalStore } from "../../stores/terminal";
 import { serialOpen, serialWrite, serialClose, onSerialOutput, onSerialExit } from "../../lib/ipc";
 import { hexToRgba } from "../../lib/color";
+import { loadWebgl } from "../../lib/webgl";
 import type { SerialConfig } from "../../types/terminal";
 import "@xterm/xterm/css/xterm.css";
 
@@ -115,13 +115,7 @@ export default function SerialPane({ paneId }: SerialPaneProps) {
     container.appendChild(termEl);
     term.open(termEl);
 
-    if (!vibrancy) {
-      try {
-        term.loadAddon(new WebglAddon());
-      } catch {
-        // WebGL not available, fallback to canvas
-      }
-    }
+    loadWebgl(term);
 
     fitAddon.fit();
     termRef.current = term;

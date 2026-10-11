@@ -3,7 +3,6 @@ import { Icon } from "../../ui/icons";
 import { Terminal } from "@xterm/xterm";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebLinksAddon } from "@xterm/addon-web-links";
-import { WebglAddon } from "@xterm/addon-webgl";
 import { useTerminalStore } from "../../stores/terminal";
 import { useThemeStore } from "../../stores/theme";
 import { useSettingsStore } from "../../stores/settings";
@@ -17,6 +16,7 @@ import {
 } from "../../lib/ipc";
 import { getPreferredShell } from "../../lib/shell-detect";
 import { hexToRgba } from "../../lib/color";
+import { loadWebgl } from "../../lib/webgl";
 import "@xterm/xterm/css/xterm.css";
 
 export default function Scratchpad() {
@@ -156,11 +156,7 @@ export default function Scratchpad() {
       term.open(termEl);
       term.loadAddon(new WebLinksAddon());
 
-      if (!vibrancy) {
-        try {
-          term.loadAddon(new WebglAddon());
-        } catch {}
-      }
+      loadWebgl(term);
 
       fitAddon.fit();
       termRef.current = term;

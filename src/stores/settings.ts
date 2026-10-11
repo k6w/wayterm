@@ -19,7 +19,7 @@ export const defaultSettings: AppSettings = {
     terminalFontFamily: "JetBrains Mono, monospace",
     terminalFontSize: 14,
     terminalFontWeight: 400,
-    terminalLineHeight: 1.4,
+    terminalLineHeight: 1.0,
     uiFontFamily: "Inter, system-ui, sans-serif",
     uiFontSize: 13,
     uiScale: 1.0,

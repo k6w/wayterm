@@ -1,7 +1,6 @@
 import { Suspense, useEffect, useRef, useState, useCallback, type CSSProperties } from "react";
 import { flushSync } from "react-dom";
 import { Terminal } from "@xterm/xterm";
-import { WebglAddon } from "@xterm/addon-webgl";
 import { FitAddon } from "@xterm/addon-fit";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import { SearchAddon } from "@xterm/addon-search";
@@ -59,6 +58,7 @@ import {
 import { useWorkspaceStore } from "../../stores/workspace";
 import { hexToRgba } from "../../lib/color";
 import { isOverlayOpen } from "../../lib/overlays";
+import { loadWebgl } from "../../lib/webgl";
 import "@xterm/xterm/css/xterm.css";
 
 interface TerminalPaneProps {
@@ -365,16 +365,10 @@ export default function TerminalPane({
         searchAddonRef.current = searchAddon;
 
         
-        let webgl: import("@xterm/addon-webgl").WebglAddon | null = null;
-        if (!vibrancy) {
-          try {
-            const addon = new WebglAddon();
-            term.loadAddon(addon);
-            webgl = addon;
-          } catch {
-            
-          }
-        }
+        const webgl = loadWebgl(term, () => {
+          const c = getCachedTerminal(paneId);
+          if (c) c.webglAddon = null;
+        });
 
         fitTerminal(term, fitAddon, container);
         termRef.current = term;
@@ -737,30 +731,12 @@ export default function TerminalPane({
     // askChangedHostKey is stable (useCallback with no deps).
   }, [paneId, askChangedHostKey]);
 
-  // ── Sync theme + vibrancy (manages WebGL addon lifecycle) ──
+  // ── Sync theme + vibrancy ──
   useEffect(() => {
     const term = termRef.current;
     if (!term) return;
     const vibrancy = settings.appearance.vibrancyEnabled;
     const opacity = settings.appearance.windowOpacity;
-
-    // Manage WebGL addon — WebGL always renders an opaque canvas,
-    // so it must be removed for any transparency to show.
-    const cached = getCachedTerminal(paneId);
-    if (cached) {
-      if (vibrancy && cached.webglAddon) {
-        try { cached.webglAddon.dispose(); } catch { /* already disposed */ }
-        cached.webglAddon = null;
-      } else if (!vibrancy && !cached.webglAddon) {
-        try {
-          const addon = new WebglAddon();
-          term.loadAddon(addon);
-          cached.webglAddon = addon;
-        } catch {
-          // canvas fallback
-        }
-      }
-    }
 
     // Update theme (background = transparent when vibrancy on, solid when off)
     term.options.theme = makeXtermTheme(theme, vibrancy, opacity);

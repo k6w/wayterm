@@ -79,7 +79,7 @@ vi.mock("@xterm/addon-fit", () => {
   }
   return { FitAddon };
 });
-vi.mock("@xterm/addon-webgl", () => ({ WebglAddon: class { dispose() {} } }));
+vi.mock("@xterm/addon-webgl", () => ({ WebglAddon: class { onContextLoss() {} dispose() {} } }));
 vi.mock("@xterm/addon-web-links", () => ({ WebLinksAddon: class {} }));
 vi.mock("@xterm/addon-search", () => ({ SearchAddon: class {} }));
 vi.mock("@xterm/xterm/css/xterm.css", () => ({}));
