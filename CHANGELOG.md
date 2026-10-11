@@ -2,6 +2,10 @@
 
 Notable changes to Wayterm, newest first. Versions follow [Semantic Versioning](https://semver.org).
 
+## 0.10.2 - 2026-10-11
+
+- The Ligatures setting works now. With a ligature font like JetBrains Mono (the default), `->`, `=>`, `!=`, `===` and other common sequences draw as single symbols. Turn it off in Settings > Terminal, and open terminals update right away
+
 ## 0.10.1 - 2026-10-11
 
 - Box-drawing and block characters connect again. Borders in tools like Claude Code and Codex no longer come out dashed, and block art no longer has stripes through it. This mostly affected windows with vibrancy on
