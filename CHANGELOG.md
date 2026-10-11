@@ -2,6 +2,11 @@
 
 Notable changes to Wayterm, newest first. Versions follow [Semantic Versioning](https://semver.org).
 
+## 0.10.1 - 2026-10-11
+
+- Box-drawing and block characters connect again. Borders in tools like Claude Code and Codex no longer come out dashed, and block art no longer has stripes through it. This mostly affected windows with vibrancy on
+- Lines sit closer together: the default line height is now 1.0, like other terminals. If you set your own in Settings > Appearance, it stays as you set it
+
 ## 0.10.0 - 2026-10-10
 
 The first release as Wayterm.

@@ -6268,7 +6268,7 @@ dependencies = [
 
 [[package]]
 name = "wayterm"
-version = "0.10.0"
+version = "0.10.1"
 dependencies = [
  "aes-gcm",
  "async-trait",
