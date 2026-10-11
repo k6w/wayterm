@@ -19,6 +19,8 @@ export interface SnapshotPane {
   kind: SnapshotPaneKind;
   shellType: ShellType;
   shellPath: string | null;
+  /** The profile a local shell was started from (absent in snapshots saved before profiles applied). */
+  profileId?: string;
   /** Working directory of a local shell; null for every other kind (an SSH cwd is remote). */
   cwd: string | null;
   sshConnectionId: string | null;

@@ -7,6 +7,7 @@ import { openSaveWorkspace } from "../sidebar/save-workspace";
 import { getEffectiveKeybindings } from "../../lib/keybindings";
 import { activeBlocks } from "../../lib/blocks/block-keys";
 import { getDefaultShells } from "../../lib/shell-detect";
+import { openProfileTab } from "../../lib/profiles";
 import { clearBuffer, getCachedTerminal, resetTerminal, writeToTerminal } from "../../lib/terminal-registry";
 import { resolveSnippetVars } from "../../lib/snippet-utils";
 import { toast } from "../../stores/toast";
@@ -160,6 +161,18 @@ export function buildPaletteActions(): PaletteAction[] {
       category: "New Tab",
       handler: () => {
         useTerminalStore.getState().addTab(shell.type, shell.path);
+      },
+    });
+  }
+
+  for (const profile of useSettingsStore.getState().settings.profiles) {
+    actions.push({
+      id: `new-tab-profile-${profile.id}`,
+      label: `New ${profile.name} Tab`,
+      icon: Icons.terminal,
+      category: "New Tab",
+      handler: () => {
+        openProfileTab(profile, useSettingsStore.getState().settings);
       },
     });
   }

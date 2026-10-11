@@ -341,7 +341,7 @@ export default function ProfilesPanel() {
         )}
       </Section>
 
-      <Section title="Custom profiles" description="Reusable shell launch configurations" actions={addButton}>
+      <Section title="Custom profiles" description="Open one from the menu next to + in the tab bar, or from the command palette" actions={addButton}>
         {profiles.length === 0 ? (
           <EmptyState
             icon={<Icon name="terminal" size="md" />}

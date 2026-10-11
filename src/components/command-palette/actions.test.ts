@@ -6,6 +6,7 @@ import { OPEN_SSH_CONFIG_IMPORT } from "../ssh/ssh-config-import";
 import { useWorkspaceStore } from "../../stores/workspace";
 import { OPEN_SAVE_WORKSPACE } from "../sidebar/save-workspace";
 import { writeToTerminal } from "../../lib/terminal-registry";
+import { createProfile } from "../settings/profile-utils";
 
 vi.mock("../../lib/terminal-registry", () => ({
   clearBuffer: vi.fn(),
@@ -56,6 +57,16 @@ describe("buildPaletteActions", () => {
     expect(buildPaletteActions().find((a) => a.id === "snippet-s1")).toMatchObject({
       label: "Deploy",
       category: "Snippets",
+    });
+  });
+
+  it("offers a new-tab action per profile", () => {
+    useSettingsStore.setState((s) => ({
+      settings: { ...s.settings, profiles: [{ ...createProfile("p1"), name: "Work" }] },
+    }));
+    expect(buildPaletteActions().find((a) => a.id === "new-tab-profile-p1")).toMatchObject({
+      label: "New Work Tab",
+      category: "New Tab",
     });
   });
 

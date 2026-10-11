@@ -7,6 +7,7 @@ import { onTerminalOutput, terminalResize, terminalSpawn, terminalWrite } from "
 import { useSshStore } from "../../stores/ssh";
 import type { SshConnection } from "../../types/ssh";
 import { getCachedTerminal, removeCachedTerminal } from "../../lib/terminal-registry";
+import { createProfile } from "../settings/profile-utils";
 
 const addonLog = vi.hoisted(() => [] as string[]);
 const terms = vi.hoisted(() => [] as { cols: number; rows: number; options: { fontSize?: number }; written: string[] }[]);
@@ -116,6 +117,8 @@ vi.mock("../../lib/ipc", async (importOriginal) => ({
   terminalKill: vi.fn(async () => {}),
   onTerminalOutput: vi.fn(async () => () => {}),
   onTerminalExit: vi.fn(async () => () => {}),
+  getHomeDir: vi.fn(async () => "/Users/me"),
+  terminalDirExists: vi.fn(async () => true),
 }));
 
 // jsdom has no layout: panes have a size unless a wrapper hides them (like a background tab).
@@ -257,6 +260,55 @@ describe("TerminalPane renderer", () => {
     addonLog.length = 0;
     setTerminal({ ligatures: true });
     expect(addonLog).toEqual(["ligatures", "webgl:dispose", "webgl"]);
+  });
+});
+
+describe("TerminalPane profile", () => {
+  const profile = {
+    ...createProfile("prof"),
+    shellPath: "/bin/bash",
+    args: ["-l"],
+    env: { STAGE: "dev" },
+    workingDirectory: "~/code",
+    fontSizeOverride: 18,
+    cursorStyleOverride: "block" as const,
+    scrollbackOverride: 500,
+    ligaturesOverride: false,
+  };
+
+  beforeEach(() => {
+    useSettingsStore.setState({ settings: { ...structuredClone(defaultSettings), profiles: [profile] } });
+    useTerminalStore.setState({
+      panes: {
+        p1: { id: "p1", sessionId: "", isActive: true, cwd: "~/code", shellType: "bash", profileId: "prof", checkCwd: true },
+      },
+    });
+  });
+
+  it("starts the profile's shell with its arguments, variables and folder", async () => {
+    render(<Tab hidden={false} />);
+    await started();
+
+    expect(vi.mocked(terminalSpawn).mock.calls[0][0]).toMatchObject({
+      shell: "/bin/bash",
+      args: ["-l"],
+      env: [["STAGE", "dev"]],
+      cwd: "/Users/me/code",
+    });
+  });
+
+  it("applies the profile's look over the global settings, and follows edits to it", async () => {
+    render(<Tab hidden={false} />);
+    const term = await started();
+
+    expect(term.options).toMatchObject({ fontSize: 18, cursorStyle: "block", scrollback: 500 });
+    expect(addonLog).toEqual(["webgl"]);
+
+    act(() => {
+      const s = useSettingsStore.getState().settings;
+      useSettingsStore.setState({ settings: { ...s, profiles: [{ ...profile, fontSizeOverride: 20 }] } });
+    });
+    expect(term.options.fontSize).toBe(20);
   });
 });
 

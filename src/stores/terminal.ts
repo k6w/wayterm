@@ -474,6 +474,7 @@ export const useTerminalStore = create<TerminalState>((set, get) => ({
           cwd: originalPane.cwd,
           shellType: originalPane.shellType,
           shellPath: originalPane.shellPath,
+          profileId: originalPane.profileId,
           sshConnectionId: originalPane.sshConnectionId,
           sftpConnectionId: originalPane.sftpConnectionId,
         };

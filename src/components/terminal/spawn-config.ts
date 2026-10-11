@@ -1,6 +1,7 @@
 import type { AppSettings } from "../../types/settings";
 import type { ShellSetup } from "../../lib/ipc";
 import type { TerminalPane } from "../../types/terminal";
+import { findProfile, profileSpawnExtras } from "../../lib/profiles";
 
 export interface SpawnConfig {
   shell: string;
@@ -10,14 +11,16 @@ export interface SpawnConfig {
   shellSetup: ShellSetup;
 }
 
-/** How a local (non-SSH) pane's shell is started. */
+/** How a local (non-SSH) pane's shell is started. A profile adds its shell, arguments and variables. */
 export function localSpawnConfig(
-  pane: Pick<TerminalPane, "shellPath"> | undefined,
+  pane: Pick<TerminalPane, "shellPath" | "profileId"> | undefined,
   settings: AppSettings,
   detectedShellPath: string,
 ): SpawnConfig {
-  const shell = pane?.shellPath || settings.general.defaultShell || detectedShellPath;
+  const profile = findProfile(settings, pane?.profileId);
+  const shell = profile?.shellPath || pane?.shellPath || settings.general.defaultShell || detectedShellPath;
   // With the integration off, shells keep the title-only prompt they always had.
   const shellSetup: ShellSetup = settings.terminal.shellIntegration ? "integrated" : "titleOnly";
-  return { shell, args: [], env: [], shellSetup };
+  const { args, env } = profile ? profileSpawnExtras(profile) : { args: [], env: [] };
+  return { shell, args, env, shellSetup };
 }

@@ -43,6 +43,7 @@ function snapshotPane(pane: TerminalPane, connections: readonly SshConnection[])
     kind,
     shellType: pane.shellType,
     shellPath: pane.shellPath || null,
+    ...(kind === "local" && pane.profileId ? { profileId: pane.profileId } : {}),
     cwd: kind === "local" ? pane.cwd || null : null,
     sshConnectionId: kind === "ssh" ? pane.sshConnectionId ?? null : null,
     sshQuick: quick ? { name: quick.name, host: quick.host, port: quick.port, username: quick.username } : null,
@@ -174,6 +175,7 @@ function readPane(value: unknown): SnapshotPane | null {
     kind,
     shellType,
     shellPath: str(value.shellPath),
+    ...(kind === "local" && typeof value.profileId === "string" && value.profileId ? { profileId: value.profileId } : {}),
     cwd: kind === "local" ? str(value.cwd) : null,
     sshConnectionId: kind === "ssh" ? str(value.sshConnectionId) : null,
     sshQuick: kind === "ssh" ? readQuick(value.sshQuick) : null,
@@ -291,6 +293,7 @@ function buildNode(node: SnapshotNode, ids: Map<string, string>, panes: Record<s
     shellType: saved.shellType,
   };
   if (saved.shellPath) pane.shellPath = saved.shellPath;
+  if (saved.profileId) pane.profileId = saved.profileId;
   if (saved.sshConnectionId) pane.sshConnectionId = saved.sshConnectionId;
   if (saved.sftpConnectionId) pane.sftpConnectionId = saved.sftpConnectionId;
   if (saved.serialConfig) pane.serialConfig = saved.serialConfig;

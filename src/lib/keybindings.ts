@@ -41,6 +41,7 @@ export function splitActivePane(direction: "horizontal" | "vertical") {
     cwd: currentPane.cwd,
     shellType: currentPane.shellType || shell.type,
     shellPath: currentPane.shellPath,
+    profileId: currentPane.profileId,
   };
   splitPane(activePaneId, direction, newPane);
 }

@@ -6,6 +6,7 @@ import DropZoneOverlay from "../terminal/DropZoneOverlay";
 import { useTerminalStore } from "../../stores/terminal";
 import { useSettingsStore } from "../../stores/settings";
 import type { TerminalTab } from "../../types/terminal";
+import { createProfile } from "../settings/profile-utils";
 
 function makeTab(id: string, title: string, isActive: boolean): TerminalTab {
   return { id, title, icon: "", shellType: "zsh", panes: { type: "pane", paneId: `${id}-pane` }, isActive };
@@ -118,6 +119,29 @@ describe("TabStrip", () => {
     expect(items.length).toBeGreaterThan(0);
     await user.keyboard("{Enter}");
     await waitFor(() => expect(actions.addTab).toHaveBeenCalledTimes(2));
+  });
+
+  it("opens a profile from the shell menu, named after it", async () => {
+    useSettingsStore.setState((s) => ({
+      settings: { ...s.settings, profiles: [{ ...createProfile("p1"), name: "Work", shellPath: "/bin/bash" }] },
+    }));
+    const user = userEvent.setup();
+    render(<TabStrip />);
+
+    screen.getByRole("button", { name: "Choose shell" }).focus();
+    await user.keyboard("{Enter}");
+    await user.click(await screen.findByRole("menuitem", { name: "Work" }));
+
+    expect(actions.addTab).toHaveBeenCalledWith("bash", "/bin/bash", undefined, undefined);
+    expect(actions.renameTab).toHaveBeenCalledWith("t1", "Work");
+  });
+
+  it("lists no profiles section when there are none", async () => {
+    const user = userEvent.setup();
+    render(<TabStrip />);
+    screen.getByRole("button", { name: "Choose shell" }).focus();
+    await user.keyboard("{Enter}");
+    expect(within(await screen.findByRole("menu")).queryByText("Profiles")).toBeNull();
   });
 });
 

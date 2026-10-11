@@ -404,6 +404,16 @@ describe("materializeSnapshot", () => {
     expect(byOldId("e").startupCommands).toEqual(["uptime"]);
   });
 
+  it("keeps the profile a local shell was started from, through save, parse and restore", () => {
+    const src = source();
+    const a = Object.keys(src.panes)[0];
+    src.panes[a] = { ...src.panes[a], profileId: "prof-1" };
+    const snap = parseWorkspaceLayout(JSON.stringify(buildSnapshot(src)))!;
+    const { panes, idMap } = materializeSnapshot(snap);
+    expect(panes[idMap.get(a)!].profileId).toBe("prof-1");
+    expect(Object.values(panes).filter((p) => p.profileId)).toHaveLength(1);
+  });
+
   it("keeps the ids-to-buffers map empty for panes without a saved id", () => {
     expect(materializeSnapshot(stripPaneIds(buildSnapshot(source()))).idMap.size).toBe(0);
   });

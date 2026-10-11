@@ -60,6 +60,7 @@ import { hexToRgba } from "../../lib/color";
 import { isOverlayOpen } from "../../lib/overlays";
 import { loadWebgl } from "../../lib/webgl";
 import { loadLigatures } from "../../lib/ligatures";
+import { expandHome, findProfile, terminalLook } from "../../lib/profiles";
 import "@xterm/xterm/css/xterm.css";
 
 interface TerminalPaneProps {
@@ -195,6 +196,10 @@ export default function TerminalPane({
   const theme = useThemeStore((s) => s.active);
   const previewTheme = useThemeStore((s) => s.previewTheme);
   const settings = useSettingsStore((s) => s.settings);
+  const profileId = useTerminalStore((s) => s.panes[paneId]?.profileId);
+  const profile = findProfile(settings, profileId);
+  const look = terminalLook(settings, profile);
+  const profileTheme = profile?.themeOverride ?? null;
   const [showSearch, setShowSearch] = useState(false);
   const [sessionExited, setSessionExited] = useState(false);
   // Command blocks of this pane (lives in the terminal cache; state here only to render).
@@ -222,19 +227,22 @@ export default function TerminalPane({
   // Feature: Long command notification
   const commandStartTimeRef = useRef<number | null>(null);
 
-  // Per-connection theme override: activate when pane is focused, restore on blur
+  // Per-connection or per-profile theme override: activate when pane is focused, restore on blur
   useEffect(() => {
     const pane = useTerminalStore.getState().panes[paneId];
     const conn = pane?.sshConnectionId
       ? useSshStore.getState().connections.find((c) => c.id === pane.sshConnectionId)
       : undefined;
-    if (!conn?.themeOverride) return;
-    if (isActive) {
-      previewTheme(conn.themeOverride);
-    } else {
+    const themeOverride = conn?.themeOverride || profileTheme;
+    if (!themeOverride) return;
+    if (!isActive) {
       previewTheme(null);
+      return;
     }
-  }, [isActive, paneId, previewTheme]);
+    previewTheme(themeOverride);
+    // Back to the app theme when the override goes away (profile edited or deleted, pane closed).
+    return () => previewTheme(null);
+  }, [isActive, paneId, previewTheme, profileTheme]);
 
   
   useEffect(() => {
@@ -319,10 +327,14 @@ export default function TerminalPane({
         container.appendChild(termEl);
 
         const vibrancy = settings.appearance.vibrancyEnabled;
+        const initialLook = terminalLook(
+          settings,
+          findProfile(settings, useTerminalStore.getState().panes[paneId]?.profileId),
+        );
         const term = new Terminal({
-          fontFamily: settings.appearance.terminalFontFamily,
-          fontSize: settings.appearance.terminalFontSize,
-          fontWeight: String(settings.appearance.terminalFontWeight) as
+          fontFamily: initialLook.fontFamily,
+          fontSize: initialLook.fontSize,
+          fontWeight: String(initialLook.fontWeight) as
             | "normal"
             | "bold"
             | "100"
@@ -335,9 +347,9 @@ export default function TerminalPane({
             | "800"
             | "900",
           lineHeight: settings.appearance.terminalLineHeight,
-          cursorStyle: settings.appearance.cursorStyle,
+          cursorStyle: initialLook.cursorStyle,
           cursorBlink: settings.appearance.cursorBlink,
-          scrollback: settings.terminal.scrollbackLines,
+          scrollback: initialLook.scrollback,
           allowProposedApi: true,
           
           
@@ -362,7 +374,7 @@ export default function TerminalPane({
 
         
         // Ligatures go first: WebGL reads the font features when it loads.
-        const ligatures = settings.terminal.ligatures ? loadLigatures(term) : null;
+        const ligatures = initialLook.ligatures ? loadLigatures(term) : null;
         const webgl = attachWebgl(paneId, term);
 
         fitTerminal(term, fitAddon, container);
@@ -437,6 +449,11 @@ export default function TerminalPane({
 
         // A restored workspace saved this folder: start there only if it still exists.
         let spawnCwd = existingPane?.cwd || "";
+        // A profile's folder may start with ~ (the shell doesn't expand a working directory).
+        if (spawnCwd.startsWith("~") && !isSsh) {
+          spawnCwd = expandHome(spawnCwd, await getHomeDir().catch(() => null));
+          if (cancelled) return;
+        }
         if (existingPane?.checkCwd && spawnCwd && !isSsh) {
           const resolved = await resolveRestoredCwd(spawnCwd, { dirExists: terminalDirExists, home: getHomeDir });
           if (cancelled) return;
@@ -742,7 +759,7 @@ export default function TerminalPane({
   // ── Sync ligatures ──
   useEffect(() => {
     const cached = getCachedTerminal(paneId);
-    const enabled = settings.terminal.ligatures;
+    const enabled = look.ligatures;
     if (!cached || enabled === (cached.ligaturesAddon !== null)) return;
     if (enabled) {
       cached.ligaturesAddon = loadLigatures(cached.terminal);
@@ -753,27 +770,27 @@ export default function TerminalPane({
     // WebGL keeps glyphs drawn with the old font features; reload it to redraw them.
     cached.webglAddon?.dispose();
     cached.webglAddon = attachWebgl(paneId, cached.terminal);
-  }, [settings.terminal.ligatures, paneId]);
+  }, [look.ligatures, paneId]);
 
-  // ── Sync appearance settings ──
+  // ── Sync appearance settings (with the pane's profile overrides) ──
+  const { fontFamily, fontSize, fontWeight, cursorStyle, scrollback } = look;
+  const { terminalLineHeight, cursorBlink } = settings.appearance;
   useEffect(() => {
-    if (!termRef.current) return;
-    termRef.current.options.fontFamily =
-      settings.appearance.terminalFontFamily;
-    termRef.current.options.fontSize =
-      settings.appearance.terminalFontSize;
-    termRef.current.options.lineHeight =
-      settings.appearance.terminalLineHeight;
-    termRef.current.options.cursorStyle =
-      settings.appearance.cursorStyle;
-    termRef.current.options.cursorBlink =
-      settings.appearance.cursorBlink;
+    const term = termRef.current;
+    if (!term) return;
+    term.options.fontFamily = fontFamily;
+    term.options.fontSize = fontSize;
+    term.options.fontWeight = String(fontWeight) as Terminal["options"]["fontWeight"];
+    term.options.lineHeight = terminalLineHeight;
+    term.options.cursorStyle = cursorStyle;
+    term.options.cursorBlink = cursorBlink;
+    term.options.scrollback = scrollback;
     const container = containerRef.current;
-    if (fitRef.current && container && fitTerminal(termRef.current, fitRef.current, container)) {
+    if (fitRef.current && container && fitTerminal(term, fitRef.current, container)) {
       const sessionId = getCachedTerminal(paneId)?.sessionId;
-      if (sessionId) terminalResize(sessionId, termRef.current.rows, termRef.current.cols).catch(() => {});
+      if (sessionId) terminalResize(sessionId, term.rows, term.cols).catch(() => {});
     }
-  }, [settings.appearance, paneId]);
+  }, [fontFamily, fontSize, fontWeight, terminalLineHeight, cursorStyle, cursorBlink, scrollback, paneId]);
 
   // ── Focus when active ──
   useEffect(() => {
@@ -1041,7 +1058,10 @@ export default function TerminalPane({
                   if (newTab) useTerminalStore.getState().renameTab(newTab.id, tab.title);
                   removeTab(tab.id);
                 } else if (tab) {
-                  addTab(shell as import("../../types/terminal").ShellType, pane.shellPath);
+                  const newPaneId = addTab(shell as import("../../types/terminal").ShellType, pane.shellPath);
+                  if (pane.profileId) useTerminalStore.getState().updatePane(newPaneId, { profileId: pane.profileId });
+                  const newTab = useTerminalStore.getState().tabs.find((t) => t.isActive);
+                  if (newTab) useTerminalStore.getState().renameTab(newTab.id, tab.title);
                   removeTab(tab.id);
                 }
               }

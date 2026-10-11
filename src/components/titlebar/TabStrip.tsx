@@ -5,9 +5,10 @@ import { useTerminalStore, collectPaneIds } from "../../stores/terminal";
 import { useSettingsStore } from "../../stores/settings";
 import { getPreferredShell, getDefaultShells } from "../../lib/shell-detect";
 import { shortcutFor } from "../../lib/shortcut-hints";
+import { openProfileTab } from "../../lib/profiles";
 import type { ShellType } from "../../types/terminal";
 import type { DropZone } from "../../stores/terminal";
-import { IconButton, Menu, MenuContent, MenuItem, MenuLabel, MenuTrigger, Tabs, TabsList, cn } from "../../ui";
+import { IconButton, Menu, MenuContent, MenuItem, MenuLabel, MenuSeparator, MenuTrigger, Tabs, TabsList, cn } from "../../ui";
 import Tab from "./Tab";
 
 /** Pointer travel (px) before a press on a tab becomes a drag instead of a click. */
@@ -230,7 +231,7 @@ const SHELL_ICONS: Record<string, ReactNode> = {
   sftp: <Icon name="sftp" size="sm" />,
 };
 
-/** "+" opens a tab with the default shell; the chevron menu picks another shell. */
+/** "+" opens a tab with the default shell; the chevron menu picks another shell or a profile. */
 function NewTabControls({
   onAdd,
   isVertical,
@@ -241,6 +242,7 @@ function NewTabControls({
   const shells = getDefaultShells();
   const defaultShellSetting = useSettingsStore((s) => s.settings.general.defaultShell);
   const defaultShell = getPreferredShell(defaultShellSetting);
+  const profiles = useSettingsStore((s) => s.settings.profiles);
   const tooltipSide = isVertical ? "right" : "bottom";
 
   return (
@@ -268,6 +270,21 @@ function NewTabControls({
               {shell.path === defaultShell.path && <span className="text-caption text-fg-muted">default</span>}
             </MenuItem>
           ))}
+          {profiles.length > 0 && (
+            <>
+              <MenuSeparator />
+              <MenuLabel>Profiles</MenuLabel>
+              {profiles.map((profile) => (
+                <MenuItem
+                  key={profile.id}
+                  icon={<Icon name="terminal" size="sm" />}
+                  onSelect={() => openProfileTab(profile, useSettingsStore.getState().settings)}
+                >
+                  {profile.name}
+                </MenuItem>
+              ))}
+            </>
+          )}
         </MenuContent>
       </Menu>
     </div>

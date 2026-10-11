@@ -20,6 +20,8 @@ export interface TerminalPane {
   cwd: string;
   shellType: ShellType;
   shellPath?: string;
+  /** Started from this profile (Settings > Profiles): its shell, arguments, variables and look. */
+  profileId?: string;
   sshConnectionId?: string;
   sftpConnectionId?: string;
   serialConfig?: SerialConfig;
