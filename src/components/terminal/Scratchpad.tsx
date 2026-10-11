@@ -17,6 +17,7 @@ import {
 import { getPreferredShell } from "../../lib/shell-detect";
 import { hexToRgba } from "../../lib/color";
 import { loadWebgl } from "../../lib/webgl";
+import { loadLigatures } from "../../lib/ligatures";
 import "@xterm/xterm/css/xterm.css";
 
 export default function Scratchpad() {
@@ -156,6 +157,7 @@ export default function Scratchpad() {
       term.open(termEl);
       term.loadAddon(new WebLinksAddon());
 
+      if (settings.terminal.ligatures) loadLigatures(term);
       loadWebgl(term);
 
       fitAddon.fit();

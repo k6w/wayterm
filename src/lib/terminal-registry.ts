@@ -1,6 +1,7 @@
 import type { Terminal } from "@xterm/xterm";
 import type { FitAddon } from "@xterm/addon-fit";
 import type { WebglAddon } from "@xterm/addon-webgl";
+import type { LigaturesAddon } from "@xterm/addon-ligatures";
 import type { UnlistenFn } from "@tauri-apps/api/event";
 import { bufferSaveBatch } from "./ipc";
 import { useClipboardStore } from "../stores/clipboard";
@@ -16,6 +17,7 @@ export interface CachedTerminal {
   unlistenExit: UnlistenFn | null;
   
   webglAddon: WebglAddon | null;
+  ligaturesAddon: LigaturesAddon | null;
   /** Command blocks from the shell integration; disposed with the terminal. */
   blocks: BlockTracker | null;
 }

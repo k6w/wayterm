@@ -7,6 +7,7 @@ import { useTerminalStore } from "../../stores/terminal";
 import { serialOpen, serialWrite, serialClose, onSerialOutput, onSerialExit } from "../../lib/ipc";
 import { hexToRgba } from "../../lib/color";
 import { loadWebgl } from "../../lib/webgl";
+import { loadLigatures } from "../../lib/ligatures";
 import type { SerialConfig } from "../../types/terminal";
 import "@xterm/xterm/css/xterm.css";
 
@@ -115,6 +116,7 @@ export default function SerialPane({ paneId }: SerialPaneProps) {
     container.appendChild(termEl);
     term.open(termEl);
 
+    if (settings.terminal.ligatures) loadLigatures(term);
     loadWebgl(term);
 
     fitAddon.fit();

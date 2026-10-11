@@ -249,13 +249,6 @@ body {
   border-radius: 3px;
 }
 
-/* Font ligatures support - enabled via terminal settings */
-.terminal-ligatures .xterm-rows {
-  font-variant-ligatures: normal;
-  font-feature-settings: "liga" 1, "calt" 1, "dlig" 1, "zero" 1;
-  text-rendering: optimizeLegibility;
-}
-
 /* Settings search: flash the row a result points at. The reduced-motion rule below shortens it to nothing. */
 @keyframes wt-row-highlight {
   from { background-color: var(--color-accent-subtle); }

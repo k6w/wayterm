@@ -59,6 +59,7 @@ import { useWorkspaceStore } from "../../stores/workspace";
 import { hexToRgba } from "../../lib/color";
 import { isOverlayOpen } from "../../lib/overlays";
 import { loadWebgl } from "../../lib/webgl";
+import { loadLigatures } from "../../lib/ligatures";
 import "@xterm/xterm/css/xterm.css";
 
 interface TerminalPaneProps {
@@ -345,11 +346,6 @@ export default function TerminalPane({
         });
         
         
-        const ligaturesEnabled = settings.terminal.ligatures;
-        if (ligaturesEnabled) {
-          term.element?.classList.add('terminal-ligatures');
-        }
-
         const fitAddon = new FitAddon();
         term.loadAddon(fitAddon);
         term.open(termEl);
@@ -365,10 +361,9 @@ export default function TerminalPane({
         searchAddonRef.current = searchAddon;
 
         
-        const webgl = loadWebgl(term, () => {
-          const c = getCachedTerminal(paneId);
-          if (c) c.webglAddon = null;
-        });
+        // Ligatures go first: WebGL reads the font features when it loads.
+        const ligatures = settings.terminal.ligatures ? loadLigatures(term) : null;
+        const webgl = attachWebgl(paneId, term);
 
         fitTerminal(term, fitAddon, container);
         termRef.current = term;
@@ -662,6 +657,7 @@ export default function TerminalPane({
           unlistenOutput,
           unlistenExit,
           webglAddon: webgl,
+          ligaturesAddon: ligatures,
           blocks,
         });
 
@@ -742,6 +738,22 @@ export default function TerminalPane({
     term.options.theme = makeXtermTheme(theme, vibrancy, opacity);
     term.refresh(0, term.rows - 1);
   }, [theme, settings.appearance.vibrancyEnabled, settings.appearance.windowOpacity, paneId]);
+
+  // ── Sync ligatures ──
+  useEffect(() => {
+    const cached = getCachedTerminal(paneId);
+    const enabled = settings.terminal.ligatures;
+    if (!cached || enabled === (cached.ligaturesAddon !== null)) return;
+    if (enabled) {
+      cached.ligaturesAddon = loadLigatures(cached.terminal);
+    } else {
+      cached.ligaturesAddon?.dispose();
+      cached.ligaturesAddon = null;
+    }
+    // WebGL keeps glyphs drawn with the old font features; reload it to redraw them.
+    cached.webglAddon?.dispose();
+    cached.webglAddon = attachWebgl(paneId, cached.terminal);
+  }, [settings.terminal.ligatures, paneId]);
 
   // ── Sync appearance settings ──
   useEffect(() => {
@@ -1082,6 +1094,14 @@ export default function TerminalPane({
     />
     </ContextMenu>
   );
+}
+
+/** Loads WebGL for a pane's terminal; the cache forgets it if the GPU context is lost. */
+function attachWebgl(paneId: string, term: Terminal) {
+  return loadWebgl(term, () => {
+    const c = getCachedTerminal(paneId);
+    if (c) c.webglAddon = null;
+  });
 }
 
 function makeXtermTheme(

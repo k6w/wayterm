@@ -8,6 +8,7 @@ import { useSshStore } from "../../stores/ssh";
 import type { SshConnection } from "../../types/ssh";
 import { getCachedTerminal, removeCachedTerminal } from "../../lib/terminal-registry";
 
+const addonLog = vi.hoisted(() => [] as string[]);
 const terms = vi.hoisted(() => [] as { cols: number; rows: number; options: { fontSize?: number }; written: string[] }[]);
 
 // A terminal without a renderer: enough for the pane to open it, start a shell and fit it.
@@ -79,7 +80,27 @@ vi.mock("@xterm/addon-fit", () => {
   }
   return { FitAddon };
 });
-vi.mock("@xterm/addon-webgl", () => ({ WebglAddon: class { onContextLoss() {} dispose() {} } }));
+vi.mock("@xterm/addon-webgl", () => ({
+  WebglAddon: class {
+    onContextLoss() {}
+    activate() {
+      addonLog.push("webgl");
+    }
+    dispose() {
+      addonLog.push("webgl:dispose");
+    }
+  },
+}));
+vi.mock("@xterm/addon-ligatures", () => ({
+  LigaturesAddon: class {
+    activate() {
+      addonLog.push("ligatures");
+    }
+    dispose() {
+      addonLog.push("ligatures:dispose");
+    }
+  },
+}));
 vi.mock("@xterm/addon-web-links", () => ({ WebLinksAddon: class {} }));
 vi.mock("@xterm/addon-search", () => ({ SearchAddon: class {} }));
 vi.mock("@xterm/xterm/css/xterm.css", () => ({}));
@@ -126,6 +147,7 @@ function Tab({ hidden }: { hidden: boolean }) {
 
 beforeEach(() => {
   terms.length = 0;
+  addonLog.length = 0;
   removeCachedTerminal("p1");
   vi.mocked(terminalSpawn).mockClear();
   vi.mocked(terminalResize).mockClear();
@@ -185,6 +207,56 @@ describe("TerminalPane sizing", () => {
 
     expect(term.cols).toBe(96);
     expect(terminalResize).toHaveBeenCalledWith("s1", 30, 96);
+  });
+});
+
+describe("TerminalPane renderer", () => {
+  function setTerminal(values: Partial<typeof defaultSettings.terminal>) {
+    act(() => {
+      const s = useSettingsStore.getState().settings;
+      useSettingsStore.setState({ settings: { ...s, terminal: { ...s.terminal, ...values } } });
+    });
+  }
+
+  it("uses WebGL under vibrancy too, so box-drawing characters fill their cells", async () => {
+    useSettingsStore.setState({
+      settings: { ...defaultSettings, appearance: { ...defaultSettings.appearance, vibrancyEnabled: true } },
+    });
+    render(<Tab hidden={false} />);
+    await started();
+
+    expect(addonLog).toContain("webgl");
+    expect(getCachedTerminal("p1")?.webglAddon).not.toBeNull();
+  });
+
+  it("loads ligatures before WebGL", async () => {
+    render(<Tab hidden={false} />);
+    await started();
+
+    expect(addonLog).toEqual(["ligatures", "webgl"]);
+  });
+
+  it("skips ligatures when they are off", async () => {
+    setTerminal({ ligatures: false });
+    render(<Tab hidden={false} />);
+    await started();
+
+    expect(addonLog).toEqual(["webgl"]);
+    expect(getCachedTerminal("p1")?.ligaturesAddon).toBeNull();
+  });
+
+  it("toggles ligatures live and reloads WebGL so cached glyphs redraw", async () => {
+    render(<Tab hidden={false} />);
+    await started();
+    addonLog.length = 0;
+
+    setTerminal({ ligatures: false });
+    expect(addonLog).toEqual(["ligatures:dispose", "webgl:dispose", "webgl"]);
+    expect(getCachedTerminal("p1")?.ligaturesAddon).toBeNull();
+
+    addonLog.length = 0;
+    setTerminal({ ligatures: true });
+    expect(addonLog).toEqual(["ligatures", "webgl:dispose", "webgl"]);
   });
 });
 

@@ -192,7 +192,7 @@ describe("restore", () => {
     await workspaceFromCurrent();
     const dispose = vi.fn();
     const disposeBlocks = vi.fn();
-    setCachedTerminal("a", { terminal: { dispose } as never, fitAddon: {} as never, element: {} as never, sessionId: "s-a", unlistenOutput: null, unlistenExit: null, webglAddon: null, blocks: { dispose: disposeBlocks } as never });
+    setCachedTerminal("a", { terminal: { dispose } as never, fitAddon: {} as never, element: {} as never, sessionId: "s-a", unlistenOutput: null, unlistenExit: null, webglAddon: null, ligaturesAddon: null, blocks: { dispose: disposeBlocks } as never });
     useWorkspaceStore.getState().restore("w1");
     expect(dispose).toHaveBeenCalled();
     expect(disposeBlocks).toHaveBeenCalled();

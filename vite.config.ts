@@ -35,6 +35,12 @@ function phosphorUsedWeightsOnly(): Plugin {
 
 export default defineConfig(async () => ({
   plugins: [react(), tailwindcss(), phosphorUsedWeightsOnly()],
+  resolve: {
+    alias: {
+      // The published package names a CommonJS `main` it doesn't ship; point every resolver at its ESM build.
+      "@xterm/addon-ligatures": "@xterm/addon-ligatures/lib/addon-ligatures.mjs",
+    },
+  },
   clearScreen: false,
   server: {
     port: 1420,
