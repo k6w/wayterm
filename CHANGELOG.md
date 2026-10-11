@@ -2,6 +2,17 @@
 
 Notable changes to Wayterm, newest first. Versions follow [Semantic Versioning](https://semver.org).
 
+## 0.11.0 - 2026-10-11
+
+Profiles work now. Before, you could set them up in Settings > Profiles, but nothing used them.
+
+- Open a profile from the menu next to + in the tab bar, or search "New <profile> Tab" in the command palette. The tab is named after the profile
+- The profile's shell starts with its arguments and environment variables, in its working directory. `~` means your home folder, and if the folder is gone the shell starts at home with a note
+- Its font, size, weight, cursor, scrollback and ligature settings apply to that tab, and edits to the profile show up in open tabs right away
+- Its theme shows while the tab has focus, the same way an SSH connection's theme does
+- Splitting, duplicating or restarting a profile tab keeps the profile, and so does saving and restoring a workspace
+- Changing font weight or scrollback in Settings now updates open terminals, not only new ones
+
 ## 0.10.2 - 2026-10-11
 
 - The Ligatures setting works now. With a ligature font like JetBrains Mono (the default), `->`, `=>`, `!=`, `===` and other common sequences draw as single symbols. Turn it off in Settings > Terminal, and open terminals update right away

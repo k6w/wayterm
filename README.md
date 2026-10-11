@@ -12,7 +12,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/k6w/wayterm/releases/latest"><img src="https://img.shields.io/badge/release-v0.10.2-2f6be0?style=flat-square" alt="Release v0.10.2"></a>
+  <a href="https://github.com/k6w/wayterm/releases/latest"><img src="https://img.shields.io/badge/release-v0.11.0-2f6be0?style=flat-square" alt="Release v0.11.0"></a>
   <a href="https://github.com/k6w/wayterm/actions/workflows/ci.yml"><img src="https://github.com/k6w/wayterm/actions/workflows/ci.yml/badge.svg?branch=master" alt="CI status"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-Apache--2.0-3a3d44?style=flat-square" alt="License: Apache 2.0"></a>
   <a href="#download"><img src="https://img.shields.io/badge/platforms-macOS%20%7C%20Windows%20%7C%20Linux-3a3d44?style=flat-square" alt="Platforms: macOS, Windows and Linux"></a>
